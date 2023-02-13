@@ -4,6 +4,7 @@ sire ~=2023.1.0
 
 configargparse
 kcombu_bss
+fkcombu
 ipywidgets<8
 lomap2
 networkx
