@@ -356,3 +356,18 @@ def test_isSame(system):
     # Assert that they are the same, apart from their coordinates and space.
     assert system.isSame(other, excluded_properties=["coordinates", "space"])
     assert other.isSame(system, excluded_properties=["coordinates", "space"])
+
+
+def test_velocity_removal():
+    # Make sure that velocities are removed when molecules are combined
+    # and not all molecules have a "velocity" property.
+
+    # Load a molecule with and without velocities.
+    mol = BSS.IO.readMolecules(BSS.IO.expand(url, "methane.gro", ".bz2"))
+    mol_vel = BSS.IO.readMolecules(BSS.IO.expand(url, "methane_vel.gro", ".bz2"))
+
+    # Add together to create a new system.
+    new_system = mol + mol_vel
+
+    # Check that no molecules have a velocity property.
+    assert len(new_system.search("not mol with property velocity").molecules()) == 2

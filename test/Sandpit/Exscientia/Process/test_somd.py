@@ -32,8 +32,8 @@ def test_minimise(system):
     # Create a short minimisation protocol.
     protocol = BSS.Protocol.Minimisation(steps=100)
 
-    # Run the process and check that it finishes without error.
-    assert run_process(system, protocol)
+    # Run the process, check that it finished without error, and returns a system.
+    run_process(system, protocol)
 
 
 def test_equilibrate(system):
@@ -42,8 +42,8 @@ def test_equilibrate(system):
     # Create a short equilibration protocol.
     protocol = BSS.Protocol.Equilibration(runtime=BSS.Types.Time(0.001, "nanoseconds"))
 
-    # Run the process and check that it finishes without error.
-    assert run_process(system, protocol)
+    # Run the process, check that it finished without error, and returns a system.
+    run_process(system, protocol)
 
 
 def test_production(system):
@@ -52,8 +52,8 @@ def test_production(system):
     # Create a short production protocol.
     protocol = BSS.Protocol.Production(runtime=BSS.Types.Time(0.001, "nanoseconds"))
 
-    # Run the process and check that it finishes without error.
-    assert run_process(system, protocol)
+    # Run the process, check that it finished without error, and returns a system.
+    run_process(system, protocol)
 
 
 def test_free_energy(perturbable_system):
@@ -64,8 +64,8 @@ def test_free_energy(perturbable_system):
         runtime=0.1 * BSS.Units.Time.picosecond, report_interval=50, restart_interval=50
     )
 
-    # Run the process and check that it finishes without error.
-    assert run_process(perturbable_system[0].toSystem(), protocol)
+    # Run the process, check that it finished without error, and returns a system.
+    run_process(perturbable_system, protocol)
 
 
 def test_pert_file():
@@ -157,5 +157,8 @@ def run_process(system, protocol):
 
     return not res
 
-    # Return the process exit code.
-    return not process.isError()
+    # Make sure the process didn't error.
+    assert not process.isError()
+
+    # Make sure that we get a molecular system back.
+    assert process.getSystem() is not None

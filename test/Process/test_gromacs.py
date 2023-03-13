@@ -33,8 +33,8 @@ def test_minimise(system):
     # Create a short minimisation protocol.
     protocol = BSS.Protocol.Minimisation(steps=100)
 
-    # Run the process and check that it finishes without error.
-    assert run_process(system, protocol)
+    # Run the process, check that it finished without error, and returns a system.
+    run_process(system, protocol)
 
 
 @pytest.mark.skipif(has_gromacs is False, reason="Requires GROMACS to be installed.")
@@ -47,8 +47,8 @@ def test_equilibrate(system, restraint):
         runtime=BSS.Types.Time(0.001, "nanoseconds"), restraint=restraint
     )
 
-    # Run the process and check that it finishes without error.
-    assert run_process(system, protocol)
+    # Run the process, check that it finished without error, and returns a system.
+    run_process(system, protocol)
 
 
 @pytest.mark.skipif(has_gromacs is False, reason="Requires GROMACS to be installed.")
@@ -62,8 +62,8 @@ def test_heat(system):
         temperature_end=BSS.Types.Temperature(300, "kelvin"),
     )
 
-    # Run the process and check that it finishes without error.
-    assert run_process(system, protocol)
+    # Run the process, check that it finished without error, and returns a system.
+    run_process(system, protocol)
 
 
 @pytest.mark.skipif(has_gromacs is False, reason="Requires GROMACS to be installed.")
@@ -77,10 +77,8 @@ def test_cool(system):
         temperature_end=BSS.Types.Temperature(0, "kelvin"),
     )
 
-    # Run the process and check that it finishes without error.
-    assert run_process(
-        system, protocol, extra_options={"verlet-buffer-tolerance": "2e-07"}
-    )
+    # Run the process, check that it finished without error, and returns a system.
+    run_process(system, protocol, extra_options={"verlet-buffer-tolerance": "2e-07"})
 
 
 @pytest.mark.skipif(has_gromacs is False, reason="Requires GROMACS to be installed.")
@@ -90,8 +88,8 @@ def test_production(system):
     # Create a short production protocol.
     protocol = BSS.Protocol.Production(runtime=BSS.Types.Time(0.001, "nanoseconds"))
 
-    # Run the process and check that it finishes without error.
-    assert run_process(system, protocol)
+    # Run the process, check that it finished without error, and returns a system.
+    run_process(system, protocol)
 
 
 @pytest.mark.skipif(has_gromacs is False, reason="Requires GROMACS to be installed.")
@@ -105,8 +103,8 @@ def test_vacuum_water(system):
     # This will be an alanine-dipeptide and water in vacuum.
     new_system = (system[0] + system[1]).toSystem()
 
-    # Run the process and check that it finishes without error.
-    assert run_process(new_system, protocol)
+    # Run the process, check that it finished without error, and returns a system.
+    run_process(system, protocol)
 
 
 @pytest.mark.skipif(has_gromacs is False, reason="Requires GROMACS to be installed.")
@@ -136,9 +134,8 @@ def run_process(system, protocol, **kwargs):
     # Wait for the process to end.
     process.wait()
 
-    # Wait for the process to end.
-    system = process.getSystem(block=True)
-    assert system is not None
+    # Make sure the process didn't error.
+    assert not process.isError()
 
-    # Return the process exit code.
-    return not process.isError()
+    # Make sure that we get a molecular system back.
+    assert process.getSystem() is not None

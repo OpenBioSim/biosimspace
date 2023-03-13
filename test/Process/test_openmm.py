@@ -18,8 +18,8 @@ def test_minimise(system):
     # Create a short minimisation protocol.
     protocol = BSS.Protocol.Minimisation(steps=100)
 
-    # Run the process and check that it finishes without error.
-    assert run_process(system, protocol)
+    # Run the process, check that it finished without error, and returns a system.
+    run_process(system, protocol)
 
 
 @pytest.mark.parametrize("restraint", ["backbone", "heavy", "all", "none"])
@@ -31,8 +31,8 @@ def test_equilibrate(system, restraint):
         runtime=BSS.Types.Time(0.001, "nanoseconds"), restraint=restraint
     )
 
-    # Run the process and check that it finishes without error.
-    assert run_process(system, protocol)
+    # Run the process, check that it finished without error, and returns a system.
+    run_process(system, protocol)
 
 
 def test_heat(system):
@@ -45,8 +45,8 @@ def test_heat(system):
         temperature_end=BSS.Types.Temperature(300, "kelvin"),
     )
 
-    # Run the process and check that it finishes without error.
-    assert run_process(system, protocol)
+    # Run the process, check that it finished without error, and returns a system.
+    run_process(system, protocol)
 
 
 def test_cool(system):
@@ -59,8 +59,8 @@ def test_cool(system):
         temperature_end=BSS.Types.Temperature(0, "kelvin"),
     )
 
-    # Run the process and check that it finishes without error.
-    assert run_process(system, protocol)
+    # Run the process, check that it finished without error, and returns a system.
+    run_process(system, protocol)
 
 
 def test_production(system):
@@ -69,8 +69,8 @@ def test_production(system):
     # Create a short production protocol.
     protocol = BSS.Protocol.Production(runtime=BSS.Types.Time(0.001, "nanoseconds"))
 
-    # Run the process and check that it finishes without error.
-    assert run_process(system, protocol)
+    # Run the process, check that it finished without error, and returns a system.
+    run_process(system, protocol)
 
 
 def run_process(system, protocol):
@@ -85,5 +85,8 @@ def run_process(system, protocol):
     # Wait for the process to end.
     process.wait()
 
-    # Return the process exit code.
-    return not process.isError()
+    # Make sure the process didn't error.
+    assert not process.isError()
+
+    # Make sure that we get a molecular system back.
+    assert process.getSystem() is not None
