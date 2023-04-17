@@ -26,10 +26,10 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["Gromacs"]
 
-from .._Utils import _try_import
-
 import glob as _glob
 import os as _os
+
+from .._Utils import _try_import
 
 _pygtail = _try_import("pygtail")
 import shutil as _shutil
@@ -421,16 +421,17 @@ class Gromacs(_process.Process):
             setattr(self, "getTime", self._getTime)
 
         # Set the configuration.
-        config = _Protocol.ConfigFactory(self._system, self._protocol)
-        self.addToConfig(
-            config.generateGromacsConfig(
-                extra_options={**config_options, **self._extra_options},
-                extra_lines=self._extra_lines,
+        if not isinstance(self._protocol, _Protocol.Dummy):
+            config = _Protocol.ConfigFactory(self._system, self._protocol)
+            self.addToConfig(
+                config.generateGromacsConfig(
+                    extra_options={**config_options, **self._extra_options},
+                    extra_lines=self._extra_lines,
+                )
             )
-        )
 
-        # Flag that this isn't a custom protocol.
-        self._protocol._setCustomised(False)
+            # Flag that this isn't a custom protocol.
+            self._protocol._setCustomised(False)
 
     def _generate_args(self):
         """Generate the dictionary of command-line arguments."""
