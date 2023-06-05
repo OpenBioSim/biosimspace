@@ -908,6 +908,7 @@ class Process:
 
         # The process isn't running.
         if not self.isRunning():
+            self.saveMetric()
             return
 
         if max_time is not None:
@@ -1636,6 +1637,13 @@ class Process:
     def _generate_args(self):
         """Generate the dictionary of command-line arguments."""
         self.clearArgs()
+
+    def saveMetric(
+        self, filename="metric.parquet", u_nk="u_nk.parquet", dHdl="dHdl.parquet"
+    ):
+        """The abstract function to save the metric and free energy data. Need to be
+        defined for each MD engine."""
+        pass
 
 
 def _is_list_of_strings(lst):
