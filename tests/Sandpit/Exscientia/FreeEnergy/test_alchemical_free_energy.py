@@ -197,7 +197,6 @@ class Test_gmx_ABFE:
             assert np.isclose(u_nk.index.values[0][2], vdw)
 
 
-@pytest.mark.skipif(has_gromacs is False, reason="Requires GROMACS to be installed.")
 class Test_Somd_ABFE:
     @staticmethod
     @pytest.fixture(scope="class")
