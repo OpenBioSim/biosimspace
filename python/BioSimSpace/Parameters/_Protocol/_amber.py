@@ -460,11 +460,13 @@ class AmberProtein(_protocol.Protocol):
                     file.write("source leaprc.water.tip4pew\n")
                 else:
                     file.write("source leaprc.water.%s\n" % self._water_model)
+            # If user commands reference mol, this needs to be first
+            file.write("mol = loadPdb leap.pdb\n")
             # Write extra user commands.
             if self._leap_commands is not None:
                 for command in self._leap_commands:
                     file.write("%s\n" % command)
-            file.write("mol = loadPdb leap.pdb\n")
+            # file.write("mol = loadPdb leap.pdb\n")
             # Add any disulphide bond records.
             for bond in disulphide_bonds:
                 file.write("%s\n" % bond)
