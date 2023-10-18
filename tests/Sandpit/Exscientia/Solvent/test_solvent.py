@@ -1,11 +1,13 @@
 import pytest
 import tempfile
 
+from functools import partial
+
 from sire.legacy.IO import GroTop
 
 import BioSimSpace.Sandpit.Exscientia as BSS
 
-from tests.Sandpit.Exscientia.conftest import has_gromacs
+from tests.conftest import has_gromacs
 
 
 @pytest.fixture(scope="module")
@@ -18,8 +20,12 @@ def system():
 
 
 @pytest.mark.parametrize("match_water", [True, False])
+@pytest.mark.parametrize(
+    "function",
+    [partial(BSS.Solvent.solvate, "tip3p"), BSS.Solvent.tip3p],
+)
 @pytest.mark.skipif(not has_gromacs, reason="Requires GROMACS to be installed")
-def test_crystal_water(system, match_water):
+def test_crystal_water(system, match_water, function):
     """
     Test that user defined crystal waters can be preserved during
     solvation and on write to GroTop format.
@@ -35,7 +41,7 @@ def test_crystal_water(system, match_water):
     box, angles = BSS.Box.cubic(5.5 * BSS.Units.Length.nanometer)
 
     # Create the solvated system.
-    solvated = BSS.Solvent.tip3p(system, box, angles, match_water=match_water)
+    solvated = function(system, box, angles, match_water=match_water)
 
     # Search for the crystal waters in the solvated system.
     try:
