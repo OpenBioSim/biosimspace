@@ -142,6 +142,7 @@ def solvate(
         ion_conc,
         is_neutral,
         is_aligned,
+        match_water,
         work_dir,
         property_map,
     )
