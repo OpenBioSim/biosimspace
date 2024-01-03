@@ -18,28 +18,4 @@
 # You should have received a copy of the GNU General Public License
 # along with BioSimSpace. If not, see <http://www.gnu.org/licenses/>.
 #####################################################################
-
-"""
-.. currentmodule:: BioSimSpace.FreeEnergy
-
-Classes
-=======
-
-.. autosummary::
-    :toctree: generated/
-
-    Relative
-
-Functions
-=========
-
-.. autosummary::
-    :toctree: generated/
-
-    engines
-    getData
-"""
-
-from ._relative import *
-from ._utils import *
-from . import AToM
+from ._AToM_system import *

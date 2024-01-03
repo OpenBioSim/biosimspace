@@ -1134,6 +1134,75 @@ class OpenMM(_process.Process):
             setattr(self, "sampleConfigurations", self._sampleConfigurations)
             setattr(self, "getTime", self._getTime)
 
+        elif isinstance(self._protocol, _Protocol.AToM):
+            from ._atom_utils import _AToMUtils as _AToMUtils
+
+            align_cores = self._protocol.getAlignCores()
+            util = _AToMUtils(self._system, align_cores)
+
+            # Write the OpenMM import statements.
+            self._add_config_imports()
+            self._add_config_monkey_patches()
+
+            # Add standard openMM config
+            self._add_config_imports()
+            self.addToConfig(
+                "from metadynamics import *"
+            )  # Use local patched metadynamics module.
+            self.addToConfig("from glob import glob")
+            self.addToConfig("import math")
+            self.addToConfig("import os")
+            self.addToConfig("import shutil")
+
+            # Load the input files.
+            self.addToConfig("\n# Load the topology and coordinate files.")
+            self.addToConfig(
+                "\n# We use ParmEd due to issues with the built in AmberPrmtopFile for certain triclinic spaces."
+            )
+            self.addToConfig(
+                f"prm = parmed.load_file('{self._name}.prm7', '{self._name}.rst7')"
+            )
+
+            # Don't use a cut-off if this is a vacuum simulation or if box information
+            # is missing.
+            is_periodic = True
+            self.addToConfig("\n# Initialise the molecular system.")
+            if not has_box or not self._has_water:
+                is_periodic = False
+                self.addToConfig("system = prm.createSystem(nonbondedMethod=NoCutoff,")
+            else:
+                self.addToConfig("system = prm.createSystem(nonbondedMethod=PME,")
+            self.addToConfig("                          nonbondedCutoff=1*nanometer,")
+            self.addToConfig("                          constraints=HBonds)")
+
+            # Get the starting temperature and system pressure.
+            temperature = self._protocol.getTemperature().kelvin().value()
+            pressure = self._protocol.getPressure()
+
+            # Add a Monte Carlo barostat if the simulation is at constant pressure.
+            is_const_pressure = False
+            if pressure is not None:
+                # Cannot use a barostat with a non-periodic system.
+                if not is_periodic:
+                    _warnings.warn(
+                        "Cannot use a barostat for a vacuum or non-periodic simulation"
+                    )
+                else:
+                    is_const_pressure = True
+
+                    # Convert to bar and get the value.
+                    pressure = pressure.bar().value()
+
+                    # Create the barostat and add its force to the system.
+                    self.addToConfig("\n# Add a barostat to run at constant pressure.")
+                    self.addToConfig(
+                        f"barostat = MonteCarloBarostat({pressure}*bar, {temperature}*kelvin)"
+                    )
+                    if self._is_seeded:
+                        self.addToConfig(f"barostat.setRandomNumberSeed({self._seed})")
+                    self.addToConfig("system.addForce(barostat)")
+
+            # Use utils to create alignment force
         else:
             raise _IncompatibleError(
                 "Unsupported protocol: '%s'" % self._protocol.__class__.__name__
