@@ -21,6 +21,22 @@ def system():
     )
 
 
+@pytest.fixture(scope="session")
+def rna_system():
+    """An RNA system for re-use."""
+    return BSS.IO.readMolecules(
+        BSS.IO.expand(BSS.tutorialUrl(), ["rna_6e1s.rst7", "rna_6e1s.prm7"])
+    )
+
+
+@pytest.fixture(scope="session")
+def large_protein_system():
+    """A large protein system for re-use."""
+    return BSS.IO.readMolecules(
+        BSS.IO.expand(BSS.tutorialUrl(), ["complex_vac0.prm7", "complex_vac0.rst7"])
+    )
+
+
 @pytest.mark.skipif(
     has_amber is False or has_pyarrow is False,
     reason="Requires AMBER and pyarrow to be installed.",
@@ -211,6 +227,42 @@ def test_args(system):
     # Make sure the new string is correct.
     assert len(arg_string_list) == 17
     assert arg_string == "-x X -a A -b B -y -e -f 6 -g -h H -k K -z Z"
+
+
+@pytest.mark.skipif(has_amber is False, reason="Requires AMBER to be installed.")
+def test_backbone_restraint_mask_protein(large_protein_system):
+    """
+    Test that the amber backbone restraint mask is correct for a protein system.
+    We need a large protein system otherwise the logic we want to test will be
+    skipped, and individual atoms will be specified in the config.
+    """
+
+    # Create an equilibration protocol with backbone restraints.
+    protocol = BSS.Protocol.Equilibration(restraint="backbone")
+
+    # Create the process object.
+    process = BSS.Process.Amber(large_protein_system, protocol, name="test")
+
+    # Check that the correct restraint mask is in the config.
+    config = process.getConfig()
+    assert '   restraintmask="@N,CA,C,O",' in config
+
+
+@pytest.mark.skipif(has_amber is False, reason="Requires AMBER to be installed.")
+def test_backbone_restraint_mask_rna(rna_system):
+    """
+    Test that the amber backbone restraint mask is correct for an RNA system.
+    """
+
+    # Create an equilibration protocol with backbone restraints.
+    protocol = BSS.Protocol.Equilibration(restraint="backbone")
+
+    # Create the process object.
+    process = BSS.Process.Amber(rna_system, protocol, name="test")
+
+    # Check that the correct restraint mask is in the config.
+    config = process.getConfig()
+    assert "   restraintmask=\"@P,C5',C3',O3',O5'\"," in config
 
 
 def run_process(system, protocol, check_data=False):

@@ -209,6 +209,61 @@ class TestGromacsRBFE:
     has_antechamber is False or has_openff is False,
     reason="Requires ambertools/antechamber and openff to be installed",
 )
+@pytest.fixture(scope="module")
+def system_and_mdr_restraint():
+    # Benzene.
+    m = BSS.Parameters.openff_unconstrained_2_0_0("c1ccccc1").getMolecule()
+    m._sire_object = m._sire_object.edit().rename("LIG").molecule().commit()
+
+    # Assign atoms for restraint
+    atom_1 = m.getAtoms()[0]
+    atom_2 = m.getAtoms()[1]
+    atom_3 = m.getAtoms()[2]
+    atom_4 = m.getAtoms()[3]
+    atom_5 = m.getAtoms()[4]
+    atom_6 = m.getAtoms()[5]
+
+    mol = decouple(m)
+    system = mol.toSystem()
+
+    # Create random restraint dictionary
+    restraint_dict = {
+        "distance_restraints": [
+            {
+                "l1": atom_1,
+                "r1": atom_2,
+                "r0": 3 * angstrom,
+                "kr": 10 * kcal_per_mol / angstrom**2,
+                "r_fb": 1 * angstrom,
+            },
+            {
+                "l1": atom_3,
+                "r1": atom_4,
+                "r0": 3 * angstrom,
+                "kr": 10 * kcal_per_mol / angstrom**2,
+                "r_fb": 1 * angstrom,
+            },
+        ],
+        "permanent_distance_restraint": {
+            "l1": atom_5,
+            "r1": atom_6,
+            "r0": 3 * angstrom,
+            "kr": 10 * kcal_per_mol / angstrom**2,
+            "r_fb": 1 * angstrom,
+        },
+    }
+
+    restraint = Restraint(
+        system, restraint_dict, 298 * kelvin, restraint_type="multiple_distance"
+    )
+
+    return system, restraint
+
+
+@pytest.mark.skipif(
+    has_antechamber is False or has_openff is False,
+    reason="Requires ambertools/antechamber and openff to be installed",
+)
 class TestGromacsABFE:
     @staticmethod
     @pytest.fixture(scope="class")
@@ -268,6 +323,30 @@ class TestGromacsABFE:
     @pytest.mark.skipif(
         has_gromacs is False, reason="Requires GROMACS to be installed."
     )
+    def test_mdr_force_constant(self, system, system_and_mdr_restraint):
+        """
+        Check that when the restraint type == 'release_restraint', the
+        force constant of the permanent distance restraint (not affected by
+        restraint-lambda) is written to the MDP file.
+        """
+        system, restraint = system_and_mdr_restraint
+        protocol = FreeEnergy(
+            perturbation_type="release_restraint",
+        )
+
+        freenrg = BSS.FreeEnergy.AlchemicalFreeEnergy(
+            system,
+            protocol,
+            engine="GROMACS",
+            restraint=restraint,
+        )
+        with open(f"{freenrg._work_dir}/lambda_6/gromacs.mdp", "r") as f:
+            mdp_text = f.read()
+            assert "disre-fc = 4184.0" in mdp_text
+
+    @pytest.mark.skipif(
+        has_gromacs is False, reason="Requires GROMACS to be installed."
+    )
     def test_sc_parameters(self, system):
         """Test if the soft core parameters have been written.
         The default sc-alpha is 0, which means the soft-core of the vdw is not
@@ -294,7 +373,7 @@ class TestGromacsABFE:
 class TestSomdABFE:
     @staticmethod
     @pytest.fixture(scope="class")
-    def system_and_restraint():
+    def system_and_boresch_restraint():
         # Benzene.
         m = BSS.Parameters.openff_unconstrained_2_0_0("c1ccccc1").getMolecule()
 
@@ -343,9 +422,9 @@ class TestSomdABFE:
 
         return system, restraint
 
-    def test_turn_on_restraint(self, system_and_restraint):
-        """Test for turning on the restraint"""
-        system, restraint = system_and_restraint
+    def test_turn_on_restraint_boresch(self, system_and_boresch_restraint):
+        """Test for turning on multiple distance restraints"""
+        system, restraint = system_and_boresch_restraint
         protocol = FreeEnergy(perturbation_type="restraint")
         freenrg = BSS.FreeEnergy.AlchemicalFreeEnergy(
             system, protocol, engine="SOMD", restraint=restraint
@@ -387,9 +466,96 @@ class TestSomdABFE:
             for line in lines:
                 assert line in pert_text
 
-    def test_discharge(self, system_and_restraint):
+    def test_turn_on_restraint_mdr(self, system_and_mdr_restraint):
+        """Test for turning on the mdr restraint"""
+        system, restraint = system_and_mdr_restraint
+        protocol = FreeEnergy(perturbation_type="restraint")
+        freenrg = BSS.FreeEnergy.AlchemicalFreeEnergy(
+            system, protocol, engine="SOMD", restraint=restraint
+        )
+
+        # Test .cfg file
+        with open(f"{freenrg._work_dir}/lambda_0.0000/somd.cfg", "r") as f:
+            cfg_text = f.read()
+            assert "use distance restraints = True" in cfg_text
+            assert (
+                "distance restraints dictionary = {(1, 0): (3.0, 5.0, 1.0), (3, 2): "
+                "(3.0, 5.0, 1.0), (5, 4): (3.0, 5.0, 1.0)}"
+            ) in cfg_text
+            assert "turn on receptor-ligand restraints mode = True" in cfg_text
+
+        # Test .pert file
+        with open(f"{freenrg._work_dir}/lambda_0.0000/somd.pert", "r") as f:
+            pert_text = f.read()
+            # Check all atoms present
+            carbons = [f"C{i}" for i in range(1, 7)]
+            hydrogens = [f"H{i}" for i in range(1, 7)]
+            atoms = carbons + hydrogens
+            for atom in atoms:
+                assert atom in pert_text
+            # Check perturbations are correct
+            lines = [
+                "molecule LIG",
+                "atom",
+                "initial_type   C1",
+                "final_type     C1",
+                "initial_LJ     3.48065 0.08688",
+                "final_LJ       3.48065 0.08688",
+                "initial_charge -0.13000",
+                "final_charge   -0.13000",
+                "endatom",
+                "endmolecule",
+            ]
+            for line in lines:
+                assert line in pert_text
+
+    def test_release_restraint_mdr(self, system_and_mdr_restraint):
+        """Test for releasing the non-permanent mdr restraints"""
+        system, restraint = system_and_mdr_restraint
+        protocol = FreeEnergy(perturbation_type="release_restraint")
+        freenrg = BSS.FreeEnergy.AlchemicalFreeEnergy(
+            system, protocol, engine="SOMD", restraint=restraint
+        )
+
+        # Test .cfg file
+        with open(f"{freenrg._work_dir}/lambda_0.0000/somd.cfg", "r") as f:
+            cfg_text = f.read()
+            assert "use distance restraints = True" in cfg_text
+            assert "use permanent distance restraints = True" in cfg_text
+            assert "turn on receptor-ligand restraints mode = True" in cfg_text
+            assert (
+                "distance restraints dictionary = {(1, 0): (3.0, 5.0, 1.0), "
+                "(3, 2): (3.0, 5.0, 1.0)}"
+            ) in cfg_text
+            assert (
+                "permanent distance restraints dictionary = {(5, 4): (3.0, 5.0, 1.0)}"
+                in cfg_text
+            )
+
+        # Test .pert file
+        with open(f"{freenrg._work_dir}/lambda_0.0000/somd.pert", "r") as f:
+            pert_text = f.read()
+            # Don't check atoms present as they are given randomised names
+            # and the atom types are all du
+            # Check perturbations are correct
+            lines = [
+                "molecule LIG",
+                "atom",
+                "initial_type   du",
+                "final_type     du",
+                "initial_LJ     0.00000 0.00000",
+                "final_LJ       0.00000 0.00000",
+                "initial_charge 0.00000",
+                "final_charge   0.00000",
+                "endatom",
+                "endmolecule",
+            ]
+            for line in lines:
+                assert line in pert_text
+
+    def test_discharge(self, system_and_boresch_restraint):
         """Test for discharging the ligand"""
-        system, restraint = system_and_restraint
+        system, restraint = system_and_boresch_restraint
         protocol = FreeEnergy(perturbation_type="discharge_soft")
         freenrg = BSS.FreeEnergy.AlchemicalFreeEnergy(
             system, protocol, engine="SOMD", restraint=restraint
@@ -431,9 +597,9 @@ class TestSomdABFE:
             for line in lines:
                 assert line in pert_text
 
-    def test_vanish(self, system_and_restraint):
+    def test_vanish(self, system_and_boresch_restraint):
         """Test for vanishing the ligand"""
-        system, restraint = system_and_restraint
+        system, restraint = system_and_boresch_restraint
         protocol = FreeEnergy(perturbation_type="vanish_soft")
         freenrg = BSS.FreeEnergy.AlchemicalFreeEnergy(
             system, protocol, engine="SOMD", restraint=restraint
@@ -475,9 +641,9 @@ class TestSomdABFE:
             for line in lines:
                 assert line in pert_text
 
-    def test_discharge_and_vanish(self, system_and_restraint):
+    def test_discharge_and_vanish(self, system_and_boresch_restraint):
         """Test for simultaneously discharging and vanishing the ligand"""
-        system, restraint = system_and_restraint
+        system, restraint = system_and_boresch_restraint
         protocol = FreeEnergy(perturbation_type="full")
         freenrg = BSS.FreeEnergy.AlchemicalFreeEnergy(
             system, protocol, engine="SOMD", restraint=restraint

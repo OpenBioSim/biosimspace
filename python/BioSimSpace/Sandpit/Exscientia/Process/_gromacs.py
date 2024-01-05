@@ -198,6 +198,12 @@ class Gromacs(_process.Process):
             raise ValueError("'show_errors' must be of type 'bool'.")
         self._show_errors = show_errors
 
+        if restraint and not isinstance(protocol, _Protocol._FreeEnergyMixin):
+            raise ValueError(
+                "'BioSimSpace.Process.Gromacs' requires a "
+                "FreeEnergy protocol for running with a restraint!"
+            )
+
         # Initialise the energy dictionary and title header.
         self._energy_dict = (
             dict()
@@ -312,13 +318,29 @@ class Gromacs(_process.Process):
                 )
 
             # Check that the perturbation type is supported..
-            if self._protocol.getPerturbationType() != "full":
+            if self._protocol.getPerturbationType() not in [
+                "full",
+                "release_restraint",
+            ]:
                 msg = (
                     "'BioSimSpace.Process.Gromacs' currently only supports the 'full' "
-                    "perturbation type. Please use 'BioSimSpace.Process.Somd' "
+                    " and 'release_restraint' perturbation type. Please use 'BioSimSpace.Process.Somd' "
                     "for multistep perturbation types."
                 )
                 raise NotImplementedError(msg)
+
+            # Check that we have multiple distance restraints if the perturbation type is 'release_restraint'.
+            if self._protocol.getPerturbationType() == "release_restraint":
+                if not self._restraint:
+                    raise ValueError(
+                        "'BioSimSpace.Process.Gromacs' requires a "
+                        "restraint for the 'release_restraint' perturbation type!"
+                    )
+                if self._restraint._restraint_type != "multiple_distance":
+                    raise ValueError(
+                        "'BioSimSpace.Process.Gromacs' requires a "
+                        "multiple distance restraint for the 'release_restraint' perturbation type!"
+                    )
 
         else:
             # Check for perturbable molecules and convert to the chosen end state.
@@ -381,7 +403,12 @@ class Gromacs(_process.Process):
             if self._restraint:
                 with open(topol_file, "a") as f:
                     f.write("\n")
-                    f.write(self._restraint.toString(engine="GROMACS"))
+                    f.write(
+                        self._restraint.toString(
+                            engine="GROMACS",
+                            perturbation_type=self._protocol.getPerturbationType(),
+                        )
+                    )
 
     def _generate_config(self):
         """Generate GROMACS configuration file strings."""
@@ -453,10 +480,17 @@ class Gromacs(_process.Process):
         # Set the configuration.
         if not isinstance(self._protocol, _Protocol.Dummy):
             config = _Protocol.ConfigFactory(self._system, self._protocol)
+            pert_type = (
+                self._protocol._perturbation_type
+                if isinstance(self._protocol, _Protocol._FreeEnergyMixin)
+                else None
+            )
             self.addToConfig(
                 config.generateGromacsConfig(
                     extra_options={**config_options, **self._extra_options},
                     extra_lines=self._extra_lines,
+                    restraint=self._restraint,
+                    perturbation_type=pert_type,
                 )
             )
 

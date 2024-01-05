@@ -258,12 +258,23 @@ class AlchemicalFreeEnergy:
                         "Use the 'BioSimSpace.Align' package to map and merge molecules."
                     )
 
-                if self._protocol.getPerturbationType() != "full":
+                pert_type = self._protocol.getPerturbationType()
+                if pert_type not in ["full", "release_restraint"]:
                     raise NotImplementedError(
                         "GROMACS currently only supports the 'full' perturbation "
                         "type. Please use engine='SOMD' when running multistep "
                         "perturbation types."
                     )
+                if pert_type == "release_restraint":
+                    restraint_err = ValueError(
+                        "The 'release_restraint' perturbation type requires a multiple "
+                        "distance restraint restraint type."
+                    )
+                    if not restraint:
+                        raise restraint_err
+                    if restraint._restraint_type != "multiple_distance":
+                        raise restraint_err
+
                 self._exe = _gmx_exe
             elif engine == "AMBER":
                 # Find a molecular dynamics engine and executable.
@@ -353,6 +364,15 @@ class AlchemicalFreeEnergy:
             else:
                 # Ensure that the system is compatible with the restraint
                 restraint.system = self._system
+
+            # Warn the user about instabilities with multiple distance restraints in SOMD.
+            if restraint._restraint_type == "multiple_distance" and engine == "SOMD":
+                _warnings.warn(
+                    "SOMD simulations with some non-interacting ligands can be unstable. This "
+                    "affects some systems with multiple distance restraints during the release "
+                    "restraint state. If you experience problems, consider using multiple distance "
+                    "restraints with GROMACS instead."
+                )
 
         self._restraint = restraint
 

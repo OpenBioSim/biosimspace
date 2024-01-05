@@ -87,7 +87,7 @@ def test_file_cache():
     has_amber is False or has_openff is False,
     reason="Requires AMBER and OpenFF to be installed",
 )
-def test_file_cache_mol_nuums():
+def test_file_cache_mol_nums():
     """
     Make sure that systems can be cached if they have the same UID, but
     contain different MolNUms.

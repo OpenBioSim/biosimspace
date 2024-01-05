@@ -63,7 +63,7 @@ try:
     has_alchemlyb = True
 
     # Check for parquet support.
-    major, minor, _ = alchemlyb.__version__.split(".")
+    major, minor, *_ = alchemlyb.__version__.split(".")
     major = int(major)
     minor = int(minor)
     if major < 2 or (major < 3 and minor < 1):
