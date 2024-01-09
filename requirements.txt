@@ -1,7 +1,7 @@
 # BioSimSpace runtime requirements.
 
 # main
-sire~=2023.4.2
+sire~=2023.5.0
 
 # devel
 #sire==2023.5.0.dev

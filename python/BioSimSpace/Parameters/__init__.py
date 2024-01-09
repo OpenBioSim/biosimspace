@@ -141,7 +141,7 @@ for the ion parameters, e.g:
    # ready to be returned.
    molecule = BSS.Parameters.ff14SB(molecule, water_model="tip3p").getMolecule()
 
-Additional parameters can be loaded by passing the ``leap_commands`` option to
+Additional parameters can be loaded by passing the ``pre_mol_commands`` option to
 any compatible AMBER force field function, e.g.:
 
 .. code-block:: python
@@ -157,7 +157,11 @@ any compatible AMBER force field function, e.g.:
 
    # Initialise the parameterisation process and block until the molecule is
    # ready to be returned.
-   molecule = BSS.Parameters.ff14SB(molecule, leap_commands=leap_commands).getMolecule()
+   molecule = BSS.Parameters.ff14SB(molecule, pre_mol_commands=leap_commands).getMolecule()
+
+If you need to apply any additional operations on the loaded molecule, then this
+can be done using the ``post_mol_commands`` option, using ``mol`` for the name of
+the molecule.
 """
 
 from ._parameters import *

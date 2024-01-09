@@ -33,6 +33,7 @@ import matplotlib.pyplot as _plt
 import numpy as _np
 import os as _os
 from scipy.stats import circmean as _circmean
+from sklearn.cluster import KMeans as _KMeans
 import warnings as _warnings
 
 from sire.legacy.Base import getBinDir as _getBinDir
@@ -107,6 +108,9 @@ class RestraintSearch:
 
     # Create a list of supported molecular dynamics engines.
     _engines = ["GROMACS", "SOMD"]
+
+    # Create a list of supported restraint types.
+    _restraint_types = ["boresch", "multiple_distance"]
 
     def __init__(
         self,
@@ -334,7 +338,7 @@ class RestraintSearch:
          ----------
 
          restraint_type: str
-             The type of restraints to select (currently only Boresch is available).
+             The type of restraints to select, from "Boresch" or "multiple_distance".
              Default is 'Boresch'.
 
          method: str
@@ -513,8 +517,8 @@ class RestraintSearch:
                The temperature of the system
 
            restraint_type : str
-               The type of restraints to select (currently only Boresch is available).
-               Default is ``Boresch``.
+               The type of restraints to select, from 'Boresch' or 'multiple_distance'.
+               Default is "Boresch".
 
            method : str
                 The method to use to derive the restraints. 'BSS' or 'MDRestraintsGenerator'.
@@ -558,6 +562,11 @@ class RestraintSearch:
                The restraints of `restraint_type` which best mimic the strongest receptor-ligand
                interactions.
         """
+        _supported_methods = {
+            "boresch": ["BSS", "MDRestraintsGenerator"],
+            "multiple_distance": ["BSS"],
+        }
+
         # Check all inputs
 
         if not isinstance(work_dir, str):
@@ -587,9 +596,11 @@ class RestraintSearch:
             raise TypeError(
                 f"restraint_type {type(restraint_type)} must be of type 'str'."
             )
-        if not restraint_type.lower() == "boresch":
+
+        if not restraint_type.lower() in RestraintSearch._restraint_types:
             raise NotImplementedError(
-                "Only Boresch restraints are currently implemented"
+                f"Restraint type {restraint_type} is not implemented. "
+                f"Please choose from {RestraintSearch._restraint_types}"
             )
 
         if not isinstance(method, str):
@@ -598,6 +609,12 @@ class RestraintSearch:
             raise NotImplementedError(
                 "Deriving restraints using 'MDRestraintsGenerator'"
                 "or 'BSS' are the only options implemented."
+            )
+        # Check that the selected method is supported for the selected restraint type.
+        if not method in _supported_methods[restraint_type.lower()]:
+            raise NotImplementedError(
+                f"Method {method} is not supported for restraint type {restraint_type}. "
+                f"Please choose from {_supported_methods[restraint_type.lower()]}"
             )
 
         if method.lower() == "mdrestraintsgenerator":
@@ -664,6 +681,18 @@ class RestraintSearch:
                 force_constant,
                 cutoff,
                 restraint_idx=restraint_idx,
+            )
+
+        if restraint_type.lower() == "multiple_distance":
+            return RestraintSearch._multiple_distance_restraint(
+                u,
+                system,
+                temperature,
+                ligand_selection_str,
+                receptor_selection_str,
+                method,
+                work_dir,
+                cutoff,
             )
 
     @staticmethod
@@ -944,6 +973,116 @@ class RestraintSearch:
         return restraint
 
     @staticmethod
+    def _findOrderedPairs(u, ligand_selection_str, receptor_selection_str, cutoff):
+        """
+        Return a list of receptor-ligand anchor atoms pairs in the form
+        (lig atom index, receptor atom index), where the pairs are ordered
+        from low to high variance of distance over the trajectory.
+
+        Parameters
+        ----------
+
+        u : MDAnalysis.Universe
+            The trajectory for the ABFE restraint calculation as a
+            MDAnalysis.Universe object.
+
+        ligand_selection_str: str
+            The selection string for the atoms in the ligand to consider
+            as potential anchor points.
+
+        receptor_selection_str: str
+            The selection string for the protein in the ligand to consider
+            as potential anchor points.
+
+        cutoff: BioSimSpace.Types.Length
+            The greatest distance between ligand and receptor anchor atoms.
+            Only affects behaviour when method == "BSS" Receptor anchors
+            further than cutoff Angstroms from the closest ligand anchors will not
+            be included in the search for potential anchor points.
+
+        Returns
+        -------
+
+        pairs_ordered_sd : list of tuples
+            List of receptor-ligand atom pairs ordered by increasing variance of distance over
+            the trajectory.
+        """
+
+        lig_selection = u.select_atoms(ligand_selection_str)
+        pair_variance_dict = {}
+
+        # Get all receptor atoms within specified distance of cutoff
+        for lig_atom in lig_selection:
+            for prot_atom in u.select_atoms(
+                f"{receptor_selection_str} and (around {cutoff / _angstrom} index {lig_atom.index})"
+            ):
+                pair_variance_dict[(lig_atom.index, prot_atom.index)] = {}
+                pair_variance_dict[(lig_atom.index, prot_atom.index)]["dists"] = []
+
+        # Compute Average Distance and SD
+        for frame in _tqdm(
+            u.trajectory, desc="Searching for low variance pairs. Frame no: "
+        ):
+            for lig_atom_index, prot_atom_index in pair_variance_dict.keys():
+                distance = _dist(
+                    _mda.AtomGroup([u.atoms[lig_atom_index]]),
+                    _mda.AtomGroup([u.atoms[prot_atom_index]]),
+                    box=frame.dimensions,
+                )[2][0]
+                pair_variance_dict[(lig_atom_index, prot_atom_index)]["dists"].append(
+                    distance
+                )
+
+        # change lists to numpy arrays
+        for pair in pair_variance_dict.keys():
+            pair_variance_dict[pair]["dists"] = _np.array(
+                pair_variance_dict[pair]["dists"]
+            )
+
+        # calculate SD
+        for pair in pair_variance_dict.keys():
+            pair_variance_dict[pair]["sd"] = pair_variance_dict[pair]["dists"].std()
+
+        # get n pairs with lowest SD
+        pairs_ordered_sd = []
+        for item in sorted(pair_variance_dict.items(), key=lambda item: item[1]["sd"]):
+            pairs_ordered_sd.append(item[0])
+
+        if len(pairs_ordered_sd) == 0:
+            raise _AnalysisError(
+                "No receptor-ligand atom pairs found within specified cutoff."
+            )
+
+        return pairs_ordered_sd
+
+    @staticmethod
+    def _getDistance(idx1, idx2, u):
+        """
+        Get the distance between two atoms in a universe.
+
+        Parameters
+        ----------
+        idx1 : int
+            Index of the first atom
+        idx2 : int
+            Index of the second atom
+        u : MDAnalysis.Universe
+            The MDA universe containing the atoms and
+            trajectory.
+
+        Returns
+        -------
+        distance : float
+            The distance between the two atoms in Angstroms.
+        """
+        distance = _dist(
+            _mda.AtomGroup([u.atoms[idx1]]),
+            _mda.AtomGroup([u.atoms[idx2]]),
+            box=u.dimensions,
+        )[2][0]
+        return distance
+
+    @staticmethod
     def _boresch_restraint_BSS(
         u,
         system,
@@ -1021,85 +1160,6 @@ class RestraintSearch:
             interactions.
         """
 
-        def _findOrderedPairs(u, ligand_selection_str, receptor_selection_str, cutoff):
-            """
-            Return a list of receptor-ligand anchor atoms pairs in the form
-            (lig atom index, receptor atom index), where the pairs are ordered
-            from low to high variance of distance over the trajectory.
-
-            Parameters
-            ----------
-
-            u : MDAnalysis.Universe
-                The trajectory for the ABFE restraint calculation as a
-                MDAnalysis.Universe object.
-
-            ligand_selection_str: str
-                The selection string for the atoms in the ligand to consider
-                as potential anchor points.
-
-            receptor_selection_str: str
-                The selection string for the protein in the ligand to consider
-                as potential anchor points.
-
-            cutoff: BioSimSpace.Types.Length
-                The greatest distance between ligand and receptor anchor atoms.
-                Only affects behaviour when method == "BSS" Receptor anchors
-                further than cutoff Angstroms from the closest ligand anchors will not
-                be included in the search for potential anchor points.
-
-            Returns
-            -------
-
-            pairs_ordered_sd : list of tuples
-                List of receptor-ligand atom pairs ordered by increasing variance of distance over
-                the trajectory.
-            """
-
-            lig_selection = u.select_atoms(ligand_selection_str)
-            pair_variance_dict = {}
-
-            # Get all receptor atoms within specified distance of cutoff
-            for lig_atom in lig_selection:
-                for prot_atom in u.select_atoms(
-                    f"{receptor_selection_str} and (around {cutoff / _angstrom} index {lig_atom.index})"
-                ):
-                    pair_variance_dict[(lig_atom.index, prot_atom.index)] = {}
-                    pair_variance_dict[(lig_atom.index, prot_atom.index)]["dists"] = []
-
-            # Compute Average Distance and SD
-            for frame in _tqdm(
-                u.trajectory, desc="Searching for low variance pairs. Frame no: "
-            ):
-                for lig_atom_index, prot_atom_index in pair_variance_dict.keys():
-                    distance = _dist(
-                        _mda.AtomGroup([u.atoms[lig_atom_index]]),
-                        _mda.AtomGroup([u.atoms[prot_atom_index]]),
-                        box=frame.dimensions,
-                    )[2][0]
-                    pair_variance_dict[(lig_atom_index, prot_atom_index)][
-                        "dists"
-                    ].append(distance)
-
-            # change lists to numpy arrays
-            for pair in pair_variance_dict.keys():
-                pair_variance_dict[pair]["dists"] = _np.array(
-                    pair_variance_dict[pair]["dists"]
-                )
-
-            # calculate SD
-            for pair in pair_variance_dict.keys():
-                pair_variance_dict[pair]["sd"] = pair_variance_dict[pair]["dists"].std()
-
-            # get n pairs with lowest SD
-            pairs_ordered_sd = []
-            for item in sorted(
-                pair_variance_dict.items(), key=lambda item: item[1]["sd"]
-            ):
-                pairs_ordered_sd.append(item[0])
-
-            return pairs_ordered_sd
-
         def _getAnchorAts(a1_idx, selection_str, u):
             """
             Takes in index of anchor atom 1 (in either the receptor or ligand)
@@ -1157,32 +1217,6 @@ class RestraintSearch:
                     a3_idx = bonded_at_a2[0].index
 
             return a1_idx, a2_idx, a3_idx
-
-        def _getDistance(idx1, idx2, u):
-            """
-            Get the distance between two atoms in a universe.
-
-            Parameters
-            ----------
-            idx1 : int
-                Index of the first atom
-            idx2 : int
-                Index of the second atom
-            u : MDAnalysis.Universe
-                The MDA universe containing the atoms and
-                trajectory.
-
-            Returns
-            -------
-            distance : float
-                The distance between the two atoms in Angstroms.
-            """
-            distance = _dist(
-                _mda.AtomGroup([u.atoms[idx1]]),
-                _mda.AtomGroup([u.atoms[idx2]]),
-                box=u.dimensions,
-            )[2][0]
-            return distance
 
         def _getAngle(idx1, idx2, idx3, u):
             """
@@ -1243,7 +1277,7 @@ class RestraintSearch:
         def _getBoreschDOF(l1, l2, l3, r1, r2, r3, u):
             """Calculate Boresch degrees of freedom from indices of anchor atoms"""
             # Ordering of connection of anchors is r3,r2,r1,l1,l2,l3
-            r = _getDistance(r1, l1, u)
+            r = RestraintSearch._getDistance(r1, l1, u)
             thetaA = _getAngle(r2, r1, l1, u)
             thetaB = _getAngle(r1, l1, l2, u)
             phiA = _getDihedral(r3, r2, r1, l1, u)
@@ -1697,7 +1731,7 @@ class RestraintSearch:
             return restraint
 
         # Find pairs with lowest SD
-        pairs_ordered_sd = _findOrderedPairs(
+        pairs_ordered_sd = RestraintSearch._findOrderedPairs(
             u, ligand_selection_str, receptor_selection_str, cutoff
         )
 
@@ -1717,6 +1751,461 @@ class RestraintSearch:
         # Convert to BSS compatible dictionary
         restraint = _getBoreschRestraint(
             pairs_ordered_boresch[restraint_idx], boresch_dof_data
+        )
+
+        return restraint
+
+    @staticmethod
+    def _multiple_distance_restraint(
+        u,
+        system,
+        temperature,
+        ligand_selection_str,
+        receptor_selection_str,
+        method,
+        work_dir,
+        cutoff,
+    ):
+        """
+        Generate the multiple distance restraints Restraint using the native
+        BioSimSpace implementation. This involves:
+
+        1. Finding the pairs of receptor-ligand atoms that have the lowest standard
+           deviation of distances
+        2. Selecting pairs based on lowest standard deviation of distances and diversity
+           of direction. One pair is selected for each selected ligand atom.
+        3. Deriving restraint parameters from the selected pairs so that the flat-bottomed
+           region encompasses 95 % of the sampled distances. The pair with the lowest
+           variance of the distance is selected to be the "permanent" distance restraint.
+
+        Parameters
+        ----------
+
+        u : MDAnalysis.Universe
+            The trajectory for the ABFE restraint calculation as a
+            MDAnalysis.Universe object.
+
+        system : :class:`System <BioSimSpace._SireWrappers.System>`
+            The molecular system for the ABFE restraint calculation. This
+            must contain a single decoupled molecule and is assumed to have
+            already been equilibrated.
+
+        temperature : :class:`System <BioSimSpace.Types.Temperature>`
+            The temperature of the system
+
+        ligand_selection_str : str
+            The selection string for the atoms in the ligand to consider
+            as potential anchor points.
+
+        receptor_selection_str : str
+            The selection string for the atoms in the receptor to consider
+            as potential anchor points. Uses the mdanalysis atom selection
+            language.
+
+        method : str
+            The method to use to derive the restraints. Currently only 'BSS'
+            is implemented, which uses the native BioSimSpace derivation.
+
+        work_dir : str
+            The working directory for the simulation.
+
+        cutoff: BioSimSpace.Types.Length
+            The greatest distance between ligand and receptor anchor atoms.
+            Only affects behaviour when method == "BSS" Receptor anchors
+            further than cutoff Angstroms from the closest ligand anchors will not
+            be included in the search for potential anchor points.
+
+        Returns
+        -------
+
+        restraint : :class:`Restraint <BioSimSpace.Sandpit.Exscientia.FreeEnergy.Restraint>`
+            The restraints of `restraint_type` which best mimic the strongest receptor-ligand
+            interactions.
+        """
+        if method == "MDRestraintsGenerator":
+            raise NotImplementedError(
+                "MDRestraintsGenerator is not implemented for multiple distance restraints."
+            )
+
+        elif method == "BSS":
+            return RestraintSearch._multiple_distance_restraint_BSS(
+                u,
+                system,
+                temperature,
+                ligand_selection_str,
+                receptor_selection_str,
+                work_dir,
+                cutoff,
+            )
+
+        else:
+            raise ValueError("method must be 'MDRestraintsGenerator' or 'BSS'.")
+
+    @staticmethod
+    def _multiple_distance_restraint_BSS(
+        u,
+        system,
+        temperature,
+        ligand_selection_str,
+        receptor_selection_str,
+        work_dir,
+        cutoff,
+    ):
+        """
+        Generate the multiple distance restraints Restraint using the native
+        BioSimSpace implementation. This involves:
+
+        1. Finding the pairs of receptor-ligand atoms that have the lowest standard
+           deviation of distances
+        2. Selecting pairs based on lowest standard deviation of distances and diversity
+           of direction. One pair is selected for each selected ligand atom.
+        3. Deriving restraint parameters from the selected pairs so that the flat-bottomed
+           region encompasses 95 % of the sampled distances. The pair with the lowest
+           variance of the distance is selected to be the "permanent" distance restraint.
+
+        Parameters
+        ----------
+
+        u : MDAnalysis.Universe
+            The trajectory for the ABFE restraint calculation as a
+            MDAnalysis.Universe object.
+
+        system : :class:`System <BioSimSpace._SireWrappers.System>`
+            The molecular system for the ABFE restraint calculation. This
+            must contain a single decoupled molecule and is assumed to have
+            already been equilibrated.
+
+        temperature : :class:`System <BioSimSpace.Types.Temperature>`
+            The temperature of the system
+
+        ligand_selection_str: str
+            The selection string for the atoms in the ligand to consider
+            as potential anchor points.
+
+        receptor_selection_str: str
+            The selection string for the protein in the ligand to consider
+            as potential anchor points.
+
+        work_dir : str
+            The working directory for the simulation.
+
+        cutoff: BioSimSpace.Types.Length
+            The greatest distance between ligand and receptor anchor atoms.
+            Only affects behaviour when method == "BSS" Receptor anchors
+            further than cutoff Angstroms from the closest ligand anchors will not
+            be included in the search for potential anchor points.
+
+        Returns
+        -------
+
+        restraint : :class:`Restraint <BioSimSpace.Sandpit.Exscientia.FreeEnergy.Restraint>`
+            The restraints of `restraint_type` which best mimic the strongest receptor-ligand
+            interactions.
+        """
+
+        def _get_norm_vector(frame, pair):
+            """
+            Get the normalised interatomic vector between two atoms.
+
+            Parameters
+            ----------
+            frame : MDAnalysis.Timestep
+                The frame of the trajectory to use.
+            pair : tuple
+                The pair of atoms to consider.
+
+            Returns
+            -------
+            vector : np.ndarray
+                The normalised interatomic vector between the two atoms.
+            """
+            inter_vec = frame.positions[pair[1]] - frame.positions[pair[0]]
+            # Check the length of this is not excessive (e.g. due to PBCs)
+            norm = _np.linalg.norm(inter_vec)
+            if norm > 15:
+                raise ValueError(
+                    f"The interatomic vector between atoms {pair[0]} and {pair[1]} is "
+                    f"excessive ({norm:.2f} A). This is likely due to PBCs. "
+                    "Please check your input trajectory."
+                )
+            else:
+                return inter_vec / norm
+
+        def _clusterPairsByDirection(u, pairs_ordered_sd, n_clusters):
+            """
+            Cluster the pairs of atoms by direction (based on the final structure).
+
+            Parameters
+            ----------
+            u : MDAnalysis.Universe
+                The trajectory for the ABFE restraint calculation as a
+                MDAnalysis.Universe object.
+            pairs_ordered_sd : list
+                The pairs of atoms ordered by SD.
+            n_clusters : int
+                The number of clusters to use.
+
+            Returns
+            -------
+            pairs_ordered_clustered : list[tuple]
+                The pairs of atoms ordered by SD and clustered by direction.
+                The third element of each tuple is the cluster number.
+            """
+            # Get the normalised interatomic vectors for each pair of atoms,
+            # using the final frame of the trajectory.
+            vectors_dict = {
+                pair: _get_norm_vector(u.trajectory[-1], pair)
+                for pair in pairs_ordered_sd
+            }
+            # Cluster the vectors by direction, using k-means clustering. Predict the cluster
+            # indices at the same time.
+            cluster_indices = _KMeans(n_clusters=n_clusters, n_init=10).fit_predict(
+                list(vectors_dict.values())
+            )
+
+            # Create a new list of pairs of atoms, ordered by SD and including the cluster number.
+            pairs_ordered_clustered = [
+                (pair[0], pair[1], cluster_indices[i])
+                for i, pair in enumerate(pairs_ordered_sd)
+            ]
+
+            return pairs_ordered_clustered
+
+        def _filterPairsByCluster(pairs_ordered_clustered, selected_ligand_atoms):
+            """
+            Filter the pairs of atoms by cluster. This is done by checking each pair
+            in order of decreasing variance. If the ligand heavy atom has not already
+            been used in a restraint and no other restraints from the given directional
+            cluster have been selected, the restraint is accepted.
+
+            Parameters
+            ----------
+            pairs_ordered_clustered : list[tuple]
+                The pairs of atoms ordered by SD and clustered by direction.
+                The first and second elements of each tuple are the atom indices.
+                The third element of each tuple is the cluster number.
+
+            selected_ligand_atoms : list[int]
+                The indices of the selected ligand atoms.
+
+            Returns
+            -------
+            pairs_ordered_clustered_filtered : list[tuple]
+                The pairs of atoms ordered by SD and clustered by direction, filtered
+                by cluster. The tuples contain the atom indices only.
+            """
+            filtered_pairs = []
+            selected_clusters = []
+            available_ligand_atoms = [at.index for at in selected_ligand_atoms]
+
+            # Loop over the pairs of atoms in order of decreasing variance.
+            for pair in pairs_ordered_clustered:
+                # If the ligand atom has not already been used in a restraint and no
+                # other restraints from the given directional cluster have been selected,
+                # accept the restraint.
+                if (
+                    pair[0] in available_ligand_atoms
+                    and pair[2] not in selected_clusters
+                ):
+                    filtered_pairs.append((pair[0], pair[1]))
+                    selected_clusters.append(pair[2])
+                    available_ligand_atoms.remove(pair[0])
+
+                if len(available_ligand_atoms) == 0:
+                    return filtered_pairs
+
+            # If not all ligand atoms have been used in a restraint, return nothing.
+            return None
+
+        def _plotDistanceRestraints(distance_dict):
+            """
+            Plot the variation of the the distances for each pair
+            over the trajectory.
+
+            Parameters
+            ----------
+            distance_dict : dict
+                A dictionary containing the distances for each pair, where
+                the keys are the pair indices and the values are lists of
+                distances in Angstroms.
+            """
+            n_pairs = len(distance_dict)
+            n_columns = 6
+            n_rows = int(_np.ceil(n_pairs / n_columns))
+
+            # Plot histograms
+            fig, axs = _plt.subplots(
+                n_rows, n_columns, figsize=(2.7 * n_columns, 4 * n_rows), dpi=500
+            )
+            axs = axs.flatten()
+            for i, pair in enumerate(distance_dict):
+                axs[i].hist(distance_dict[pair], bins=10, density=True)
+                axs[i].axvline(
+                    x=_np.mean(distance_dict[pair]),
+                    color="r",
+                    linestyle="dashed",
+                    linewidth=2,
+                    label="mean",
+                )
+                axs[i].set_xlabel(f"({pair[0]}, {pair[1]}) Distance / $\mathrm{{\AA}}$")
+                axs[i].set_ylabel("Probability")
+                if i == n_pairs - 1:  # Only add legend to last plot
+                    axs[i].legend()
+                # Hide unused axes
+                if i >= n_pairs:
+                    axs[i].axis("off")
+
+            fig.tight_layout()
+            fig.savefig(
+                f"{work_dir}/distance_restraints_hist.png",
+                facecolor="white",
+            )
+            _plt.close(fig)
+
+            # Plot variation with time to see if there are slow DOF
+            fig, axs = _plt.subplots(
+                n_rows, n_columns, figsize=(2.7 * n_columns, 4 * n_rows), dpi=500
+            )
+            axs = axs.flatten()
+            for i, pair in enumerate(distance_dict):
+                axs[i].plot(
+                    list(range(len(distance_dict[pair]))),
+                    distance_dict[pair],
+                )
+                axs[i].axhline(
+                    y=_np.mean(distance_dict[pair]),
+                    color="r",
+                    linestyle="dashed",
+                    linewidth=2,
+                    label="mean",
+                )  # No need to add legend as has been
+                # added to histograms
+                axs[i].set_ylabel(f"({pair[0]}, {pair[1]}) Distance / $\mathrm{{\AA}}$")
+                axs[i].set_xlabel("Frame Index")
+            fig.tight_layout()
+            fig.savefig(
+                f"{work_dir}/distance_restraints_time.png",
+                facecolor="white",
+            )
+            _plt.close(fig)
+
+        def _getRestraintDict(u, pairs_ordered):
+            """
+            Generate the multiple distance restraints dictionary given
+            a list of pairs of atoms to restrain, ordered by decreasing
+            variance of intramolecular distance. The first pair will be
+            selected to be the "permanent" distance restraint. The restraints
+            are selected so that the flat-bottomed region covers 95 % of
+            the distances sampled during the trajectory.
+
+            Parameters
+            ----------
+            u : MDAnalysis.Universe
+                The trajectory for the ABFE restraint calculation as a
+                MDAnalysis.Universe object.
+
+            pairs_ordered : list[tuple]
+                The pairs of atoms ordered by SD. The first and second
+                elements of each tuple are the atom indices.
+
+            Returns
+            -------
+            restraint_dict : dict
+                The multiple distance restraints dictionary.
+            """
+            # For each pair, get a list of the distances over the trajectory.
+            distances = {pair: [] for pair in pairs_ordered}
+            for _ in u.trajectory:
+                for pair in pairs_ordered:
+                    distances[pair].append(
+                        RestraintSearch._getDistance(pair[0], pair[1], u)
+                    )
+
+            # Plot the distances over the trajectory.
+            _plotDistanceRestraints(distances)
+
+            # For each pair, get the restraint parameters and add them to the
+            # restraint dictionary.
+            restraint_dict = {"distance_restraints": []}
+            for i, pair in enumerate(pairs_ordered):
+                r1 = system.getAtom(int(pair[1]))
+                l1 = system.getAtom(int(pair[0]))
+                r0 = _np.mean(distances[pair]) * _angstrom  # Equilibrium distance
+                kr = 40 * _kcal_per_mol / (_angstrom**2)  # Default of 40 kcal/mol/A^2
+                r_fb = (
+                    _np.percentile(distances[pair], 97.5)
+                    - _np.percentile(distances[pair], 2.5)
+                ) * _angstrom  # Flat-bottomed region
+                individual_restraint_dict = {
+                    "r1": r1,
+                    "l1": l1,
+                    "r0": r0,
+                    "kr": kr,
+                    "r_fb": r_fb,
+                }
+                # If this is the first pair, add it as the permanent distance restraint.
+                if i == 0:
+                    restraint_dict[
+                        "permanent_distance_restraint"
+                    ] = individual_restraint_dict
+                else:
+                    restraint_dict["distance_restraints"].append(
+                        individual_restraint_dict
+                    )
+
+            return restraint_dict
+
+        # Find pairs with lowest SD, ordered by SD.
+        pairs_ordered_sd = RestraintSearch._findOrderedPairs(
+            u, ligand_selection_str, receptor_selection_str, cutoff
+        )
+
+        # Cluster pairs according to direction (based on initial structure). Choose
+        # the number of clusters to be equal to the number of selected heavy atoms in the ligand.
+        selected_ligand_atoms = u.select_atoms(ligand_selection_str).select_atoms(
+            "not name H*"
+        )
+        # Choose initial number of clusters to to the number of selected heavy atoms in the ligand.
+        n_clusters_initial = len(selected_ligand_atoms)
+        n_clusters_max = 3 * n_clusters_initial
+        n_clusters_to_try = [
+            round(n) for n in _np.linspace(n_clusters_initial, n_clusters_max, 5)
+        ]
+
+        for n_clusters in n_clusters_to_try:
+            pairs_ordered_clustered = _clusterPairsByDirection(
+                u, pairs_ordered_sd, n_clusters=n_clusters
+            )
+
+            # Check each pair in order of reverse variance. If the ligand heavy atom has not
+            # already been used in a restraint and no other restraints from the given cluster
+            # have been selected, accept the restraint.
+            pairs_ordered_clustered_filtered = _filterPairsByCluster(
+                pairs_ordered_clustered, selected_ligand_atoms
+            )
+
+            if pairs_ordered_clustered_filtered is not None:
+                break
+
+            if (
+                n_clusters_to_try[-1] == n_clusters
+                and pairs_ordered_clustered_filtered is None
+            ):
+                raise _AnalysisError(
+                    "Could not find suitable multiple distance restraints. "
+                    "Please try increasing the number of candidate pairs."
+                )
+
+        # Get restraint parameters for each pair by selecting the flat-bottomed region
+        # to encompass 95 % of sampled configurations. This also plots the data.
+        restraint_dict = _getRestraintDict(u, pairs_ordered_clustered_filtered)
+
+        # Create the restraint object and return it.
+        restraint = _Restraint(
+            system,
+            restraint_dict,
+            temperature=temperature,
+            restraint_type="multiple_distance",
         )
 
         return restraint

@@ -142,9 +142,11 @@ def test_pert_res_num(perturbable_system):
     assert unique1[0] == "perturbed residue number = 2"
 
 
-def test_restraint(system, tmp_path):
-    """Test if the restraint has been written in a way that can be processed
-    correctly."""
+def test_restraint_boresch(system, tmp_path):
+    """
+    Test if the Boresch restraint has been written in a way that can be processed
+    correctly.
+    """
     ligand = BSS.IO.readMolecules(
         [f"{url}/ligand01.rst7", f"{url}/ligand01.prm7"]
     ).getMolecule(0)
@@ -194,6 +196,77 @@ def test_restraint(system, tmp_path):
         lines = f.readlines()
         assert "use boresch restraints = True" in lines[-2]
         assert "boresch restraints dictionary" in lines[-1]
+
+
+@pytest.fixture(scope="module")
+def restraint_mdr(system):
+    """A restraint object for testing."""
+    ligand = BSS.IO.readMolecules(
+        [f"{url}/ligand01.rst7", f"{url}/ligand01.prm7"]
+    ).getMolecule(0)
+    decoupled_ligand = decouple(ligand)
+
+    fake_protein = BSS.IO.readMolecules(
+        [f"{url}/ligand04.rst7", f"{url}/ligand04.prm7"]
+    ).getMolecule(0)
+
+    system = (decoupled_ligand + fake_protein).toSystem()
+
+    # Create three distance restraints
+    restraint_dict = {
+        "distance_restraints": [
+            {
+                "l1": decoupled_ligand.getAtoms()[0],
+                "r1": fake_protein.getAtoms()[0],
+                "r0": 3 * angstrom,
+                "kr": 10 * kcal_per_mol / angstrom**2,
+                "r_fb": 1 * angstrom,
+            },
+            {
+                "l1": decoupled_ligand.getAtoms()[1],
+                "r1": fake_protein.getAtoms()[1],
+                "r0": 3 * angstrom,
+                "kr": 10 * kcal_per_mol / angstrom**2,
+                "r_fb": 1 * angstrom,
+            },
+        ],
+        "permanent_distance_restraint": {
+            "l1": decoupled_ligand.getAtoms()[2],
+            "r1": fake_protein.getAtoms()[2],
+            "r0": 3 * angstrom,
+            "kr": 10 * kcal_per_mol / angstrom**2,
+            "r_fb": 1 * angstrom,
+        },
+    }
+    restraint = Restraint(
+        system, restraint_dict, 300 * kelvin, restraint_type="multiple_distance"
+    )
+
+    return restraint
+
+
+def test_restraint_mdr(tmp_path, restraint_mdr):
+    """
+    Test if the multiple distance restraints restraint has been
+    written in a way that can be processed correctly.
+    """
+    # Create a short free energy protocol.
+    protocol = BSS.Protocol.Production(
+        runtime=BSS.Types.Time(0.001, "nanoseconds"),
+    )
+
+    # Run the process and check that it finishes without error.
+    run_process(
+        restraint_mdr._system, protocol, restraint=restraint_mdr, work_dir=str(tmp_path)
+    )
+
+    # Check for restraint options in config file.
+    with open(tmp_path / "test.cfg", "r") as f:
+        lines = f.readlines()
+        assert "use distance restraints = True" in lines[-4]
+        assert "use permanent distance restraints = True" in lines[-3]
+        assert "distance restraints dictionary" in lines[-2]
+        assert "permanent distance restraints dictionary" in lines[-1]
 
 
 def run_process(system, protocol, **kwargs):

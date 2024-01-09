@@ -210,7 +210,9 @@ def test_write_restraint(system, tmp_path):
     )
 
     # Create a short production protocol.
-    protocol = BSS.Protocol.Production(runtime=BSS.Types.Time(0.0001, "nanoseconds"))
+    protocol = BSS.Protocol.FreeEnergy(
+        runtime=BSS.Types.Time(0.0001, "nanoseconds"), perturbation_type="full"
+    )
 
     # Run the process and check that it finishes without error.
     run_process(system, protocol, restraint=restraint, work_dir=str(tmp_path))

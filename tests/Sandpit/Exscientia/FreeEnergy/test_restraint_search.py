@@ -37,7 +37,7 @@ def setup_system():
     return ligand, decouple_system, protocol
 
 
-# Make sure GROMSCS is installed.
+# Make sure GROMACS is installed.
 has_gromacs = BSS._gmx_exe is not None
 
 
@@ -169,7 +169,7 @@ class TestBSS_analysis:
 
     @staticmethod
     @pytest.fixture(scope="class")
-    def restraint(_restraint_search):
+    def boresch_restraint(_restraint_search):
         restraint_search, outdir = _restraint_search
         restraint = restraint_search.analyse(
             method="BSS", restraint_type="Boresch", block=False
@@ -178,7 +178,7 @@ class TestBSS_analysis:
 
     @staticmethod
     @pytest.fixture(scope="class")
-    def restraint_k20(_restraint_search):
+    def boresch_restraint_k20(_restraint_search):
         restraint_search, outdir = _restraint_search
         restraint = restraint_search.analyse(
             method="BSS",
@@ -188,30 +188,39 @@ class TestBSS_analysis:
         )
         return restraint, outdir
 
-    def test_sanity(self, restraint):
-        restraint, _ = restraint
+    @staticmethod
+    @pytest.fixture(scope="class")
+    def multiple_distance_restraint(_restraint_search):
+        restraint_search, outdir = _restraint_search
+        restraint = restraint_search.analyse(
+            method="BSS", restraint_type="multiple_distance", block=False
+        )
+        return restraint, outdir
+
+    def test_sanity(self, boresch_restraint):
+        restraint, _ = boresch_restraint
         assert isinstance(restraint, Restraint)
 
-    def test_plots(self, restraint):
+    def test_plots_boresch(self, boresch_restraint):
         """Test if all the plots have been generated correctly"""
-        restraint, outdir = restraint
+        restraint, outdir = boresch_restraint
         assert (outdir / "restraint_idx0_dof_time.png").is_file()
         assert (outdir / "restraint_idx0_dof_hist.png").is_file()
 
-    def test_dG_off(self, restraint):
+    def test_dG_off_boresch(self, boresch_restraint):
         """Test if the restraint generated has the same energy"""
-        restraint, _ = restraint
+        restraint, _ = boresch_restraint
         assert np.isclose(-9.8955, restraint.correction.value(), atol=0.01)
 
-    def test_bond(self, restraint):
-        restraint, _ = restraint
+    def test_bond_boresch(self, boresch_restraint):
+        restraint, _ = boresch_restraint
         equilibrium_values_r0 = (
             restraint._restraint_dict["equilibrium_values"]["r0"] / nanometer
         )
         assert np.isclose(0.6057, equilibrium_values_r0, atol=0.001)
 
-    def test_angles(self, restraint):
-        restraint, _ = restraint
+    def test_angles_boresch(self, boresch_restraint):
+        restraint, _ = boresch_restraint
         equilibrium_values_thetaA0 = (
             restraint._restraint_dict["equilibrium_values"]["thetaA0"] / degree
         )
@@ -221,8 +230,8 @@ class TestBSS_analysis:
         )
         assert np.isclose(56.4496, equilibrium_values_thetaB0, atol=0.001)
 
-    def test_dihedrals(self, restraint):
-        restraint, _ = restraint
+    def test_dihedrals_boresch(self, boresch_restraint):
+        restraint, _ = boresch_restraint
         equilibrium_values_phiA0 = (
             restraint._restraint_dict["equilibrium_values"]["phiA0"] / degree
         )
@@ -236,25 +245,97 @@ class TestBSS_analysis:
         )
         assert np.isclose(71.3148, equilibrium_values_phiC0, atol=0.001)
 
-    def test_index(self, restraint):
-        restraint, _ = restraint
+    def test_index_boresch(self, boresch_restraint):
+        restraint, _ = boresch_restraint
         idxs = {
             k: restraint._restraint_dict["anchor_points"][k].index()
             for k in restraint._restraint_dict["anchor_points"]
         }
         assert idxs == {"r1": 1560, "r2": 1558, "r3": 1562, "l1": 10, "l2": 9, "l3": 11}
 
-    def test_force_constant(self, restraint_k20):
-        restraint, _ = restraint_k20
+    def test_force_constant_boresch(self, boresch_restraint_k20):
+        restraint, _ = boresch_restraint_k20
         for force_constant in restraint._restraint_dict["force_constants"].values():
             assert np.isclose(20, force_constant.value(), atol=0.01)
 
-    def test_analysis_failure(self, _restraint_search):
+    def test_analysis_failure_boresch(self, _restraint_search):
         restraint_search, _ = _restraint_search
         with pytest.raises(AnalysisError):
             restraint = restraint_search.analyse(
                 method="BSS",
                 restraint_type="Boresch",
+                block=False,
+                cutoff=0.1 * angstrom,
+            )
+
+    def test_plots_mdr(self, multiple_distance_restraint):
+        """Test if all the plots have been generated correctly"""
+        restraint, outdir = multiple_distance_restraint
+        assert (outdir / "distance_restraints_time.png").is_file()
+        assert (outdir / "distance_restraints_hist.png").is_file()
+
+    def test_dG_off_mdr(self, multiple_distance_restraint):
+        """Test if the restraint generated has the same energy"""
+        restraint, _ = multiple_distance_restraint
+        assert np.isclose(-0.0790, restraint.correction.value(), atol=0.001)
+
+    def test_dict_mdr(self, multiple_distance_restraint):
+        """Check that the MDR restraint dictionary is correct"""
+        restraint, _ = multiple_distance_restraint
+        restr_dict = restraint._restraint_dict
+        # Check the permanent distance restraint - this should always be the same.
+        assert restr_dict["permanent_distance_restraint"]["r1"].index() == 1539
+        assert restr_dict["permanent_distance_restraint"]["l1"].index() == 10
+        assert restr_dict["permanent_distance_restraint"]["r0"].unit() == "ANGSTROM"
+        # Check close
+        assert restr_dict["permanent_distance_restraint"][
+            "r0"
+        ].value() == pytest.approx(8.9019, abs=1e-4)
+        assert restr_dict["permanent_distance_restraint"]["kr"].unit() == "M Q-1 T-2"
+        assert restr_dict["permanent_distance_restraint"]["kr"].value() == 40.0
+        assert restr_dict["permanent_distance_restraint"]["r_fb"].unit() == "ANGSTROM"
+        assert restr_dict["permanent_distance_restraint"][
+            "r_fb"
+        ].value() == pytest.approx(0.5756, abs=1e-4)
+        # Check the distance restraints - the parameters will vary slightly due to random initialisation
+        # of the clustering algorithm during restraint searching.
+        assert len(restr_dict["distance_restraints"]) == 9
+        idxs_receptor = [
+            pair["r1"].index()
+            for pair in restraint._restraint_dict["distance_restraints"]
+        ]
+        idxs_ligand = [
+            pair["l1"].index()
+            for pair in restraint._restraint_dict["distance_restraints"]
+        ]
+        # The search algorithm is not deterministic, so the receptor anchor points
+        # are not always the same. The ligand anchor points are always the same as
+        # all heavy atoms are used.
+        expected_idxs_ligand = [13, 9, 16, 12, 11, 14, 15, 8, 17].sort()
+        assert len(idxs_receptor) == len(idxs_ligand)
+        assert idxs_ligand.sort() == expected_idxs_ligand
+
+    def test_parameters_mdr(self, multiple_distance_restraint):
+        """
+        Check the parameters selected for the permanent distance restraint.
+        Other restraints are not tested as the multiple distance restraint
+        selection algorithm is not deterministic.
+        """
+        restraint, _ = multiple_distance_restraint
+        permanent_restraint = restraint._restraint_dict["permanent_distance_restraint"]
+        assert np.isclose(8.9019, permanent_restraint["r0"] / angstrom, atol=0.001)
+        assert np.isclose(
+            40,
+            permanent_restraint["kr"] / (kcal_per_mol / angstrom**2),
+        )
+        assert np.isclose(0.5756, permanent_restraint["r_fb"] / angstrom, atol=0.001)
+
+    def test_analysis_failure_mdr(self, _restraint_search):
+        restraint_search, _ = _restraint_search
+        with pytest.raises(AnalysisError):
+            restraint = restraint_search.analyse(
+                method="BSS",
+                restraint_type="multiple_distance",
                 block=False,
                 cutoff=0.1 * angstrom,
             )

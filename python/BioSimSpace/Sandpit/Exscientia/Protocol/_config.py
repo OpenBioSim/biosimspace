@@ -8,6 +8,9 @@ from .. import Protocol as _Protocol
 from .. import _gmx_version
 from .._Exceptions import IncompatibleError as _IncompatibleError
 from ..Align._squash import _amber_mask_from_indices, _squashed_atom_mapping
+from ..FreeEnergy._restraint import Restraint as _Restraint
+from ..Units.Energy import kj_per_mol as _kj_per_mol
+from ..Units.Length import nanometer as _nanometer
 
 
 class ConfigFactory:
@@ -276,7 +279,19 @@ class ConfigFactory:
                         # "heavy" restraints using a non-interoperable name mask.
                         if type(restraint) is str:
                             if restraint == "backbone":
-                                restraint_mask = "@CA,C,O,N"
+                                # Determine wether the system contains protein, nucleic acid, or both.
+                                restraint_atom_names = []
+                                if self.system.nAminoAcids() > 0:
+                                    restraint_atom_names += ["N", "CA", "C", "O"]
+                                if self.system.nNucleotides() > 0:
+                                    restraint_atom_names += [
+                                        "P",
+                                        "C5'",
+                                        "C3'",
+                                        "O3'",
+                                        "O5'",
+                                    ]
+                                restraint_mask = "@" + ",".join(restraint_atom_names)
                             elif restraint == "heavy":
                                 restraint_mask = "!:WAT & !@H="
                             elif restraint == "all":
@@ -378,7 +393,13 @@ class ConfigFactory:
 
         return total_lines
 
-    def generateGromacsConfig(self, extra_options=None, extra_lines=None):
+    def generateGromacsConfig(
+        self,
+        extra_options=None,
+        extra_lines=None,
+        restraint=None,
+        perturbation_type=None,
+    ):
         """
         Outputs the current protocol in a format compatible with GROMACS.
 
@@ -391,12 +412,29 @@ class ConfigFactory:
         extra_lines : list
             A list of extra lines to be put at the end of the script.
 
+        restraint : :class:`Restraint <BioSimSpace.FreeEnergy.Restraint>`
+            Restraint object that contains information for ABFE calculations.
+
+        perturbation_type : str
+            The type of perturbation to perform. Options are:
+            "full" : A full perturbation of all terms (default option).
+            "release_restraint" : Used with multiple distance restraints to release all
+                                  restraints other than the "permanent" one when the ligand
+                                  is fully decoupled. Note that lambda = 0.0 is the fully
+                                  released state, and lambda = 1.0 is the fully restrained
+                                  state (i.e. 0.0 -> value). The non-permanent restraints
+                                  can be scaled with bonded-lambda.
+
         Returns
         -------
 
         config : list
             The generated config list in a GROMACS format.
         """
+        if perturbation_type == "release_restraint" and restraint is None:
+            raise ValueError(
+                "Cannot use perturbation_type='release_restraint' without a Restraint object."
+            )
 
         extra_options = extra_options if extra_options is not None else {}
         extra_lines = extra_lines if extra_lines is not None else []
@@ -586,6 +624,20 @@ class ConfigFactory:
                 "nstdhdl"
             ] = self._report_interval  # Write gradients every report_interval steps.
 
+            # Handle the combination of multiple distance restraints and perturbation type
+            # of "release_restraint". In this case, the force constant of the "permanent"
+            # restraint needs to be written to the mdp file.
+            if perturbation_type == "release_restraint":
+                if not isinstance(restraint, _Restraint):
+                    raise ValueError(
+                        "Cannot use perturbation_type='release_restraint' without a Restraint object."
+                    )
+                # Get force constant in correct units.
+                force_constant = restraint._restraint_dict[
+                    "permanent_distance_restraint"
+                ]["kr"] / (_kj_per_mol / _nanometer**2)
+                protocol_dict["disre-fc"] = force_constant
+
         # Put everything together in a line-by-line format.
         total_dict = {**protocol_dict, **extra_options}
         total_lines = [
@@ -626,6 +678,11 @@ class ConfigFactory:
             "charge_soft" : Perturb all charging soft atom LJ terms (i.e. 0.0->value).
             "restraint" : Perturb the receptor-ligand restraint strength by linearly
                           scaling the force constants (0.0->value).
+            "release_restraint" : Used with multiple distance restraints to release all
+                                  restraints other than the "permanent" one when the ligand
+                                  is fully decoupled. Note that lambda = 0.0 is the fully
+                                  released state, and lambda = 1.0 is the fully restrained
+                                  state (i.e. 0.0 -> value).
 
         Returns
         -------
@@ -812,10 +869,33 @@ class ConfigFactory:
 
         # Restraint
         if restraint:
-            total_lines.append("use boresch restraints = True")
-            total_lines.append(restraint.toString(engine="SOMD"))
-            # If we are turning on the restraint, need to specify this in the config file
-            if perturbation_type == "restraint":
+            # Handle Boresch restraints.
+            if restraint._restraint_type == "boresch":
+                if perturbation_type == "release_restraint":
+                    raise _IncompatibleError(
+                        "SOMD does not support releasing Boresch restraints, only "
+                        "multiple distance restraints."
+                    )
+                total_lines.append("use boresch restraints = True")
+                total_lines.append(restraint.toString(engine="SOMD"))
+
+            # Handle multiple distance restraints.
+            elif restraint._restraint_type == "multiple_distance":
+                total_lines.append("use distance restraints = True")
+                if perturbation_type != "restraint":
+                    # In this case, we want to ensure that the "permanent" distance restraint is active
+                    total_lines.append("use permanent distance restraints = True")
+                total_lines.append(
+                    restraint.toString(
+                        engine="SOMD", perturbation_type=perturbation_type
+                    )
+                )
+
+            # If we are turning on the restraint, need to specify this in the config file.
+            if (
+                perturbation_type == "restraint"
+                or perturbation_type == "release_restraint"
+            ):
                 total_lines.append("turn on receptor-ligand restraints mode = True")
 
         return total_lines

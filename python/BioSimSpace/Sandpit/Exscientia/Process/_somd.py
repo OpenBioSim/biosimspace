@@ -958,6 +958,11 @@ def _to_pert_file(
         "charge_soft" : Perturb all charging soft atom LJ terms (i.e. 0.0->value).
         "restraint" : Perturb the receptor-ligand restraint strength by linearly
                         scaling the force constants (0.0->value).
+        "release_restraint" : Used with multiple distance restraints to release all
+                              restraints other than the "permanent" one when the ligand
+                              is fully decoupled. Note that lambda = 0.0 is the fully
+                              released state, and lambda = 1.0 is the fully restrained
+                              state (i.e. 0.0 -> value).
 
     Returns
     -------
@@ -1007,6 +1012,7 @@ def _to_pert_file(
         "grow_soft",
         "charge_soft",
         "restraint",
+        "release_restraint",
     ]
 
     if perturbation_type not in allowed_perturbation_types:
@@ -1323,6 +1329,77 @@ def _to_pert_file(
                         "        final_charge   %.5f\n"
                         % atom.property("charge0").value()
                     )
+
+                    # End atom record.
+                    file.write("    endatom\n")
+
+        elif perturbation_type == "release_restraint":
+            if print_all_atoms:
+                for atom in sorted(
+                    mol.atoms(), key=lambda atom: atom_sorting_criteria(atom)
+                ):
+                    # Start atom record.
+                    file.write("    atom\n")
+
+                    # Only require the final Lennard-Jones and charge properties.
+                    LJ1 = atom.property("LJ1")
+                    charge1_value = atom.property("charge1").value()
+
+                    # Atom data. Create dummy pert file with identical initial and final properties.
+                    file.write("        name           %s\n" % atom.name().value())
+                    file.write(
+                        "        initial_type   %s\n" % atom.property("ambertype1")
+                    )
+                    file.write(
+                        "        final_type     %s\n" % atom.property("ambertype1")
+                    )
+                    file.write(
+                        "        initial_LJ     %.5f %.5f\n"
+                        % (LJ1.sigma().value(), LJ1.epsilon().value())
+                    )
+                    file.write(
+                        "        final_LJ       %.5f %.5f\n"
+                        % (LJ1.sigma().value(), LJ1.epsilon().value())
+                    )
+                    file.write("        initial_charge %.5f\n" % charge1_value)
+                    file.write("        final_charge   %.5f\n" % charge1_value)
+
+                    # End atom record.
+                    file.write("    endatom\n")
+
+            # Only print records for the atoms that are perturbed.
+            else:
+                for idx in sorted(
+                    pert_idxs, key=lambda idx: atom_sorting_criteria(mol.atom(idx))
+                ):
+                    # Get the perturbed atom.
+                    atom = mol.atom(idx)
+
+                    # Start atom record.
+                    file.write("    atom\n")
+
+                    # Only require the final Lennard-Jones and charge properties.
+                    LJ1 = atom.property("LJ1")
+                    charge1_value = atom.property("charge1").value()
+
+                    # Atom data. Create dummy pert file with identical initial and final properties.
+                    file.write("        name           %s\n" % atom.name().value())
+                    file.write(
+                        "        initial_type   %s\n" % atom.property("ambertype1")
+                    )
+                    file.write(
+                        "        final_type     %s\n" % atom.property("ambertype1")
+                    )
+                    file.write(
+                        "        initial_LJ     %.5f %.5f\n"
+                        % (LJ1.sigma().value(), LJ1.epsilon().value())
+                    )
+                    file.write(
+                        "        final_LJ       %.5f %.5f\n"
+                        % (LJ1.sigma().value(), LJ1.epsilon().value())
+                    )
+                    file.write("        initial_charge %.5f\n" % charge1_value)
+                    file.write("        final_charge   %.5f\n" % charge1_value)
 
                     # End atom record.
                     file.write("    endatom\n")
