@@ -1135,10 +1135,15 @@ class OpenMM(_process.Process):
             setattr(self, "getTime", self._getTime)
 
         elif isinstance(self._protocol, _Protocol.AToM):
+            # TODO: check extra_options, extra_lines and property_map
             from ._atom_utils import _AToMUtils as _AToMUtils
 
-            align_cores = self._protocol.getAlignCores()
-            util = _AToMUtils(self._system, align_cores)
+            if self._protocol._get_window_index() is None:
+                raise _IncompatibleError(
+                    "AToM protocol requires the current window index to be set."
+                )
+
+            util = _AToMUtils(self._protocol)
 
             # Write the OpenMM import statements.
             self._add_config_imports()
@@ -1202,7 +1207,124 @@ class OpenMM(_process.Process):
                         self.addToConfig(f"barostat.setRandomNumberSeed({self._seed})")
                     self.addToConfig("system.addForce(barostat)")
 
-            # Use utils to create alignment force
+            # Add any position restraints.
+            if self._protocol.getRestraint() is not None:
+                self._add_config_restraints()
+
+            # Get the integration time step from the protocol.
+            timestep = self._protocol.getTimeStep().picoseconds().value()
+
+            # Set the integrator.
+            self.addToConfig("\n# Define the integrator.")
+            self.addToConfig(
+                f"integrator = LangevinMiddleIntegrator({temperature}*kelvin,"
+            )
+            friction = (
+                1 / self._protocol.getThermostatTimeConstant().picoseconds().value()
+            )
+            self.addToConfig(
+                f"                                {friction:.5f}/picosecond,"
+            )
+            self.addToConfig(f"                                {timestep}*picoseconds)")
+            if self._is_seeded:
+                self.addToConfig(f"integrator.setRandomNumberSeed({self._seed})")
+
+            # Add the platform information.
+            self._add_config_platform()
+
+            # Use utils to create AToM-specific forces
+            util = _AToMUtils(self._protocol)
+            if self._protocol.getCoreAlignment():
+                alignment = util.createAlignmentForce()
+                self.addToConfig("\n# Add alignment force.")
+                self.addToConfig(alignment)
+            # Atom force is the only window-dependent force
+            self.addToConfig("\n# Add AToM Force.")
+            self.addToConfig(util.createATMForce(self._protocol._get_window_index()))
+
+            self.addToConfig("\n# Initialise and configure the simulation object.")
+            self.addToConfig("simulation = Simulation(prm.topology,")
+            self.addToConfig("                        system,")
+            self.addToConfig("                        integrator,")
+            self.addToConfig("                        platform,")
+            self.addToConfig("                        properties)")
+            if self._protocol.getRestraint() is not None:
+                self.addToConfig("simulation.context.setPositions(positions)")
+            else:
+                self.addToConfig("simulation.context.setPositions(prm.positions)")
+            self.addToConfig("if prm.box_vectors is not None:")
+            self.addToConfig(
+                "    box_vectors = reducePeriodicBoxVectors(prm.box_vectors)"
+            )
+            self.addToConfig(
+                "    simulation.context.setPeriodicBoxVectors(*box_vectors)"
+            )
+
+            # Set initial velocities from temperature distribution.
+            self.addToConfig("\n# Setting initial system velocities.")
+            self.addToConfig(
+                f"simulation.context.setVelocitiesToTemperature({temperature})"
+            )
+
+            # Check for a restart file and load the simulation state.
+            is_restart, step = self._add_config_restart()
+
+            # Work out the number of integration steps.
+            total_steps = _math.ceil(
+                self._protocol.getRunTime() / self._protocol.getTimeStep()
+            )
+
+            # Subtract the current number of steps.
+            steps = total_steps - step
+
+            # Exit if the simulation has already finished.
+            if steps <= 0:
+                print("The simulation has already finished!")
+                return
+
+            # Inform user that a restart was loaded.
+            self.addToConfig("\n# Print restart information.")
+            self.addToConfig("if is_restart:")
+            self.addToConfig(f"    steps = {total_steps}")
+            self.addToConfig("    percent_complete = 100 * (step / steps)")
+            self.addToConfig("    print('Loaded state from an existing simulation.')")
+            self.addToConfig(
+                "    print(f'Simulation is {percent_complete}% complete.')"
+            )
+
+            # Get the report and restart intervals.
+            report_interval = self._protocol.getReportInterval()
+            restart_interval = self._protocol.getRestartInterval()
+
+            # Cap the intervals at the total number of steps.
+            if report_interval > steps:
+                report_interval = steps
+            if restart_interval > steps:
+                restart_interval = steps
+
+            # Add the reporters.
+            self.addToConfig("\n# Add reporters.")
+            self._add_config_reporters(
+                state_interval=report_interval,
+                traj_interval=restart_interval,
+                is_restart=is_restart,
+            )
+
+            # Work out the total simulation time in picoseconds.
+            run_time = steps * timestep
+
+            # Work out the number of cycles in 100 picosecond intervals.
+            cycles = _math.ceil(run_time / 100)
+
+            # Work out the number of steps per cycle.
+            steps_per_cycle = int(steps / cycles)
+
+            # Now run the simulation.
+            self.addToConfig("\n# Run the simulation in 100 picosecond cycles.")
+            self.addToConfig(f"for x in range(0, {cycles}):")
+            self.addToConfig(f"    simulation.step({steps_per_cycle})")
+            self.addToConfig(f"    simulation.saveState('{self._name}.xml')")
+
         else:
             raise _IncompatibleError(
                 "Unsupported protocol: '%s'" % self._protocol.__class__.__name__

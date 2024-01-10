@@ -21,7 +21,7 @@
 
 # Functionality for creating and viewing systems for Atomic transfer.
 
-__all__ = ["makeSystem", "viewRigidCores"]
+__all__ = ["makeSystem", "viewRigidCores", "relativeATM"]
 
 from ... import _is_notebook
 from ..._SireWrappers import Molecule as _Molecule
@@ -32,7 +32,10 @@ from ...Types import Vector as _Vector
 from ...Types import Coordinate as _Coordinate
 from ...Align import matchAtoms as _matchAtoms
 from ...Align import rmsdAlign as _rmsdAlign
+from ... import Process as _Process
 from ...Notebook import View as _View
+import os as _os
+import shutil as _shutil
 
 
 class makeSystem:
@@ -90,6 +93,7 @@ class makeSystem:
             )
         self.data = {}
         self._is_pre_prepared = False
+        self._is_made = False
         self._setProteinIndex(protein_index)
         self._setLigand1Index(ligand1_index)
         self._setLigand2Index(ligand2_index)
@@ -325,7 +329,7 @@ class makeSystem:
             if len(displacement) != 3:
                 raise ValueError("displacement must have length 3")
             if all(isinstance(x, float) for x in displacement):
-                self.displacement = _Vector(displacement)
+                self.displacement = _Vector(*displacement)
             elif all(isinstance(x, _Length) for x in displacement):
                 self.displacement = _Vector([x.value() for x in displacement])
             else:
@@ -345,8 +349,10 @@ class makeSystem:
         # Concatenate the molecules
         system_ligand1 = (self.mol1 + self.ligand1).toSystem()
 
-        if isinstance(self.displacement, list):
-            self.ligand2.translate(self.displacement)
+        if isinstance(self.displacement, _Vector):
+            self.ligand2.translate(
+                [self.displacement.x(), self.displacement.y(), self.displacement.z()]
+            )
             self.data["displacement"] = self.displacement
         else:
             # Now we need to translate ligand2 so that it is separated from the protein/ligand1
@@ -377,16 +383,19 @@ class makeSystem:
         protein_atom_start = self.system[self.protein_index].getAtoms()[0]
         protein_atom_end = self.system[self.protein_index].getAtoms()[-1]
         self.first_protein_atom_index = self.system.getIndex(protein_atom_start)
+        print(self.first_protein_atom_index)
         self.last_protein_atom_index = self.system.getIndex(protein_atom_end)
 
         ligand1_atom_start = self.system[self.ligand1_index].getAtoms()[0]
         ligand1_atom_end = self.system[self.ligand1_index].getAtoms()[-1]
         self.first_ligand1_atom_index = self.system.getIndex(ligand1_atom_start)
+        print(self.first_ligand1_atom_index)
         self.last_ligand1_atom_index = self.system.getIndex(ligand1_atom_end)
 
         ligand2_atom_start = self.system[self.ligand2_index].getAtoms()[0]
         ligand2_atom_end = self.system[self.ligand2_index].getAtoms()[-1]
         self.first_ligand2_atom_index = self.system.getIndex(ligand2_atom_start)
+        print(self.first_ligand2_atom_index)
         self.last_ligand2_atom_index = self.system.getIndex(ligand2_atom_end)
 
     @staticmethod
@@ -650,7 +659,7 @@ class relativeATM:
             raise TypeError("'property_map' must be of type 'dict'")
         self._property_map = property_map
 
-    def _inititalise_runner(self, system):
+    def _inititalise_runner(self):
         """
         Internal helper function to initialise the process runner.
 
@@ -660,18 +669,107 @@ class relativeATM:
         system : :class:`System <BioSimSpace._SireWrappers.System>`
             The molecular system.
         """
+        if self._protocol is None:
+            raise RuntimeError("No protocol has been set - cannot run simulations.")
         # Initialise list to store the processe
         processes = []
 
-        # Get first lambda values.
-        lam1 = self._protocol.getLambda1()
-        lam2 = self._protocol.getLambda2()
+        # Get the list of lambda1 values so that the total number of simulations can
+        # be asserted
+        lambda1_list = self._protocol.getLambda1()
+        # Use for loop to avoid annyoing typecheck for numpy int type
+        simulation_indices = [x for x in range(len(lambda1_list))]
+        self._protocol._set_window_index(simulation_indices[0])
+
+        first_dir = "%s/window_%i" % (self._work_dir, simulation_indices[0])
+
+        # Create the first simulation, which will be copied and used for future simulations.
+        first_process = _Process.OpenMM(
+            system=self._system,
+            protocol=self._protocol,
+            work_dir=first_dir,
+        )
+
+        if self._setup_only:
+            del first_process
+        else:
+            processes.append(first_process)
+
+        # Remove first index as its already been used
+        simulation_indices = simulation_indices[1:]
+
+        for index in simulation_indices:
+            # TODO: Support for simulations restarting from a checkpoint.
+            # Files are named according to index, rather than lambda value
+            # This is to avoid confusion arising from the fact that there are multiple lambdas
+            # and that the values of lambda1 and lambda2 wont necessarily be go from 0 to 1
+            # and may contain duplicates
+            new_dir = "%s/window_%i" % (self._work_dir, index)
+            # Use absolute path.
+            if not _os.path.isabs(new_dir):
+                new_dir = _os.path.abspath(new_dir)
+
+            # Delete any existing directories.
+            if _os.path.isdir(new_dir):
+                _shutil.rmtree(new_dir, ignore_errors=True)
+
+            # Copy the first directory to that of the current lambda value.
+            _shutil.copytree(first_dir, new_dir)
+            # For speed reasons, additional processes need to be created by copying the first process.
+            # this is more difficult than usual due to the number of window-dependent variables
+            new_config = []
+            # All variables that need to change
+            new_lam_1 = self._protocol.getLambda1()[index]
+            new_lam_2 = self._protocol.getLambda2()[index]
+            new_alpha = self._protocol.getAlpha()[index]
+            new_u0 = self._protocol.getU0()[index]
+            new_w0 = self._protocol.getW0()[index]
+            new_direction = self._protocol.getDirections()[index]
+            with open(new_dir + "/openmm_script.py", "r") as f:
+                for line in f:
+                    if line.startswith("lambda1"):
+                        new_config.append(f"lambda1 = {new_lam_1}\n")
+                    elif line.startswith("lambda2"):
+                        new_config.append(f"lambda2 = {new_lam_2}\n")
+                    elif line.startswith("alpha"):
+                        new_config.append(f"alpha = {new_alpha}\n")
+                    elif line.startswith("u0"):
+                        new_config.append(f"u0 = {new_u0}\n")
+                    elif line.startswith("w0"):
+                        new_config.append(f"w0 = {new_w0}\n")
+                    elif line.startswith("direction"):
+                        new_config.append(f"direction = {new_direction}\n")
+                    else:
+                        new_config.append(line)
+            with open(new_dir + "/openmm_script.py", "w") as f:
+                for line in new_config:
+                    f.write(line)
+            # TODO alter process object to match new directory
+
+    def run(self):
+        """
+        Run the simulations.
+        Returns
+        -------
+        list of :class:`Process <BioSimSpace.Process>`
+            A list of process objects.
+        """
+        # Initialise the runner.
+        self._inititalise_runner()
 
 
 def viewRigidCores(system, data):
     """
     View the aligned ligands with rigid core atoms defined by the user during system creation.
     """
+
+    if (
+        "ligand1_rigid_core" not in data.keys()
+        or "ligand2_rigid_core" not in data.keys()
+    ):
+        raise ValueError(
+            "ligand1_rigid_core and ligand2_rigid_core must be defined in data"
+        )
 
     def move_to_origin(lig):
         com = _Coordinate(*lig._getCenterOfMass())

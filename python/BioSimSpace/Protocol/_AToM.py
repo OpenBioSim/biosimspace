@@ -142,7 +142,7 @@ class AToM(_Protocol, _PositionRestraintMixin):
             0.00,
             0.00,
         ],
-        w0coeff=[
+        W0=[
             0.00,
             0.00,
             0.00,
@@ -249,8 +249,8 @@ class AToM(_Protocol, _PositionRestraintMixin):
         U0 : list of float
             The U0 values.
 
-        w0coeff : list of float
-            The w0coeff values.
+        W0 : list of float
+            The W0 values.
 
         pos_restrained_atoms : list of int
             The atoms to be restrained.
@@ -322,8 +322,8 @@ class AToM(_Protocol, _PositionRestraintMixin):
         # Store the U0 values.
         self.setU0(U0)
 
-        # Store the w0coeff values.
-        self.setW0coeff(w0coeff)
+        # Store the W0 values.
+        self.setW0(W0)
 
         # Store the align_kf_sep value.
         self.setAlignKfSep(align_kf_sep)
@@ -683,7 +683,7 @@ class AToM(_Protocol, _PositionRestraintMixin):
         lambdas : list of float
             The directions.
         """
-        return self._direction
+        return self._directions
 
     def setDirections(self, directions):
         """
@@ -827,35 +827,35 @@ class AToM(_Protocol, _PositionRestraintMixin):
         else:
             raise TypeError("'U0' must be of type 'list'")
 
-    def getW0coeff(self):
+    def getW0(self):
         """
-        Return the w0coeff values.
+        Return the W0 values.
 
         Returns
         -------
 
-        w0coeff : list of float
-            The w0coeff values.
+        W0 : list of float
+            The W0 values.
         """
-        return self._w0coeff
+        return self._W0
 
-    def setW0coeff(self, w0coeff):
+    def setW0(self, W0):
         """
-        Set the w0coeff values.
+        Set the W0 values.
 
         Parameters
         ----------
 
-        w0coeff : list of float
-            The w0coeff values.
+        W0 : list of float
+            The W0 values.
         """
-        if isinstance(w0coeff, list):
-            if all(isinstance(item, float) for item in w0coeff):
-                self._w0coeff = w0coeff
+        if isinstance(W0, list):
+            if all(isinstance(item, float) for item in W0):
+                self._W0 = W0
             else:
-                raise ValueError("all entries in 'w0coeff' must be floats")
+                raise ValueError("all entries in 'W0' must be floats")
         else:
-            raise TypeError("'w0coeff' must be of type 'list'")
+            raise TypeError("'W0' must be of type 'list'")
 
     def getAlignKfSep(self):
         """
@@ -1019,19 +1019,22 @@ class AToM(_Protocol, _PositionRestraintMixin):
         else:
             raise TypeError("'sc_a' must be of type 'float'")
 
-    def _set_current_lambdas(self, lam1, lam2):
-        # Internal function to set the current lambda values for a specific process
-        if not (isinstance(lam1, float) and lam1 >= 0.0 and lam1 <= 1.0):
-            raise TypeError(
-                "'lam1' must be of type 'float' with value between 0.0 and 1.0"
+    def _set_window_index(self, index):
+        # Internal function to set index of the current simulation window
+        # used to set all window-specific parameters
+        if index < 0:
+            raise ValueError("index must be positive")
+        if index >= len(self._lambda1):
+            raise ValueError(
+                "index must be less than the number of lambda1 values (len(lambda1))"
             )
-        if not (isinstance(lam2, float) and lam2 >= 0.0 and lam2 <= 1.0):
-            raise TypeError(
-                "'lam2' must be of type 'float' with value between 0.0 and 1.0"
-            )
-        self._current_lambda1 = lam1
-        self._current_lambda2 = lam2
+        if not isinstance(index, int):
+            raise TypeError("index must be an integer")
+        self._current_index = index
 
-    def _get_current_lambdas(self):
+    def _get_window_index(self):
         # Internal function to get the current lambda values for a specific process
-        return self._current_lambda1, self._current_lambda2
+        try:
+            return self._current_index
+        except:
+            return None

@@ -19,7 +19,7 @@
 # along with BioSimSpace. If not, see <http://www.gnu.org/licenses/>.
 #####################################################################
 __all__ = ["_AToMUtils"]
-from ..Protocol import Protocol as _Protocol
+from .. import Protocol as _Protocol
 
 
 class _AToMUtils:
@@ -39,13 +39,13 @@ class _AToMUtils:
     def findAbsoluteCoreIndices(self):
         import numpy as np
 
-        self.lig1_first_atomnum = self.data["first_lig1_atom_index"]
+        self.lig1_first_atomnum = self.data["first_ligand1_atom_index"]
         self.lig1_rigid_atoms = list(
-            np.add(self.lig1_first_atomnum, self.data["lig1_rigid_core"])
+            np.add(self.lig1_first_atomnum, self.data["ligand1_rigid_core"])
         )
-        self.lig2_first_atomnum = self.data["first_lig2_atom_index"]
+        self.lig2_first_atomnum = self.data["first_ligand2_atom_index"]
         self.lig2_rigid_atoms = list(
-            np.add(self.lig1_first_atomnum, self.data["lig2_rigid_core"])
+            np.add(self.lig2_first_atomnum, self.data["ligand2_rigid_core"])
         )
 
     def findDisplacement(self):
@@ -57,9 +57,9 @@ class _AToMUtils:
 
     def createAlignmentForce(self):
         # This force is the same in every lambda window
-        self.get_alignment_constants()
-        self.find_absolute_core_indices()
-        self.find_displacement()
+        self.getAlignmentConstants()
+        self.findAbsoluteCoreIndices()
+        self.findDisplacement()
 
         output = "\n\n"
         d = [round(x, 3) for x in self.displacement]
@@ -72,21 +72,19 @@ class _AToMUtils:
         output += "\n\n"
 
         output += 'distance_energy_fn = "0.5 * k * ((x1 - x2 - dx)^2 + (y1 - y2 - dy)^2 + (z1 - z2 - dz)^2);"\n'
-        output += (
-            "distance_force = openmm.CustomCompoundBondForce(2, distance_energy_fn)\n"
-        )
+        output += "distance_force = CustomCompoundBondForce(2, distance_energy_fn)\n"
         output += "distance_force.addPerBondParameter('k')\n"
         output += "distance_force.addPerBondParameter('dx')\n"
         output += "distance_force.addPerBondParameter('dy')\n"
         output += "distance_force.addPerBondParameter('dz')\n"
 
         output += """distance_parameters = [
-        k_distance*openmm.unit(
-            openmm.unit.kilojoules_per_mole / openmm.unit.angstrom**2
+        k_distance*(
+            kilojoules_per_mole / angstrom**2
         ),
-        displacment[0]*openmm.unit.angstrom,
-        displacment[1]*openmm.unit.angstrom,
-        displacment[2]*openmm.unit.angstrom,
+        displacment[0]*angstrom,
+        displacment[1]*angstrom,
+        displacment[2]*angstrom,
         ]\n"""
 
         output += "distance_force.addBond((idxs_b[0], idxs_a[0]), distance_parameters)"
@@ -104,11 +102,11 @@ class _AToMUtils:
         "norm_2 = sqrt(dx_2^2 + dy_2^2 + dz_2^2);"
         "dx_2 = x4 - x3; dy_2 = y4 - y3; dz_2 = z4 - z3;"
         )\n"""
-        output += "angle_force = openmm.CustomCompoundBondForce(4, angle_energy_fn)\n"
+        output += "angle_force = CustomCompoundBondForce(4, angle_energy_fn)\n"
         output += 'angle_force.addPerBondParameter("k")\n'
         output += """angle_force.addBond(
         (idxs_b[0], idxs_b[1], idxs_a[0], idxs_a[1]),
-        [k_theta*openmm.unit.kilojoules_per_mole],
+        [k_theta*kilojoules_per_mole],
         )\n"""
         output += "system.addForce(angle_force)\n\n"
 
@@ -137,17 +135,15 @@ class _AToMUtils:
         "dx_21 = x2 - x1; dy_21 = y2 - y1; dz_21 = z2 - z1;"
         )\n"""
 
-        output += (
-            "dihedral_force = openmm.CustomCompoundBondForce(5, dihedral_energy_fn)\n"
-        )
+        output += "dihedral_force = CustomCompoundBondForce(5, dihedral_energy_fn)\n"
         output += 'dihedral_force.addPerBondParameter("k")\n'
         output += """dihedral_force.addBond(
         (idxs_b[0], idxs_b[1], idxs_b[2], idxs_a[0], idxs_a[2]),
-        [0.5 * k_psi * unit(openmm.unit.kilojoules_per_mole)],
+        [0.5 * k_psi * unit(kilojoules_per_mole)],
         )\n"""
         output += """dihedral_force.addBond(
         (idxs_a[0], idxs_a[1], idxs_a[2], idxs_b[0], idxs_b[2]),
-        [0.5 * k_dihedral*unit(openmm.unit.kilojoules_per_mole)],
+        [0.5 * k_psi*unit(kilojoules_per_mole)],
         )\n"""
         output += "system.addForce(dihedral_force)\n\n"
         return output
@@ -157,7 +153,7 @@ class _AToMUtils:
 
         return list(
             np.arange(
-                self.data["first_lig1_atom_index"],
+                self.data["first_ligand1_atom_index"],
                 self.data["last_ligand1_atom_index"] + 1,
             )
         )
@@ -167,53 +163,68 @@ class _AToMUtils:
 
         return list(
             np.arange(
-                self.data["first_lig2_atom_index"],
+                self.data["first_ligand2_atom_index"],
                 self.data["last_ligand2_atom_index"] + 1,
             )
         )
 
     def createATMForce(
         self,
-        lambda1,
-        lambda2,
-        displacement,
-        alpha,
-        u0,
-        w0,
-        direction,
-        sc_Umax,
-        sc_U0,
-        sc_a,
+        index,
     ):
+        """
+        Create a string which can be added directly to an openmm script to add an ATM force to the system.
+
+        Parameters
+        ----------
+        index : int
+            Index of current window - used to set window-dependent variables.
+        """
         output = ""
         output += "#Parameters for ATM force\n"
         output += "lig1_atoms = {}\n".format(self.getLigand1AtomsAsList())
         output += "lig2_atoms = {}\n".format(self.getLigand2AtomsAsList())
-        output += "displacement = {}\n".format(displacement)
-        output += "lambda1 = {}\n".format(lambda1)
-        output += "lambda2 = {}\n".format(lambda2)
-        output += "alpha = {}\n".format(alpha)
-        output += "u0 = {}\n".format(u0)
-        output += "w0 = {}\n".format(w0)
-        output += "direction = {}\n".format(direction)
-        output += "sc_Umax = {}\n".format(sc_Umax)
-        output += "sc_U0 = {}\n".format(sc_U0)
-        output += "sc_a = {}\n".format(sc_a)
+        output += "displacement = {}\n".format(self.protocol.getData()["displacement"])
+        output += "lambda1 = {}\n".format(self.protocol.getLambda1()[index])
+        output += "lambda2 = {}\n".format(self.protocol.getLambda2()[index])
+        output += "alpha = {}\n".format(self.protocol.getAlpha()[index])
+        output += "u0 = {}\n".format(self.protocol.getU0()[index])
+        output += "w0 = {}\n".format(self.protocol.getW0()[index])
+        output += "direction = {}\n".format(self.protocol.getDirections()[index])
+        output += "sc_Umax = {}\n".format(self.protocol.getSCUmax())
+        output += "sc_U0 = {}\n".format(self.protocol.getSCU0())
+        output += "sc_a = {}\n".format(self.protocol.getSCa())
 
         output += "\n\n #Define ATM force\n"
-        output += """atm_force = openmm.ATMForce(
+        output += """atm_force = ATMForce(
         lambda1,
         lambda2,
-        alpha * openmm.unit.kilojoules_per_mole,
-        u0 * openmm.unit.kilojoules_per_mole,   
-        w0 * openmm.unit.kilojoules_per_mole,
-        sc_Umax * openmm.unit.kilojoules_per_mole,
-        sc_u0 * openmm.unit.kilojoules_per_mole,
+        alpha * kilojoules_per_mole,
+        u0 * kilojoules_per_mole,
+        w0 * kilojoules_per_mole,
+        sc_Umax * kilojoules_per_mole,
+        sc_U0 * kilojoules_per_mole,
         sc_a,
         direction,
         )"""
 
         output += "\n\n #Add ATM force to system\n"
-        output += "for _ in range(len(self._topology.atoms)):\n"
-        output += "    atm_force.addParticle(openmm.Vec3(0.0,0.0,0.0))\n"
+        output += "for _ in range(len(system.topology.atoms)):\n"
+        output += "    atm_force.addParticle(Vec3(0.0,0.0,0.0))"
+        output += "\n"
         # TODO: add offset - check convesion of a list to a Vec3
+        # Assuming that offset is the 3-vector which deifnes the ligand displacement
+        output += """
+        for i in lig1_atoms:
+            atm_force.setParticleParameters(i, Vec3(*displacement))
+            """
+        output += """
+        for i in lig2_atoms:
+            atm_force.setParticleParameters(i, -Vec3(*displacement)) """
+        output += "\n"
+        output += "nonbonded_force_id = [i for i, force in enumerate(system.getForces()) if isinstance(force, NonbondedForce)][0]\n"
+        output += "nonbonded = copy.deepcopy(system.getForce(nonbonded_force_id))\n"
+        output += "system.removeForce(nonbonded_force_id)\n"
+        output += "atm_force.addForce(nonbonded)\n"
+        output += "system.addForce(atm_force)\n"
+        return output
