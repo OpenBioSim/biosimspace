@@ -1150,10 +1150,6 @@ class OpenMM(_process.Process):
             self._add_config_monkey_patches()
 
             # Add standard openMM config
-            self._add_config_imports()
-            self.addToConfig(
-                "from metadynamics import *"
-            )  # Use local patched metadynamics module.
             self.addToConfig("from glob import glob")
             self.addToConfig("import math")
             self.addToConfig("import os")
@@ -1233,14 +1229,14 @@ class OpenMM(_process.Process):
             self._add_config_platform()
 
             # Use utils to create AToM-specific forces
+            # Atom force is the only window-dependent force
+            self.addToConfig("\n# Add AToM Force.")
+            self.addToConfig(util.createATMForce(self._protocol._get_window_index()))
             util = _AToMUtils(self._protocol)
             if self._protocol.getCoreAlignment():
                 alignment = util.createAlignmentForce()
                 self.addToConfig("\n# Add alignment force.")
                 self.addToConfig(alignment)
-            # Atom force is the only window-dependent force
-            self.addToConfig("\n# Add AToM Force.")
-            self.addToConfig(util.createATMForce(self._protocol._get_window_index()))
 
             self.addToConfig("\n# Initialise and configure the simulation object.")
             self.addToConfig("simulation = Simulation(prm.topology,")

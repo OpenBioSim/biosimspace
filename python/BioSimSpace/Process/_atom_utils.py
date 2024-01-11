@@ -59,11 +59,8 @@ class _AToMUtils:
         # This force is the same in every lambda window
         self.getAlignmentConstants()
         self.findAbsoluteCoreIndices()
-        self.findDisplacement()
 
         output = "\n\n"
-        d = [round(x, 3) for x in self.displacement]
-        output += "displacment = {}\n".format(d)
         output += "k_distance = {}\n".format(self.alignment_k_distance)
         output += "k_theta = {}\n".format(self.alignment_k_theta)
         output += "k_psi = {}\n".format(self.alignment_k_psi)
@@ -80,14 +77,16 @@ class _AToMUtils:
 
         output += """distance_parameters = [
         k_distance*(
-            kilojoules_per_mole / angstrom**2
+            kilojoules_per_mole / nanometer**2
         ),
-        displacment[0]*angstrom,
-        displacment[1]*angstrom,
-        displacment[2]*angstrom,
+        displacement[0]*nanometer,
+        displacement[1]*nanometer,
+        displacement[2]*nanometer,
         ]\n"""
 
-        output += "distance_force.addBond((idxs_b[0], idxs_a[0]), distance_parameters)"
+        output += (
+            "distance_force.addBond((idxs_b[0], idxs_a[0]), distance_parameters)\n"
+        )
         output += "system.addForce(distance_force)\n"
         output += "\n\n"
 
@@ -139,11 +138,11 @@ class _AToMUtils:
         output += 'dihedral_force.addPerBondParameter("k")\n'
         output += """dihedral_force.addBond(
         (idxs_b[0], idxs_b[1], idxs_b[2], idxs_a[0], idxs_a[2]),
-        [0.5 * k_psi * unit(kilojoules_per_mole)],
+        [0.5 * k_psi * kilojoules_per_mole],
         )\n"""
         output += """dihedral_force.addBond(
         (idxs_a[0], idxs_a[1], idxs_a[2], idxs_b[0], idxs_b[2]),
-        [0.5 * k_psi*unit(kilojoules_per_mole)],
+        [0.5 * k_psi*kilojoules_per_mole],
         )\n"""
         output += "system.addForce(dihedral_force)\n\n"
         return output
@@ -180,11 +179,16 @@ class _AToMUtils:
         index : int
             Index of current window - used to set window-dependent variables.
         """
+        self.findDisplacement()
         output = ""
         output += "#Parameters for ATM force\n"
         output += "lig1_atoms = {}\n".format(self.getLigand1AtomsAsList())
         output += "lig2_atoms = {}\n".format(self.getLigand2AtomsAsList())
-        output += "displacement = {}\n".format(self.protocol.getData()["displacement"])
+        # Divide by 10 to convert to nm
+        d = [round(x, 3) for x in self.displacement]
+        output += "displacement = {}\n".format(d)
+        output += "#BioSimSpace output is in angstrom, divide by 10 to convert to the expected units of nm\n"
+        output += "displacement = [i/10.0 for i in displacement]\n"
         output += "lambda1 = {}\n".format(self.protocol.getLambda1()[index])
         output += "lambda2 = {}\n".format(self.protocol.getLambda2()[index])
         output += "alpha = {}\n".format(self.protocol.getAlpha()[index])
@@ -209,18 +213,16 @@ class _AToMUtils:
         )"""
 
         output += "\n\n #Add ATM force to system\n"
-        output += "for _ in range(len(system.topology.atoms)):\n"
+        output += "for _ in prm.topology.atoms():\n"
         output += "    atm_force.addParticle(Vec3(0.0,0.0,0.0))"
         output += "\n"
         # TODO: add offset - check convesion of a list to a Vec3
         # Assuming that offset is the 3-vector which deifnes the ligand displacement
-        output += """
-        for i in lig1_atoms:
-            atm_force.setParticleParameters(i, Vec3(*displacement))
-            """
-        output += """
-        for i in lig2_atoms:
-            atm_force.setParticleParameters(i, -Vec3(*displacement)) """
+        # need to convert displacement to nm
+        output += "for i in lig1_atoms:\n"
+        output += "    atm_force.setParticleParameters(i, Vec3(*displacement))\n"
+        output += "for i in lig2_atoms:\n"
+        output += "    atm_force.setParticleParameters(i, -Vec3(*displacement))\n"
         output += "\n"
         output += "nonbonded_force_id = [i for i, force in enumerate(system.getForces()) if isinstance(force, NonbondedForce)][0]\n"
         output += "nonbonded = copy.deepcopy(system.getForce(nonbonded_force_id))\n"
