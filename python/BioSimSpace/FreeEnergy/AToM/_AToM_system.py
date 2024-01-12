@@ -383,19 +383,16 @@ class makeSystem:
         protein_atom_start = self.system[self.protein_index].getAtoms()[0]
         protein_atom_end = self.system[self.protein_index].getAtoms()[-1]
         self.first_protein_atom_index = self.system.getIndex(protein_atom_start)
-        print(self.first_protein_atom_index)
         self.last_protein_atom_index = self.system.getIndex(protein_atom_end)
 
         ligand1_atom_start = self.system[self.ligand1_index].getAtoms()[0]
         ligand1_atom_end = self.system[self.ligand1_index].getAtoms()[-1]
         self.first_ligand1_atom_index = self.system.getIndex(ligand1_atom_start)
-        print(self.first_ligand1_atom_index)
         self.last_ligand1_atom_index = self.system.getIndex(ligand1_atom_end)
 
         ligand2_atom_start = self.system[self.ligand2_index].getAtoms()[0]
         ligand2_atom_end = self.system[self.ligand2_index].getAtoms()[-1]
         self.first_ligand2_atom_index = self.system.getIndex(ligand2_atom_start)
-        print(self.first_ligand2_atom_index)
         self.last_ligand2_atom_index = self.system.getIndex(ligand2_atom_end)
 
     @staticmethod
