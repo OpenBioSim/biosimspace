@@ -37,6 +37,7 @@ from ...Notebook import View as _View
 import os as _os
 import shutil as _shutil
 import copy as _copy
+import warnings as _warnings
 
 
 class makeSystem:
@@ -657,7 +658,27 @@ class relativeATM:
             raise TypeError("'property_map' must be of type 'dict'")
         self._property_map = property_map
 
-    def _inititalise_runner(self):
+        self._inititalise_runner(system=self._system)
+
+    def run(self, serial=True):
+        """
+        Run the simulations.
+        Returns
+        -------
+        list of :class:`Process <BioSimSpace.Process>`
+            A list of process objects.
+        """
+        # Initialise the runner.
+        if not isinstance(serial, bool):
+            raise TypeError("'serial' must be of type 'bool'.")
+
+        if self._setup_only:
+            _warnings.warn("No processes exist! Object created in 'setup_only' mode.")
+
+        else:
+            self._runner.startAll(serial=serial)
+
+    def _inititalise_runner(self, system):
         """
         Internal helper function to initialise the process runner.
 
@@ -685,7 +706,7 @@ class relativeATM:
 
         # Create the first simulation, which will be copied and used for future simulations.
         first_process = _Process.OpenMM(
-            system=self._system,
+            system=system,
             protocol=self._protocol,
             work_dir=first_dir,
         )
@@ -745,28 +766,28 @@ class relativeATM:
                 for line in new_config:
                     f.write(line)
 
-            # TODO: biosimspace runner functionality
-            """if not self._setup_only:
-                protocol = self._protocol.copy()
-                protocol._set_window_index(index)
-                # Create the process.
+            # biosimspace runner functionality
+            if not self._setup_only:
                 process = _copy.copy(first_process)
                 process._system = first_process._system.copy()
-                process._protocol = protocol
+                process._protocol = self._protocol
                 process._work_dir = new_dir
-                process._std"""
-            # TODO alter process object to match new directory
+                process._stdout_file = new_dir + "/AToM.out"
+                process._stderr_file = new_dir + "/AToM.err"
+                process._rst_file = new_dir + "/openmm.rst7"
+                process._top_file = new_dir + "/openmm.prm7"
+                process._traj_file = new_dir + "/openmm.dcd"
+                process._config_file = new_dir + "/openmm_script.py"
+                process._input_files = [
+                    process._config_file,
+                    process._rst_file,
+                    process._top_file,
+                ]
+                processes.append(process)
 
-    def run(self):
-        """
-        Run the simulations.
-        Returns
-        -------
-        list of :class:`Process <BioSimSpace.Process>`
-            A list of process objects.
-        """
-        # Initialise the runner.
-        self._inititalise_runner()
+        if not self._setup_only:
+            # Initialise process runner.
+            self._runner = _Process.ProcessRunner(processes)
 
 
 def viewRigidCores(system, data):
