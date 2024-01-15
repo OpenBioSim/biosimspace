@@ -36,6 +36,7 @@ from ... import Process as _Process
 from ...Notebook import View as _View
 import os as _os
 import shutil as _shutil
+import copy as _copy
 
 
 class makeSystem:
@@ -666,6 +667,8 @@ class relativeATM:
         system : :class:`System <BioSimSpace._SireWrappers.System>`
             The molecular system.
         """
+        # TODO: generate generic protocol if None is passed.
+        # This protocol will have to be minimal - cannot guess rigid core atoms
         if self._protocol is None:
             raise RuntimeError("No protocol has been set - cannot run simulations.")
         # Initialise list to store the processe
@@ -673,12 +676,12 @@ class relativeATM:
 
         # Get the list of lambda1 values so that the total number of simulations can
         # be asserted
-        lambda1_list = self._protocol.getLambda1()
-        # Use for loop to avoid annyoing typecheck for numpy int type
-        simulation_indices = [x for x in range(len(lambda1_list))]
-        self._protocol._set_window_index(simulation_indices[0])
+        lambda_list = self._protocol._get_lambda_values()
+        # Set index of current simulation to 0
+        self._protocol._set_current_index(0)
+        lam = lambda_list[0]
 
-        first_dir = "%s/window_%i" % (self._work_dir, simulation_indices[0])
+        first_dir = "%s/lambda_%5.4f" % (self._work_dir, lam)
 
         # Create the first simulation, which will be copied and used for future simulations.
         first_process = _Process.OpenMM(
@@ -693,15 +696,15 @@ class relativeATM:
             processes.append(first_process)
 
         # Remove first index as its already been used
-        simulation_indices = simulation_indices[1:]
-
-        for index in simulation_indices:
+        lambda_list = lambda_list[1:]
+        # Enumerate starting at 1 to account for the removal of the first lambda value
+        for index, lam in enumerate(lambda_list, 1):
             # TODO: Support for simulations restarting from a checkpoint.
             # Files are named according to index, rather than lambda value
             # This is to avoid confusion arising from the fact that there are multiple lambdas
             # and that the values of lambda1 and lambda2 wont necessarily be go from 0 to 1
             # and may contain duplicates
-            new_dir = "%s/window_%i" % (self._work_dir, index)
+            new_dir = "%s/lambda_%5.4f" % (self._work_dir, lam)
             # Use absolute path.
             if not _os.path.isabs(new_dir):
                 new_dir = _os.path.abspath(new_dir)
@@ -741,6 +744,17 @@ class relativeATM:
             with open(new_dir + "/openmm_script.py", "w") as f:
                 for line in new_config:
                     f.write(line)
+
+            # TODO: biosimspace runner functionality
+            """if not self._setup_only:
+                protocol = self._protocol.copy()
+                protocol._set_window_index(index)
+                # Create the process.
+                process = _copy.copy(first_process)
+                process._system = first_process._system.copy()
+                process._protocol = protocol
+                process._work_dir = new_dir
+                process._std"""
             # TODO alter process object to match new directory
 
     def run(self):

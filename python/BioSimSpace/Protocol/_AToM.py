@@ -2,6 +2,8 @@ from .. import Types as _Types
 from ._protocol import Protocol as _Protocol
 from ._position_restraint_mixin import _PositionRestraintMixin
 from .. import Units as _Units
+import math as _math
+import numpy as _np
 
 __all__ = ["AToM"]
 
@@ -22,150 +24,13 @@ class AToM(_Protocol, _PositionRestraintMixin):
         core_alignment=True,
         restraint=None,
         force_constant=10 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
-        directions=[
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            -1,
-            -1,
-            -1,
-            -1,
-            -1,
-            -1,
-            -1,
-            -1,
-            -1,
-            -1,
-            -1,
-        ],
-        lambda1=[
-            0.00,
-            0.05,
-            0.10,
-            0.15,
-            0.20,
-            0.25,
-            0.30,
-            0.35,
-            0.40,
-            0.45,
-            0.50,
-            0.50,
-            0.45,
-            0.40,
-            0.35,
-            0.30,
-            0.25,
-            0.20,
-            0.15,
-            0.10,
-            0.05,
-            0.00,
-        ],
-        lambda2=[
-            0.00,
-            0.05,
-            0.10,
-            0.15,
-            0.20,
-            0.25,
-            0.30,
-            0.35,
-            0.40,
-            0.45,
-            0.50,
-            0.50,
-            0.45,
-            0.40,
-            0.35,
-            0.30,
-            0.25,
-            0.20,
-            0.15,
-            0.10,
-            0.05,
-            0.00,
-        ],
-        alpha=[
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-        ],
-        U0=[
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-        ],
-        W0=[
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-            0.00,
-        ],
+        num_lambda=22,
+        directions=None,
+        lambda1=None,
+        lambda2=None,
+        alpha=None,
+        U0=None,
+        W0=None,
         align_kf_sep=2.5,
         align_k_theta=10.0,
         align_k_psi=10.0,
@@ -231,6 +96,10 @@ class AToM(_Protocol, _PositionRestraintMixin):
             be used.Restraint <BioSimSpace.Types.Restraint>`
             The restraint.
 
+        num_lambda : int
+            The number of lambda values. This will be used to set the window-dependent
+            AToM parameters, unless they are explicitly set by the user.
+
         lambdas : list of float
             The lambda values.
 
@@ -274,7 +143,9 @@ class AToM(_Protocol, _PositionRestraintMixin):
             The a value for the ATM softcore potential.
 
         """
-        # TODO ADD checks for list length consistency
+        # TODO Make the master num_lambda functional
+        # i.e use it to set other arrays of values to some sensible numbers
+        # more complex than it may appear due to the spread of values
         # Call the base class constructor.
         super().__init__()
 
@@ -306,6 +177,11 @@ class AToM(_Protocol, _PositionRestraintMixin):
 
         # Whether or not to use alignment restraints.
         self.setCoreAlignment(core_alignment)
+
+        # Set the number of lambda values.
+        # If other window-dependent parameters are not set, then set them to
+        # sensible defaults.
+        self.setNumLambda(num_lambda)
 
         # Store the direction values.
         self.setDirections(directions)
@@ -673,6 +549,39 @@ class AToM(_Protocol, _PositionRestraintMixin):
             print("Non-boolean core alignment flag. Defaulting to True!")
             self._core_alignment = True
 
+    def getNumLambda(self):
+        """
+        Return the number of lambda values.
+
+        Returns
+        -------
+
+        num_lambda : int
+            The number of lambda values.
+        """
+        return self._num_lambda
+
+    def setNumLambda(self, num_lambda):
+        """
+        Set the number of lambda values.
+
+        Parameters
+        ----------
+
+        num_lambda : int
+            The number of lambda values.
+        """
+        if isinstance(num_lambda, int) and num_lambda > 0:
+            if num_lambda % 2 != 0:
+                # Swap this print statement with a warning
+                print(
+                    "Warning: The AToM protocol is optimised for an even number of lambda values. Unknown behaviour may occur if using an odd number of lambda values."
+                )
+            self._num_lambda = num_lambda
+            self._set_lambda_values()
+        else:
+            raise TypeError("'num_lambda' must be of type 'int'")
+
     def getDirections(self):
         """
         Return the direction values.
@@ -696,12 +605,20 @@ class AToM(_Protocol, _PositionRestraintMixin):
             The directions.
         """
         if isinstance(directions, list):
+            if len(directions) != self._num_lambda:
+                raise ValueError(
+                    "'directions' must have the same length as 'num_lambda'"
+                )
             if all(item == 1 or item == -1 for item in directions):
                 self._directions = directions
             else:
                 raise ValueError("all entries in 'directions' must be either 1 or -1")
+        elif directions is None:
+            self._directions = [1] * _math.floor(self._num_lambda / 2) + [
+                -1
+            ] * _math.ceil(self._num_lambda / 2)
         else:
-            raise TypeError("'directions' must be of type 'list'")
+            raise TypeError("'directions' must be of type 'list' or 'None'")
 
     def getLambda1(self):
         """
@@ -726,10 +643,22 @@ class AToM(_Protocol, _PositionRestraintMixin):
             The lambda1 values.
         """
         if isinstance(lambda1, list):
+            if len(lambda1) != self._num_lambda:
+                raise ValueError("'lambda1' must have the same length as 'num_lambda'")
             if all(isinstance(item, float) for item in lambda1):
                 self._lambda1 = lambda1
             else:
                 raise ValueError("all entries in 'lambda1' must be floats")
+        elif lambda1 is None:
+            # use numpy to create a list of floats
+            self._lambda1 = _np.concatenate(
+                [
+                    _np.linspace(0, 0.5, _math.floor(self._num_lambda / 2)),
+                    _np.linspace(0.5, 0, _math.ceil(self._num_lambda / 2)),
+                ]
+            ).tolist()
+            # Round the floats to 5 decimal places
+            self._lambda1 = [round(num, 5) for num in self._lambda1]
         else:
             raise TypeError("'lambda1' must be of type 'list'")
 
@@ -756,6 +685,8 @@ class AToM(_Protocol, _PositionRestraintMixin):
             The lambda2 values.
         """
         if isinstance(lambda2, list):
+            if len(lambda2) != self._num_lambda:
+                raise ValueError("'lambda2' must have the same length as 'num_lambda'")
             if all(isinstance(item, float) for item in lambda2):
                 if len(lambda2) != len(self._lambda1):
                     raise ValueError(
@@ -764,6 +695,16 @@ class AToM(_Protocol, _PositionRestraintMixin):
                 self._lambda2 = lambda2
             else:
                 raise ValueError("all entries in 'lambda2' must be floats")
+        elif lambda2 is None:
+            # use numpy to create a list of floats
+            self._lambda2 = _np.concatenate(
+                [
+                    _np.linspace(0, 0.5, _math.floor(self._num_lambda / 2)),
+                    _np.linspace(0.5, 0, _math.ceil(self._num_lambda / 2)),
+                ]
+            ).tolist()
+            # Round the floats to 5 decimal places
+            self._lambda2 = [round(num, 5) for num in self._lambda2]
         else:
             raise TypeError("'lambda2' must be of type 'list'")
 
@@ -790,10 +731,14 @@ class AToM(_Protocol, _PositionRestraintMixin):
             The alpha values.
         """
         if isinstance(alpha, list):
+            if len(alpha) != self._num_lambda:
+                raise ValueError("'alpha' must have the same length as 'num_lambda'")
             if all(isinstance(item, float) for item in alpha):
                 self._alpha = alpha
             else:
                 raise ValueError("all entries in 'alpha' must be floats")
+        elif alpha is None:
+            self._alpha = [0.00] * self._num_lambda
         else:
             raise TypeError("'alpha' must be of type 'list'")
 
@@ -820,10 +765,14 @@ class AToM(_Protocol, _PositionRestraintMixin):
             The U0 values.
         """
         if isinstance(U0, list):
+            if len(U0) != self._num_lambda:
+                raise ValueError("'U0' must have the same length as 'num_lambda'")
             if all(isinstance(item, float) for item in U0):
                 self._U0 = U0
             else:
                 raise ValueError("all entries in 'U0' must be floats")
+        elif U0 is None:
+            self._U0 = [0.00] * self._num_lambda
         else:
             raise TypeError("'U0' must be of type 'list'")
 
@@ -850,10 +799,14 @@ class AToM(_Protocol, _PositionRestraintMixin):
             The W0 values.
         """
         if isinstance(W0, list):
+            if len(W0) != self._num_lambda:
+                raise ValueError("'W0' must have the same length as 'num_lambda'")
             if all(isinstance(item, float) for item in W0):
                 self._W0 = W0
             else:
                 raise ValueError("all entries in 'W0' must be floats")
+        elif W0 is None:
+            self._W0 = [0.00] * self._num_lambda
         else:
             raise TypeError("'W0' must be of type 'list'")
 
@@ -1019,9 +972,22 @@ class AToM(_Protocol, _PositionRestraintMixin):
         else:
             raise TypeError("'sc_a' must be of type 'float'")
 
-    def _set_window_index(self, index):
+    def _set_lambda_values(self):
+        # Internal function to set the 'master lambda'
+        # This lambda value serves as the master for all other window-dependent parameters
+        self._lambda_values = _np.linspace(0, 1, self._num_lambda).tolist()
+
+    def _get_lambda_values(self):
+        # Internal function to get the 'master lambda'
+        # This lambda value serves as the master for all other window-dependent parameters
+        try:
+            return self._lambda_values
+        except:
+            return None
+
+    def _set_current_index(self, index):
         # Internal function to set index of the current simulation window
-        # used to set all window-specific parameters
+        # set using the master lambda list
         if index < 0:
             raise ValueError("index must be positive")
         if index >= len(self._lambda1):
@@ -1033,7 +999,7 @@ class AToM(_Protocol, _PositionRestraintMixin):
         self._current_index = index
 
     def _get_window_index(self):
-        # Internal function to get the current lambda values for a specific process
+        # Internal function to get the current window index
         try:
             return self._current_index
         except:
