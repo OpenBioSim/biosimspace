@@ -44,6 +44,7 @@ from ..._Utils import _try_import, _have_imported
 # Temporarily redirect stderr to suppress import warnings.
 import sys as _sys
 
+_orig_stderr = _sys.stderr
 _sys.stderr = open(_os.devnull, "w")
 
 _openff = _try_import("openff")
@@ -54,8 +55,8 @@ else:
     _OpenFFMolecule = _openff
 
 # Reset stderr.
-_sys.stderr = _sys.__stderr__
-del _sys
+_sys.stderr = _orig_stderr
+del _sys, _orig_stderr
 
 from sire.legacy import IO as _SireIO
 from sire.legacy import Mol as _SireMol

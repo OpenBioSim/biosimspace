@@ -32,7 +32,6 @@ _mdanalysis = _try_import("MDAnalysis")
 _mdtraj = _try_import("mdtraj")
 
 import copy as _copy
-import logging as _logging
 import os as _os
 import shutil as _shutil
 import uuid as _uuid
