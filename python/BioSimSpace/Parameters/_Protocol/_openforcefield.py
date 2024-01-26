@@ -62,6 +62,7 @@ with _warnings.catch_warnings():
 import sys as _sys
 
 # Temporarily redirect stderr to suppress import warnings.
+_orig_stderr = _sys.stderr
 _sys.stderr = open(_os.devnull, "w")
 
 _openmm = _try_import("openmm")
@@ -85,8 +86,8 @@ else:
     _Forcefield = _openff
 
 # Reset stderr.
-_sys.stderr = _sys.__stderr__
-del _sys
+_sys.stderr = _orig_stderr
+del _sys, _orig_stderr
 
 from sire.legacy import IO as _SireIO
 from sire.legacy import Mol as _SireMol
