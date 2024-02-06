@@ -484,7 +484,14 @@ class makeSystem:
         try:
             search = system.search(string)
         except:
-            raise ValueError("No alpha carbons found in system")
+            _warnings.warn(
+                "No alpha carbons found in system, falling back on any carbon atoms."
+            )
+            try:
+                string = f"(atoms within 10 of {x},{y},{z}) and element C"
+                search = system.search(string)
+            except:
+                raise ValueError("No carbon atoms found in system")
 
         com = _Coordinate(_Length(0, "A"), _Length(0, "A"), _Length(0, "A"))
         atoms1 = []
@@ -540,6 +547,7 @@ class relativeATM:
         self,
         system,
         protocol=None,
+        platform="CPU",
         work_dir=None,
         setup_only=False,
         ignore_warnings=False,
@@ -559,6 +567,12 @@ class relativeATM:
 
         protocol : BioSimSpace.Protocol.AToM
             A protocol object that defines the RBFE protocol.
+
+        platform : str
+            The platform for the simulation: “CPU”, “CUDA”, or “OPENCL”.
+            For CUDA use the CUDA_VISIBLE_DEVICES environment variable to set the GPUs on which to run,
+            e.g. to run on two GPUs indexed 0 and 1 use: CUDA_VISIBLE_DEVICES=0,1.
+            For OPENCL, instead use OPENCL_VISIBLE_DEVICES.
 
         work_dir : str
             The working directory for the simulation.
@@ -614,6 +628,12 @@ class relativeATM:
         else:
             # No default protocol due to the need for well-defined rigid cores
             raise ValueError("A protocol must be specified")
+
+        # Check the platform.
+        if not isinstance(platform, str):
+            raise TypeError("'platform' must be of type 'str'.")
+        else:
+            self._platform = platform
 
         if not isinstance(setup_only, bool):
             raise TypeError("'setup_only' must be of type 'bool'.")
@@ -708,6 +728,7 @@ class relativeATM:
         first_process = _Process.OpenMM(
             system=system,
             protocol=self._protocol,
+            platform=self._platform,
             work_dir=first_dir,
         )
 
