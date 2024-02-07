@@ -31,7 +31,7 @@ class AToM(_Protocol, _PositionRestraintMixin):
         alpha=None,
         U0=None,
         W0=None,
-        align_kf_sep=2.5,
+        align_kf_sep=25.0,
         align_k_theta=10.0,
         align_k_psi=10.0,
         SC_umax=100.0,
