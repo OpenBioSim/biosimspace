@@ -1,7 +1,7 @@
 ######################################################################
 # BioSimSpace: Making biomolecular simulation a breeze!
 #
-# Copyright: 2017-2023
+# Copyright: 2017-2024
 #
 # Authors: Lester Hedges <lester.hedges@gmail.com>
 #
@@ -421,40 +421,129 @@ class Gromacs(_process.Process):
         if isinstance(self._protocol, (_Protocol.Metadynamics, _Protocol.Steering)):
             self.setArg("-plumed", "plumed.dat")
 
-    def _generate_binary_run_file(self):
-        """Use grommp to generate the binary run input file."""
+    @staticmethod
+    def _generate_binary_run_file(
+        mdp_file,
+        gro_file,
+        top_file,
+        ref_file,
+        tpr_file,
+        exe,
+        checkpoint_file=None,
+        ignore_warnings=False,
+        show_errors=True,
+    ):
+        """
+        Use grommp to generate the binary run input file.
+
+        Parameters
+        ----------
+
+        mdp_file : str
+            The path to the input mdp file.
+
+        gro_file : str
+            The path to the input coordinate file.
+
+        top_file : str
+            The path to the input topology file.
+
+        ref_file : str
+            The path to the input reference coordinate file to be used for
+            position restraints.
+
+        tpr_file : str
+            The path to the output binary run file.
+
+        exe : str
+            The path to the GROMACS executable.
+
+        checkpoint_file : str
+            The path to a checkpoint file from a previous run. This can be used
+            to continue an existing simulation. Currently we only support the
+            use of checkpoint files for Equilibration protocols.
+
+        ignore_warnings : bool
+            Whether to ignore warnings when generating the binary run file
+            with 'gmx grompp'. By default, these warnings are elevated to
+            errors and will halt the program.
+
+        show_errors : bool
+            Whether to show warning/error messages when generating the binary
+            run file.
+        """
+
+        if not isinstance(mdp_file, str):
+            raise ValueError("'mdp_file' must be of type 'str'.")
+        if not _os.path.isfile(mdp_file):
+            raise IOError(f"'mdp_file' doesn't exist: '{mdp_file}'")
+
+        if not isinstance(gro_file, str):
+            raise ValueError("'gro_file' must be of type 'str'.")
+        if not _os.path.isfile(gro_file):
+            raise IOError(f"'gro_file' doesn't exist: '{gro_file}'")
+
+        if not isinstance(top_file, str):
+            raise ValueError("'top_file' must be of type 'str'.")
+        if not _os.path.isfile(top_file):
+            raise IOError(f"'top_file' doesn't exist: '{top_file}'")
+
+        if not isinstance(ref_file, str):
+            raise ValueError("'ref_file' must be of type 'str'.")
+        if not _os.path.isfile(ref_file):
+            raise IOError(f"'ref_file' doesn't exist: '{ref_file}'")
+
+        if not isinstance(tpr_file, str):
+            raise ValueError("'tpr_file' must be of type 'str'.")
+
+        if not isinstance(exe, str):
+            raise ValueError("'exe' must be of type 'str'.")
+        if not _os.path.isfile(exe):
+            raise IOError(f"'exe' doesn't exist: '{exe}'")
+
+        if checkpoint_file is not None:
+            if not isinstance(checkpoint_file, str):
+                raise ValueError("'checkpoint_file' must be of type 'str'.")
+            if not _os.path.isfile(checkpoint_file):
+                raise IOError(f"'checkpoint_file' doesn't exist: '{checkpoint_file}'")
+
+        if not isinstance(ignore_warnings, bool):
+            raise ValueError("'ignore_warnings' must be of type 'bool'")
+
+        if not isinstance(show_errors, bool):
+            raise ValueError("'show_errors' must be of type 'bool'")
 
         # Create the name of the output mdp file.
         mdp_out = (
-            _os.path.dirname(self._config_file)
-            + "/%s.out.mdp" % _os.path.basename(self._config_file).split(".")[0]
+            _os.path.dirname(mdp_file)
+            + "/%s.out.mdp" % _os.path.basename(mdp_file).split(".")[0]
         )
 
         # Use grompp to generate the portable binary run input file.
-        if self._checkpoint_file is not None:
+        if checkpoint_file is not None:
             command = "%s grompp -f %s -po %s -c %s -p %s -r %s -t %s -o %s" % (
-                self._exe,
-                self._config_file,
+                exe,
+                mdp_file,
                 mdp_out,
-                self._gro_file,
-                self._top_file,
-                self._gro_file,
-                self._checkpoint_file,
-                self._tpr_file,
+                gro_file,
+                top_file,
+                ref_file,
+                checkpoint_file,
+                tpr_file,
             )
         else:
             command = "%s grompp -f %s -po %s -c %s -p %s -r %s -o %s" % (
-                self._exe,
-                self._config_file,
+                exe,
+                mdp_file,
                 mdp_out,
-                self._gro_file,
-                self._top_file,
-                self._gro_file,
-                self._tpr_file,
+                gro_file,
+                top_file,
+                ref_file,
+                tpr_file,
             )
 
         # Warnings don't trigger an error.
-        if self._ignore_warnings:
+        if ignore_warnings:
             command += " --maxwarn 9999"
 
         # Run the command.
@@ -469,7 +558,7 @@ class Gromacs(_process.Process):
         # Check that grompp ran successfully.
         if proc.returncode != 0:
             # Handle errors and warnings.
-            if self._show_errors:
+            if show_errors:
                 # Capture errors and warnings from the grompp output.
                 errors = []
                 warnings = []
@@ -531,14 +620,34 @@ class Gromacs(_process.Process):
         super().addToConfig(config)
 
         # Use grompp to generate the portable binary run input file.
-        self._generate_binary_run_file()
+        self._generate_binary_run_file(
+            self._config_file,
+            self._gro_file,
+            self._top_file,
+            self._gro_file,
+            self._tpr_file,
+            self._exe,
+            self._checkpoint_file,
+            self._ignore_warnings,
+            self._show_errors,
+        )
 
     def resetConfig(self):
         """Reset the configuration parameters."""
         self._generate_config()
 
         # Use grompp to generate the portable binary run input file.
-        self._generate_binary_run_file()
+        self._generate_binary_run_file(
+            self._config_file,
+            self._gro_file,
+            self._top_file,
+            self._gro_file,
+            self._tpr_file,
+            self._exe,
+            self._checkpoint_file,
+            self._ignore_warnings,
+            self._show_errors,
+        )
 
     def setConfig(self, config):
         """
@@ -556,7 +665,17 @@ class Gromacs(_process.Process):
         super().setConfig(config)
 
         # Use grompp to generate the portable binary run input file.
-        self._generate_binary_run_file()
+        self._generate_binary_run_file(
+            self._config_file,
+            self._gro_file,
+            self._top_file,
+            self._gro_file,
+            self._tpr_file,
+            self._exe,
+            self._checkpoint_file,
+            self._ignore_warnings,
+            self._show_errors,
+        )
 
     def start(self):
         """

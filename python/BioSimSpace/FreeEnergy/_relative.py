@@ -1,7 +1,7 @@
 ######################################################################
 # BioSimSpace: Making biomolecular simulation a breeze!
 #
-# Copyright: 2017-2023
+# Copyright: 2017-2024
 #
 # Authors: Lester Hedges <lester.hedges@gmail.com>
 #
@@ -2060,9 +2060,7 @@ class Relative:
                 extra_lines=self._extra_lines,
                 property_map=self._property_map,
             )
-            if self._setup_only:
-                del first_process
-            else:
+            if not self._setup_only:
                 processes.append(first_process)
 
         # Loop over the rest of the lambda values.
@@ -2139,30 +2137,20 @@ class Relative:
                         f.write(line)
 
                 mdp = new_dir + "/gromacs.mdp"
-                mdp_out = new_dir + "/gromacs.out.mdp"
                 gro = new_dir + "/gromacs.gro"
                 top = new_dir + "/gromacs.top"
                 tpr = new_dir + "/gromacs.tpr"
 
                 # Use grompp to generate the portable binary run input file.
-                command = "%s grompp -f %s -po %s -c %s -p %s -r %s -o %s" % (
-                    _gmx_exe,
+                _Process.Gromacs._generate_binary_run_file(
                     mdp,
-                    mdp_out,
                     gro,
                     top,
                     gro,
                     tpr,
-                )
-
-                # Run the command. If this worked for the first lambda value,
-                # then it should work for all others.
-                proc = _subprocess.run(
-                    _Utils.command_split(command),
-                    shell=False,
-                    text=True,
-                    stdout=_subprocess.PIPE,
-                    stderr=_subprocess.PIPE,
+                    first_process._exe,
+                    ignore_warnings=self._ignore_warnings,
+                    show_errors=self._show_errors,
                 )
 
                 # Create a copy of the process and update the working
