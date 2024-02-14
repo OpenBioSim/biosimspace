@@ -21,7 +21,7 @@
 
 # Functionality for creating and viewing systems for Atomic transfer.
 
-__all__ = ["makeSystem", "viewRigidCores", "relativeATM"]
+__all__ = ["makeSystem", "viewRigidCores", "relativeATM", "anneal"]
 
 from ... import _is_notebook
 from ..._SireWrappers import Molecule as _Molecule
@@ -714,7 +714,8 @@ class relativeATM:
             raise RuntimeError("No protocol has been set - cannot run simulations.")
         # Initialise list to store the processe
         processes = []
-
+        # Make sure production protocol is used, not annealing
+        self._protocol._set_is_annealing_step(False)
         # Get the list of lambda1 values so that the total number of simulations can
         # be asserted
         lambda_list = self._protocol._get_lambda_values()
@@ -730,6 +731,7 @@ class relativeATM:
             protocol=self._protocol,
             platform=self._platform,
             work_dir=first_dir,
+            property_map=self._property_map,
         )
 
         if self._setup_only:
@@ -764,7 +766,7 @@ class relativeATM:
             new_lam_1 = self._protocol.getLambda1()[index]
             new_lam_2 = self._protocol.getLambda2()[index]
             new_alpha = self._protocol.getAlpha()[index]
-            new_u0 = self._protocol.getU0()[index]
+            new_uh = self._protocol.getuh()[index]
             new_w0 = self._protocol.getW0()[index]
             new_direction = self._protocol.getDirections()[index]
             with open(new_dir + "/openmm_script.py", "r") as f:
@@ -775,8 +777,8 @@ class relativeATM:
                         new_config.append(f"lambda2 = {new_lam_2}\n")
                     elif line.startswith("alpha"):
                         new_config.append(f"alpha = {new_alpha}\n")
-                    elif line.startswith("u0"):
-                        new_config.append(f"u0 = {new_u0}\n")
+                    elif line.startswith("uh"):
+                        new_config.append(f"uh = {new_uh}\n")
                     elif line.startswith("w0"):
                         new_config.append(f"w0 = {new_w0}\n")
                     elif line.startswith("direction"):
@@ -876,3 +878,64 @@ def viewRigidCores(system, data):
             [coord2.x().value(), coord2.y().value(), coord2.z().value()], colour, 0.7
         )
     return ngl
+
+
+class anneal(_Process.OpenMM):
+    """A class for running a pre-production annealing step.
+    Required for most systems to preven atom overlapping issues."""
+
+    def __init__(
+        self,
+        system,
+        protocol,
+        exe=None,
+        platform="CPU",
+        seed=None,
+        property_map={},
+    ):
+        """
+        Constructor.
+
+        Parameters
+        ----------
+        system : BioSimSpace._SireWrappers.System
+            A prepared AToM system containing a protein and two ligands, one bound and one
+
+        protocol : BioSimSpace.Protocol.AToM
+            A protocol object that defines the RBFE protocol and includes an annealing step.
+
+        exe : str
+            The full path to the Python interpreter used to run OpenMM.
+
+        platform : str
+            The platform for the simulation: “CPU”, “CUDA”, or “OPENCL”.
+            For CUDA use the CUDA_VISIBLE_DEVICES environment variable to set the GPUs on which to run,
+            e.g. to run on two GPUs indexed 0 and 1 use: CUDA_VISIBLE_DEVICES=0,1.
+            For OPENCL, instead use OPENCL_VISIBLE_DEVICES.
+
+        work_dir : str
+            The working directory for the simulation.
+
+        seed : int
+            A random number seed.
+
+        property_map : dict
+            A dictionary that maps system "properties" to their user defined
+            values. This allows the user to refer to properties with their
+            own naming scheme, e.g. { "charge" : "my-charge" }
+        """
+        self._protocol = protocol
+        self._protocol._set_is_annealing_step(True)
+        # Use values from lambda=0 for annealing
+        protocol._set_current_index(0)
+        work_dir = protocol.getAnnealOptions()["output_dir"]
+        super().__init__(
+            system=system,
+            protocol=protocol,
+            exe=exe,
+            name="anneal",
+            platform=platform,
+            work_dir=work_dir,
+            seed=seed,
+            property_map=property_map,
+        )

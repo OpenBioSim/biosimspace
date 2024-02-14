@@ -29,7 +29,7 @@ class AToM(_Protocol, _PositionRestraintMixin):
         lambda1=None,
         lambda2=None,
         alpha=None,
-        U0=None,
+        uh=None,
         W0=None,
         align_kf_sep=25.0,
         align_k_theta=10.0,
@@ -37,6 +37,8 @@ class AToM(_Protocol, _PositionRestraintMixin):
         SC_umax=100.0,
         SC_u0=50.0,
         sc_a=0.0625,
+        anneal_values=None,
+        anneal_options=None,
     ):
         """
         Create a protocol object.
@@ -115,8 +117,8 @@ class AToM(_Protocol, _PositionRestraintMixin):
         alpha : list of float
             The alpha values.
 
-        U0 : list of float
-            The U0 values.
+        uh : list of float
+            The uh values.
 
         W0 : list of float
             The W0 values.
@@ -137,10 +139,55 @@ class AToM(_Protocol, _PositionRestraintMixin):
             The Umax value for the ATM softcore potential (kcal/mol).
 
         SC_u0 : float
-            The U0 value for the ATM softcore potential (kcal/mol).
+            The uh value for the ATM softcore potential (kcal/mol).
 
         sc_a : float
             The a value for the ATM softcore potential.
+
+        anneal_values : dict, None, "default"
+            If None, then no annealing will be performed.
+            If "default", then lambda values will be annealed from 0 to 0.5.
+            If more complex annealing is required, then
+            a dictionary with some or all of the following keys should be given:
+                "lambda1_start" : float
+                    The starting value for lambda1.
+                "lambda1_end" : float
+                    The ending value for lambda1.
+                "lambda2_start" : float
+                    The starting value for lambda2.
+                "lambda2_end" : float
+                    The ending value for lambda2.
+                "alpha_start" : float
+                    The starting value for alpha.
+                "alpha_end" : float
+                    The ending value for alpha.
+                "uh_start" : float
+                    The starting value for uh.
+                "uh_end" : float
+                    The ending value for uh.
+                "W0_start" : float
+                    The starting value for W0.
+                "W0_end" : float
+                    The ending value for W0
+            Any unspecified values will use their default lambda=0 value.
+
+        anneal_options: dict
+            A dictionary of options for the annealing protocol.
+            If None, then default values will be used.
+            Should be a dictionary with the following keys:
+                "runtime" : :class:`Time <BioSimSpace.Types.Time>`
+                    The total runtime for the annealing protocol. Default 1ns.
+                "cycle_time" : :class:`Time <BioSimSpace.Types.Time>`
+                    The time for each annealing cycle. Default 20ps.
+                "use_core_alignment": bool
+                    Whether to use core alignment restraints. Default True.
+                "save_state" : bool
+                    Whether to save the state for each annealing cycle.
+                    Default False.
+                "output_dir" : str
+                    The directory to save the output files to. Default "anneal_out".
+
+
 
         """
         # TODO Make the master num_lambda functional
@@ -195,8 +242,8 @@ class AToM(_Protocol, _PositionRestraintMixin):
         # Store the alpha values.
         self.setAlpha(alpha)
 
-        # Store the U0 values.
-        self.setU0(U0)
+        # Store the uh values.
+        self.setuh(uh)
 
         # Store the W0 values.
         self.setW0(W0)
@@ -218,6 +265,12 @@ class AToM(_Protocol, _PositionRestraintMixin):
 
         # Store the sc_a value.
         self.setSCa(sc_a)
+
+        # Store the anneal values.
+        self.setAnnealValues(anneal_values)
+
+        # Store the anneal options.
+        self.setAnnealOptions(anneal_options)
 
         # Set the postition restraint.
         _PositionRestraintMixin.__init__(self, restraint, force_constant)
@@ -742,39 +795,39 @@ class AToM(_Protocol, _PositionRestraintMixin):
         else:
             raise TypeError("'alpha' must be of type 'list'")
 
-    def getU0(self):
+    def getuh(self):
         """
-        Return the U0 values.
+        Return the uh values.
 
         Returns
         -------
 
-        U0 : list of float
-            The U0 values.
+        uh : list of float
+            The uh values.
         """
-        return self._U0
+        return self._uh
 
-    def setU0(self, U0):
+    def setuh(self, uh):
         """
-        Set the U0 values.
+        Set the uh values.
 
         Parameters
         ----------
 
-        U0 : list of float
-            The U0 values.
+        uh : list of float
+            The uh values.
         """
-        if isinstance(U0, list):
-            if len(U0) != self._num_lambda:
-                raise ValueError("'U0' must have the same length as 'num_lambda'")
-            if all(isinstance(item, float) for item in U0):
-                self._U0 = U0
+        if isinstance(uh, list):
+            if len(uh) != self._num_lambda:
+                raise ValueError("'uh' must have the same length as 'num_lambda'")
+            if all(isinstance(item, float) for item in uh):
+                self._uh = uh
             else:
-                raise ValueError("all entries in 'U0' must be floats")
-        elif U0 is None:
-            self._U0 = [0.00] * self._num_lambda
+                raise ValueError("all entries in 'uh' must be floats")
+        elif uh is None:
+            self._uh = [0.00] * self._num_lambda
         else:
-            raise TypeError("'U0' must be of type 'list'")
+            raise TypeError("'uh' must be of type 'list'")
 
     def getW0(self):
         """
@@ -972,6 +1025,233 @@ class AToM(_Protocol, _PositionRestraintMixin):
         else:
             raise TypeError("'sc_a' must be of type 'float'")
 
+    def getAnnealValues(self):
+        """
+        Return the anneal protocol.
+
+        Returns
+        -------
+
+        anneal_protocol : dict
+            The anneal protocol.
+        """
+        return self._anneal_values
+
+    def setAnnealValues(self, anneal_values):
+        """
+        Set the anneal protocol.
+
+        Parameters
+        ----------
+
+        anneal_values : dict
+            The anneal values.
+        """
+
+        def capitalise_keys(input_dict):
+            # The first letter of each key needs to be captilised
+            # so that it can be properly passed to openMM later
+            capitalized_dict = {}
+            for key, value in input_dict.items():
+                capitalized_key = key.capitalize()
+                capitalized_dict[capitalized_key] = value
+            return capitalized_dict
+
+        if anneal_values == "default":
+            self._anneal_values = capitalise_keys(
+                {
+                    "lambda1_start": 0,
+                    "lambda1_end": 0.5,
+                    "lambda2_start": 0,
+                    "lambda2_end": 0.5,
+                }
+            )
+        elif isinstance(anneal_values, dict):
+            # check that the given keys are valid
+            keys = [
+                "lambda1_start",
+                "lambda1_end",
+                "lambda2_start",
+                "lambda2_end",
+                "alpha_start",
+                "alpha_end",
+                "uh_start",
+                "uh_end",
+                "W0_start",
+                "W0_end",
+            ]
+            if all(key in anneal_values for key in keys):
+                # check that the values are of the correct type
+                if all(isinstance(anneal_values[key], (float, int)) for key in keys):
+                    # check that the values are in the correct range
+                    if (
+                        0 <= anneal_values["lambda1_start"] <= 1
+                        and 0 <= anneal_values["lambda1_end"] <= 1
+                        and 0 <= anneal_values["lambda2_start"] <= 1
+                        and 0 <= anneal_values["lambda2_end"] <= 1
+                        and 0 <= anneal_values["alpha_start"] <= 1
+                        and 0 <= anneal_values["alpha_end"] <= 1
+                        and 0 <= anneal_values["uh_start"] <= 1
+                        and 0 <= anneal_values["uh_end"] <= 1
+                        and 0 <= anneal_values["W0_start"] <= 1
+                        and 0 <= anneal_values["W0_end"] <= 1
+                    ):
+                        # check that, if {x}_start is given, then {x}_end is also given
+                        # if this check passes, then the values should be valid
+                        if all(key.endswith("_start") for key in anneal_values):
+                            if all(
+                                key.replace("_start", "_end") in anneal_values
+                                for key in anneal_values
+                            ):
+                                pass
+                            else:
+                                raise ValueError(
+                                    "If a value is given for {x}_start, then a value must also be given for {x}_end"
+                                )
+
+                    else:
+                        raise ValueError(
+                            "The values in the anneal values must be in the range 0 to 1"
+                        )
+                else:
+                    raise TypeError(
+                        "The values in the anneal values must be of type 'float' or 'int' for all keys except 'runtime', which must be of type 'BioSimSpace.Types.Time'"
+                    )
+            else:
+                raise ValueError(
+                    "The anneal values can only contain the following keys: 'lambda1_start', 'lambda1_end', 'lambda2_start', 'lambda2_end', 'alpha_start', 'alpha_end', 'uh_start', 'uh_end', 'W0_start', 'W0_end', 'runtime'"
+                )
+            self._anneal_values = capitalise_keys(anneal_values)
+        elif anneal_values is None:
+            self._anneal_values = None
+
+        else:
+            raise TypeError(
+                "'anneal_values' must be of type 'dict', 'None', or 'default'"
+            )
+
+    def getAnnealOptions(self):
+        """
+        Return the anneal options.
+
+        Returns
+        -------
+
+        anneal_options : dict
+            The anneal options.
+        """
+        return self._anneal_options
+
+    def setAnnealOptions(self, anneal_options):
+        """
+        Set the anneal options.
+
+        Parameters
+        ----------
+
+        anneal_options : dict
+            The anneal options.
+        """
+        default_options = {
+            "runtime": _Types.Time("1ns"),
+            "cycle_time": _Types.Time("20ps"),
+            "use_core_alignment": True,
+            "save_state": False,
+            "output_dir": "anneal_out",
+        }
+        if self._anneal_values is None and anneal_options is not None:
+            raise ValueError(
+                "Anneal options can only be set if anneal values are given"
+            )
+        if isinstance(anneal_options, dict):
+            final_options = {}
+            # find all options that arn't given and set them to the default
+            for key in default_options.keys():
+                if key not in anneal_options:
+                    final_options[key] = default_options[key]
+            if all(key in default_options for key in anneal_options.keys()):
+                # check that the values are of the correct type
+                if all(
+                    isinstance(anneal_options[key], (str, int, bool))
+                    for key in anneal_options.keys()
+                ):
+                    # check that the values are in the correct range
+                    if "runtime" in anneal_options:
+                        if isinstance(anneal_options["runtime"], str):
+                            try:
+                                _Types.Time(anneal_options["runtime"])
+                                final_options["runtime"] = _Types.Time(
+                                    anneal_options["runtime"]
+                                )
+                            except:
+                                raise ValueError(
+                                    "Unable to parse 'runtime' string."
+                                ) from None
+                        elif isinstance(anneal_options["runtime"], _Types.Time):
+                            final_options["runtime"] = anneal_options["runtime"]
+                        else:
+                            raise ValueError(
+                                "The values in the anneal options must be of type 'str' or 'BioSimSpace.Types.Time' for 'runtime'"
+                            )
+                    if "cycle_time" in anneal_options:
+                        if isinstance(anneal_options["cycle_time"], str):
+                            try:
+                                _Types.Time(anneal_options["cycle_time"])
+                                final_options["cycle_time"] = _Types.Time(
+                                    anneal_options["cycle_time"]
+                                )
+                            except:
+                                raise ValueError(
+                                    "Unable to parse 'cycle_time' string."
+                                ) from None
+                        elif isinstance(anneal_options["cycle_time"], _Types.Time):
+                            final_options["cycle_time"] = anneal_options["cycle_time"]
+                        else:
+                            raise ValueError(
+                                "The values in the anneal options must be of type 'str' or 'BioSimSpace.Types.Time' for 'cycle_time'"
+                            )
+                    if "use_core_alignment" in anneal_options:
+                        if isinstance(anneal_options["use_core_alignment"], bool):
+                            final_options["use_core_alignment"] = anneal_options[
+                                "use_core_alignment"
+                            ]
+                        else:
+                            raise ValueError(
+                                "The values in the anneal options must be of type 'bool' for 'use_core_alignment'"
+                            )
+                    if "save_state" in anneal_options:
+                        if isinstance(anneal_options["save_state"], bool):
+                            final_options["save_state"] = anneal_options["save_state"]
+                        else:
+                            raise ValueError(
+                                "The values in the anneal options must be of type 'bool' for 'save_state'"
+                            )
+                    if "output_dir" in anneal_options:
+                        if isinstance(anneal_options["output_dir"], str):
+                            final_options["output_dir"] = anneal_options["output_dir"]
+                        else:
+                            raise ValueError(
+                                "The values in the anneal options must be of type 'str' for 'output_dir'"
+                            )
+                else:
+                    raise TypeError(
+                        "The values in the anneal options must be of type 'str' or 'bool'"
+                    )
+            else:
+                # Find the keys that are not present so that they can be given in the error
+                keys_diff = []
+                for key in anneal_options.keys():
+                    if key not in default_options.keys():
+                        keys_diff.append(key)
+                raise ValueError(
+                    f"The following option(s) is not permitted in anneal_options {keys_diff}. Anneal options must contain the following keys: 'runtime', 'cycle_time', 'save_state', 'output_dir'"
+                )
+            self._anneal_options = final_options
+        elif anneal_options is None and self._anneal_values is not None:
+            self._anneal_options = default_options
+        else:
+            raise TypeError("'anneal_options' must be of type 'dict' or None")
+
     def _set_lambda_values(self):
         # Internal function to set the 'master lambda'
         # This lambda value serves as the master for all other window-dependent parameters
@@ -1002,5 +1282,18 @@ class AToM(_Protocol, _PositionRestraintMixin):
         # Internal function to get the current window index
         try:
             return self._current_index
+        except:
+            return None
+
+    def _set_is_annealing_step(self, is_annealing_step=False):
+        # Internal function to set whether the current step is an annealing step
+        if not isinstance(is_annealing_step, bool):
+            raise TypeError("is_annealing_step must be a boolean")
+        self._is_annealing_step = is_annealing_step
+
+    def _get_is_annealing_step(self):
+        # Internal function to get whether the current step is an annealing step
+        try:
+            return self._is_annealing_step
         except:
             return None

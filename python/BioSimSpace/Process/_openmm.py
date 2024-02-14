@@ -1138,7 +1138,10 @@ class OpenMM(_process.Process):
             # TODO: check extra_options, extra_lines and property_map
             from ._atom_utils import _AToMUtils as _AToMUtils
 
-            if self._protocol._get_window_index() is None:
+            if (
+                self._protocol._get_window_index() is None
+                and not self._protocol._get_is_annealing_step()
+            ):
                 raise _IncompatibleError(
                     "AToM protocol requires the current window index to be set."
                 )
@@ -1315,11 +1318,17 @@ class OpenMM(_process.Process):
             # Work out the number of steps per cycle.
             steps_per_cycle = int(steps / cycles)
 
-            # Now run the simulation.
-            self.addToConfig("\n# Run the simulation in 100 picosecond cycles.")
-            self.addToConfig(f"for x in range(0, {cycles}):")
-            self.addToConfig(f"    simulation.step({steps_per_cycle})")
-            self.addToConfig(f"    simulation.saveState('{self._name}.xml')")
+            if not self._protocol._get_is_annealing_step():
+                # Now run the simulation.
+                self.addToConfig("\n# Run the simulation in 100 picosecond cycles.")
+                self.addToConfig(f"for x in range(0, {cycles}):")
+                self.addToConfig(f"    simulation.step({steps_per_cycle})")
+                self.addToConfig(f"    simulation.saveState('{self._name}.xml')")
+            # Need a separate run protocol for annealing steps
+            else:
+                # get annealing protocol from atom utils
+                annealing_protocol = util.createAnnealingProtocol()
+                self.addToConfig(annealing_protocol)
 
         else:
             raise _IncompatibleError(
@@ -1513,15 +1522,29 @@ class OpenMM(_process.Process):
                 return old_system
 
             else:
-                # Work out the total number of trajectory frames.
-                num_frames = int(
-                    (self._protocol.getRunTime() / self._protocol.getTimeStep())
-                    / self._protocol.getRestartInterval()
-                )
-
-                # Work out the fraction of the simulation that has been completed.
-                frac_complete = self._protocol.getRunTime() / self.getTime()
-
+                # If this is an AToM annealing step then the runtime is different
+                if (
+                    isinstance(self._protocol, _Protocol.AToM)
+                    and self._protocol._get_is_annealing_step()
+                ):
+                    num_frames = int(
+                        (
+                            self._protocol.getAnnealOptions()["runtime"]
+                            / self._protocol.getTimeStep()
+                        )
+                        / self._protocol.getRestartInterval()
+                    )
+                    frac_complete = (
+                        self._protocol.getAnnealOptions()["runtime"] / self.getTime()
+                    )
+                else:
+                    # Work out the total number of trajectory frames.
+                    num_frames = int(
+                        (self._protocol.getRunTime() / self._protocol.getTimeStep())
+                        / self._protocol.getRestartInterval()
+                    )
+                    # Work out the fraction of the simulation that has been completed.
+                    frac_complete = self._protocol.getRunTime() / self.getTime()
                 # Make sure the fraction doesn't exceed one. OpenMM can report
                 # time values that are larger than the number of integration steps
                 # multiplied by the time step.
@@ -1615,14 +1638,26 @@ class OpenMM(_process.Process):
         if not type(index) is int:
             raise TypeError("'index' must be of type 'int'")
 
-        max_index = (
-            int(
-                (self._protocol.getRunTime() / self._protocol.getTimeStep())
-                / self._protocol.getRestartInterval()
+        if (
+            isinstance(self._protocol, _Protocol.AToM)
+            and self._protocol._get_is_annealing_step()
+        ):
+            anneal_opts = self._protocol.getAnnealOptions()
+            max_index = (
+                int(
+                    (anneal_opts["runtime"] / self._protocol.getTimeStep())
+                    / self._protocol.getRestartInterval()
+                )
+                - 1
             )
-            - 1
-        )
-
+        else:
+            max_index = (
+                int(
+                    (self._protocol.getRunTime() / self._protocol.getTimeStep())
+                    / self._protocol.getRestartInterval()
+                )
+                - 1
+            )
         if index < 0 or index > max_index:
             raise ValueError(f"'index' must be in range [0, {max_index}].")
 
@@ -1642,7 +1677,6 @@ class OpenMM(_process.Process):
 
             # Get the latest trajectory frame.
             new_system = _Trajectory.getFrame(self._traj_file, self._top_file, index)
-
             # Update the coordinates and velocities and return a mapping between
             # the molecule indices in the two systems.
             sire_system, mapping = _SireIO.updateCoordinatesAndVelocities(

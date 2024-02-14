@@ -192,7 +192,7 @@ class _AToMUtils:
         output += "lambda1 = {}\n".format(self.protocol.getLambda1()[index])
         output += "lambda2 = {}\n".format(self.protocol.getLambda2()[index])
         output += "alpha = {}\n".format(self.protocol.getAlpha()[index])
-        output += "u0 = {}\n".format(self.protocol.getU0()[index])
+        output += "uh = {}\n".format(self.protocol.getuh()[index])
         output += "w0 = {}\n".format(self.protocol.getW0()[index])
         output += "direction = {}\n".format(self.protocol.getDirections()[index])
         output += "sc_Umax = {}\n".format(self.protocol.getSCUmax())
@@ -204,7 +204,7 @@ class _AToMUtils:
         lambda1,
         lambda2,
         alpha * kilojoules_per_mole,
-        u0 * kilojoules_per_mole,
+        uh * kilojoules_per_mole,
         w0 * kilojoules_per_mole,
         sc_Umax * kilojoules_per_mole,
         sc_U0 * kilojoules_per_mole,
@@ -229,4 +229,41 @@ class _AToMUtils:
         output += "system.removeForce(nonbonded_force_id)\n"
         output += "atm_force.addForce(nonbonded)\n"
         output += "system.addForce(atm_force)\n"
+        return output
+
+    def createAnnealingProtocol(self):
+        """
+        Create a string which can be added directly to an openmm script to add an annealing protocol to the system.
+        """
+        options = self.protocol.getAnnealOptions().copy()
+        anneal_runtime = options["runtime"]
+        anneal_cycle_time = options["cycle_time"]
+        num_cycles = anneal_runtime / anneal_cycle_time
+        cycle_numsteps = anneal_cycle_time / self.protocol.getTimeStep()
+
+        prot = self.protocol.getAnnealValues()
+        # Find all entries whose keys contain "start" and create a dictionary of these entries
+        # Also remove the word "start" from the key
+        start = {k.replace("_start", ""): v for k, v in prot.items() if "start" in k}
+        # Same for "end"
+        end = {k.replace("_end", ""): v for k, v in prot.items() if "end" in k}
+        # write protocol to output in dictionary format
+        output = ""
+        output += f"values_start = {start}\n"
+        output += f"values_end = {end}\n"
+        output += "increments = {\n"
+        output += f"    key: (values_end[key] - values_start[key]) / {num_cycles}\n"
+        output += "    for key in values_start.keys()\n"
+        output += "}\n"
+        # First set all values using the start values
+        output += "for key in values_start.keys():\n"
+        output += "    simulation.context.setParameter(key, values_start[key])\n"
+        # Now perform the annealing in cycles
+        output += f"for i in range({int(num_cycles)}):\n"
+        output += f"    simulation.step({cycle_numsteps})\n"
+        output += "    print(f'Cycle {i+1}')\n"
+        if options["save_state"]:
+            output += "    state = simulation.context.getState(getPositions=True, getVelocities=True)\n"
+        output += "    for key in values_start.keys():\n"
+        output += "        simulation.context.setParameter(key, simulation.context.getParameter(key) + increments[key])\n"
         return output
