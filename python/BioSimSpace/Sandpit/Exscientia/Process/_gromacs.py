@@ -2638,10 +2638,15 @@ class Gromacs(_process.Process):
                 space_prop in old_system._sire_object.propertyKeys()
                 and space_prop in new_system._sire_object.propertyKeys()
             ):
-                box = new_system._sire_object.property("space")
-                old_system._sire_object.setProperty(
-                    self._property_map.get("space", "space"), box
-                )
+                # Get the original space.
+                box = old_system._sire_object.property("space")
+
+                # Only update the box if the space is periodic.
+                if box.isPeriodic():
+                    box = new_system._sire_object.property("space")
+                    old_system._sire_object.setProperty(
+                        self._property_map.get("space", "space"), box
+                    )
 
             # If this is a vacuum simulation, then translate the centre of mass
             # of the system back to the origin.
@@ -2749,11 +2754,16 @@ class Gromacs(_process.Process):
                     space_prop in old_system._sire_object.propertyKeys()
                     and space_prop in new_system._sire_object.propertyKeys()
                 ):
-                    box = new_system._sire_object.property("space")
+                    # Get the original space.
+                    box = old_system._sire_object.property("space")
+
+                    # Only update the box if the space is periodic.
                     if box.isPeriodic():
-                        old_system._sire_object.setProperty(
-                            self._property_map.get("space", "space"), box
-                        )
+                        box = new_system._sire_object.property("space")
+                        if box.isPeriodic():
+                            old_system._sire_object.setProperty(
+                                self._property_map.get("space", "space"), box
+                            )
 
                 # If this is a vacuum simulation, then translate the centre of mass
                 # of the system back to the origin.

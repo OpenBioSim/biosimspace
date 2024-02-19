@@ -52,6 +52,7 @@ from .. import _gmx_exe, _gmx_version
 from .. import _isVerbose
 from .._Config import Gromacs as _GromacsConfig
 from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
+from ..Protocol._free_energy_mixin import _FreeEnergyMixin
 from ..Protocol._position_restraint_mixin import _PositionRestraintMixin
 from .._SireWrappers import System as _System
 from ..Types._type import Type as _Type
@@ -232,7 +233,7 @@ class Gromacs(_process.Process):
         # Create a copy of the system.
         system = self._system.copy()
 
-        if isinstance(self._protocol, _Protocol.FreeEnergy):
+        if isinstance(self._protocol, _FreeEnergyMixin):
             # Check that the system contains a perturbable molecule.
             if self._system.nPerturbableMolecules() == 0:
                 raise ValueError(
@@ -2544,10 +2545,15 @@ class Gromacs(_process.Process):
                 space_prop in old_system._sire_object.propertyKeys()
                 and space_prop in new_system._sire_object.propertyKeys()
             ):
-                box = new_system._sire_object.property("space")
-                old_system._sire_object.setProperty(
-                    self._property_map.get("space", "space"), box
-                )
+                # Get the original space.
+                box = old_system._sire_object.property("space")
+
+                # Only update the box if the space is periodic.
+                if box.isPeriodic():
+                    box = new_system._sire_object.property("space")
+                    old_system._sire_object.setProperty(
+                        self._property_map.get("space", "space"), box
+                    )
 
             # If this is a vacuum simulation, then translate the centre of mass
             # of the system back to the origin.
@@ -2655,11 +2661,16 @@ class Gromacs(_process.Process):
                     space_prop in old_system._sire_object.propertyKeys()
                     and space_prop in new_system._sire_object.propertyKeys()
                 ):
-                    box = new_system._sire_object.property("space")
+                    # Get the original space.
+                    box = old_system._sire_object.property("space")
+
+                    # Only update the box if the space is periodic.
                     if box.isPeriodic():
-                        old_system._sire_object.setProperty(
-                            self._property_map.get("space", "space"), box
-                        )
+                        box = new_system._sire_object.property("space")
+                        if box.isPeriodic():
+                            old_system._sire_object.setProperty(
+                                self._property_map.get("space", "space"), box
+                            )
 
                 # If this is a vacuum simulation, then translate the centre of mass
                 # of the system back to the origin.
