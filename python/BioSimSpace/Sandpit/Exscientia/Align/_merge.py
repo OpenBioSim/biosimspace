@@ -32,6 +32,9 @@ from sire.legacy import MM as _SireMM
 from sire.legacy import Mol as _SireMol
 from sire.legacy import Units as _SireUnits
 
+# This logger is temporary.
+from loguru import logger as _logger
+
 from .._Exceptions import IncompatibleError as _IncompatibleError
 from .._SireWrappers import Molecule as _Molecule
 
@@ -43,7 +46,7 @@ def merge(
     allow_ring_breaking=False,
     allow_ring_size_change=False,
     force=False,
-    roi=None,
+    roi_list=None,
     property_map0={},
     property_map1={},
 ):
@@ -75,8 +78,8 @@ def merge(
         takes precedence over 'allow_ring_breaking' and
         'allow_ring_size_change'.
 
-    roi : list
-                        The region of interest to merge. Consist of two lists of atom indices.
+    roi_list : list
+        The region of interest to merge. Consist of a multiple nested list lists of atom indices.
 
         property_map0 : dict
             A dictionary that maps "properties" in this molecule to their
@@ -156,9 +159,13 @@ def merge(
     # Get the atom indices from the mapping.
     idx0 = mapping.keys()
     idx1 = mapping.values()
+    _logger.debug(f"Mapping: {mapping}")
+    _logger.debug(f"idx0: {idx0}")
+    _logger.debug(f"idx1: {idx1}")
 
     # Create the reverse mapping: molecule1 --> molecule0
     inv_mapping = {v: k for k, v in mapping.items()}
+    _logger.debug(f"Inverse mapping: {inv_mapping}")
 
     # Generate the mappings from each molecule to the merged molecule
     mol0_merged_mapping = {}
@@ -201,6 +208,7 @@ def merge(
         if atom.index() not in idx0:
             atoms0.append(atom)
             atoms0_idx.append(atom.index())
+    _logger.debug(f"Unique atoms in molecule0: {atoms0_idx}")
 
     # molecule1
     for atom in molecule1.atoms():
@@ -208,10 +216,12 @@ def merge(
             atoms1.append(atom)
             atoms1_idx.append(atom.index())
 
+    _logger.debug(f"Unique atoms in molecule1: {atoms1_idx}")
+
     # Create a new molecule to hold the merged molecule.
     molecule = _SireMol.Molecule("Merged_Molecule")
     # Only part of the ligand is to be merged
-    if roi is not None:
+    if roi_list is not None:
         if molecule0.nResidues() != molecule1.nResidues():
             raise ValueError(
                 "The two molecules need to have the same number of residues"
@@ -1013,7 +1023,7 @@ def merge(
     # Check that the merge hasn't modified the connectivity.
 
     # The checking was blocked when merging a protein
-    if roi is None:
+    if roi_list is None:
         # molecule0
         for x in range(0, molecule0.nAtoms()):
             # Convert to an AtomIdx.
@@ -1192,135 +1202,138 @@ def merge(
     # Copy the intrascale from molecule1 into clj_nb_pairs0.
 
     # Perform a triangular loop over atoms from molecule1.
-    if roi is None:
+    if roi_list is None:
         iterlen = molecule1.nAtoms()
         iterrange = list(range(molecule1.nAtoms()))
     # When region of interest is defined, perfrom loop from these indices
     else:
-        iterlen = len(roi[1])
-        iterrange = roi[1]
-    for x in range(0, iterlen):
-        # Convert to an AtomIdx.
-        idx = iterrange[x]
-        idx = _SireMol.AtomIdx(idx)
-
-        # Map the index to its position in the merged molecule.
-        idx_map = mol1_merged_mapping[idx]
-
-        for y in range(x + 1, iterlen):
-            idy = iterrange[y]
+        for roi in roi_list:
+            iterlen = len(roi[1])
+            iterrange = roi[1]
+        for x in range(0, iterlen):
             # Convert to an AtomIdx.
-            idy = _SireMol.AtomIdx(idy)
+            idx = iterrange[x]
+            idx = _SireMol.AtomIdx(idx)
 
             # Map the index to its position in the merged molecule.
-            idy_map = mol1_merged_mapping[idy]
+            idx_map = mol1_merged_mapping[idx]
 
-            conn_type = conn0.connectionType(idx_map, idy_map)
-            # The atoms aren't bonded.
-            if conn_type == 0:
-                clj_scale_factor = _SireMM.CLJScaleFactor(1, 1)
-                clj_nb_pairs0.set(idx_map, idy_map, clj_scale_factor)
+            for y in range(x + 1, iterlen):
+                idy = iterrange[y]
+                # Convert to an AtomIdx.
+                idy = _SireMol.AtomIdx(idy)
 
-            # The atoms are part of a dihedral.
-            elif conn_type == 4:
-                clj_scale_factor = _SireMM.CLJScaleFactor(
-                    ff.electrostatic14ScaleFactor(), ff.vdw14ScaleFactor()
-                )
-                clj_nb_pairs0.set(idx_map, idy_map, clj_scale_factor)
+                # Map the index to its position in the merged molecule.
+                idy_map = mol1_merged_mapping[idy]
 
-            # The atoms are bonded
-            else:
-                clj_scale_factor = _SireMM.CLJScaleFactor(0, 0)
-                clj_nb_pairs0.set(idx_map, idy_map, clj_scale_factor)
+                conn_type = conn0.connectionType(idx_map, idy_map)
+                # The atoms aren't bonded.
+                if conn_type == 0:
+                    clj_scale_factor = _SireMM.CLJScaleFactor(1, 1)
+                    clj_nb_pairs0.set(idx_map, idy_map, clj_scale_factor)
+
+                # The atoms are part of a dihedral.
+                elif conn_type == 4:
+                    clj_scale_factor = _SireMM.CLJScaleFactor(
+                        ff.electrostatic14ScaleFactor(), ff.vdw14ScaleFactor()
+                    )
+                    clj_nb_pairs0.set(idx_map, idy_map, clj_scale_factor)
+
+                # The atoms are bonded
+                else:
+                    clj_scale_factor = _SireMM.CLJScaleFactor(0, 0)
+                    clj_nb_pairs0.set(idx_map, idy_map, clj_scale_factor)
 
     # Now copy in all intrascale values from molecule0 into both
     # clj_nb_pairs matrices.
-    if roi is None:
+    if roi_list is None:
         iterlen = molecule0.nAtoms()
         iterrange = list(range(molecule0.nAtoms()))
     # When region of interest is defined, perfrom loop from these indices
     else:
-        iterlen = len(roi[0])
-        iterrange = roi[0]
+        for roi in roi_list:
+            iterlen = len(roi[0])
+            iterrange = roi[0]
 
-    # Perform a triangular loop over atoms from molecule0.
-    for x in range(0, iterlen):
-        # Convert to an AtomIdx.
-        idx = iterrange[x]
-        idx = _SireMol.AtomIdx(idx)
-
-        # Map the index to its position in the merged molecule.
-        idx_map = mol0_merged_mapping[idx]
-
-        for y in range(x + 1, iterlen):
-            idy = iterrange[y]
+        # Perform a triangular loop over atoms from molecule0.
+        for x in range(0, iterlen):
             # Convert to an AtomIdx.
-            idy = _SireMol.AtomIdx(idy)
+            idx = iterrange[x]
+            idx = _SireMol.AtomIdx(idx)
 
             # Map the index to its position in the merged molecule.
-            idy_map = mol0_merged_mapping[idy]
+            idx_map = mol0_merged_mapping[idx]
 
-            conn_type = conn0.connectionType(idx_map, idy_map)
-            # The atoms aren't bonded.
-            if conn_type == 0:
-                clj_scale_factor = _SireMM.CLJScaleFactor(1, 1)
-                clj_nb_pairs0.set(idx_map, idy_map, clj_scale_factor)
+            for y in range(x + 1, iterlen):
+                idy = iterrange[y]
+                # Convert to an AtomIdx.
+                idy = _SireMol.AtomIdx(idy)
 
-            # The atoms are part of a dihedral.
-            elif conn_type == 4:
-                clj_scale_factor = _SireMM.CLJScaleFactor(
-                    ff.electrostatic14ScaleFactor(), ff.vdw14ScaleFactor()
-                )
-                clj_nb_pairs0.set(idx_map, idy_map, clj_scale_factor)
+                # Map the index to its position in the merged molecule.
+                idy_map = mol0_merged_mapping[idy]
 
-            # The atoms are bonded
-            else:
-                clj_scale_factor = _SireMM.CLJScaleFactor(0, 0)
-                clj_nb_pairs0.set(idx_map, idy_map, clj_scale_factor)
+                conn_type = conn0.connectionType(idx_map, idy_map)
+                # The atoms aren't bonded.
+                if conn_type == 0:
+                    clj_scale_factor = _SireMM.CLJScaleFactor(1, 1)
+                    clj_nb_pairs0.set(idx_map, idy_map, clj_scale_factor)
+
+                # The atoms are part of a dihedral.
+                elif conn_type == 4:
+                    clj_scale_factor = _SireMM.CLJScaleFactor(
+                        ff.electrostatic14ScaleFactor(), ff.vdw14ScaleFactor()
+                    )
+                    clj_nb_pairs0.set(idx_map, idy_map, clj_scale_factor)
+
+                # The atoms are bonded
+                else:
+                    clj_scale_factor = _SireMM.CLJScaleFactor(0, 0)
+                    clj_nb_pairs0.set(idx_map, idy_map, clj_scale_factor)
 
     # Finally, copy the intrascale from molecule1 into clj_nb_pairs1.
-    if roi is None:
+    if roi_list is None:
         iterlen = molecule1.nAtoms()
         iterrange = list(range(molecule1.nAtoms()))
     # When region of interest is defined, perfrom loop from these indices
     else:
-        iterlen = len(roi[1])
-        iterrange = roi[1]
+        for roi in roi_list:
+            iterlen = len(roi[1])
+            iterrange = roi[1]
 
-    # Perform a triangular loop over atoms from molecule1.
-    for x in range(0, iterlen):
-        # Convert to an AtomIdx.
-        idx = iterrange[x]
-        idx = _SireMol.AtomIdx(idx)
-
-        # Map the index to its position in the merged molecule.
-        idx = mol1_merged_mapping[idx]
-
-        for y in range(x + 1, iterlen):
-            idy = iterrange[y]
+        # Perform a triangular loop over atoms from molecule1.
+        for x in range(0, iterlen):
             # Convert to an AtomIdx.
-            idy = _SireMol.AtomIdx(idy)
+            idx = iterrange[x]
+            idx = _SireMol.AtomIdx(idx)
 
             # Map the index to its position in the merged molecule.
-            idy = mol1_merged_mapping[idy]
+            idx = mol1_merged_mapping[idx]
 
-            conn_type = conn1.connectionType(idx, idy)
+            for y in range(x + 1, iterlen):
+                idy = iterrange[y]
+                # Convert to an AtomIdx.
+                idy = _SireMol.AtomIdx(idy)
 
-            if conn_type == 0:
-                clj_scale_factor = _SireMM.CLJScaleFactor(1, 1)
-                clj_nb_pairs1.set(idx, idy, clj_scale_factor)
+                # Map the index to its position in the merged molecule.
+                idy = mol1_merged_mapping[idy]
 
-            # The atoms are part of a dihedral.
-            elif conn_type == 4:
-                clj_scale_factor = _SireMM.CLJScaleFactor(
-                    ff.electrostatic14ScaleFactor(), ff.vdw14ScaleFactor()
-                )
-                clj_nb_pairs1.set(idx, idy, clj_scale_factor)
+                conn_type = conn1.connectionType(idx, idy)
 
-            # The atoms are bonded
-            else:
-                clj_scale_factor = _SireMM.CLJScaleFactor(0, 0)
-                clj_nb_pairs1.set(idx, idy, clj_scale_factor)
+                if conn_type == 0:
+                    clj_scale_factor = _SireMM.CLJScaleFactor(1, 1)
+                    clj_nb_pairs1.set(idx, idy, clj_scale_factor)
+
+                # The atoms are part of a dihedral.
+                elif conn_type == 4:
+                    clj_scale_factor = _SireMM.CLJScaleFactor(
+                        ff.electrostatic14ScaleFactor(), ff.vdw14ScaleFactor()
+                    )
+                    clj_nb_pairs1.set(idx, idy, clj_scale_factor)
+
+                # The atoms are bonded
+                else:
+                    clj_scale_factor = _SireMM.CLJScaleFactor(0, 0)
+                    clj_nb_pairs1.set(idx, idy, clj_scale_factor)
 
     # Store the two molecular components.
     edit_mol.setProperty("molecule0", molecule0)

@@ -29,6 +29,7 @@ __all__ = [
     "matchAtoms",
     "viewMapping",
     "rmsdAlign",
+    "roiMatch",
     "flexAlign",
     "merge",
 ]
@@ -37,6 +38,9 @@ import csv as _csv
 import os as _os
 import subprocess as _subprocess
 import sys as _sys
+
+# This logger is temporary.
+from loguru import logger as _logger
 
 from .._Utils import _try_import, _have_imported, _assert_imported
 
@@ -51,14 +55,16 @@ with _warnings.catch_warnings():
     if _have_imported(_rdkit):
         from rdkit import Chem as _Chem
         from rdkit.Chem import rdFMCS as _rdFMCS
-        from rdkit import RDLogger as _RDLogger
+
+        # no idea why, but RD_logger cannot be imported from rdkit, only RDLogger can
+        from rdkit import RDLogger as _RD_logger
 
         # Disable RDKit warnings.
-        _RDLogger.DisableLog("rdApp.*")
+        _RD_logger.DisableLog("rdApp.*")
     else:
         _Chem = _rdkit
         _rdFMCS = _rdkit
-        _RDLogger = _rdkit
+        _RD_logger = _rdkit
 
 from sire.legacy import Base as _SireBase
 from sire.legacy import Maths as _SireMaths
@@ -1061,6 +1067,404 @@ def matchAtoms(
             return mappings[0:matches]
 
 
+# NOTE: This function is currently experimental and has not gone through
+# rigorous validation. Proceed with caution.
+def _get_backbone(molecule):
+    """
+    Extract the backbone atoms from a molecule.
+    Backbone atoms are defined as N, CA, C atoms in a residue.
+    This function is not intended to be applied to ligands.
+
+    Parameters
+    ----------
+
+    molecule0 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
+        The molecule from which to extract the backbone atoms.
+
+    Returns
+    -------
+
+    atom_idx : dict
+        A dictionary of the absolute and relative indices of the backbone atoms.
+
+    relative_backbone_atoms : list
+        A list of the extracted backbone atoms.
+    """
+    absolute_backbone_atom_indices = []
+    for atom in molecule.getAtoms():
+        if atom.name() in ["N", "CA", "C"]:
+            absolute_backbone_atom_indices.append(atom.index())
+
+    relative_backbone_atoms = molecule.extract(absolute_backbone_atom_indices)
+    relative_backbone_atom_indices = [
+        atom.index() for atom in relative_backbone_atoms.getAtoms()
+    ]
+    atom_idx = dict(zip(absolute_backbone_atom_indices, relative_backbone_atom_indices))
+    return (atom_idx, relative_backbone_atoms)
+
+
+# NOTE: This function is currently experimental and has not gone through
+# rigorous validation. Proceed with caution.
+def roiMatch(
+    molecule0,
+    molecule1,
+    roi,
+    force_backbone_match=False,
+):
+    """
+    Matching of two molecules based on a region of interest (ROI).
+    The ROI is defined as a list of residues in the molecule/protein.
+    The function will attempt to match the ROI in the two molecules and
+    return the mapping between the two molecules. Multiple ROIs can be
+    defined by providing a list of residues.
+
+    Parameters
+    ----------
+
+    molecule0 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
+        The molecule of interest.
+
+    molecule1 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
+        The reference molecule.
+
+    roi : list
+        A list of regions/residues of interest in the molecule/protein.
+
+    force_backbone_match : bool
+        If set to True, will force the backbone atoms to be matched which
+        is useful for ensuring a more stable match between the two molecules.
+        This is set to False by default.
+
+    Returns
+    -------
+
+    mapping : dict
+        A dictionary of the mapping between the two molecules.
+
+    roi_idx : list
+        A list of the indices of the atoms in the ROI. This can be multiple
+        nested lists if the ROI is defined as a list of residues.
+    TODO: change the return type of roi_idx to a dictionary of lists
+
+    Notes
+    -----
+
+    The key assumption of this function is that the two molecules are
+    structurally identical except for the region of interest (ROI). The ROI
+    could be a point mutation, or a residue that has been covalently modified.
+    The function will attempt to match the atoms in the ROI based on the
+    maximum common substructure (MCS) algorithm. First, the ROI is extracted
+    from the two molecules and then the atoms in the ROI are matched using
+    BioSimSpace.Align.matchAtoms function. The function will return the
+    mapping between the two molecules. This "relative" mapping will then be
+    used to map the atoms in the ROI to the "absolute" indices in the molecule.
+    So for example the relative mapping could be {0: 3, 1: 2, 2: 5} and
+    the absolute mapping could be {100: 103, 101: 102, 102: 105}. This way we
+    can bypass the need to map the entire molecule and only focus on the ROI,
+    which is significantly faster for large molecules. The rest of the mapping
+    is then composed of atoms before the ROI (pre-ROI) and after the ROI
+    (post-ROI). Every time we map the atoms in the ROI, we append the ROI
+    mapping to the pre-ROI mapping, which will then be used as the pre-ROI
+    mapping for the next ROI in the list.
+
+    Examples
+    --------
+
+    Find the best maximum common substructure mapping between two molecules
+    with a region of interest defined as a list of residues.
+
+    >>> import BioSimSpace as BSS
+    >>> mapping, roi_idx = BSS.Align.roiMatch(molecule0, molecule1, roi=[12])
+
+    Find the mapping between two molecules with multiple regions of interest
+
+    >>> import BioSimSpace as BSS
+    >>> mapping, roi_idx = BSS.Align.roiMatch(molecule0, molecule1, roi=[12, 13, 14])
+
+    Find the best maximum common substructure mapping between two molecules,
+    while forcing the backbone atoms to be matched.
+
+    >>> import BioSimSpace as BSS
+    >>> mapping, roi_idx = BSS.Align.roiMatch(molecule0, molecule1, roi=[12], force_backbone_match=True)
+    """
+
+    # Validate input
+    if not isinstance(molecule0, _Molecule):
+        raise TypeError(
+            "'molecule0' must be of type 'BioSimSpace._SireWrappers.Molecule'"
+        )
+
+    if not isinstance(molecule1, _Molecule):
+        raise TypeError(
+            "'molecule1' must be of type 'BioSimSpace._SireWrappers.Molecule'"
+        )
+
+    if roi is None:
+        raise ValueError("residue of interest list is not provided.")
+
+    roi_idx = []
+
+    _logger.debug(f"Number of mol A atoms: {molecule0.nAtoms()}")
+    _logger.debug(f"Number of mol B atoms: {molecule1.nAtoms()}")
+
+    # Get the atoms before the ROI.
+    # This is being done so that when we map the atoms in ROI, we can append
+    # the ROI mapping to this pre-ROI mapping which will then be used as
+    # the pre-ROI mapping for the next ROI in the list, i.e.
+    # pre_roi_mapping = pre_roi_mapping + roi mapping + mapping to next ROI
+    pre_roi_molecule0 = molecule0.search(f"residue[0:{roi[0]}]")
+    pre_roi_atom_idx_molecule0 = [a.index() for a in pre_roi_molecule0.atoms()]
+
+    pre_roi_molecule1 = molecule1.search(f"residue[0:{roi[0]}]")
+    pre_roi_atom_idx_molecule1 = [a.index() for a in pre_roi_molecule1.atoms()]
+
+    pre_roi_mapping = dict(zip(pre_roi_atom_idx_molecule0, pre_roi_atom_idx_molecule1))
+
+    # Loop over the residues of interest
+    for i, res_idx in enumerate(roi):
+        _logger.debug(f"Starting match for ROI id: {res_idx}")
+
+        molecule0_roi = molecule0.getResidues()[res_idx]
+        _logger.debug("Molecule0 ROI:")
+        _logger.debug(molecule0_roi)
+
+        molecule1_roi = molecule1.getResidues()[res_idx]
+        _logger.debug("Molecule1 ROI:")
+        _logger.debug(molecule1_roi)
+
+        # Don't allow for matching between the same residues
+        if (
+            molecule0_roi.name() == molecule1_roi.name()
+            and molecule0_roi.nAtoms() == molecule1_roi.nAtoms()
+        ):
+            molecule0_atoms = [a.name() for a in molecule0_roi.getAtoms()]
+            molecule1_atoms = [a.name() for a in molecule1_roi.getAtoms()]
+            if molecule0_atoms == molecule1_atoms:
+                raise ValueError(
+                    """ROI between the two input molecules is the identical,
+                      stopping atom matching"""
+                )
+
+        res0_idx = [a.index() for a in molecule0_roi]
+        _logger.debug(f"res0 indices: {res0_idx}")
+        res1_idx = [a.index() for a in molecule1_roi]
+        _logger.debug(f"res1 indices: {res1_idx}")
+
+        # Append the ROI indices to the list
+        roi_idx.append([res0_idx, res1_idx])
+
+        # Extract the residues of interest from the molecules
+        res0_extracted = molecule0.extract(res0_idx)
+        res1_extracted = molecule1.extract(res1_idx)
+
+        for a in res0_extracted.getAtoms():
+            _logger.debug(f"res0 atom: {a}")
+        for b in res1_extracted.getAtoms():
+            _logger.debug(f"res1 atom: {b}")
+
+        # If force_backbone_match is enabled,
+        # we are going to use the backbone atoms as a prematch
+        if force_backbone_match:
+            _logger.debug("Forcing backbone match")
+
+            backbone_res0_idx, backbone_res0_atoms = _get_backbone(
+                molecule0_roi.toMolecule()
+            )
+            backbone_res1_idx, backbone_res1_atoms = _get_backbone(
+                molecule1_roi.toMolecule()
+            )
+
+            _logger.debug(f"Backbone res0 indices: {backbone_res0_idx}")
+            _logger.debug(f"Backbone res1 indices: {backbone_res1_idx}")
+
+            relative_backbone_mapping = matchAtoms(
+                backbone_res0_atoms, backbone_res1_atoms
+            )
+
+            # Translate the relative mapping to the absolute indices.
+            # The lookup table contains the relative indices of the atoms
+            # that have been mapped from one residue to the other, for example
+            # [0, 2, 4, 5]. We can use these as positional indices to get the
+            # absolute indices of the atoms from the original residue. i.e.
+            # if the original residue had atom indices such as:
+            # [100, 101, 102, 103, 104, 105], we can use the lookup table to
+            # get [100, 102, 104, 105]. Doing the same for the other residue
+            # will give us an absolute mapping between the two residues.
+            res0_lookup_table = list(relative_backbone_mapping.keys())
+            absolute_backbone_mapped_atoms_res0 = [
+                list(backbone_res0_idx.keys())[i] for i in res0_lookup_table
+            ]
+
+            res1_lookup_table = list(relative_backbone_mapping.values())
+            absolute_backbone_mapped_atoms_res1 = [
+                list(backbone_res1_idx.keys())[i] for i in res1_lookup_table
+            ]
+
+            absolute_backbone_mapping = dict(
+                zip(
+                    absolute_backbone_mapped_atoms_res0,
+                    absolute_backbone_mapped_atoms_res1,
+                )
+            )
+            _logger.debug(f"Absolute backbone mapping: {absolute_backbone_mapping}")
+
+            mapping = matchAtoms(
+                res0_extracted, res1_extracted, prematch=absolute_backbone_mapping
+            )
+        else:
+            mapping = matchAtoms(res0_extracted, res1_extracted)
+
+        _logger.debug(f"Mapping: {mapping}")
+
+        # Check how many atoms got mapped from one residue to the other
+        _logger.debug(
+            f"Mapped {len(mapping.keys())} out of {len(res0_idx)} atoms for molecule0"
+        )
+        _logger.debug(
+            f"Mapped {len(mapping.values())} out of {len(res1_idx)} atoms for molecule1"
+        )
+
+        # If the number of mapped atoms is not the same as the number of atoms
+        # in the ROI we need to use that molecule as the reference
+        # for the lookup table.
+        # NOTE: We don't really need the conditional statement here that checks
+        # if all of the atoms in the ROI have been mapped, because
+        # we are going to translate atoms relative indices to absolute ones
+        # and that case would be captured by the lookup table.
+        if len(mapping.keys()) != len(res0_idx):
+            _logger.debug("Some atoms for molecule0 in the ROI have not been mapped.")
+            _logger.debug("Using molecule0 as the reference for the lookup table.")
+            residue_lookup_table = list(mapping.keys())
+            absolute_mapped_atoms_res0 = [res0_idx[i] for i in residue_lookup_table]
+
+        # i.e this bit is unnecessary
+        else:
+            absolute_mapped_atoms_res0 = res0_idx
+
+        if len(mapping.values()) != len(res1_idx):
+            _logger.debug("Some atoms for molecule1 in the ROI have not been mapped.")
+            _logger.debug("Using molecule1 as the reference for the lookup table.")
+            residue_lookup_table = list(mapping.values())
+            absolute_mapped_atoms_res1 = [res1_idx[i] for i in residue_lookup_table]
+
+        else:
+            absolute_mapped_atoms_res1 = res1_idx
+
+        absolute_roi_mapping = dict(
+            zip(absolute_mapped_atoms_res0, absolute_mapped_atoms_res1)
+        )
+
+        # Check that pre_roi_atom_indices are not part of molecule ROI indices
+        # NOTE: This could be a costly operation, if pre_roi_atom_indices is
+        # large.
+        if any(i in pre_roi_atom_idx_molecule0 for i in res0_idx) or any(
+            i in pre_roi_atom_idx_molecule1 for i in res1_idx
+        ):
+            raise ValueError("Found atoms in pre ROI region that are part of the ROI.")
+
+        # Now we have to think about what to do with the atom indices
+        # after the mapping as these are not going to be the same
+        # between the two molecules.
+        # If we are at the last residue of interest, we don't need to worry
+        # too much about the after ROI region as this region will be all of the
+        # molecule atoms after the last residue of interest.
+        # In the case when we are not at the last residue of interest,
+        # we need to map the atoms to the next ROI.
+
+        if res_idx != roi[-1]:
+
+            # If the next ROI residue index in the ROI list is next to
+            # the current ROI index, after_roi atom index list will be empty
+            # i.e. if we're currently at residue 10 and the next ROI is 11,
+            # we don't need to map the atoms.
+            # If we were at residue 10 and the next residue of interest is 12,
+            # we would need to map the atoms between residues 10 and 12.
+            if roi[i + 1] - roi[i] == 1:
+                _logger.debug(
+                    "Next ROI is adjacent to the current ROI, no need to map atoms between the two."
+                )
+                after_roi_atom_idx_molecule0 = []
+                after_roi_atom_idx_molecule1 = []
+            else:
+                after_roi_molecule0 = molecule0.search(
+                    f"residue[{res_idx+1}:{roi[i+1]}]"
+                )
+                after_roi_atom_idx_molecule0 = [
+                    a.index() for a in after_roi_molecule0.atoms()
+                ]
+
+                after_roi_molecule1 = molecule1.search(
+                    f"residue[{res_idx+1}:{roi[i+1]}]"
+                )
+                after_roi_atom_idx_molecule1 = [
+                    b.index() for b in after_roi_molecule1.atoms()
+                ]
+
+            after_roi_mapping = dict(
+                zip(
+                    after_roi_atom_idx_molecule0,
+                    after_roi_atom_idx_molecule1,
+                )
+            )
+            # Append the mappings to the pre_roi_mapping, which will then be
+            # used as the pre_roi_mapping for the next ROI in the list.
+            pre_roi_mapping = {
+                **pre_roi_mapping,
+                **absolute_roi_mapping,
+                **after_roi_mapping,
+            }
+        else:
+            # Get all of the remaining atoms after the last ROI
+            after_roi_molecule0 = molecule0.search(f"residue[{res_idx+1}:]")
+            after_roi_atom_idx_molecule0 = [
+                a.index() for a in after_roi_molecule0.atoms()
+            ]
+
+            after_roi_molecule1 = molecule1.search(f"residue[{res_idx+1}:]")
+            after_roi_atom_idx_molecule1 = [
+                b.index() for b in after_roi_molecule1.atoms()
+            ]
+
+    after_roi_mapping = dict(
+        zip(
+            after_roi_atom_idx_molecule0,
+            after_roi_atom_idx_molecule1,
+        )
+    )
+
+    # Check that after_roi_atom_indices are not part of absolute_roi_mapping
+    if any(i in after_roi_atom_idx_molecule0 for i in res0_idx):
+        raise ValueError("Found atoms in after ROI region that are part of the ROI")
+
+    if any(i in after_roi_atom_idx_molecule1 for i in res1_idx):
+        raise ValueError("Found atoms in after ROI region that are part of the ROI")
+
+    # Print all 3 dictionaries
+    _logger.debug(f"Pre ROI region mapping: {pre_roi_mapping}")
+    _logger.debug(f"Absolute ROI mapping: {absolute_roi_mapping}")
+    _logger.debug(f"After ROI region mapping: {after_roi_mapping}")
+
+    # Combine the dictionaries to get the full mapping
+    combined_dict = {
+        **pre_roi_mapping,
+        **absolute_roi_mapping,
+        **after_roi_mapping,
+    }
+
+    # Print the matched atoms in the ROI
+    for idx0, idx1 in mapping.items():
+        _logger.debug(
+            f"{res0_extracted.getAtoms()[idx0]} <--> {res1_extracted.getAtoms()[idx1]}"
+        )
+
+    _logger.debug(f"Full matched atoms: {combined_dict}")
+    for idx0, idx1 in mapping.items():
+        _logger.debug(f"{molecule0.getAtoms()[idx0]} <--> {molecule1.getAtoms()[idx1]}")
+
+    # TODO: Change the return type of roi_idx to a dictionary of lists
+    return combined_dict, roi_idx
+
+
 def rmsdAlign(molecule0, molecule1, mapping=None, property_map0={}, property_map1={}):
     """
     Align atoms in molecule0 to those in molecule1 using the mapping
@@ -1335,7 +1739,7 @@ def merge(
     allow_ring_breaking=False,
     allow_ring_size_change=False,
     force=False,
-    roi=None,
+    roi_list=None,
     property_map0={},
     property_map1={},
 ):
@@ -1372,7 +1776,7 @@ def merge(
         takes precedence over 'allow_ring_breaking' and
         'allow_ring_size_change'.
 
-       roi : list
+       roi_list : list
            The region of interest to merge. Consist of two lists of atom indices.
 
     property_map0 : dict
@@ -1432,11 +1836,11 @@ def merge(
     if not isinstance(force, bool):
         raise TypeError("'force' must be of type 'bool'")
 
-    if roi is not None:
-        if not isinstance(roi, list):
-            raise TypeError("'roi' must be of type 'list'.")
+    if roi_list is not None:
+        if not isinstance(roi_list, list):
+            raise TypeError("'roi_list' must be of type 'list'.")
         else:
-            _validate_roi(molecule0, molecule1, roi)
+            _validate_roi(molecule0, molecule1, roi_list)
 
     # The user has passed an atom mapping.
     if mapping is not None:
@@ -1467,7 +1871,7 @@ def merge(
         allow_ring_breaking=allow_ring_breaking,
         allow_ring_size_change=allow_ring_size_change,
         force=force,
-        roi=roi,
+        roi_list=roi_list,
         property_map0=property_map0,
         property_map1=property_map1,
     )
@@ -2116,7 +2520,7 @@ def _validate_mapping(molecule0, molecule1, mapping, name):
             )
 
 
-def _validate_roi(molecule0, molecule1, roi):
+def _validate_roi(molecule0, molecule1, roi_list):
     """Internal function to validate that a mapping contains key:value pairs
     of the correct type.
 
@@ -2129,21 +2533,24 @@ def _validate_roi(molecule0, molecule1, roi):
     molecule1 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
         The reference molecule.
 
-    roi : list
+    roi_list : list
         The region of interest to merge.
     """
-    if len(roi) != 2:
-        raise ValueError("The length of roi list must be 2.")
-    if not isinstance(roi[0], list) or not isinstance(roi[1], list):
-        raise ValueError("The element of roi must be of type list")
-    for mol_idx, ele in enumerate(roi):
-        for atom_idx in ele:
-            if type(atom_idx) is not int:
-                raise ValueError(f"The element of roi[{mol_idx}] should be of type int")
-            if atom_idx >= [molecule0, molecule1][mol_idx].nAtoms():
-                raise IndexError(
-                    f"The element of roi[{mol_idx}] should within range of number of atoms"
-                )
+    for roi in roi_list:
+        if len(roi) != 2:
+            raise ValueError("The length of roi list must be 2.")
+        if not isinstance(roi[0], list) or not isinstance(roi[1], list):
+            raise ValueError("The element of roi must be of type list")
+        for mol_idx, ele in enumerate(roi):
+            for atom_idx in ele:
+                if type(atom_idx) is not int:
+                    raise ValueError(
+                        f"The element of roi[{mol_idx}] should be of type int"
+                    )
+                if atom_idx >= [molecule0, molecule1][mol_idx].nAtoms():
+                    raise IndexError(
+                        f"The element of roi[{mol_idx}] should within range of number of atoms"
+                    )
 
 
 def _to_sire_mapping(mapping):
