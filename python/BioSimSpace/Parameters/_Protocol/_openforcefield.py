@@ -37,7 +37,6 @@ from ..._Utils import _try_import, _have_imported
 
 import os as _os
 
-_parmed = _try_import("parmed")
 import queue as _queue
 import subprocess as _subprocess
 
@@ -188,10 +187,6 @@ class OpenForceField(_protocol.Protocol):
             is_smiles = True
         else:
             is_smiles = False
-
-        # The following is adapted from the Open Force Field examples, where an
-        # OpenFF system is converted to AMBER format files using ParmEd:
-        # https://github.com/openforcefield/openff-toolkit/blob/master/examples/using_smirnoff_in_amber_or_gromacs/convert_to_amber_gromacs.ipynb
 
         if is_smiles:
             # Convert SMILES string to an OpenFF molecule.
@@ -353,7 +348,7 @@ class OpenForceField(_protocol.Protocol):
             if par_mol.nMolecules() == 1:
                 par_mol = par_mol.getMolecules()[0]
         except Exception as e:
-            msg = "Failed to read molecule from: 'parmed.prmtop', 'parmed.inpcrd'"
+            msg = "Failed to read molecule from: 'interchange.prmtop', 'interchange.inpcrd'"
             if _isVerbose():
                 msg += ": " + getattr(e, "message", repr(e))
                 raise IOError(msg) from e

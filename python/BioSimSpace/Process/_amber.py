@@ -46,6 +46,7 @@ from .. import _amber_home, _isVerbose
 from .._Config import Amber as _AmberConfig
 from .._Exceptions import IncompatibleError as _IncompatibleError
 from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
+from ..Protocol._free_energy_mixin import _FreeEnergyMixin
 from ..Protocol._position_restraint_mixin import _PositionRestraintMixin
 from .._SireWrappers import System as _System
 from ..Types._type import Type as _Type
@@ -126,7 +127,7 @@ class Amber(_process.Process):
         )
 
         # Catch unsupported protocols.
-        if isinstance(protocol, _Protocol.FreeEnergy):
+        if isinstance(protocol, _FreeEnergyMixin):
             raise _IncompatibleError(
                 "Unsupported protocol: '%s'" % self._protocol.__class__.__name__
             )
