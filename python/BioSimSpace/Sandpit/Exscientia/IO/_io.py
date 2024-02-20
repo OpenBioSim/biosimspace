@@ -1,7 +1,7 @@
 ######################################################################
 # BioSimSpace: Making biomolecular simulation a breeze!
 #
-# Copyright: 2017-2023
+# Copyright: 2017-2024
 #
 # Authors: Lester Hedges <lester.hedges@gmail.com>
 #
@@ -566,7 +566,7 @@ def readMolecules(
         prop = property_map.get("time", "time")
         time = system.property(prop)
         system.removeSharedProperty(prop)
-        system.setProperties(prop, time)
+        system.setProperty(prop, time)
     except:
         pass
 
@@ -1147,6 +1147,24 @@ def readPerturbableSystem(top0, coords0, top1, coords1, property_map={}):
 
     # Update the molecule in the original system.
     system0.updateMolecules(mol)
+
+    # Remove "space" and "time" shared properties since this causes incorrect
+    # behaviour when extracting molecules and recombining them to make other
+    # systems.
+    try:
+        # Space.
+        prop = property_map.get("space", "space")
+        space = system0._sire_object.property(prop)
+        system0._sire_object.removeSharedProperty(prop)
+        system0._sire_object.setProperty(prop, space)
+
+        # Time.
+        prop = property_map.get("time", "time")
+        time = system0._sire_object.property(prop)
+        system0._sire_object.removeSharedProperty(prop)
+        system0._sire_object.setPropery(prop, time)
+    except:
+        pass
 
     return system0
 
