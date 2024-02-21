@@ -1,5 +1,7 @@
 from collections import OrderedDict
+
 import pytest
+import shutil
 
 import BioSimSpace as BSS
 
@@ -28,6 +30,17 @@ def large_protein_system():
     """A large protein system for re-use."""
     return BSS.IO.readMolecules(
         BSS.IO.expand(BSS.tutorialUrl(), ["complex_vac0.prm7", "complex_vac0.rst7"])
+    )
+
+
+@pytest.fixture(scope="module")
+def perturbable_system():
+    """Re-use the same perturbable system for each test."""
+    return BSS.IO.readPerturbableSystem(
+        f"{url}/perturbable_system0.prm7",
+        f"{url}/perturbable_system0.rst7",
+        f"{url}/perturbable_system1.prm7",
+        f"{url}/perturbable_system1.rst7",
     )
 
 
@@ -286,3 +299,64 @@ def run_process(system, protocol, check_data=False):
 
             for k, v in data.items():
                 assert len(v) == nrec
+
+
+@pytest.mark.skipif(
+    has_amber is False, reason="Requires AMBER and pyarrow to be installed."
+)
+@pytest.mark.parametrize(
+    "protocol",
+    [
+        BSS.Protocol.FreeEnergy(temperature=298 * BSS.Units.Temperature.kelvin),
+        BSS.Protocol.FreeEnergyMinimisation(),
+    ],
+)
+def test_parse_fep_output(perturbable_system, protocol):
+    """Make sure that we can correctly parse AMBER FEP output."""
+
+    # Copy the system.
+    system_copy = perturbable_system.copy()
+
+    # Create a process using any system and the protocol.
+    process = BSS.Process.Amber(system_copy, protocol)
+
+    # Assign the path to the output file.
+    if isinstance(protocol, BSS.Protocol.FreeEnergy):
+        out_file = "tests/output/amber_fep.out"
+    else:
+        out_file = "tests/output/amber_fep_min.out"
+
+    # Copy the existing output file into the working directory.
+    shutil.copyfile(out_file, process.workDir() + "/amber.out")
+
+    # Update the stdout record dictionaries.
+    process.stdout(0)
+
+    # Get back the records for each region and soft-core part.
+    records_ti0 = process.getRecords(region=0)
+    records_sc0 = process.getRecords(region=0, soft_core=True)
+    records_ti1 = process.getRecords(region=1)
+    records_sc1 = process.getRecords(region=1, soft_core=True)
+
+    # Make sure NSTEP is present.
+    assert "NSTEP" in records_ti0
+
+    # Get the number of records.
+    num_records = len(records_ti0["NSTEP"])
+
+    # Now make sure that the records for the two TI regions contain the
+    # same number of values.
+    for v0, v1 in zip(records_ti0.values(), records_ti1.values()):
+        assert len(v0) == len(v1) == num_records
+
+    # Now check that are records for the soft-core parts contain the correct
+    # number of values.
+    for v in records_sc0.values():
+        assert len(v) == num_records
+    for k, v in records_sc1.items():
+        assert len(v) == num_records
+    if isinstance(protocol, BSS.Protocol.FreeEnergy):
+        assert len(records_sc0) == len(records_sc1)
+    else:
+        assert len(records_sc0) == 0
+        assert len(records_sc1) != 0

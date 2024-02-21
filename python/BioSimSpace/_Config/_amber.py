@@ -31,7 +31,9 @@ import warnings as _warnings
 
 from sire.legacy import Units as _SireUnits
 
+from ..Align._squash import _amber_mask_from_indices, _squashed_atom_mapping
 from .. import Protocol as _Protocol
+from ..Protocol._free_energy_mixin import _FreeEnergyMixin
 from ..Protocol._position_restraint_mixin import _PositionRestraintMixin
 
 from ._config import Config as _Config
@@ -63,7 +65,12 @@ class Amber(_Config):
         super().__init__(system, protocol, property_map=property_map)
 
     def createConfig(
-        self, version=None, is_pmemd=False, extra_options={}, extra_lines=[]
+        self,
+        version=None,
+        is_pmemd=False,
+        explicit_dummies=False,
+        extra_options={},
+        extra_lines=[],
     ):
         """
         Create the list of configuration strings.
@@ -73,6 +80,9 @@ class Amber(_Config):
 
         is_pmemd : bool
             Whether the configuration is for a simulation using PMEMD.
+
+        explicit_dummies : bool
+            Whether to keep the dummy atoms explicit at the endstates or remove them.
 
         extra_options : dict
             A dictionary containing extra options. Overrides the defaults generated
@@ -95,6 +105,9 @@ class Amber(_Config):
 
         if not isinstance(is_pmemd, bool):
             raise TypeError("'is_pmemd' must be of type 'bool'.")
+
+        if not isinstance(explicit_dummies, bool):
+            raise TypeError("'explicit_dummies' must be of type 'bool'.")
 
         if not isinstance(extra_options, dict):
             raise TypeError("'extra_options' must be of type 'dict'.")
@@ -133,6 +146,9 @@ class Amber(_Config):
         else:
             # Only read coordinates from file.
             protocol_dict["ntx"] = 1
+
+        # Initialise a null timestep.
+        timestep = None
 
         # Minimisation.
         if isinstance(self._protocol, _Protocol.Minimisation):
@@ -196,6 +212,19 @@ class Amber(_Config):
                     atom_idxs = self._system.getRestraintAtoms(restraint)
                 else:
                     atom_idxs = restraint
+
+                # Convert to a squashed representation, if needed
+                if isinstance(self._protocol, _FreeEnergyMixin):
+                    atom_mapping0 = _squashed_atom_mapping(
+                        self.system, is_lambda1=False
+                    )
+                    atom_mapping1 = _squashed_atom_mapping(
+                        self._system, is_lambda1=True
+                    )
+                    atom_idxs = sorted(
+                        {atom_mapping0[x] for x in atom_idxs if x in atom_mapping0}
+                        | {atom_mapping1[x] for x in atom_idxs if x in atom_mapping1}
+                    )
 
                 # Don't add restraints if there are no atoms to restrain.
                 if len(atom_idxs) > 0:
@@ -303,6 +332,39 @@ class Amber(_Config):
                 # Final temperature.
                 protocol_dict["temp0"] = f"{temp:.2f}"
 
+        # Free energies.
+        if isinstance(self._protocol, _FreeEnergyMixin):
+            # Free energy mode.
+            protocol_dict["icfe"] = 1
+            # Use softcore potentials.
+            protocol_dict["ifsc"] = 1
+            # Remove SHAKE constraints.
+            protocol_dict["ntf"] = 1
+
+            # Get the list of lambda values.
+            lambda_values = [f"{x:.5f}" for x in self._protocol.getLambdaValues()]
+
+            # Number of states in the MBAR calculation. (Number of lambda values.)
+            protocol_dict["mbar_states"] = len(lambda_values)
+
+            # Lambda values for the MBAR calculation.
+            protocol_dict["mbar_lambda"] = ", ".join(lambda_values)
+
+            # Current lambda value.
+            protocol_dict["clambda"] = "{:.5f}".format(self._protocol.getLambda())
+
+            if isinstance(self._protocol, _Protocol.Production):
+                # Calculate MBAR energies.
+                protocol_dict["ifmbar"] = 1
+                # Output dVdl
+                protocol_dict["logdvdl"] = 1
+
+            # Atom masks.
+            protocol_dict = {
+                **protocol_dict,
+                **self._generate_amber_fep_masks(timestep),
+            }
+
         # Put everything together in a line-by-line format.
         total_dict = {**protocol_dict, **extra_options}
         dict_lines = [self._protocol.__class__.__name__, "&cntrl"]
@@ -389,3 +451,70 @@ class Amber(_Config):
                     restraint_mask += f",{idx+1}"
 
         return restraint_mask
+
+    def _generate_amber_fep_masks(self, timestep, explicit_dummies=False):
+        """
+        Internal helper function which generates timasks and scmasks based
+        on the system.
+
+        Parameters
+        ----------
+
+        timestep : [float]
+            The timestep in ps for the FEP perturbation. Generates a different
+            mask based on this.
+
+        explicit_dummies : bool
+            Whether to keep the dummy atoms explicit at the endstates or remove them.
+
+        Returns
+        -------
+
+        option_dict : dict
+            A dictionary of AMBER-compatible options.
+        """
+        # Get the merged to squashed atom mapping of the whole system for both endpoints.
+        kwargs = dict(environment=False, explicit_dummies=explicit_dummies)
+        mcs_mapping0 = _squashed_atom_mapping(
+            self._system, is_lambda1=False, common=True, dummies=False, **kwargs
+        )
+        mcs_mapping1 = _squashed_atom_mapping(
+            self._system, is_lambda1=True, common=True, dummies=False, **kwargs
+        )
+        dummy_mapping0 = _squashed_atom_mapping(
+            self._system, is_lambda1=False, common=False, dummies=True, **kwargs
+        )
+        dummy_mapping1 = _squashed_atom_mapping(
+            self._system, is_lambda1=True, common=False, dummies=True, **kwargs
+        )
+
+        # Generate the TI and dummy masks.
+        mcs0_indices, mcs1_indices, dummy0_indices, dummy1_indices = [], [], [], []
+        for i in range(self._system.nAtoms()):
+            if i in dummy_mapping0:
+                dummy0_indices.append(dummy_mapping0[i])
+            if i in dummy_mapping1:
+                dummy1_indices.append(dummy_mapping1[i])
+            if i in mcs_mapping0:
+                mcs0_indices.append(mcs_mapping0[i])
+            if i in mcs_mapping1:
+                mcs1_indices.append(mcs_mapping1[i])
+        ti0_indices = mcs0_indices + dummy0_indices
+        ti1_indices = mcs1_indices + dummy1_indices
+
+        # SHAKE should be used for timestep > 2 fs.
+        if timestep is not None and timestep >= 0.002:
+            no_shake_mask = ""
+        else:
+            no_shake_mask = _amber_mask_from_indices(ti0_indices + ti1_indices)
+
+        # Create an option dict with amber masks generated from the above indices.
+        option_dict = {
+            "timask1": f'"{_amber_mask_from_indices(ti0_indices)}"',
+            "timask2": f'"{_amber_mask_from_indices(ti1_indices)}"',
+            "scmask1": f'"{_amber_mask_from_indices(dummy0_indices)}"',
+            "scmask2": f'"{_amber_mask_from_indices(dummy1_indices)}"',
+            "noshakemask": f'"{no_shake_mask}"',
+        }
+
+        return option_dict

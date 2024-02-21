@@ -1593,7 +1593,11 @@ class Molecule(_SireWrapper):
         self._sire_object = edit_mol.commit()
 
     def _toRegularMolecule(
-        self, property_map={}, is_lambda1=False, convert_amber_dummies=False
+        self,
+        property_map={},
+        is_lambda1=False,
+        convert_amber_dummies=False,
+        generate_intrascale=False,
     ):
         """
         Internal function to convert a merged molecule to a regular molecule.
@@ -1615,6 +1619,9 @@ class Molecule(_SireWrapper):
             non-FEP simulations. This will replace the "du" ambertype
             and "Xx" element with the properties from the other end state.
 
+        generate_intrascale : bool
+            Whether to regenerate the intrascale matrix.
+
         Returns
         -------
 
@@ -1627,6 +1634,9 @@ class Molecule(_SireWrapper):
 
         if not isinstance(convert_amber_dummies, bool):
             raise TypeError("'convert_amber_dummies' must be of type 'bool'")
+
+        if not isinstance(generate_intrascale, bool):
+            raise TypeError("'generate_intrascale' must be of type 'bool'")
 
         if is_lambda1:
             lam = "1"
@@ -1709,6 +1719,17 @@ class Molecule(_SireWrapper):
                 mol = mol.removeProperty("ambertype1").molecule()
                 mol = mol.removeProperty("element0").molecule()
                 mol = mol.removeProperty("element1").molecule()
+
+        if generate_intrascale:
+            # First we regenerate the connectivity based on the bonds.
+            conn = _SireMol.Connectivity(mol.info()).edit()
+            for bond in mol.property("bond").potentials():
+                conn.connect(bond.atom0(), bond.atom1())
+            mol.setProperty("connectivity", conn.commit())
+
+            # Now we have the correct connectivity, we can regenerate the exclusions.
+            gro_sys = _SireIO.GroTop(_System(mol)._sire_object).toSystem()
+            mol.setProperty("intrascale", gro_sys[0].property("intrascale"))
 
         # Return the updated molecule.
         return Molecule(mol.commit())

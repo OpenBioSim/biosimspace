@@ -123,7 +123,7 @@ class Relative:
     """Class for configuring and running relative free-energy perturbation simulations."""
 
     # Create a list of supported molecular dynamics engines. (For running simulations.)
-    _engines = ["GROMACS", "SOMD"]
+    _engines = ["AMBER", "GROMACS", "SOMD"]
 
     # Create a list of supported molecular dynamics engines. (For analysis.)
     _engines_analysis = ["AMBER", "GROMACS", "SOMD", "SOMD2"]
@@ -140,6 +140,7 @@ class Relative:
         extra_options={},
         extra_lines=[],
         property_map={},
+        **kwargs,
     ):
         """
         Constructor.
@@ -156,6 +157,9 @@ class Relative:
                    :class:`Protocol.FreeEnergyEquilibration <BioSimSpace.Protocol.FreeEnergyEquilibration>`, \
                    :class:`Protocol.FreeEnergyProduction <BioSimSpace.Protocol.FreeEnergyProduction>`
             The simulation protocol.
+
+        reference_system : :class:`System <BioSimSpace._SireWrappers.System>`
+            A reference system to use for position restraints.
 
         work_dir : str
             The working directory for the free-energy perturbation
@@ -194,6 +198,10 @@ class Relative:
             A dictionary that maps system "properties" to their user defined
             values. This allows the user to refer to properties with their
             own naming scheme, e.g. { "charge" : "my-charge" }
+
+        kwargs : dict
+            Additional keyword arguments to pass to the underlying Process
+            objects.
         """
 
         # Validate the input.
@@ -203,7 +211,7 @@ class Relative:
                 "'system' must be of type 'BioSimSpace._SireWrappers.System'"
             )
         else:
-            # Store a copy of solvated system.
+            # Store a copy of the system.
             self._system = system.copy()
 
         # Validate the user specified molecular dynamics engine.
@@ -221,19 +229,12 @@ class Relative:
                     "Supported engines are: %r." % ", ".join(self._engines)
                 )
 
-            # Make sure GROMACS is installed if GROMACS engine is selected.
-            if engine == "GROMACS":
-                if _gmx_exe is None:
-                    raise _MissingSoftwareError(
-                        "Cannot use GROMACS engine as GROMACS is not installed!"
-                    )
-
-                # The system must have a perturbable molecule.
-                if system.nPerturbableMolecules() == 0:
-                    raise ValueError(
-                        "The system must contain a perturbable molecule! "
-                        "Use the 'BioSimSpace.Align' package to map and merge molecules."
-                    )
+            # The system must have a perturbable molecule.
+            if system.nPerturbableMolecules() == 0:
+                raise ValueError(
+                    "The system must contain a perturbable molecule! "
+                    "Use the 'BioSimSpace.Align' package to map and merge molecules."
+                )
 
         else:
             # Use SOMD as a default.
@@ -321,6 +322,11 @@ class Relative:
         if not isinstance(property_map, dict):
             raise TypeError("'property_map' must be of type 'dict'")
         self._property_map = property_map
+
+        # Validate the kwargs.
+        if not isinstance(kwargs, dict):
+            raise TypeError("'kwargs' must be of type 'dict'.")
+        self._kwargs = kwargs
 
         # Create fake instance methods for 'analyse', 'checkOverlap',
         # and 'difference'. These pass instance data through to the
@@ -2004,7 +2010,7 @@ class Relative:
         processes = []
 
         # Convert to an appropriate water topology.
-        if self._engine == "SOMD":
+        if self._engine in ["AMBER", "SOMD"]:
             system._set_water_topology("AMBER", property_map=self._property_map)
         elif self._engine == "GROMACS":
             system._set_water_topology("GROMACS", property_map=self._property_map)
@@ -2042,6 +2048,7 @@ class Relative:
                 extra_options=self._extra_options,
                 extra_lines=self._extra_lines,
                 property_map=self._property_map,
+                **self._kwargs,
             )
             if self._setup_only:
                 del first_process
@@ -2059,9 +2066,23 @@ class Relative:
                 extra_options=self._extra_options,
                 extra_lines=self._extra_lines,
                 property_map=self._property_map,
+                **self._kwargs,
             )
             if not self._setup_only:
                 processes.append(first_process)
+
+        # AMBER.
+        elif self._engine == "AMBER":
+            first_process = _Process.Amber(
+                system,
+                self._protocol,
+                exe=self._exe,
+                work_dir=first_dir,
+                extra_options=self._extra_options,
+                extra_lines=self._extra_lines,
+                property_map=self._property_map,
+                **self._kwargs,
+            )
 
         # Loop over the rest of the lambda values.
         for x, lam in enumerate(lam_vals[1:]):
@@ -2164,6 +2185,7 @@ class Relative:
                     process._std_err_file = new_dir + "/gromacs.err"
                     process._gro_file = new_dir + "/gromacs.gro"
                     process._top_file = new_dir + "/gromacs.top"
+                    process._ref_file = new_dir + "/gromacs_ref.gro"
                     process._traj_file = new_dir + "/gromacs.trr"
                     process._config_file = new_dir + "/gromacs.mdp"
                     process._tpr_file = new_dir + "/gromacs.tpr"
@@ -2172,6 +2194,41 @@ class Relative:
                         process._gro_file,
                         process._top_file,
                         process._tpr_file,
+                    ]
+                    processes.append(process)
+
+            # AMBER.
+            elif self._engine == "AMBER":
+                new_config = []
+                with open(new_dir + "/amber.cfg", "r") as f:
+                    for line in f:
+                        if "clambda" in line:
+                            new_config.append("   clambda=%s,\n" % lam)
+                        else:
+                            new_config.append(line)
+                with open(new_dir + "/amber.cfg", "w") as f:
+                    for line in new_config:
+                        f.write(line)
+
+                # Create a copy of the process and update the working
+                # directory.
+                if not self._setup_only:
+                    process = _copy.copy(first_process)
+                    process._system = first_process._system.copy()
+                    process._protocol = self._protocol
+                    process._work_dir = new_dir
+                    process._std_out_file = new_dir + "/amber.out"
+                    process._std_err_file = new_dir + "/amber.err"
+                    process._rst_file = new_dir + "/amber.rst7"
+                    process._top_file = new_dir + "/amber.prm7"
+                    process._ref_file = new_dir + "/amber_ref.rst7"
+                    process._traj_file = new_dir + "/amber.nc"
+                    process._config_file = new_dir + "/amber.cfg"
+                    process._nrg_file = new_dir + "/amber.nrg"
+                    process._input_files = [
+                        process._config_file,
+                        process._rst_file,
+                        process._top_file,
                     ]
                     processes.append(process)
 

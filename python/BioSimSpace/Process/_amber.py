@@ -43,6 +43,7 @@ from sire.legacy import IO as _SireIO
 from sire.legacy import Mol as _SireMol
 
 from .. import _amber_home, _isVerbose
+from ..Align._squash import _squash, _unsquash
 from .._Config import Amber as _AmberConfig
 from .._Exceptions import IncompatibleError as _IncompatibleError
 from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
@@ -70,6 +71,7 @@ class Amber(_process.Process):
         system,
         protocol,
         reference_system=None,
+        explicit_dummies=False,
         exe=None,
         name="amber",
         work_dir=None,
@@ -94,6 +96,9 @@ class Amber(_process.Process):
             An optional system to use as a source of reference coordinates for position
             restraints. It is assumed that this system has the same topology as "system".
             If this is None, then "system" is used as a reference.
+
+        explicit_dummies : bool
+            Whether to keep dummy atoms explicit at alchemical end states, or remove them.
 
         exe : str
             The full path to the AMBER executable.
@@ -133,12 +138,6 @@ class Amber(_process.Process):
             property_map=property_map,
         )
 
-        # Catch unsupported protocols.
-        if isinstance(protocol, _FreeEnergyMixin):
-            raise _IncompatibleError(
-                "Unsupported protocol: '%s'" % self._protocol.__class__.__name__
-            )
-
         # Set the package name.
         self._package_name = "AMBER"
 
@@ -168,8 +167,36 @@ class Amber(_process.Process):
             else:
                 raise IOError("AMBER executable doesn't exist: '%s'" % exe)
 
+        if not isinstance(explicit_dummies, bool):
+            raise TypeError("'explicit_dummies' must be of type 'bool'")
+        self._explicit_dummies = explicit_dummies
+
         # Initialise the energy dictionary and header.
         self._stdout_dict = _process._MultiDict()
+
+        # Initialise dictionaries to hold stdout records for all possible
+        # regions. For regular simulations there will be one, for free-energy
+        # simulations there can be up to four, i.e. one for each of the TI regions
+        # and one for the soft-core part of the system in each region, if present.
+        # The order of the dictionaries is:
+        #  - TI region 1
+        #  - TI region 1 (soft-core part)
+        #  - TI region 2
+        #  - TI region 2 (soft-core part)
+        self._stdout_dict = [
+            _process._MultiDict(),
+            _process._MultiDict(),
+            _process._MultiDict(),
+            _process._MultiDict(),
+        ]
+
+        # Initialise mappings between "universal" stdout keys, and the actual
+        # record key used for the different regions (and soft-core parts) from
+        # in the AMBER output. Ordering is the same as for the stdout_dicts above.
+        self._stdout_key = [{}, {}, {}, {}]
+
+        # Flag for the current record region in the AMBER output file.
+        self._current_region = 0
 
         # Initialise log file parsing flags.
         self._has_results = False
@@ -208,8 +235,15 @@ class Amber(_process.Process):
         # Convert the water model topology so that it matches the AMBER naming convention.
         system._set_water_topology("AMBER", property_map=self._property_map)
 
-        # Check for perturbable molecules and convert to the chosen end state.
-        system = self._checkPerturbable(system)
+        # Create the squashed system.
+        if isinstance(self._protocol, _FreeEnergyMixin):
+            system, self._mapping = _squash(
+                system, explicit_dummies=self._explicit_dummies
+            )
+            self._squashed_system = system
+        else:
+            # Check for perturbable molecules and convert to the chosen end state.
+            system = self._checkPerturbable(system)
 
         # RST file (coordinates).
         try:
@@ -312,7 +346,10 @@ class Amber(_process.Process):
         # Create the configuration.
         self.setConfig(
             amber_config.createConfig(
-                is_pmemd=is_pmemd, extra_options=extra_options, extra_lines=extra_lines
+                is_pmemd=is_pmemd,
+                explicit_dummies=self._explicit_dummies,
+                extra_options=extra_options,
+                extra_lines=extra_lines,
             )
         )
 
@@ -340,7 +377,7 @@ class Amber(_process.Process):
             # Append a reference file if a position restraint is specified.
             if isinstance(self._protocol, _PositionRestraintMixin):
                 if self._protocol.getRestraint() is not None:
-                    self.setArg("-ref", self._ref_file)
+                    self.setArg("-ref", "%s_ref.rst7" % self._name)
 
             # Append a trajectory file if this anything other than a minimisation.
             if not isinstance(self._protocol, _Protocol.Minimisation):
@@ -447,23 +484,51 @@ class Amber(_process.Process):
             # Create a copy of the existing system object.
             old_system = self._system.copy()
 
-            # Update the coordinates and velocities and return a mapping between
-            # the molecule indices in the two systems.
-            sire_system, mapping = _SireIO.updateCoordinatesAndVelocities(
-                old_system._sire_object,
-                new_system._sire_object,
-                self._mapping,
-                is_lambda1,
-                self._property_map,
-                self._property_map,
-            )
+            if isinstance(self._protocol, _FreeEnergyMixin):
+                # Udpate the coordinates and velocities and return a mapping between
+                # the molecule indices in the two systems.
+                mapping = {
+                    _SireMol.MolIdx(x): _SireMol.MolIdx(x)
+                    for x in range(0, self._squashed_system.nMolecules())
+                }
+                (
+                    self._squashed_system._sire_object,
+                    _,
+                ) = _SireIO.updateCoordinatesAndVelocities(
+                    self._squashed_system._sire_object,
+                    new_system._sire_object,
+                    mapping,
+                    is_lambda1,
+                    self._property_map,
+                    self._property_map,
+                )
 
-            # Update the underlying Sire object.
-            old_system._sire_object = sire_system
+                # Update the unsquashed system based on the updated squashed system.
+                old_system = _unsquash(
+                    old_system,
+                    self._squashed_system,
+                    self._mapping,
+                    explicit_dummies=self._explicit_dummies,
+                )
 
-            # Store the mapping between the MolIdx in both systems so we don't
-            # need to recompute it next time.
-            self._mapping = mapping
+            else:
+                # Update the coordinates and velocities and return a mapping between
+                # the molecule indices in the two systems.
+                sire_system, mapping = _SireIO.updateCoordinatesAndVelocities(
+                    old_system._sire_object,
+                    new_system._sire_object,
+                    self._mapping,
+                    is_lambda1,
+                    self._property_map,
+                    self._property_map,
+                )
+
+                # Update the underlying Sire object.
+                old_system._sire_object = sire_system
+
+                # Store the mapping between the MolIdx in both systems so we don't
+                # need to recompute it next time.
+                self._mapping = mapping
 
             # Update the box information in the original system.
             if "space" in new_system._sire_object.propertyKeys():
@@ -605,7 +670,65 @@ class Amber(_process.Process):
         except:
             return None
 
-    def getRecord(self, key, time_series=False, unit=None, block="AUTO"):
+    def getRecordKey(self, record, region=0, soft_core=False):
+        """
+        Parameters
+        ----------
+
+        record : str
+            The record used in the AMBER standard output, e.g. 'TEMP(K)'.
+            Please consult the current AMBER manual for details:
+            https://ambermd.org/Manuals.php
+
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
+
+        Returns
+        -------
+
+        key : str
+            The universal record key that can be used with getRecord.
+        """
+
+        # Validate the record string.
+        if not isinstance(record, str):
+            raise TypeError("'record' must be of type 'str'")
+
+        # Validate the region.
+        if not isinstance(region, int):
+            raise TypeError("'region' must be of type 'int'")
+        else:
+            if region < 0 or region > 1:
+                raise ValueError("'region' must be in range [0, 1]")
+
+        # Validate the soft-core flag.
+        if not isinstance(soft_core, bool):
+            raise TypeError("'soft_core' must be of type 'bool'.")
+
+        # Convert to the full index.
+        idx = 2 * region + int(soft_core)
+
+        # Strip whitespace from the beginning and end of the record and convert
+        # to upper case.
+        cleaned_record = record.strip().upper()
+
+        # Make sure the record exists in the key mapping.
+        if not cleaned_record in self._stdout_key[idx].values():
+            raise ValueError(f"No key found for record '{record}'")
+
+        return list(self._stdout_key[idx].keys())[
+            list(self._stdout_key[idx].values()).index(cleaned_record)
+        ]
+
+    def getRecord(
+        self, key, time_series=False, unit=None, region=0, soft_core=False, block="AUTO"
+    ):
         """
         Get a record from the stdout dictionary.
 
@@ -613,13 +736,25 @@ class Amber(_process.Process):
         ----------
 
         key : str
-            The record key.
+            A universal record key based on the key used in the AMBER standard
+            output. Use 'getRecordKey(record)` to generate the key. The records
+            are those used in the AMBER standard output, e.g. 'TEMP(K)'. Please
+            consult the current AMBER manual for details: https://ambermd.org/Manuals.php
 
         time_series : bool
             Whether to return a list of time series records.
 
         unit : :class:`Unit <BioSimSpace.Units>`
             The unit to convert the record to.
+
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
 
         block : bool
             Whether to block until the process has finished running.
@@ -642,10 +777,16 @@ class Amber(_process.Process):
             _warnings.warn("The process exited with an error!")
 
         return self._get_stdout_record(
-            key.strip().upper(), time_series=time_series, unit=unit
+            key.strip().upper(),
+            time_series=time_series,
+            unit=unit,
+            region=region,
+            soft_core=soft_core,
         )
 
-    def getCurrentRecord(self, key, time_series=False, unit=None):
+    def getCurrentRecord(
+        self, key, time_series=False, unit=None, region=0, soft_core=False
+    ):
         """
         Get a current record from the stdout dictionary.
 
@@ -653,13 +794,25 @@ class Amber(_process.Process):
         ----------
 
         key : str
-            The record key.
+            A universal record key based on the key used in the AMBER standard
+            output. Use 'getRecordKey(record)` to generate the key. The records
+            are those used in the AMBER standard output, e.g. 'TEMP(K)'. Please
+            consult the current AMBER manual for details: https://ambermd.org/Manuals.php
 
         time_series : bool
             Whether to return a list of time series records.
 
         unit : :class:`Unit <BioSimSpace.Units>`
             The unit to convert the record to.
+
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
 
         Returns
         -------
@@ -673,15 +826,28 @@ class Amber(_process.Process):
             _warnings.warn("The process exited with an error!")
 
         return self._get_stdout_record(
-            key.strip().upper(), time_series=time_series, unit=unit
+            key.strip().upper(),
+            time_series=time_series,
+            unit=unit,
+            region=region,
+            soft_core=soft_core,
         )
 
-    def getRecords(self, block="AUTO"):
+    def getRecords(self, region=0, soft_core=False, block="AUTO"):
         """
         Return the dictionary of stdout time-series records.
 
         Parameters
         ----------
+
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
 
         block : bool
             Whether to block until the process has finished running.
@@ -692,6 +858,20 @@ class Amber(_process.Process):
         records : :class:`MultiDict <BioSimSpace.Process._process._MultiDict>`
            The dictionary of time-series records.
         """
+
+        # Validate the region.
+        if not isinstance(region, int):
+            raise TypeError("'region' must be of type 'int'")
+        else:
+            if region < 0 or region > 1:
+                raise ValueError("'region' must be in range [0, 1]")
+
+        # Validate the soft-core flag.
+        if not isinstance(soft_core, bool):
+            raise TypeError("'soft_core' must be of type 'bool'.")
+
+        # Convert to the full index, region + soft_core.
+        idx = 2 * region + int(soft_core)
 
         # Wait for the process to finish.
         if block is True:
@@ -704,11 +884,24 @@ class Amber(_process.Process):
             _warnings.warn("The process exited with an error!")
 
         self.stdout(0)
-        return self._stdout_dict.copy()
 
-    def getCurrentRecords(self):
+        return self._stdout_dict[idx].copy()
+
+    def getCurrentRecords(self, region=0, soft_core=False):
         """
         Return the current dictionary of stdout time-series records.
+
+        Parameters
+        ----------
+
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
 
         Returns
         -------
@@ -716,9 +909,9 @@ class Amber(_process.Process):
         records : :class:`MultiDict <BioSimSpace.Process._process._MultiDict>`
            The dictionary of time-series records.
         """
-        return self.getRecords(block=False)
+        return self.getRecords(region=region, soft_core=soft_core, block=False)
 
-    def getTime(self, time_series=False, block="AUTO"):
+    def getTime(self, time_series=False, region=0, soft_core=False, block="AUTO"):
         """
         Get the simulation time.
 
@@ -727,6 +920,15 @@ class Amber(_process.Process):
 
         time_series : bool
             Whether to return a list of time series records.
+
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
 
         block : bool
             Whether to block until the process has finished running.
@@ -743,7 +945,14 @@ class Amber(_process.Process):
             return None
 
         # Get the list of time steps.
-        time_steps = self.getRecord("TIME(PS)", time_series=time_series, block=block)
+        time_steps = self.getRecord(
+            "TIME(PS)",
+            time_series=time_series,
+            unit=None,
+            region=region,
+            soft_core=soft_core,
+            block=block,
+        )
 
         # Convert from picoseconds to nanoseconds.
         if time_steps is not None:
@@ -754,7 +963,7 @@ class Amber(_process.Process):
             else:
                 return (time_steps * _Units.Time.picosecond)._to_default_unit()
 
-    def getCurrentTime(self, time_series=False):
+    def getCurrentTime(self, time_series=False, region=0, soft_core=False):
         """
         Get the current simulation time.
 
@@ -764,15 +973,26 @@ class Amber(_process.Process):
         time_series : bool
             Whether to return a list of time series records.
 
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
+
         Returns
         -------
 
         time : :class:`Time <BioSimSpace.Types.Time>`
             The current simulation time in nanoseconds.
         """
-        return self.getTime(time_series, block=False)
+        return self.getTime(
+            time_series=time_series, region=region, soft_core=soft_core, block=False
+        )
 
-    def getStep(self, time_series=False, block="AUTO"):
+    def getStep(self, time_series=False, region=0, soft_core=False, block="AUTO"):
         """
         Get the number of integration steps.
 
@@ -781,6 +1001,15 @@ class Amber(_process.Process):
 
         time_series : bool
             Whether to return a list of time series records.
+
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
 
         block : bool
             Whether to block until the process has finished running.
@@ -791,9 +1020,16 @@ class Amber(_process.Process):
         step : int
             The current number of integration steps.
         """
-        return self.getRecord("NSTEP", time_series=time_series, block=block)
+        return self.getRecord(
+            "NSTEP",
+            time_series=time_series,
+            unit=None,
+            region=region,
+            soft_core=soft_core,
+            block=block,
+        )
 
-    def getCurrentStep(self, time_series=False):
+    def getCurrentStep(self, time_series=False, region=0, soft_core=False):
         """
         Get the current number of integration steps.
 
@@ -803,15 +1039,26 @@ class Amber(_process.Process):
         time_series : bool
             Whether to return a list of time series records.
 
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
+
         Returns
         -------
 
         step : int
             The current number of integration steps.
         """
-        return self.getStep(time_series, block=False)
+        return self.getStep(
+            time_series=time_series, region=region, soft_core=soft_core, block=False
+        )
 
-    def getBondEnergy(self, time_series=False, block="AUTO"):
+    def getBondEnergy(self, time_series=False, region=0, soft_core=False, block="AUTO"):
         """
         Get the bond energy.
 
@@ -820,6 +1067,10 @@ class Amber(_process.Process):
 
         time_series : bool
             Whether to return a list of time series records.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
 
         block : bool
             Whether to block until the process has finished running.
@@ -834,10 +1085,12 @@ class Amber(_process.Process):
             "BOND",
             time_series=time_series,
             unit=_Units.Energy.kcal_per_mol,
+            region=region,
+            soft_core=soft_core,
             block=block,
         )
 
-    def getCurrentBondEnergy(self, time_series=False):
+    def getCurrentBondEnergy(self, time_series=False, region=0, soft_core=False):
         """
         Get the current bond energy.
 
@@ -847,15 +1100,28 @@ class Amber(_process.Process):
         time_series : bool
             Whether to return a list of time series records.
 
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
+
         Returns
         -------
 
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The bond energy.
         """
-        return self.getBondEnergy(time_series, block=False)
+        return self.getBondEnergy(
+            time_series=time_series, region=region, soft_core=soft_core, block=False
+        )
 
-    def getAngleEnergy(self, time_series=False, block="AUTO"):
+    def getAngleEnergy(
+        self, time_series=False, region=0, soft_core=False, block="AUTO"
+    ):
         """
         Get the angle energy.
 
@@ -864,6 +1130,15 @@ class Amber(_process.Process):
 
         time_series : bool
             Whether to return a list of time series records.
+
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
 
         block : bool
             Whether to block until the process has finished running.
@@ -878,10 +1153,12 @@ class Amber(_process.Process):
             "ANGLE",
             time_series=time_series,
             unit=_Units.Energy.kcal_per_mol,
+            region=region,
+            soft_core=soft_core,
             block=block,
         )
 
-    def getCurrentAngleEnergy(self, time_series=False):
+    def getCurrentAngleEnergy(self, time_series=False, region=0, soft_core=False):
         """
         Get the current angle energy.
 
@@ -891,15 +1168,28 @@ class Amber(_process.Process):
         time_series : bool
             Whether to return a list of time series records.
 
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
+
         Returns
         -------
 
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The angle energy.
         """
-        return self.getAngleEnergy(time_series, block=False)
+        return self.getAngleEnergy(
+            time_series=time_series, region=region, soft_core=soft_core, block=False
+        )
 
-    def getDihedralEnergy(self, time_series=False, block="AUTO"):
+    def getDihedralEnergy(
+        self, time_series=False, region=0, soft_core=False, block="AUTO"
+    ):
         """
         Get the total dihedral energy (proper + improper).
 
@@ -908,6 +1198,15 @@ class Amber(_process.Process):
 
         time_series : bool
             Whether to return a list of time series records.
+
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
 
         block : bool
             Whether to block until the process has finished running.
@@ -922,10 +1221,12 @@ class Amber(_process.Process):
             "DIHED",
             time_series=time_series,
             unit=_Units.Energy.kcal_per_mol,
+            region=region,
+            soft_core=soft_core,
             block=block,
         )
 
-    def getCurrentDihedralEnergy(self, time_series=False):
+    def getCurrentDihedralEnergy(self, time_series=False, region=0, soft_core=False):
         """
         Get the current total dihedral energy (proper + improper).
 
@@ -935,15 +1236,28 @@ class Amber(_process.Process):
         time_series : bool
             Whether to return a list of time series records.
 
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
+
         Returns
         -------
 
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The total dihedral energy.
         """
-        return self.getDihedralEnergy(time_series, block=False)
+        return self.getDihedralEnergy(
+            time_series=time_series, region=region, soft_core=soft_core, block=False
+        )
 
-    def getElectrostaticEnergy(self, time_series=False, block="AUTO"):
+    def getElectrostaticEnergy(
+        self, time_series=False, region=0, soft_core=False, block="AUTO"
+    ):
         """
         Get the electrostatic energy.
 
@@ -953,6 +1267,15 @@ class Amber(_process.Process):
         time_series : bool
             Whether to return a list of time series records.
 
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
+
         block : bool
             Whether to block until the process has finished running.
 
@@ -963,13 +1286,17 @@ class Amber(_process.Process):
            The electrostatic energy.
         """
         return self.getRecord(
-            "EELEC",
+            "EEL",
             time_series=time_series,
             unit=_Units.Energy.kcal_per_mol,
+            region=region,
+            soft_core=soft_core,
             block=block,
         )
 
-    def getCurrentElectrostaticEnergy(self, time_series=False):
+    def getCurrentElectrostaticEnergy(
+        self, time_series=False, region=0, soft_core=False
+    ):
         """
         Get the current dihedral energy.
 
@@ -979,15 +1306,28 @@ class Amber(_process.Process):
         time_series : bool
             Whether to return a list of time series records.
 
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
+
         Returns
         -------
 
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The electrostatic energy.
         """
-        return self.getElectrostaticEnergy(time_series, block=False)
+        return self.getElectrostaticEnergy(
+            time_series=time_series, region=region, soft_core=soft_core, block=False
+        )
 
-    def getElectrostaticEnergy14(self, time_series=False, block="AUTO"):
+    def getElectrostaticEnergy14(
+        self, time_series=False, region=0, soft_core=False, block="AUTO"
+    ):
         """
         Get the electrostatic energy between atoms 1 and 4.
 
@@ -997,6 +1337,15 @@ class Amber(_process.Process):
         time_series : bool
             Whether to return a list of time series records.
 
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
+
         block : bool
             Whether to block until the process has finished running.
 
@@ -1007,13 +1356,17 @@ class Amber(_process.Process):
            The electrostatic energy between atoms 1 and 4.
         """
         return self.getRecord(
-            "1-4 EEL",
+            "14EEL",
             time_series=time_series,
             unit=_Units.Energy.kcal_per_mol,
+            region=region,
+            soft_core=soft_core,
             block=block,
         )
 
-    def getCurrentElectrostaticEnergy14(self, time_series=False):
+    def getCurrentElectrostaticEnergy14(
+        self, time_series=False, region=0, soft_core=False
+    ):
         """
         Get the current electrostatic energy between atoms 1 and 4.
 
@@ -1023,15 +1376,28 @@ class Amber(_process.Process):
         time_series : bool
             Whether to return a list of time series records.
 
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
+
         Returns
         -------
 
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The electrostatic energy between atoms 1 and 4.
         """
-        return self.getElectrostaticEnergy14(time_series, block=False)
+        return self.getElectrostaticEnergy14(
+            time_series=time_series, region=region, soft_core=False, block=False
+        )
 
-    def getVanDerWaalsEnergy(self, time_series=False, block="AUTO"):
+    def getVanDerWaalsEnergy(
+        self, time_series=False, region=0, soft_core=False, block="AUTO"
+    ):
         """
         Get the Van der Vaals energy.
 
@@ -1040,6 +1406,15 @@ class Amber(_process.Process):
 
         time_series : bool
             Whether to return a list of time series records.
+
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
 
         block : bool
             Whether to block until the process has finished running.
@@ -1051,13 +1426,15 @@ class Amber(_process.Process):
            The Van der Vaals energy.
         """
         return self.getRecord(
-            "VDWAALS",
+            "VDW",
             time_series=time_series,
             unit=_Units.Energy.kcal_per_mol,
+            region=region,
+            soft_core=soft_core,
             block=block,
         )
 
-    def getCurrentVanDerWaalsEnergy(self, time_series=False):
+    def getCurrentVanDerWaalsEnergy(self, time_series=False, region=0, soft_core=False):
         """
         Get the current Van der Vaals energy.
 
@@ -1067,15 +1444,98 @@ class Amber(_process.Process):
         time_series : bool
             Whether to return a list of time series records.
 
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
+
         Returns
         -------
 
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The Van der Vaals energy.
         """
-        return self.getVanDerWaalsEnergy(time_series, block=False)
+        return self.getVanDerWaalsEnergy(
+            time_series=time_series, block=False, region=region, soft_core=soft_core
+        )
 
-    def getHydrogenBondEnergy(self, time_series=False, block="AUTO"):
+    def getVanDerWaalsEnergy14(
+        self, time_series=False, region=0, soft_core=False, block="AUTO"
+    ):
+        """
+        Get the Van der Vaals energy between atoms 1 and 4.
+
+        Parameters
+        ----------
+
+        time_series : bool
+            Whether to return a list of time series records.
+
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
+
+        block : bool
+            Whether to block until the process has finished running.
+
+        Returns
+        -------
+
+        energy : :class:`Energy <BioSimSpace.Types.Energy>`
+           The Van der Vaals energy between atoms 1 and 4.
+        """
+        return self.getRecord(
+            "14VDW",
+            time_series=time_series,
+            unit=_Units.Energy.kcal_per_mol,
+            region=region,
+            soft_core=soft_core,
+            block=block,
+        )
+
+    def getCurrentVanDerWaalsEnergy14(
+        self, time_series=False, region=0, soft_core=False
+    ):
+        """
+        Get the current Van der Vaals energy between atoms 1 and 4.
+
+        Parameters
+        ----------
+
+        time_series : bool
+            Whether to return a list of time series records.
+
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
+
+        Returns
+        -------
+
+        energy : :class:`Energy <BioSimSpace.Types.Energy>`
+           The Van der Vaals energy between atoms 1 and 4.
+        """
+        return self.getVanDerWaalsEnergy(
+            time_series=time_series, block=False, region=region, soft_core=soft_core
+        )
+
+    def getHydrogenBondEnergy(
+        self, time_series=False, region=0, soft_core=False, block="AUTO"
+    ):
         """
         Get the hydrogen bond energy.
 
@@ -1084,6 +1544,15 @@ class Amber(_process.Process):
 
         time_series : bool
             Whether to return a list of time series records.
+
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
 
         block : bool
             Whether to block until the process has finished running.
@@ -1098,10 +1567,14 @@ class Amber(_process.Process):
             "EHBOND",
             time_series=time_series,
             unit=_Units.Energy.kcal_per_mol,
+            region=region,
+            soft_core=soft_core,
             block=block,
         )
 
-    def getCurrentHydrogenBondEnergy(self, time_series=False):
+    def getCurrentHydrogenBondEnergy(
+        self, time_series=False, region=0, soft_core=False
+    ):
         """
         Get the current hydrogen bond energy.
 
@@ -1111,15 +1584,28 @@ class Amber(_process.Process):
         time_series : bool
             Whether to return a list of time series records.
 
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
+
         Returns
         -------
 
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The hydrogen bond energy.
         """
-        return self.getHydrogenBondEnergy(time_series, block=False)
+        return self.getHydrogenBondEnergy(
+            time_series=time_series, region=region, soft_core=soft_core, block=False
+        )
 
-    def getRestraintEnergy(self, time_series=False, block="AUTO"):
+    def getRestraintEnergy(
+        self, time_series=False, region=0, soft_core=False, block="AUTO"
+    ):
         """
         Get the restraint energy.
 
@@ -1128,6 +1614,15 @@ class Amber(_process.Process):
 
         time_series : bool
             Whether to return a list of time series records.
+
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
 
         block : bool
             Whether to block until the process has finished running.
@@ -1142,10 +1637,12 @@ class Amber(_process.Process):
             "RESTRAINT",
             time_series=time_series,
             unit=_Units.Energy.kcal_per_mol,
+            region=region,
+            soft_core=soft_core,
             block=block,
         )
 
-    def getCurrentRestraintEnergy(self, time_series=False):
+    def getCurrentRestraintEnergy(self, time_series=False, region=0, soft_core=False):
         """
         Get the current restraint energy.
 
@@ -1154,6 +1651,15 @@ class Amber(_process.Process):
 
         time_series : bool
             Whether to return a list of time series records.
+
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
 
         block : bool
             Whether to block until the process has finished running.
@@ -1164,9 +1670,13 @@ class Amber(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The restraint energy.
         """
-        return self.getRestraintEnergy(time_series, block=False)
+        return self.getRestraintEnergy(
+            time_series=time_series, region=region, soft_core=soft_core, block=False
+        )
 
-    def getPotentialEnergy(self, time_series=False, block="AUTO"):
+    def getPotentialEnergy(
+        self, time_series=False, region=0, soft_core=False, block="AUTO"
+    ):
         """
         Get the potential energy.
 
@@ -1175,6 +1685,15 @@ class Amber(_process.Process):
 
         time_series : bool
             Whether to return a list of time series records.
+
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
 
         block : bool
             Whether to block until the process has finished running.
@@ -1189,10 +1708,12 @@ class Amber(_process.Process):
             "EPTOT",
             time_series=time_series,
             unit=_Units.Energy.kcal_per_mol,
+            region=region,
+            soft_core=soft_core,
             block=block,
         )
 
-    def getCurrentPotentialEnergy(self, time_series=False):
+    def getCurrentPotentialEnergy(self, time_series=False, region=0, soft_core=False):
         """
         Get the current potential energy.
 
@@ -1202,15 +1723,28 @@ class Amber(_process.Process):
         time_series : bool
             Whether to return a list of time series records.
 
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
+
         Returns
         -------
 
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The potential energy.
         """
-        return self.getPotentialEnergy(time_series, block=False)
+        return self.getPotentialEnergy(
+            time_series=time_series, region=region, soft_core=soft_core, block=False
+        )
 
-    def getKineticEnergy(self, time_series=False, block="AUTO"):
+    def getKineticEnergy(
+        self, time_series=False, region=0, soft_core=False, block="AUTO"
+    ):
         """
         Get the kinetic energy.
 
@@ -1219,6 +1753,15 @@ class Amber(_process.Process):
 
         time_series : bool
             Whether to return a list of time series records.
+
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
 
         block : bool
             Whether to block until the process has finished running.
@@ -1233,10 +1776,12 @@ class Amber(_process.Process):
             "EKTOT",
             time_series=time_series,
             unit=_Units.Energy.kcal_per_mol,
+            region=region,
+            soft_core=soft_core,
             block=block,
         )
 
-    def getCurrentKineticEnergy(self, time_series=False):
+    def getCurrentKineticEnergy(self, time_series=False, region=0, soft_core=False):
         """
         Get the current kinetic energy.
 
@@ -1246,15 +1791,28 @@ class Amber(_process.Process):
         time_series : bool
             Whether to return a list of time series records.
 
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
+
         Returns
         -------
 
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The kinetic energy.
         """
-        return self.getKineticEnergy(time_series, block=False)
+        return self.getKineticEnergy(
+            time_series=time_series, region=region, soft_core=soft_core, block=False
+        )
 
-    def getNonBondedEnergy14(self, time_series=False, block="AUTO"):
+    def getNonBondedEnergy14(
+        self, time_series=False, region=0, soft_core=False, block="AUTO"
+    ):
         """
         Get the non-bonded energy between atoms 1 and 4.
 
@@ -1263,6 +1821,15 @@ class Amber(_process.Process):
 
         time_series : bool
             Whether to return a list of time series records.
+
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
 
         block : bool
             Whether to block until the process has finished running.
@@ -1274,13 +1841,15 @@ class Amber(_process.Process):
            The non-bonded energy between atoms 1 and 4.
         """
         return self.getRecord(
-            "1-4 NB",
+            "14NB",
             time_series=time_series,
             unit=_Units.Energy.kcal_per_mol,
+            region=region,
+            soft_core=soft_core,
             block=block,
         )
 
-    def getCurrentNonBondedEnergy14(self, time_series=False):
+    def getCurrentNonBondedEnergy14(self, time_series=False, region=0, soft_core=False):
         """
         Get the current non-bonded energy between atoms 1 and 4.
 
@@ -1290,15 +1859,28 @@ class Amber(_process.Process):
         time_series : bool
             Whether to return a list of time series records.
 
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
+
         Returns
         -------
 
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The non-bonded energy between atoms 1 and 4.
         """
-        return self.getNonBondedEnergy14(time_series, block=False)
+        return self.getNonBondedEnergy14(
+            time_series=time_series, region=region, soft_core=soft_core, block=False
+        )
 
-    def getTotalEnergy(self, time_series=False, block="AUTO"):
+    def getTotalEnergy(
+        self, time_series=False, region=0, soft_core=False, block="AUTO"
+    ):
         """
         Get the total energy.
 
@@ -1307,6 +1889,15 @@ class Amber(_process.Process):
 
         time_series : bool
             Whether to return a list of time series records.
+
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
 
         block : bool
             Whether to block until the process has finished running.
@@ -1317,11 +1908,27 @@ class Amber(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The total energy.
         """
-        if isinstance(self._protocol, _Protocol.Minimisation):
+
+        if not isinstance(region, int):
+            raise TypeError("'region' must be of type 'int'")
+        else:
+            if region < 0 or region > 1:
+                raise ValueError("'region' must be in range [0, 1]")
+
+        # Validate the soft-core flag.
+        if not isinstance(soft_core, bool):
+            raise TypeError("'soft_core' must be of type 'bool'.")
+
+        # Convert to the full index, region + soft_core.
+        idx = 2 * region + int(soft_core)
+
+        if isinstance(self._protocol, _Protocol.Minimisation) and not soft_core:
             return self.getRecord(
                 "ENERGY",
                 time_series=time_series,
                 unit=_Units.Energy.kcal_per_mol,
+                region=region,
+                soft_core=soft_core,
                 block=block,
             )
         else:
@@ -1329,10 +1936,12 @@ class Amber(_process.Process):
                 "ETOT",
                 time_series=time_series,
                 unit=_Units.Energy.kcal_per_mol,
+                region=region,
+                soft_core=soft_core,
                 block=block,
             )
 
-    def getCurrentTotalEnergy(self, time_series=False):
+    def getCurrentTotalEnergy(self, time_series=False, region=0, soft_core=False):
         """
         Get the current total energy.
 
@@ -1342,15 +1951,28 @@ class Amber(_process.Process):
         time_series : bool
             Whether to return a list of time series records.
 
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
+
         Returns
         -------
 
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The total energy.
         """
-        return self.getTotalEnergy(time_series, block=False)
+        return self.getTotalEnergy(
+            time_series=time_series, region=region, soft_core=soft_core, block=False
+        )
 
-    def getCentreOfMassKineticEnergy(self, time_series=False, block="AUTO"):
+    def getCentreOfMassKineticEnergy(
+        self, time_series=False, region=0, soft_core=False, block="AUTO"
+    ):
         """
         Get the kinetic energy of the centre of mass in translation.
 
@@ -1359,6 +1981,15 @@ class Amber(_process.Process):
 
         time_series : bool
             Whether to return a list of time series records.
+
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
 
         block : bool
             Whether to block until the process has finished running.
@@ -1373,10 +2004,14 @@ class Amber(_process.Process):
             "EKCMT",
             time_series=time_series,
             unit=_Units.Energy.kcal_per_mol,
+            region=region,
+            soft_core=soft_core,
             block=block,
         )
 
-    def getCurrentCentreOfMassKineticEnergy(self, time_series=False):
+    def getCurrentCentreOfMassKineticEnergy(
+        self, time_series=False, region=0, soft_core=False
+    ):
         """
         Get the current kinetic energy of the centre of mass in translation.
 
@@ -1386,15 +2021,26 @@ class Amber(_process.Process):
         time_series : bool
             Whether to return a list of time series records.
 
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
+
         Returns
         -------
 
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The centre of mass kinetic energy.
         """
-        return self.getCentreOfMassKineticEnergy(time_series, block=False)
+        return self.getCentreOfMassKineticEnergy(
+            time_series=time_series, region=region, soft_core=soft_core, block=False
+        )
 
-    def getVirial(self, time_series=False, block="AUTO"):
+    def getVirial(self, time_series=False, region=0, soft_core=False, block="AUTO"):
         """
         Get the virial.
 
@@ -1403,6 +2049,15 @@ class Amber(_process.Process):
 
         time_series : bool
             Whether to return a list of time series records.
+
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
 
         block : bool
             Whether to block until the process has finished running.
@@ -1413,9 +2068,15 @@ class Amber(_process.Process):
         virial : float
            The virial.
         """
-        return self.getRecord("VIRIAL", time_series=time_series, block=block)
+        return self.getRecord(
+            "VIRIAL",
+            time_series=time_series,
+            region=region,
+            soft_core=soft_core,
+            block=block,
+        )
 
-    def getCurrentVirial(self, time_series=False):
+    def getCurrentVirial(self, time_series=False, region=0, soft_core=False):
         """
         Get the current virial.
 
@@ -1425,15 +2086,28 @@ class Amber(_process.Process):
         time_series : bool
             Whether to return a list of time series records.
 
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
+
         Returns
         -------
 
         virial : float
            The virial.
         """
-        return self.getVirial(time_series, block=False)
+        return self.getVirial(
+            time_series=time_series, region=region, soft_core=soft_core, block=False
+        )
 
-    def getTemperature(self, time_series=False, block="AUTO"):
+    def getTemperature(
+        self, time_series=False, region=0, soft_core=False, block="AUTO"
+    ):
         """
         Get the temperature.
 
@@ -1442,6 +2116,15 @@ class Amber(_process.Process):
 
         time_series : bool
             Whether to return a list of time series records.
+
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
 
         block : bool
             Whether to block until the process has finished running.
@@ -1456,10 +2139,12 @@ class Amber(_process.Process):
             "TEMP(K)",
             time_series=time_series,
             unit=_Units.Temperature.kelvin,
+            region=region,
+            soft_core=soft_core,
             block=block,
         )
 
-    def getCurrentTemperature(self, time_series=False):
+    def getCurrentTemperature(self, time_series=False, region=0, soft_core=False):
         """
         Get the current temperature.
 
@@ -1469,15 +2154,26 @@ class Amber(_process.Process):
         time_series : bool
             Whether to return a list of time series records.
 
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
+
         Returns
         -------
 
         temperature : :class:`Temperature <BioSimSpace.Types.Temperature>`
            The temperature.
         """
-        return self.getTemperature(time_series, block=False)
+        return self.getTemperature(
+            time_series=time_series, region=region, soft_core=soft_core, block=False
+        )
 
-    def getPressure(self, time_series=False, block="AUTO"):
+    def getPressure(self, time_series=False, region=0, soft_core=False, block="AUTO"):
         """
         Get the pressure.
 
@@ -1487,6 +2183,15 @@ class Amber(_process.Process):
         time_series : bool
             Whether to return a list of time series records.
 
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
+
         block : bool
             Whether to block until the process has finished running.
 
@@ -1497,10 +2202,15 @@ class Amber(_process.Process):
            The pressure.
         """
         return self.getRecord(
-            "PRESS", time_series=time_series, unit=_Units.Pressure.bar, block=block
+            "PRESS",
+            time_series=time_series,
+            unit=_Units.Pressure.bar,
+            region=region,
+            soft_core=soft_core,
+            block=block,
         )
 
-    def getCurrentPressure(self, time_series=False):
+    def getCurrentPressure(self, time_series=False, region=0, soft_core=False):
         """
         Get the current pressure.
 
@@ -1510,15 +2220,26 @@ class Amber(_process.Process):
         time_series : bool
             Whether to return a list of time series records.
 
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
+
         Returns
         -------
 
         pressure : :class:`Pressure <BioSimSpace.Types.Pressure>`
            The pressure.
         """
-        return self.getPressure(time_series, block=False)
+        return self.getPressure(
+            time_series=time_series, region=region, soft_core=soft_core, block=False
+        )
 
-    def getVolume(self, time_series=False, block="AUTO"):
+    def getVolume(self, time_series=False, region=0, soft_core=False, block="AUTO"):
         """
         Get the volume.
 
@@ -1527,6 +2248,15 @@ class Amber(_process.Process):
 
         time_series : bool
             Whether to return a list of time series records.
+
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
 
         block : bool
             Whether to block until the process has finished running.
@@ -1538,10 +2268,15 @@ class Amber(_process.Process):
            The volume.
         """
         return self.getRecord(
-            "VOLUME", time_series=time_series, unit=_Units.Volume.angstrom3, block=block
+            "VOLUME",
+            time_series=time_series,
+            unit=_Units.Volume.angstrom3,
+            region=region,
+            soft_core=soft_core,
+            block=block,
         )
 
-    def getCurrentVolume(self, time_series=False):
+    def getCurrentVolume(self, time_series=False, region=0, soft_core=False):
         """
         Get the current volume.
 
@@ -1551,15 +2286,26 @@ class Amber(_process.Process):
         time_series : bool
             Whether to return a list of time series records.
 
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
+
         Returns
         -------
 
         volume : :class:`Volume <BioSimSpace.Types.Volume>`
            The volume.
         """
-        return self.getVolume(time_series, block=False)
+        return self.getVolume(
+            time_series=time_series, region=region, soft_core=soft_core, block=False
+        )
 
-    def getDensity(self, time_series=False, block="AUTO"):
+    def getDensity(self, time_series=False, region=0, soft_core=False, block="AUTO"):
         """
         Get the density.
 
@@ -1568,6 +2314,15 @@ class Amber(_process.Process):
 
         time_series : bool
             Whether to return a list of time series records.
+
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
 
         block : bool
             Whether to block until the process has finished running.
@@ -1578,9 +2333,15 @@ class Amber(_process.Process):
         density : float
            The density.
         """
-        return self.getRecord("DENSITY", time_series=time_series, block=block)
+        return self.getRecord(
+            "DENSITY",
+            time_series=time_series,
+            region=region,
+            soft_core=soft_core,
+            block=block,
+        )
 
-    def getCurrentDensity(self, time_series=False):
+    def getCurrentDensity(self, time_series=False, region=0, soft_core=False):
         """
         Get the current density.
 
@@ -1590,13 +2351,89 @@ class Amber(_process.Process):
         time_series : bool
             Whether to return a list of time series records.
 
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
+
         Returns
         -------
 
         density : float
            The density.
         """
-        return self.getDensity(time_series, block=False)
+        return self.getDensity(
+            time_series=time_series, region=region, soft_core=soft_core, block=False
+        )
+
+    def getDVDL(self, time_series=False, region=0, soft_core=False, block="AUTO"):
+        """
+        Get the gradient of the total energy with respect to lambda.
+
+        Parameters
+        ----------
+
+        time_series : bool
+            Whether to return a list of time series records.
+
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
+
+        block : bool
+            Whether to block until the process has finished running.
+
+        Returns
+        -------
+
+        dv_dl : float
+            The gradient of the total energy with respect to lambda.
+        """
+        return self.getRecord(
+            "DVDL",
+            time_series=time_series,
+            region=region,
+            soft_core=soft_core,
+            block=block,
+        )
+
+    def getCurrentDVDL(self, time_series=False, region=0, soft_core=False):
+        """
+        Get the current gradient of the total energy with respect to lambda.
+
+        Parameters
+        ----------
+
+        time_series : bool
+            Whether to return a list of time series records.
+
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
+
+        Returns
+        -------
+
+        dv_dl : float
+            The current gradient of the total energy with respect to lambda.
+        """
+        return self.getDVDL(
+            time_series=time_series, region=region, soft_core=soft_core, block=False
+        )
 
     def stdout(self, n=10):
         """
@@ -1621,15 +2458,39 @@ class Amber(_process.Process):
             self._stdout.append(line.rstrip())
             line = line.strip()
 
+            # Swap dictionary based on the protocol and the degre of freedom to
+            # which the next block of records correspond.
+            if isinstance(self._protocol, _FreeEnergyMixin):
+                if "TI region  1" in line:
+                    self._current_region = 0
+                elif "TI region  2" in line:
+                    self._current_region = 2
+                elif "Softcore part" in line and self._current_region == 0:
+                    self._current_region = 1
+                elif "Softcore part" in line and self._current_region == 2:
+                    self._current_region = 3
+                elif "Detailed TI info" in line:
+                    # This flags that we should skip records until the start of
+                    # the next set for the first TI region.
+                    self._current_region = 4
+            # Default stdout dictionary.
+            else:
+                self._current_region = 0
+
+            # Continue if we are ignoring this record block.
+            if self._current_region == 4:
+                continue
+
+            stdout_dict = self._stdout_dict[self._current_region]
+            stdout_key = self._stdout_key[self._current_region]
+
             # Skip empty lines and summary reports.
-            if (
-                len(line) > 0
-                and line[0] != "|"
-                and line[0] != "-"
-                and not line.startswith("EAMBER")
-            ):
+            if len(line) > 0 and line[0] != "|" and line[0] != "-":
+                # Skip EAMBER records.
+                if "EAMBER (non-restraint)" in line:
+                    continue
                 # Flag that we've started recording results.
-                if not self._has_results and line.startswith("NSTEP"):
+                elif not self._has_results and line.startswith("NSTEP"):
                     self._has_results = True
                     self._finished_results = False
                 # Flag that we've finished recording results.
@@ -1638,7 +2499,7 @@ class Amber(_process.Process):
 
                 # Parse the results.
                 if self._has_results and not self._finished_results:
-                    # The output format is different for minimisation protocols.
+                    # The first line of output has different formatting for minimisation protocols.
                     if isinstance(self._protocol, _Protocol.Minimisation):
                         # No equals sign in the line.
                         if "NSTEP" in line and "=" not in line:
@@ -1658,32 +2519,58 @@ class Amber(_process.Process):
 
                             # The file hasn't been updated.
                             if (
-                                "NSTEP" in self._stdout_dict
-                                and data[0] == self._stdout_dict["NSTEP"][-1]
+                                "NSTEP" in stdout_dict
+                                and data[0] == stdout_dict["NSTEP"][-1]
                             ):
                                 self._finished_results = True
                                 continue
 
                             # Add the timestep and energy records to the dictionary.
-                            self._stdout_dict["NSTEP"] = data[0]
-                            self._stdout_dict["ENERGY"] = data[1]
+                            stdout_dict["NSTEP"] = data[0]
+                            stdout_dict["ENERGY"] = data[1]
+
+                            # Add the keys to the mapping
+                            stdout_key["NSTEP"] = "NSTEP"
+                            stdout_key["ENERGY"] = "ENERGY"
 
                             # Turn off the header flag now that the data has been recorded.
                             self._is_header = False
 
-                    # All other protocols have output that is formatted as RECORD = VALUE.
+                    # All other records are formatted as RECORD = VALUE.
 
                     # Use a regex search to split the line into record names and values.
                     records = _re.findall(
-                        r"(\d*\-*\d*\s*[A-Z]+\(*[A-Z]*\)*)\s*=\s*(\-*\d+\.?\d*)",
+                        r"([SC_]*[EEL_]*[RES_]*[VDW_]*\d*\-*\d*\s*[A-Z/]+\(*[A-Z]*\)*)\s*=\s*(\-*\d+\.?\d*|\**)",
                         line.upper(),
                     )
 
                     # Append each record to the dictionary.
                     for key, value in records:
-                        # Strip whitespace from the record key.
+                        # Strip whitespace from beginning and end.
                         key = key.strip()
-                        self._stdout_dict[key] = value
+
+                        # Format key so it can be re-used for records corresponding to
+                        # different regions, which use different abbreviations.
+                        universal_key = (
+                            key.replace("SC_", "")
+                            .replace(" ", "")
+                            .replace("-", "")
+                            .replace("EELEC", "EEL")
+                            .replace("VDWAALS", "VDW")
+                        )
+
+                        # Handle missing values, which will appear as asterisks, e.g.
+                        # PRESS=********
+                        try:
+                            tmp = float(value)
+                        except:
+                            value = None
+
+                        # Store the record using the original key.
+                        stdout_dict[key] = value
+
+                        # Map the universal key to the original.
+                        stdout_key[universal_key] = key
 
         # Get the current number of lines.
         num_lines = len(self._stdout)
@@ -1705,7 +2592,9 @@ class Amber(_process.Process):
         if not self._process is None and self._process.isRunning():
             self._process.kill()
 
-    def _get_stdout_record(self, key, time_series=False, unit=None):
+    def _get_stdout_record(
+        self, key, time_series=False, unit=None, region=0, soft_core=False
+    ):
         """
         Helper function to get a stdout record from the dictionary.
 
@@ -1713,13 +2602,22 @@ class Amber(_process.Process):
         ----------
 
         key : str
-            The record key.
+            The universal record key.
 
         time_series : bool
             Whether to return a time series of records.
 
         unit : :class:`Type <BioSimSpace.Types._type.Type>`
             The unit to convert the record to.
+
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
 
         Returns
         -------
@@ -1744,18 +2642,41 @@ class Amber(_process.Process):
             if not isinstance(unit, _Type):
                 raise TypeError("'unit' must be of type 'BioSimSpace.Types'")
 
+        # Validate the region.
+        if not isinstance(region, int):
+            raise TypeError("'region' must be of type 'int'")
+        else:
+            if region < 0 or region > 1:
+                raise ValueError("'region' must be in range [0, 1]")
+
+        # Validate the soft-core flag.
+        if not isinstance(soft_core, bool):
+            raise TypeError("'soft_core' must be of type 'bool'.")
+
+        # Convert to the full index, region + soft_core.
+        idx = 2 * region + int(soft_core)
+
+        # Extract the dictionary of stdout records for the specified region and soft-core flag.
+        stdout_dict = self._stdout_dict[idx]
+
+        # Map the universal key to the original key used for this region.
+        try:
+            key = self._stdout_key[idx][key]
+        except:
+            return None
+
         # Return the list of dictionary values.
         if time_series:
             try:
                 if key == "NSTEP":
-                    return [int(x) for x in self._stdout_dict[key]]
+                    return [int(x) for x in stdout_dict[key]]
                 else:
                     if unit is None:
-                        return [float(x) for x in self._stdout_dict[key]]
+                        return [float(x) if x else None for x in stdout_dict[key]]
                     else:
                         return [
-                            (float(x) * unit)._to_default_unit()
-                            for x in self._stdout_dict[key]
+                            (float(x) * unit)._to_default_unit() if x else None
+                            for x in stdout_dict[key]
                         ]
 
             except KeyError:
@@ -1765,14 +2686,20 @@ class Amber(_process.Process):
         else:
             try:
                 if key == "NSTEP":
-                    return int(self._stdout_dict[key][-1])
+                    return int(stdout_dict[key][-1])
                 else:
                     if unit is None:
-                        return float(self._stdout_dict[key][-1])
+                        try:
+                            return float(stdout_dict[key][-1])
+                        except:
+                            return None
                     else:
-                        return (
-                            float(self._stdout_dict[key][-1]) * unit
-                        )._to_default_unit()
+                        try:
+                            return (
+                                float(stdout_dict[key][-1]) * unit
+                            )._to_default_unit()
+                        except:
+                            return None
 
             except KeyError:
                 return None
