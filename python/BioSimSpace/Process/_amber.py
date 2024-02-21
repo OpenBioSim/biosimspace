@@ -69,6 +69,7 @@ class Amber(_process.Process):
         self,
         system,
         protocol,
+        reference_system=None,
         exe=None,
         name="amber",
         work_dir=None,
@@ -88,6 +89,11 @@ class Amber(_process.Process):
 
         protocol : :class:`Protocol <BioSimSpace.Protocol>`
             The protocol for the AMBER process.
+
+        reference_system : :class:`System <BioSimSpace._SireWrappers.System>` or None
+            An optional system to use as a source of reference coordinates for position
+            restraints. It is assumed that this system has the same topology as "system".
+            If this is None, then "system" is used as a reference.
 
         exe : str
             The full path to the AMBER executable.
@@ -118,6 +124,7 @@ class Amber(_process.Process):
         super().__init__(
             system,
             protocol,
+            reference_system=reference_system,
             name=name,
             work_dir=work_dir,
             seed=seed,
@@ -172,6 +179,7 @@ class Amber(_process.Process):
         # The names of the input files.
         self._rst_file = "%s/%s.rst7" % (self._work_dir, name)
         self._top_file = "%s/%s.prm7" % (self._work_dir, name)
+        self._ref_file = "%s/%s_ref.rst7" % (self._work_dir, name)
 
         # The name of the trajectory file.
         self._traj_file = "%s/%s.nc" % (self._work_dir, name)
@@ -181,6 +189,10 @@ class Amber(_process.Process):
 
         # Create the list of input files.
         self._input_files = [self._config_file, self._rst_file, self._top_file]
+
+        # Add the reference file if there are position restraints.
+        if self._protocol.getRestraint() is not None:
+            self._input_files.append(self._ref_file)
 
         # Now set up the working directory for the process.
         self._setup()
@@ -205,6 +217,19 @@ class Amber(_process.Process):
             _IO.saveMolecules(file, system, "rst7", property_map=self._property_map)
         except Exception as e:
             msg = "Failed to write system to 'RST7' format."
+            if _isVerbose():
+                raise IOError(msg) from e
+            else:
+                raise IOError(msg) from None
+
+        # Reference file for position restraints.
+        try:
+            file = _os.path.splitext(self._ref_file)[0]
+            _IO.saveMolecules(
+                file, self._reference_system, "rst7", property_map=self._property_map
+            )
+        except Exception as e:
+            msg = "Failed to write reference system to 'RST7' format."
             if _isVerbose():
                 raise IOError(msg) from e
             else:
@@ -315,7 +340,7 @@ class Amber(_process.Process):
             # Append a reference file if a position restraint is specified.
             if isinstance(self._protocol, _PositionRestraintMixin):
                 if self._protocol.getRestraint() is not None:
-                    self.setArg("-ref", "%s.rst7" % self._name)
+                    self.setArg("-ref", self._ref_file)
 
             # Append a trajectory file if this anything other than a minimisation.
             if not isinstance(self._protocol, _Protocol.Minimisation):

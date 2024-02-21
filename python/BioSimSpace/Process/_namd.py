@@ -63,6 +63,7 @@ class Namd(_process.Process):
         self,
         system,
         protocol,
+        reference_system=None,
         exe=None,
         name="namd",
         work_dir=None,
@@ -80,6 +81,11 @@ class Namd(_process.Process):
 
         protocol : :class:`Protocol <BioSimSpace.Protocol>`
             The protocol for the NAMD process.
+
+        reference_system : :class:`System <BioSimSpace._SireWrappers.System>` or None
+            An optional system to use as a source of reference coordinates for position
+            restraints. It is assumed that this system has the same topology as "system".
+            If this is None, then "system" is used as a reference.
 
         exe : str
             The full path to the NAMD executable.
@@ -103,6 +109,7 @@ class Namd(_process.Process):
         super().__init__(
             system,
             protocol,
+            reference_system=reference_system,
             name=name,
             work_dir=work_dir,
             seed=seed,
@@ -421,7 +428,9 @@ class Namd(_process.Process):
             restraint = self._protocol.getRestraint()
             if restraint is not None:
                 # Create a restrained system.
-                restrained = self._createRestrainedSystem(self._system, restraint)
+                restrained = self._createRestrainedSystem(
+                    self._reference_system, restraint
+                )
 
                 # Create a PDB object, mapping the "occupancy" property to "restrained".
                 prop = self._property_map.get("occupancy", "occupancy")

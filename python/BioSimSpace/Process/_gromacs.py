@@ -76,6 +76,7 @@ class Gromacs(_process.Process):
         self,
         system,
         protocol,
+        reference_system=None,
         exe=None,
         name="gromacs",
         work_dir=None,
@@ -98,6 +99,11 @@ class Gromacs(_process.Process):
 
         protocol : :class:`Protocol <BioSimSpace.Protocol>`
             The protocol for the GROMACS process.
+
+        reference_system : :class:`System <BioSimSpace._SireWrappers.System>` or None
+            An optional system to use as a source of reference coordinates for position
+            restraints. It is assumed that this system has the same topology as "system".
+            If this is None, then "system" is used as a reference.
 
         exe : str
             The full path to the GROMACS executable.
@@ -142,6 +148,7 @@ class Gromacs(_process.Process):
         super().__init__(
             system,
             protocol,
+            reference_system=reference_system,
             name=name,
             work_dir=work_dir,
             seed=seed,
@@ -193,6 +200,7 @@ class Gromacs(_process.Process):
         # The names of the input files.
         self._gro_file = "%s/%s.gro" % (self._work_dir, name)
         self._top_file = "%s/%s.top" % (self._work_dir, name)
+        self._ref_file = "%s/%s_ref.gro" % (self._work_dir, name)
 
         # The name of the trajectory file.
         self._traj_file = "%s/%s.trr" % (self._work_dir, name)
@@ -205,6 +213,10 @@ class Gromacs(_process.Process):
 
         # Create the list of input files.
         self._input_files = [self._config_file, self._gro_file, self._top_file]
+
+        # Add the reference file if there are position restraints.
+        if self._protocol.getRestraint() is not None:
+            self._input_files.append(self._ref_file)
 
         # Initialise the PLUMED interface object.
         self._plumed = None
@@ -261,6 +273,16 @@ class Gromacs(_process.Process):
         file = _os.path.splitext(self._gro_file)[0]
         _IO.saveMolecules(
             file, system, "gro87", match_water=False, property_map=self._property_map
+        )
+
+        # Reference file.
+        file = _os.path.splitext(self._ref_file)[0]
+        _IO.saveMolecules(
+            file,
+            self._reference_system,
+            "gro87",
+            match_water=False,
+            property_map=self._property_map,
         )
 
         # TOP file.
@@ -1992,8 +2014,8 @@ class Gromacs(_process.Process):
             property_map["parallel"] = _SireBase.wrap(False)
             property_map["sort"] = _SireBase.wrap(False)
 
-            # Create a copy of the system.
-            system = self._system.copy()
+            # Create a copy of the reference system.
+            system = self._reference_system.copy()
 
             # Convert to the lambda = 0 state if this is a perturbable system.
             system = self._checkPerturbable(system)

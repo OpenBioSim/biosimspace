@@ -70,6 +70,7 @@ class Process:
         self,
         system,
         protocol,
+        reference_system=None,
         name=None,
         work_dir=None,
         seed=None,
@@ -88,6 +89,11 @@ class Process:
 
         protocol : :class:`Protocol <BioSimSpace.Protocol>`
             The protocol for the process.
+
+        reference_system : :class:`System <BioSimSpace._SireWrappers.System>` or None
+            An optional system to use as a source of reference coordinates for position
+            restraints. It is assumed that this system has the same topology as "system".
+            If this is None, then "system" is used as a reference.
 
         name : str
             The name of the process.
@@ -136,6 +142,27 @@ class Process:
         # Check that the protocol is valid.
         if not isinstance(protocol, _Protocol):
             raise TypeError("'protocol' must be of type 'BioSimSpace.Protocol'")
+
+        # Check that the reference system is valid.
+        if reference_system is not None:
+            if not isinstance(reference_system, _System):
+                raise TypeError(
+                    "'reference_system' must be of type 'BioSimSpace._SireWrappers.System'"
+                )
+
+            # Make sure that the reference system contains the same number
+            # of molecules, residues, and atoms as the system.
+            if (
+                not reference_system.nMolecules() == system.nMolecules()
+                or not reference_system.nResidues() == system.nResidues()
+                or not reference_system.nAtoms() == system.nAtoms()
+            ):
+                raise _IncompatibleError(
+                    "'refence_system' must have the same topology as 'system'"
+                )
+            self._reference_system = reference_system
+        else:
+            self._reference_system = system.copy()
 
         # Check that the working directory is valid.
         if work_dir is not None and not isinstance(work_dir, (str, _Utils.WorkDir)):
