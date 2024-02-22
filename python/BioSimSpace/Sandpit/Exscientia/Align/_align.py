@@ -56,15 +56,15 @@ with _warnings.catch_warnings():
         from rdkit import Chem as _Chem
         from rdkit.Chem import rdFMCS as _rdFMCS
 
-        # no idea why, but RD_logger cannot be imported from rdkit, only RDLogger can
-        from rdkit import RDLogger as _RD_logger
+        # No idea why, but RD_logger cannot be imported from rdkit, only RDLogger can
+        from rdkit import RDLogger as _RDLogger
 
         # Disable RDKit warnings.
-        _RD_logger.DisableLog("rdApp.*")
+        _RDLogger.DisableLog("rdApp.*")
     else:
         _Chem = _rdkit
         _rdFMCS = _rdkit
-        _RD_logger = _rdkit
+        _RDLogger = _rdkit
 
 from sire.legacy import Base as _SireBase
 from sire.legacy import Maths as _SireMaths
@@ -1100,7 +1100,7 @@ def _get_backbone(molecule):
         atom.index() for atom in relative_backbone_atoms.getAtoms()
     ]
     atom_idx = dict(zip(absolute_backbone_atom_indices, relative_backbone_atom_indices))
-    return (atom_idx, relative_backbone_atoms)
+    return atom_idx, relative_backbone_atoms
 
 
 # NOTE: This function is currently experimental and has not gone through
@@ -1162,8 +1162,8 @@ def roiMatch(
     the absolute mapping could be {100: 103, 101: 102, 102: 105}. This way we
     can bypass the need to map the entire molecule and only focus on the ROI,
     which is significantly faster for large molecules. The rest of the mapping
-    is then composed of atoms before the ROI (pre-ROI) and after the ROI
-    (post-ROI). Every time we map the atoms in the ROI, we append the ROI
+    is then composed of atoms before the ROI (pre-ROI) and after the ROI.
+    Every time we map the atoms in the ROI, we append the ROI
     mapping to the pre-ROI mapping, which will then be used as the pre-ROI
     mapping for the next ROI in the list.
 
@@ -1241,7 +1241,7 @@ def roiMatch(
             molecule1_atoms = [a.name() for a in molecule1_roi.getAtoms()]
             if molecule0_atoms == molecule1_atoms:
                 raise ValueError(
-                    """ROI between the two input molecules is the identical,
+                    """ROI between the two input molecules is identical,
                       stopping atom matching"""
                 )
 
@@ -1370,7 +1370,6 @@ def roiMatch(
         # molecule atoms after the last residue of interest.
         # In the case when we are not at the last residue of interest,
         # we need to map the atoms to the next ROI.
-
         if res_idx != roi[-1]:
 
             # If the next ROI residue index in the ROI list is next to
