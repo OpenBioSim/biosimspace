@@ -248,11 +248,3 @@ from . import Units
 from ... import _version
 
 __version__ = _version.get_versions()["version"]
-
-import logging as _logging
-
-for _name, _logger in _logging.root.manager.loggerDict.items():
-    _logger.disabled = True
-del _logger
-del _logging
-del _name
