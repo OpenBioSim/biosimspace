@@ -86,6 +86,15 @@ class makeSystem:
         ligand2_rigid_core : list
             A list of three atom indices that define the rigid core of the free ligand.
             Indices are set relative to the ligand, not the system and are 0-indexed.
+        protein_com_atoms: list
+            A list of atom indices that define the center of mass of the protein.
+            If None, the center of mass will be calculated.
+        lig1_com_atoms: list
+            A list of atom indices that define the center of mass of the bound ligand.
+            If None, the center of mass will be calculated.
+        lig2_com_atoms: list
+            A list of atom indices that define the center of mass of the free ligand.
+            If None, the center of mass will be calculated.
         """
         if isinstance(mol1, _Molecule) and (
             not isinstance(ligand1, _Molecule) or not isinstance(ligand2, _Molecule)
@@ -504,6 +513,116 @@ class makeSystem:
 
         out_of_protein = com.toVector() + displacement.value() * initial_normal_vector
         return out_of_protein
+
+    def _get_prot_com_atoms(self):
+        """
+        Get the atoms that define the center of mass of the protein as a list of ints
+
+        Returns
+        -------
+        list
+            A list of atom indices that define the center of mass of the protein.
+        """
+        return self._mol1_com_atoms
+
+    def _set_mol1_com_atoms(self, mol1_com_atoms):
+        """
+        Set the atoms that define the center of mass of the protein
+        If a list is given, simply set them according to the list.
+        If None, find them based on the center of mass of the protein.
+        """
+        if mol1_com_atoms is not None:
+            # Make sure its a list of ints
+            if not isinstance(mol1_com_atoms, list):
+                raise TypeError("mol1_com_atoms must be a list")
+            if not all(isinstance(x, int) for x in mol1_com_atoms):
+                raise TypeError("mol1_com_atoms must be a list of ints")
+            self._mol1_com_atoms = mol1_com_atoms
+        else:
+            # Find com of the protein
+            if self._is_pre_prepared:
+                protein = self.system[self.protein_index]
+            else:
+                protein = self.mol1
+            com = protein._sire_object.coordinates()
+            self._mol1_com_atoms = [
+                a.index().value()
+                for a in protein._sire_object[f"atoms within 11 angstrom of {com}"]
+            ]
+
+    def _get_lig1_com_atoms(self):
+        """
+        Get the atoms that define the center of mass of the bound ligand as a list of ints
+
+        Returns
+        -------
+        list
+            A list of atom indices that define the center of mass of the bound ligand.
+        """
+        return self._lig1_com_atoms
+
+    def _set_lig1_com_atoms(self, lig1_com_atoms):
+        """
+        Set the atoms that define the center of mass of the bound ligand
+        If a list is given, simply set them according to the list.
+        If None, find them based on the center of mass of the bound ligand.
+        In most cases this will be all atoms within the ligand
+        """
+        if lig1_com_atoms is not None:
+            # Make sure its a list of ints
+            if not isinstance(lig1_com_atoms, list):
+                raise TypeError("lig1_com_atoms must be a list")
+            if not all(isinstance(x, int) for x in lig1_com_atoms):
+                raise TypeError("lig1_com_atoms must be a list of ints")
+            self._lig1_com_atoms = lig1_com_atoms
+        else:
+            # Find com of the ligand
+            if self._is_pre_prepared:
+                ligand1 = self.system[self.ligand1_index]
+            else:
+                ligand1 = self.ligand1
+            com = ligand1._sire_object.coordinates()
+            self._lig1_com_atoms = [
+                a.index().value()
+                for a in ligand1._sire_object[f"atoms within 11 angstrom of {com}"]
+            ]
+
+    def _get_lig2_com_atoms(self):
+        """
+        Get the atoms that define the center of mass of the free ligand as a list of ints
+
+        Returns
+        -------
+        list
+            A list of atom indices that define the center of mass of the free ligand.
+        """
+        return self._lig2_com_atoms
+
+    def _set_lig2_com_atoms(self, lig2_com_atoms):
+        """
+        Set the atoms that define the center of mass of the free ligand
+        If a list is given, simply set them according to the list.
+        If None, find them based on the center of mass of the free ligand.
+        In most cases this will be all atoms within the ligand
+        """
+        if lig2_com_atoms is not None:
+            # Make sure its a list of ints
+            if not isinstance(lig2_com_atoms, list):
+                raise TypeError("lig2_com_atoms must be a list")
+            if not all(isinstance(x, int) for x in lig2_com_atoms):
+                raise TypeError("lig2_com_atoms must be a list of ints")
+            self._lig2_com_atoms = lig2_com_atoms
+        else:
+            # Find com of the ligand
+            if self._is_pre_prepared:
+                ligand2 = self.system[self.ligand2_index]
+            else:
+                ligand2 = self.ligand2
+            com = ligand2._sire_object.coordinates()
+            self._lig2_com_atoms = [
+                a.index().value()
+                for a in ligand2._sire_object[f"atoms within 11 angstrom of {com}"]
+            ]
 
     def getSystem(self):
         """

@@ -32,9 +32,16 @@ class _AToMUtils:
         self.data = self.protocol.getData()
 
     def getAlignmentConstants(self):
-        self.alignment_k_distance = self.protocol.getAlignKfSep()
-        self.alignment_k_theta = self.protocol.getAlignKTheta()
-        self.alignment_k_psi = self.protocol.getAlignKPsi()
+        if self.protocol._get_is_annealing_step():
+            self.alignment_k_distance = self.protocol.getAnnealOptions()[
+                "anneal_k_distance"
+            ]
+            self.alignment_k_theta = self.protocol.getAnnealOptions()["anneal_k_theta"]
+            self.alignment_k_psi = self.protocol.getAnnealOptions()["anneal_k_psi"]
+        else:
+            self.alignment_k_distance = self.protocol.getAlignKfSep()
+            self.alignment_k_theta = self.protocol.getAlignKTheta()
+            self.alignment_k_psi = self.protocol.getAlignKPsi()
 
     def findAbsoluteCoreIndices(self):
         import numpy as np
@@ -266,4 +273,10 @@ class _AToMUtils:
             output += "    state = simulation.context.getState(getPositions=True, getVelocities=True)\n"
         output += "    for key in values_start.keys():\n"
         output += "        simulation.context.setParameter(key, simulation.context.getParameter(key) + increments[key])\n"
+        # Now add post-annealing equilibration if set
+        if options["post_anneal_eq_time"] is not None:
+            output += "simulation.context.setParameter('lambda1', 0.5)"
+            output += "simulation.context.setParameter('lambda2', 0.5)"
+            output += f"simulation.step({int(options['post_anneal_eq_time']/self.protocol.getTimeStep())})\n"
+        output += "simulation.saveState('openmm.xml')"
         return output
