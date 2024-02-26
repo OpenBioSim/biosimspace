@@ -14,7 +14,7 @@ class AToM(_Protocol, _PositionRestraintMixin):
         self,
         data,
         timestep=_Types.Time(2.0, "femtosecond"),
-        runtime=_Types.Time(1, "picosecond"),
+        runtime=_Types.Time(1, "nanosecond"),
         temperature=_Types.Temperature(300, "kelvin"),
         pressure=_Types.Pressure(1, "atmosphere"),
         thermostat_time_constant=_Types.Time(1.0, "picosecond"),
@@ -37,6 +37,8 @@ class AToM(_Protocol, _PositionRestraintMixin):
         SC_umax=100.0,
         SC_u0=50.0,
         sc_a=0.0625,
+        cm_kf=25.0,
+        cm_tol=5.0,
         anneal_values=None,
         anneal_options=None,
     ):
@@ -144,6 +146,12 @@ class AToM(_Protocol, _PositionRestraintMixin):
         sc_a : float
             The a value for the ATM softcore potential.
 
+        cm_kf : float
+            The force constant for the center of mass distance restraint (kcal/mol/A^2).
+
+        cm_tol : float
+            The tolerance for the center of mass distance restraint (A).
+
         anneal_values : dict, None, "default"
             If None, then no annealing will be performed.
             If "default", then lambda values will be annealed from 0 to 0.5.
@@ -181,9 +189,26 @@ class AToM(_Protocol, _PositionRestraintMixin):
                     The time for each annealing cycle. Default 20ps.
                 "use_core_alignment": bool
                     Whether to use core alignment restraints. Default True.
+                "anneal_k_distance" : float
+                    The force constant for the distance portion of the alignment restraint (kcal/mol/A^2).
+                    Default 25.0.
+                    If use_core_alignment is False, then this value is ignored.
+                    If use_core_alignment is True, and this value is not set, use the value defined in the align_k_distance parameter.
+                "anneal_k_theta" : float
+                    The force constant for the angular portion of the alignment restaint (kcal/mol).
+                    Default 10.0.
+                    If use_core_alignment is False, then this value is ignored.
+                    If use_core_alignment is True, and this value is not set, use the value defined in the align_k_theta parameter.
+                "anneal_k_psi" : float
+                    The force constant for the dihedral portion of the alignment restraint (kcal/mol).
+                    If use_core_alignment is False, then this value is ignored.
+                    If use_core_alignment is True, and this value is not set, use the value defined in the align_k_psi parameter.
                 "save_state" : bool
                     Whether to save the state for each annealing cycle.
                     Default False.
+                "post_anneal_eq_time" : :class:`Time <BioSimSpace.Types.Time>`
+                    The time to run the system after the annealing protocol.
+                    Default 25ps.
                 "output_dir" : str
                     The directory to save the output files to. Default "anneal_out".
 
@@ -265,6 +290,12 @@ class AToM(_Protocol, _PositionRestraintMixin):
 
         # Store the sc_a value.
         self.setSCa(sc_a)
+
+        # Store cm_kf value.
+        self.setCMKf(cm_kf)
+
+        # Store cm_tol value.
+        self.setCMTol(cm_tol)
 
         # Store the anneal values.
         self.setAnnealValues(anneal_values)
@@ -1025,6 +1056,60 @@ class AToM(_Protocol, _PositionRestraintMixin):
         else:
             raise TypeError("'sc_a' must be of type 'float'")
 
+    def getCMKf(self):
+        """
+        Return the cm_kf value.
+
+        Returns
+        -------
+
+        cm_kf : float
+            The cm_kf value.
+        """
+        return self._cm_kf
+
+    def setCMKf(self, cm_kf):
+        """
+        Set the cm_kf value.
+
+        Parameters
+        ----------
+
+        cm_kf : float
+            The cm_kf value.
+        """
+        if isinstance(cm_kf, float):
+            self._cm_kf = cm_kf
+        else:
+            raise TypeError("'cm_kf' must be of type 'float'")
+
+    def getCMTol(self):
+        """
+        Return the cm_tol value.
+
+        Returns
+        -------
+
+        cm_tol : float
+            The cm_tol value.
+        """
+        return self._cm_tol
+
+    def setCMTol(self, cm_tol):
+        """
+        Set the cm_tol value.
+
+        Parameters
+        ----------
+
+        cm_tol : float
+            The cm_tol value.
+        """
+        if isinstance(cm_tol, float):
+            self._cm_tol = cm_tol
+        else:
+            raise TypeError("'cm_tol' must be of type 'float'")
+
     def getAnnealValues(self):
         """
         Return the anneal protocol.
@@ -1156,6 +1241,10 @@ class AToM(_Protocol, _PositionRestraintMixin):
             "runtime": _Types.Time("1ns"),
             "cycle_time": _Types.Time("20ps"),
             "use_core_alignment": True,
+            "anneal_k_distance": self._align_kf_sep,
+            "anneal_k_theta": self._align_k_theta,
+            "anneal_k_psi": self._align_k_psi,
+            "post_anneal_eq_time": _Types.Time("25ps"),
             "save_state": False,
             "output_dir": "anneal_out",
         }
@@ -1163,7 +1252,7 @@ class AToM(_Protocol, _PositionRestraintMixin):
             raise ValueError(
                 "Anneal options can only be set if anneal values are given"
             )
-        if isinstance(anneal_options, dict):
+        elif isinstance(anneal_options, dict):
             final_options = {}
             # find all options that arn't given and set them to the default
             for key in default_options.keys():
@@ -1172,7 +1261,7 @@ class AToM(_Protocol, _PositionRestraintMixin):
             if all(key in default_options for key in anneal_options.keys()):
                 # check that the values are of the correct type
                 if all(
-                    isinstance(anneal_options[key], (str, int, bool))
+                    isinstance(anneal_options[key], (str, int, float, bool))
                     for key in anneal_options.keys()
                 ):
                     # check that the values are in the correct range
@@ -1219,6 +1308,61 @@ class AToM(_Protocol, _PositionRestraintMixin):
                             raise ValueError(
                                 "The values in the anneal options must be of type 'bool' for 'use_core_alignment'"
                             )
+                    if "anneal_k_distance" in anneal_options:
+                        if isinstance(
+                            anneal_options["anneal_k_distance"], (float, int)
+                        ):
+                            final_options["anneal_k_distance"] = float(
+                                anneal_options["anneal_k_distance"]
+                            )
+                        else:
+                            raise ValueError(
+                                "The values in the anneal options must be of type 'float' for 'Anneal_k_distance'"
+                            )
+                    if "anneal_k_theta" in anneal_options:
+                        if isinstance(anneal_options["anneal_k_theta"], (float, int)):
+                            final_options["anneal_k_theta"] = float(
+                                anneal_options["anneal_k_theta"]
+                            )
+                        else:
+                            raise ValueError(
+                                "The values in the anneal options must be of type 'float' for 'Anneal_k_theta'"
+                            )
+                    if "anneal_k_psi" in anneal_options:
+                        if isinstance(anneal_options["anneal_k_psi"], (float, int)):
+                            final_options["anneal_k_psi"] = float(
+                                anneal_options["anneal_k_psi"]
+                            )
+                        else:
+                            raise ValueError(
+                                "The values in the anneal options must be of type 'float' for 'Anneal_k_psi'"
+                            )
+                    if "post_anneal_eq_time" in anneal_options:
+                        if isinstance(anneal_options["post_anneal_eq_time"], str):
+                            try:
+                                _Types.Time(anneal_options["post_anneal_eq_time"])
+                                final_options["post_anneal_eq_time"] = _Types.Time(
+                                    anneal_options["post_anneal_eq_time"]
+                                )
+                            except:
+                                raise ValueError(
+                                    "Unable to parse 'post_anneal_eq_time' string."
+                                ) from None
+                        elif isinstance(
+                            anneal_options["post_anneal_eq_time"], _Types.Time
+                        ):
+                            final_options["post_anneal_eq_time"] = anneal_options[
+                                "post_anneal_eq_time"
+                            ]
+                        elif anneal_options["post_anneal_eq_time"] is None:
+                            final_options["post_anneal_eq_time"] = None
+                        else:
+                            raise ValueError(
+                                "The values in the anneal options must be of type 'str', 'BioSimSpace.Types.Time' or None for 'post_anneal_eq_time'"
+                            )
+                        # If a value of 0 is given, then set the value to None
+                        if final_options["post_anneal_eq_time"].value() == 0:
+                            final_options["post_anneal_eq_time"] = None
                     if "save_state" in anneal_options:
                         if isinstance(anneal_options["save_state"], bool):
                             final_options["save_state"] = anneal_options["save_state"]
@@ -1235,7 +1379,7 @@ class AToM(_Protocol, _PositionRestraintMixin):
                             )
                 else:
                     raise TypeError(
-                        "The values in the anneal options must be of type 'str' or 'bool'"
+                        "The values in the anneal options must be of type 'str', 'bool', 'int' or 'float'"
                     )
             else:
                 # Find the keys that are not present so that they can be given in the error
@@ -1249,6 +1393,8 @@ class AToM(_Protocol, _PositionRestraintMixin):
             self._anneal_options = final_options
         elif anneal_options is None and self._anneal_values is not None:
             self._anneal_options = default_options
+        elif self._anneal_values is None and anneal_options is None:
+            self._anneal_options = None
         else:
             raise TypeError("'anneal_options' must be of type 'dict' or None")
 
