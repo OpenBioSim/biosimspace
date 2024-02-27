@@ -329,8 +329,8 @@ class OpenForceField(_protocol.Protocol):
 
         # Export AMBER format files.
         try:
-            interchange.to_prmtop(prefix + "interchange.prmtop")
-            interchange.to_inpcrd(prefix + "interchange.inpcrd")
+            interchange.to_prmtop(prefix + "interchange.prm7")
+            interchange.to_inpcrd(prefix + "interchange.rst7")
         except Exception as e:
             msg = "Unable to write Interchange object to AMBER format!"
             if _isVerbose():
@@ -342,13 +342,13 @@ class OpenForceField(_protocol.Protocol):
         # Load the parameterised molecule. (This could be a system of molecules.)
         try:
             par_mol = _IO.readMolecules(
-                [prefix + "interchange.prmtop", prefix + "interchange.inpcrd"]
+                [prefix + "interchange.prm7", prefix + "interchange.rst7"]
             )
             # Extract single molecules.
             if par_mol.nMolecules() == 1:
                 par_mol = par_mol.getMolecules()[0]
         except Exception as e:
-            msg = "Failed to read molecule from: 'interchange.prmtop', 'interchange.inpcrd'"
+            msg = "Failed to read molecule from: 'interchange.prm7', 'interchange.rst7'"
             if _isVerbose():
                 msg += ": " + getattr(e, "message", repr(e))
                 raise IOError(msg) from e

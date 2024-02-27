@@ -80,13 +80,16 @@ class Molecule(_SireWrapper):
         if isinstance(molecule, _SireMol._Mol.Molecule):
             super().__init__(molecule)
             if self._sire_object.hasProperty("is_perturbable"):
-                self._convertFromMergedMolecule()
+                # Flag that the molecule is perturbable.
+                self._is_perturbable = True
+
+                # Extract the end states.
                 if molecule.hasProperty("molecule0"):
-                    self._molecule = Molecule(molecule.property("molecule0"))
+                    self._molecule0 = Molecule(molecule.property("molecule0"))
                 else:
                     self._molecule0, _ = self._extractMolecule()
                 if molecule.hasProperty("molecule1"):
-                    self._molecule = Molecule(molecule.property("molecule1"))
+                    self._molecule1 = Molecule(molecule.property("molecule1"))
                 else:
                     self._molecule1, _ = self._extractMolecule(is_lambda1=True)
 
@@ -1520,25 +1523,6 @@ class Molecule(_SireWrapper):
                     property_map[prop[:-1]] = prop
 
         return property_map
-
-    def _convertFromMergedMolecule(self):
-        """Convert from a merged molecule."""
-
-        # Extract the components of the merged molecule.
-        try:
-            mol0 = self._sire_object.property("molecule0")
-            mol1 = self._sire_object.property("molecule1")
-        except:
-            raise _IncompatibleError(
-                "The merged molecule doesn't have the required properties!"
-            )
-
-        # Store the components.
-        self._molecule0 = Molecule(mol0)
-        self._molecule1 = Molecule(mol1)
-
-        # Flag that the molecule is perturbable.
-        self._is_perturbable = True
 
     def _fixCharge(self, property_map={}):
         """
