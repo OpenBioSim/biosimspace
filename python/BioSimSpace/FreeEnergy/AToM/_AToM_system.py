@@ -56,6 +56,9 @@ class makeSystem:
         ligand2_index=2,
         ligand1_rigid_core=None,
         ligand2_rigid_core=None,
+        prot_com_atoms=None,
+        lig1_com_atoms=None,
+        lig2_com_atoms=None,
     ):
         """
         Constructor for AToMSystem class
@@ -120,6 +123,9 @@ class makeSystem:
         self.protein_index = protein_index
         self.ligand1_index = ligand1_index
         self.ligand2_index = ligand2_index
+        self._set_mol1_com_atoms(prot_com_atoms)
+        self._set_lig1_com_atoms(lig1_com_atoms)
+        self._set_lig2_com_atoms(lig2_com_atoms)
 
     def getProteinIndex(self):
         """
@@ -514,7 +520,7 @@ class makeSystem:
         out_of_protein = com.toVector() + displacement.value() * initial_normal_vector
         return out_of_protein
 
-    def _get_prot_com_atoms(self):
+    def get_prot_com_atoms(self):
         """
         Get the atoms that define the center of mass of the protein as a list of ints
 
@@ -550,7 +556,7 @@ class makeSystem:
                 for a in protein._sire_object[f"atoms within 11 angstrom of {com}"]
             ]
 
-    def _get_lig1_com_atoms(self):
+    def get_lig1_com_atoms(self):
         """
         Get the atoms that define the center of mass of the bound ligand as a list of ints
 
@@ -587,7 +593,7 @@ class makeSystem:
                 for a in ligand1._sire_object[f"atoms within 11 angstrom of {com}"]
             ]
 
-    def _get_lig2_com_atoms(self):
+    def get_lig2_com_atoms(self):
         """
         Get the atoms that define the center of mass of the free ligand as a list of ints
 
@@ -655,6 +661,9 @@ class makeSystem:
         self.data["last_ligand1_atom_index"] = self.last_ligand1_atom_index
         self.data["first_ligand2_atom_index"] = self.first_ligand2_atom_index
         self.data["last_ligand2_atom_index"] = self.last_ligand2_atom_index
+        self.data["protein_com_atoms"] = self._mol1_com_atoms
+        self.data["ligand1_com_atoms"] = self._lig1_com_atoms
+        self.data["ligand2_com_atoms"] = self._lig2_com_atoms
 
 
 class relativeATM:

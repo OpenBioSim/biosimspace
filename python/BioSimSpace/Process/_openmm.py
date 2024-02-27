@@ -1241,6 +1241,11 @@ class OpenMM(_process.Process):
                 self.addToConfig("\n# Add alignment force.")
                 self.addToConfig(alignment)
 
+            if self._protocol.getCMCMRestraint():
+                CMCM = util.createCOMRestraint()
+                self.addToConfig("\n# Add COM restraint.")
+                self.addToConfig(CMCM)
+
             self.addToConfig("\n# Initialise and configure the simulation object.")
             self.addToConfig("simulation = Simulation(prm.topology,")
             self.addToConfig("                        system,")

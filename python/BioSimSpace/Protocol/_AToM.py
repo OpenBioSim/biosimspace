@@ -22,6 +22,7 @@ class AToM(_Protocol, _PositionRestraintMixin):
         restart_interval=100,
         restart=False,
         core_alignment=True,
+        CMCM_restraint=True,
         restraint=None,
         force_constant=10 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
         num_lambda=22,
@@ -75,8 +76,11 @@ class AToM(_Protocol, _PositionRestraintMixin):
         restart : bool
             Whether this is a continuation of a previous simulation.
 
-        use_core_alignment : bool
+        core_alignment : bool
             Whether to use rigid core restraints to align the two ligands.
+
+        CMCM_restraint : bool
+            Whether to use a center of mass distance restraint.
 
         restraint : str, [int]
             The type of restraint to perform. This should be one of the
@@ -215,9 +219,6 @@ class AToM(_Protocol, _PositionRestraintMixin):
 
 
         """
-        # TODO Make the master num_lambda functional
-        # i.e use it to set other arrays of values to some sensible numbers
-        # more complex than it may appear due to the spread of values
         # Call the base class constructor.
         super().__init__()
 
@@ -249,6 +250,9 @@ class AToM(_Protocol, _PositionRestraintMixin):
 
         # Whether or not to use alignment restraints.
         self.setCoreAlignment(core_alignment)
+
+        # Whether or not to use the CMCM restraint.
+        self.setCMCMRestraint(CMCM_restraint)
 
         # Set the number of lambda values.
         # If other window-dependent parameters are not set, then set them to
@@ -632,6 +636,34 @@ class AToM(_Protocol, _PositionRestraintMixin):
         else:
             print("Non-boolean core alignment flag. Defaulting to True!")
             self._core_alignment = True
+
+    def getCMCMRestraint(self):
+        """
+        Return CMCM restraint boolean.
+
+        Returns
+        -------
+
+        CMCM_restraint : bool
+            Whether to use the CMCM restraint.
+        """
+        return self._CMCM_restraint
+
+    def setCMCMRestraint(self, CMCM_restraint):
+        """
+        Set the CMCM restraint flag.
+
+        Parameters
+        ----------
+
+        CMCM_restraint : bool
+            Whether to use the CMCM restraint.
+        """
+        if isinstance(CMCM_restraint, bool):
+            self._CMCM_restraint = CMCM_restraint
+        else:
+            print("Non-boolean CMCM restraint flag. Defaulting to True!")
+            self._CMCM_restraint = True
 
     def getNumLambda(self):
         """

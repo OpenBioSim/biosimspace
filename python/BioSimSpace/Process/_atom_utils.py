@@ -238,6 +238,63 @@ class _AToMUtils:
         output += "system.addForce(atm_force)\n"
         return output
 
+    def createCOMRestraint(self):
+        """
+        Create a string containing the CM-CM restriants for two groups of atoms.
+        In most cases these will be some combination of protein and ligand atoms.
+        Constants for the force are set in the protocol."""
+        # Groups contained within the constraint
+        protein_com = self.data["protein_com_atoms"]
+        lig1_com = self.data["ligand1_com_atoms"]
+        lig2_com = self.data["ligand2_com_atoms"]
+        # Constants for the force
+        kf_cm = self.protocol.getCMKf()
+        tol_cm = self.protocol.getCMTol()
+        output = ""
+        output += "protein_com = {}\n".format(protein_com)
+        output += "lig1_com = {}\n".format(lig1_com)
+        output += "lig2_com = {}\n".format(lig2_com)
+        output += "# Constants for the CM-CM force in their input units\n"
+        output += "kfcm = {} * kilocalorie_per_mole / angstrom**2\n".format(kf_cm)
+        output += "tolcm = {} * angstrom \n".format(tol_cm)
+
+        # Add expression for cm restraint
+        output += """
+        expr = "(kfcm/2)*step(d12-tolcm)*(d12-tolcm)^2 "
+        expr += " ; d12 = sqrt((x1 - offx - x2)^2 + (y1 - offy - y2)^2 + (z1 - offz - z2)^2 ) ; "
+        """
+        output += "force_CMCM = CustomCentroidBondForce(2, expr)\n"
+        output += "force_CMCM.addPerBondParameter('kfcm')\n"
+        output += "force_CMCM.addPerBondParameter('tolcm')\n"
+        output += "force_CMCM.addPerBondParameter('offx')\n"
+        output += "force_CMCM.addPerBondParameter('offy')\n"
+        output += "force_CMCM.addPerBondParameter('offz')\n"
+        output += "system.addForce(force_CMCM)\n"
+        output += "force_CMCM.addGroup(protein_com)\n"
+        output += "force_CMCM.addGroup(lig1_com)\n"
+        output += "force_CMCM.addGroup(lig2_com)\n"
+
+        output += """parameters_free = (
+        kfcm.value_unit(openmm.unit.kilojoules_per_mole / openmm.unit.nanometer**2),
+        tolcm.value_in_unit(openmm.unit.nanometer),
+        displacement[0],
+        displacement[1],
+        displacement[2],
+        )"""
+
+        output += """parameters_bound = (
+        kfcm.value_unit(openmm.unit.kilojoules_per_mole / openmm.unit.nanometer**2),
+        tolcm.value_in_unit(openmm.unit.nanometer),
+        0.0,
+        0.0,
+        0.0,
+        )"""
+
+        output += "force_CMCM.addBond((0,1), parameters_bound)\n"
+        output += "force_CMCM.addBond((0,2), parameters_free)\n"
+
+        return output
+
     def createAnnealingProtocol(self):
         """
         Create a string which can be added directly to an openmm script to add an annealing protocol to the system.
@@ -275,8 +332,9 @@ class _AToMUtils:
         output += "        simulation.context.setParameter(key, simulation.context.getParameter(key) + increments[key])\n"
         # Now add post-annealing equilibration if set
         if options["post_anneal_eq_time"] is not None:
-            output += "simulation.context.setParameter('lambda1', 0.5)"
-            output += "simulation.context.setParameter('lambda2', 0.5)"
+            output += "#post-annealing equilibration\n"
+            output += "simulation.context.setParameter('lambda1', 0.5)\n"
+            output += "simulation.context.setParameter('lambda2', 0.5)\n"
             output += f"simulation.step({int(options['post_anneal_eq_time']/self.protocol.getTimeStep())})\n"
         output += "simulation.saveState('openmm.xml')"
         return output
