@@ -1,4 +1,5 @@
 import bz2
+from math import exp
 import pandas as pd
 import pathlib
 import pytest
@@ -270,9 +271,11 @@ class Test_Somd_ABFE:
         return freenrg
 
     def test_files_exist(self, freenrg):
-        """Test if the files have been created. Note that e.g. gradients.dat
+        """
+        Test if the files have been created. Note that e.g. gradients.dat
         are not created until later in the simulation, so their presence is
-        not tested for."""
+        not tested for.
+        """
         path = pathlib.Path(freenrg.workDir())
         for lam in ["0.0000", "0.5000", "1.0000"]:
             assert (path / f"lambda_{lam}" / "simfile.dat").is_file()
@@ -282,6 +285,31 @@ class Test_Somd_ABFE:
             assert (path / f"lambda_{lam}" / "somd.prm7").is_file()
             assert (path / f"lambda_{lam}" / "somd.err").is_file()
             assert (path / f"lambda_{lam}" / "somd.out").is_file()
+            assert (path / f"lambda_{lam}" / "somd.pert").is_file()
+
+    def test_correct_pert_file(self, freenrg):
+        """Check that pert file is correct."""
+        path = pathlib.Path(freenrg.workDir()) / "lambda_0.0000"
+        with open(os.path.join(path, "somd.pert"), "rt") as f:
+            lines = f.readlines()
+
+            for i, line in enumerate(lines):
+                # Check that the end-state properties are correct.
+                if "final_type" in line:
+                    assert "final_type     du" in line
+                if "final_LJ" in line:
+                    assert "final_LJ       0.00000 0.00000" in line
+                if "final_charge" in line:
+                    assert "final_charge   0.00000" in line
+                # Check that the initial state properties are correct for the first and last atoms.
+                if line == "        name           C1\n":
+                    assert "initial_type   c" in lines[i + 1]
+                    assert "initial_LJ     3.39967 0.08600" in lines[i + 3]
+                    assert "initial_charge 0.67120" in lines[i + 5]
+                if "name           O3" in line:
+                    assert "initial_type   o" in lines[i + 1]
+                    assert "initial_LJ     2.95992 0.21000" in lines[i + 3]
+                    assert "initial_charge -0.52110" in lines[i + 5]
 
     def test_correct_conf_file(self, freenrg):
         """Check that lambda data is correct in somd.cfg"""
