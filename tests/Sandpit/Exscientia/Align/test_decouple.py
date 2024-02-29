@@ -81,8 +81,11 @@ def test_topology(mol, tmp_path):
 
 
 def test_end_types(mol):
-    """Check that the correct properties have been set at either
-    end of the perturbation."""
+    """
+    Check that the correct properties have been set for the 0
+    end of the perturbation. Note that for SOMD, the 1 end state
+    properties are set in Process.Somd._to_pert_file.
+    """
 
     decoupled_mol = decouple(mol)
     assert decoupled_mol._sire_object.property("charge0") == mol._sire_object.property(
@@ -95,8 +98,3 @@ def test_end_types(mol):
     assert decoupled_mol._sire_object.property(
         "ambertype0"
     ) == mol._sire_object.property("ambertype")
-    for atom in decoupled_mol._sire_object.atoms():
-        assert atom.property("charge1") == 0 * _SireUnits.e_charge
-        assert atom.property("LJ1") == _SireMM.LJParameter()
-        assert atom.property("element1") == _SireMol.Element(0)
-        assert atom.property("ambertype1") == "du"
