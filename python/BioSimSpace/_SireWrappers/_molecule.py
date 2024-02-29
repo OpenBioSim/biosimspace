@@ -1760,7 +1760,11 @@ class Molecule(_SireWrapper):
         try:
             search_result = mol.search(query, property_map)
         except:
-            search_result = []
+            msg = "All atoms in the selection are dummies. Unable to extract."
+            if _isVerbose():
+                raise _IncompatibleError(msg) from e
+            else:
+                raise _IncompatibleError(msg) from None
 
         # If there are no dummies, then simply return this molecule.
         if len(search_result) == mol.nAtoms():
