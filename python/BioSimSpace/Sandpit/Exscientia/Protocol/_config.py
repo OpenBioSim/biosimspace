@@ -565,34 +565,35 @@ class ConfigFactory:
                 [
                     mol,
                 ] = self.system.getDecoupledMolecules()
-                decouple_dict = mol._sire_object.property("decouple")
-                protocol_dict["couple-moltype"] = mol._sire_object.name().value()
+                if not mol.isPerturbable():
+                    decouple_dict = mol._sire_object.property("decouple")
+                    protocol_dict["couple-moltype"] = mol._sire_object.name().value()
 
-                def tranform(charge, LJ):
-                    if charge and LJ:
-                        return "vdw-q"
-                    elif charge and not LJ:
-                        return "q"
-                    elif not charge and LJ:
-                        return "vdw"
+                    def tranform(charge, LJ):
+                        if charge and LJ:
+                            return "vdw-q"
+                        elif charge and not LJ:
+                            return "q"
+                        elif not charge and LJ:
+                            return "vdw"
+                        else:
+                            return "none"
+
+                    protocol_dict["couple-lambda0"] = tranform(
+                        decouple_dict["charge"][0], decouple_dict["LJ"][0]
+                    )
+                    protocol_dict["couple-lambda1"] = tranform(
+                        decouple_dict["charge"][1], decouple_dict["LJ"][1]
+                    )
+                    if decouple_dict["intramol"].value():
+                        # The intramol is being coupled to the lambda change and thus being annihilated.
+                        protocol_dict["couple-intramol"] = "yes"
                     else:
-                        return "none"
-
-                protocol_dict["couple-lambda0"] = tranform(
-                    decouple_dict["charge"][0], decouple_dict["LJ"][0]
-                )
-                protocol_dict["couple-lambda1"] = tranform(
-                    decouple_dict["charge"][1], decouple_dict["LJ"][1]
-                )
+                        protocol_dict["couple-intramol"] = "no"
                 # Add the soft-core parameters for the ABFE
                 protocol_dict["sc-alpha"] = 0.5
                 protocol_dict["sc-power"] = 1
                 protocol_dict["sc-sigma"] = 0.3
-                if decouple_dict["intramol"].value():
-                    # The intramol is being coupled to the lambda change and thus being annihilated.
-                    protocol_dict["couple-intramol"] = "yes"
-                else:
-                    protocol_dict["couple-intramol"] = "no"
             elif nDecoupledMolecules > 1:
                 raise ValueError(
                     "Gromacs cannot handle more than one decoupled molecule."
