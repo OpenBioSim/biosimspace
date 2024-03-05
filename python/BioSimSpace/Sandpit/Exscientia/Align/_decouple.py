@@ -76,7 +76,7 @@ def decouple(
             if not isinstance(value, bool):
                 raise ValueError(f"{value} in {name} must be bool.")
 
-    # Change names of charge and LJ tuples to avoid clashes with properties
+    # Change names of charge and LJ tuples to avoid clashes with properties.
     charge_tuple = charge
     LJ_tuple = LJ
 
@@ -86,7 +86,7 @@ def decouple(
     # Invert the user property mappings.
     inv_property_map = {v: k for k, v in property_map.items()}
 
-    # Create a copy of this molecule and Sire object to check properties
+    # Create a copy of this molecule and Sire object to check properties.
     mol = _Molecule(molecule)
     mol_sire = mol._sire_object
 
@@ -97,7 +97,7 @@ def decouple(
     element = inv_property_map.get("element", "element")
     ambertype = inv_property_map.get("ambertype", "ambertype")
 
-    # Check for missing information
+    # Check for missing information.
     if not mol_sire.hasProperty(ff):
         raise _IncompatibleError("Cannot determine 'forcefield' of 'molecule'!")
     if not mol_sire.hasProperty(LJ):
@@ -107,7 +107,7 @@ def decouple(
     if not mol_sire.hasProperty(element):
         raise _IncompatibleError("Cannot determine elements in molecule")
 
-    # Check for ambertype property (optional)
+    # Check for ambertype property (optional).
     has_ambertype = True
     if not mol_sire.hasProperty(ambertype):
         has_ambertype = False
@@ -115,10 +115,10 @@ def decouple(
     if not isinstance(intramol, bool):
         raise TypeError("'intramol' must be of type 'bool'")
 
-    # Edit the molecule
+    # Edit the molecule.
     mol_edit = mol_sire.edit()
 
-    # Create dictionary to store charge and LJ tuples
+    # Create dictionary to store charge and LJ tuples.
     mol_edit.setProperty(
         "decouple", {"charge": charge_tuple, "LJ": LJ_tuple, "intramol": intramol}
     )
@@ -126,34 +126,12 @@ def decouple(
     # Set the "forcefield0" property.
     mol_edit.setProperty("forcefield0", molecule._sire_object.property(ff))
 
-    # Set starting properties based on fully-interacting molecule
+    # Set starting properties based on fully-interacting molecule.
     mol_edit.setProperty("charge0", molecule._sire_object.property(charge))
     mol_edit.setProperty("LJ0", molecule._sire_object.property(LJ))
     mol_edit.setProperty("element0", molecule._sire_object.property(element))
     if has_ambertype:
         mol_edit.setProperty("ambertype0", molecule._sire_object.property(ambertype))
-
-    # Set final charges and LJ terms to 0, elements to "X" and (if required) ambertypes to du
-    for atom in mol_sire.atoms():
-        mol_edit = (
-            mol_edit.atom(atom.index())
-            .setProperty("charge1", 0 * _SireUnits.e_charge)
-            .molecule()
-        )
-        mol_edit = (
-            mol_edit.atom(atom.index())
-            .setProperty("LJ1", _SireMM.LJParameter())
-            .molecule()
-        )
-        mol_edit = (
-            mol_edit.atom(atom.index())
-            .setProperty("element1", _SireMol.Element(0))
-            .molecule()
-        )
-        if has_ambertype:
-            mol_edit = (
-                mol_edit.atom(atom.index()).setProperty("ambertype1", "du").molecule()
-            )
 
     mol_edit.setProperty("annihilated", _SireBase.wrap(intramol))
 
