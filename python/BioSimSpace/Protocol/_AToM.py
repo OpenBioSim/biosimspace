@@ -41,9 +41,10 @@ class AToM(_Protocol, _PositionRestraintMixin):
         cm_kf=25.0,
         cm_tol=5.0,
         anneal_values=None,
-        anneal_options=None,
+        anneal_numcycles=100,
     ):
         """
+        TODO: Self-consistency with units - use BSS units and then convert to openmm later
         Create a protocol object.
 
         Parameters
@@ -133,13 +134,13 @@ class AToM(_Protocol, _PositionRestraintMixin):
             The atoms to be restrained.
 
         align_kf_sep : float
-            The force constant for the distance portion of the alignment restraint (kcal/mol/A^2).
+            The force constant for the distance portion of the alignment restraint (kcal/(mol A^2)).
 
         align_k_theta : float
-            The force constant for the angular portion of the alignment restaint (kcal/mol).
+            The force constant for the angular portion of the alignment restaint (kcal/(mol deg^2)).
 
         align_k_psi : float
-            The force constant for the dihedral portion of the alignment restraint (kcal/mol).
+            The force constant for the dihedral portion of the alignment restraint (kcal/(mol deg^2)).
 
         SC_umax : float
             The Umax value for the ATM softcore potential (kcal/mol).
@@ -183,41 +184,8 @@ class AToM(_Protocol, _PositionRestraintMixin):
                     The ending value for W0
             Any unspecified values will use their default lambda=0 value.
 
-        anneal_options: dict
-            A dictionary of options for the annealing protocol.
-            If None, then default values will be used.
-            Should be a dictionary with the following keys:
-                "runtime" : :class:`Time <BioSimSpace.Types.Time>`
-                    The total runtime for the annealing protocol. Default 1ns.
-                "cycle_time" : :class:`Time <BioSimSpace.Types.Time>`
-                    The time for each annealing cycle. Default 20ps.
-                "use_core_alignment": bool
-                    Whether to use core alignment restraints. Default True.
-                "anneal_k_distance" : float
-                    The force constant for the distance portion of the alignment restraint (kcal/mol/A^2).
-                    Default 25.0.
-                    If use_core_alignment is False, then this value is ignored.
-                    If use_core_alignment is True, and this value is not set, use the value defined in the align_k_distance parameter.
-                "anneal_k_theta" : float
-                    The force constant for the angular portion of the alignment restaint (kcal/mol).
-                    Default 10.0.
-                    If use_core_alignment is False, then this value is ignored.
-                    If use_core_alignment is True, and this value is not set, use the value defined in the align_k_theta parameter.
-                "anneal_k_psi" : float
-                    The force constant for the dihedral portion of the alignment restraint (kcal/mol).
-                    If use_core_alignment is False, then this value is ignored.
-                    If use_core_alignment is True, and this value is not set, use the value defined in the align_k_psi parameter.
-                "save_state" : bool
-                    Whether to save the state for each annealing cycle.
-                    Default False.
-                "post_anneal_eq_time" : :class:`Time <BioSimSpace.Types.Time>`
-                    The time to run the system after the annealing protocol.
-                    Default 25ps.
-                "output_dir" : str
-                    The directory to save the output files to. Default "anneal_out".
-
-
-
+        anneal_numcycles : int
+            The number of annealing cycles to perform, defines the rate at which values are incremented. Default 100.
         """
         # Call the base class constructor.
         super().__init__()
@@ -304,8 +272,8 @@ class AToM(_Protocol, _PositionRestraintMixin):
         # Store the anneal values.
         self.setAnnealValues(anneal_values)
 
-        # Store the anneal options.
-        self.setAnnealOptions(anneal_options)
+        # Set the number of annealing cycles.
+        self.setAnnealNumCycles(anneal_numcycles)
 
         # Set the postition restraint.
         _PositionRestraintMixin.__init__(self, restraint, force_constant)
@@ -1247,188 +1215,32 @@ class AToM(_Protocol, _PositionRestraintMixin):
                 "'anneal_values' must be of type 'dict', 'None', or 'default'"
             )
 
-    def getAnnealOptions(self):
+    def getAnnealNumCycles(self):
         """
-        Return the anneal options.
+        Return the number of annealing cycles.
 
         Returns
         -------
 
-        anneal_options : dict
-            The anneal options.
+        anneal_numcycles : int
+            The number of annealing cycles.
         """
-        return self._anneal_options
+        return self._anneal_numcycles
 
-    def setAnnealOptions(self, anneal_options):
+    def setAnnealNumCycles(self, anneal_numcycles):
         """
-        Set the anneal options.
+        Set the number of annealing cycles.
 
         Parameters
         ----------
 
-        anneal_options : dict
-            The anneal options.
+        anneal_numcycles : int
+            The number of annealing cycles.
         """
-        default_options = {
-            "runtime": _Types.Time("1ns"),
-            "cycle_time": _Types.Time("20ps"),
-            "use_core_alignment": True,
-            "anneal_k_distance": self._align_kf_sep,
-            "anneal_k_theta": self._align_k_theta,
-            "anneal_k_psi": self._align_k_psi,
-            "post_anneal_eq_time": _Types.Time("25ps"),
-            "save_state": False,
-            "output_dir": "anneal_out",
-        }
-        if self._anneal_values is None and anneal_options is not None:
-            raise ValueError(
-                "Anneal options can only be set if anneal values are given"
-            )
-        elif isinstance(anneal_options, dict):
-            final_options = {}
-            # find all options that arn't given and set them to the default
-            for key in default_options.keys():
-                if key not in anneal_options:
-                    final_options[key] = default_options[key]
-            if all(key in default_options for key in anneal_options.keys()):
-                # check that the values are of the correct type
-                if all(
-                    isinstance(anneal_options[key], (str, int, float, bool))
-                    for key in anneal_options.keys()
-                ):
-                    # check that the values are in the correct range
-                    if "runtime" in anneal_options:
-                        if isinstance(anneal_options["runtime"], str):
-                            try:
-                                _Types.Time(anneal_options["runtime"])
-                                final_options["runtime"] = _Types.Time(
-                                    anneal_options["runtime"]
-                                )
-                            except:
-                                raise ValueError(
-                                    "Unable to parse 'runtime' string."
-                                ) from None
-                        elif isinstance(anneal_options["runtime"], _Types.Time):
-                            final_options["runtime"] = anneal_options["runtime"]
-                        else:
-                            raise ValueError(
-                                "The values in the anneal options must be of type 'str' or 'BioSimSpace.Types.Time' for 'runtime'"
-                            )
-                    if "cycle_time" in anneal_options:
-                        if isinstance(anneal_options["cycle_time"], str):
-                            try:
-                                _Types.Time(anneal_options["cycle_time"])
-                                final_options["cycle_time"] = _Types.Time(
-                                    anneal_options["cycle_time"]
-                                )
-                            except:
-                                raise ValueError(
-                                    "Unable to parse 'cycle_time' string."
-                                ) from None
-                        elif isinstance(anneal_options["cycle_time"], _Types.Time):
-                            final_options["cycle_time"] = anneal_options["cycle_time"]
-                        else:
-                            raise ValueError(
-                                "The values in the anneal options must be of type 'str' or 'BioSimSpace.Types.Time' for 'cycle_time'"
-                            )
-                    if "use_core_alignment" in anneal_options:
-                        if isinstance(anneal_options["use_core_alignment"], bool):
-                            final_options["use_core_alignment"] = anneal_options[
-                                "use_core_alignment"
-                            ]
-                        else:
-                            raise ValueError(
-                                "The values in the anneal options must be of type 'bool' for 'use_core_alignment'"
-                            )
-                    if "anneal_k_distance" in anneal_options:
-                        if isinstance(
-                            anneal_options["anneal_k_distance"], (float, int)
-                        ):
-                            final_options["anneal_k_distance"] = float(
-                                anneal_options["anneal_k_distance"]
-                            )
-                        else:
-                            raise ValueError(
-                                "The values in the anneal options must be of type 'float' for 'Anneal_k_distance'"
-                            )
-                    if "anneal_k_theta" in anneal_options:
-                        if isinstance(anneal_options["anneal_k_theta"], (float, int)):
-                            final_options["anneal_k_theta"] = float(
-                                anneal_options["anneal_k_theta"]
-                            )
-                        else:
-                            raise ValueError(
-                                "The values in the anneal options must be of type 'float' for 'Anneal_k_theta'"
-                            )
-                    if "anneal_k_psi" in anneal_options:
-                        if isinstance(anneal_options["anneal_k_psi"], (float, int)):
-                            final_options["anneal_k_psi"] = float(
-                                anneal_options["anneal_k_psi"]
-                            )
-                        else:
-                            raise ValueError(
-                                "The values in the anneal options must be of type 'float' for 'Anneal_k_psi'"
-                            )
-                    if "post_anneal_eq_time" in anneal_options:
-                        if isinstance(anneal_options["post_anneal_eq_time"], str):
-                            try:
-                                _Types.Time(anneal_options["post_anneal_eq_time"])
-                                final_options["post_anneal_eq_time"] = _Types.Time(
-                                    anneal_options["post_anneal_eq_time"]
-                                )
-                            except:
-                                raise ValueError(
-                                    "Unable to parse 'post_anneal_eq_time' string."
-                                ) from None
-                        elif isinstance(
-                            anneal_options["post_anneal_eq_time"], _Types.Time
-                        ):
-                            final_options["post_anneal_eq_time"] = anneal_options[
-                                "post_anneal_eq_time"
-                            ]
-                        elif anneal_options["post_anneal_eq_time"] is None:
-                            final_options["post_anneal_eq_time"] = None
-                        else:
-                            raise ValueError(
-                                "The values in the anneal options must be of type 'str', 'BioSimSpace.Types.Time' or None for 'post_anneal_eq_time'"
-                            )
-                        # If a value of 0 is given, then set the value to None
-                        if final_options["post_anneal_eq_time"].value() == 0:
-                            final_options["post_anneal_eq_time"] = None
-                    if "save_state" in anneal_options:
-                        if isinstance(anneal_options["save_state"], bool):
-                            final_options["save_state"] = anneal_options["save_state"]
-                        else:
-                            raise ValueError(
-                                "The values in the anneal options must be of type 'bool' for 'save_state'"
-                            )
-                    if "output_dir" in anneal_options:
-                        if isinstance(anneal_options["output_dir"], str):
-                            final_options["output_dir"] = anneal_options["output_dir"]
-                        else:
-                            raise ValueError(
-                                "The values in the anneal options must be of type 'str' for 'output_dir'"
-                            )
-                else:
-                    raise TypeError(
-                        "The values in the anneal options must be of type 'str', 'bool', 'int' or 'float'"
-                    )
-            else:
-                # Find the keys that are not present so that they can be given in the error
-                keys_diff = []
-                for key in anneal_options.keys():
-                    if key not in default_options.keys():
-                        keys_diff.append(key)
-                raise ValueError(
-                    f"The following option(s) is not permitted in anneal_options {keys_diff}. Anneal options must contain the following keys: 'runtime', 'cycle_time', 'save_state', 'output_dir'"
-                )
-            self._anneal_options = final_options
-        elif anneal_options is None and self._anneal_values is not None:
-            self._anneal_options = default_options
-        elif self._anneal_values is None and anneal_options is None:
-            self._anneal_options = None
+        if isinstance(anneal_numcycles, int):
+            self._anneal_numcycles = anneal_numcycles
         else:
-            raise TypeError("'anneal_options' must be of type 'dict' or None")
+            raise TypeError("'anneal_numcycles' must be of type 'int'")
 
     def _set_lambda_values(self):
         # Internal function to set the 'master lambda'

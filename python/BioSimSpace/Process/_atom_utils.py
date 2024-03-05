@@ -20,6 +20,7 @@
 #####################################################################
 __all__ = ["_AToMUtils"]
 from .. import Protocol as _Protocol
+from ..Types import Vector as _Vector
 
 
 class _AToMUtils:
@@ -32,16 +33,13 @@ class _AToMUtils:
         self.data = self.protocol.getData()
 
     def getAlignmentConstants(self):
-        if self.protocol._get_is_annealing_step():
-            self.alignment_k_distance = self.protocol.getAnnealOptions()[
-                "anneal_k_distance"
-            ]
-            self.alignment_k_theta = self.protocol.getAnnealOptions()["anneal_k_theta"]
-            self.alignment_k_psi = self.protocol.getAnnealOptions()["anneal_k_psi"]
-        else:
-            self.alignment_k_distance = self.protocol.getAlignKfSep()
-            self.alignment_k_theta = self.protocol.getAlignKTheta()
-            self.alignment_k_psi = self.protocol.getAlignKPsi()
+        self.alignment_k_distance = self.protocol.getAlignKfSep()
+        self.alignment_k_theta = self.protocol.getAlignKTheta()
+        self.alignment_k_psi = self.protocol.getAlignKPsi()
+
+    def getCMConstants(self):
+        self.cm_kf = self.protocol.getCMKf()
+        self.cm_tol = self.protocol.getCMTol()
 
     def findAbsoluteCoreIndices(self):
         import numpy as np
@@ -55,12 +53,35 @@ class _AToMUtils:
             np.add(self.lig2_first_atomnum, self.data["ligand2_rigid_core"])
         )
 
+    def findAbsoluteCOMAtoms(self):
+        import numpy as np
+
+        self.protein_first_atomnum = self.data["first_protein_atom_index"]
+        self.protein_com_atoms = list(
+            np.add(self.protein_first_atomnum, self.data["protein_com_atoms"])
+        )
+
+        self.lig1_first_atomnum = self.data["first_ligand1_atom_index"]
+        self.lig1_com_atoms = list(
+            np.add(self.lig1_first_atomnum, self.data["ligand1_com_atoms"])
+        )
+
+        self.lig2_first_atomnum = self.data["first_ligand2_atom_index"]
+        self.lig2_com_atoms = list(
+            np.add(self.lig2_first_atomnum, self.data["ligand2_com_atoms"])
+        )
+
     def findDisplacement(self):
-        if not isinstance(self.data["displacement"], list):
-            raise TypeError("Displacement must be a list")
-        elif not all(isinstance(x, float) for x in self.data["displacement"]):
-            raise TypeError("Displacement must be a list of floats")
-        self.displacement = self.data["displacement"]
+        d = self.data["displacement"]
+        if isinstance(d, (list)):
+            if not all(isinstance(x, float) for x in d):
+                raise TypeError("Displacement must be a list of floats")
+            self.displacement = d
+        elif isinstance(d, _Vector):
+            disp = [d.x(), d.y(), d.z()]
+            self.displacement = disp
+        else:
+            raise TypeError("Displacement must be a list or BioSimSpace vector")
 
     def createAlignmentForce(self):
         # This force is the same in every lambda window
@@ -68,9 +89,11 @@ class _AToMUtils:
         self.findAbsoluteCoreIndices()
 
         output = "\n\n"
-        output += "k_distance = {}\n".format(self.alignment_k_distance)
-        output += "k_theta = {}\n".format(self.alignment_k_theta)
-        output += "k_psi = {}\n".format(self.alignment_k_psi)
+        output += "k_distance = {} * kilocalorie_per_mole / angstrom**2\n".format(
+            self.alignment_k_distance
+        )
+        output += "k_theta = {} * kilocalorie_per_mole\n".format(self.alignment_k_theta)
+        output += "k_psi = {} * kilocalorie_per_mole\n".format(self.alignment_k_psi)
         output += "idxs_a = {}\n".format(self.lig1_rigid_atoms)
         output += "idxs_b = {}\n".format(self.lig2_rigid_atoms)
         output += "\n\n"
@@ -83,9 +106,7 @@ class _AToMUtils:
         output += "distance_force.addPerBondParameter('dz')\n"
 
         output += """distance_parameters = [
-        k_distance*(
-            kilojoules_per_mole / nanometer**2
-        ),
+        k_distance.value_in_unit(kilojoules_per_mole / nanometer**2),
         displacement[0]*nanometer,
         displacement[1]*nanometer,
         displacement[2]*nanometer,
@@ -112,7 +133,7 @@ class _AToMUtils:
         output += 'angle_force.addPerBondParameter("k")\n'
         output += """angle_force.addBond(
         (idxs_b[0], idxs_b[1], idxs_a[0], idxs_a[1]),
-        [k_theta*kilojoules_per_mole],
+        [k_theta.value_in_unit(kilojoules_per_mole)],
         )\n"""
         output += "system.addForce(angle_force)\n\n"
 
@@ -145,11 +166,11 @@ class _AToMUtils:
         output += 'dihedral_force.addPerBondParameter("k")\n'
         output += """dihedral_force.addBond(
         (idxs_b[0], idxs_b[1], idxs_b[2], idxs_a[0], idxs_a[2]),
-        [0.5 * k_psi * kilojoules_per_mole],
+        [0.5 * k_psi.value_in_unit(kilojoules_per_mole)],
         )\n"""
         output += """dihedral_force.addBond(
         (idxs_a[0], idxs_a[1], idxs_a[2], idxs_b[0], idxs_b[2]),
-        [0.5 * k_psi*kilojoules_per_mole],
+        [0.5 * k_psi.value_in_unit(kilojoules_per_mole)],
         )\n"""
         output += "system.addForce(dihedral_force)\n\n"
         return output
@@ -243,13 +264,15 @@ class _AToMUtils:
         Create a string containing the CM-CM restriants for two groups of atoms.
         In most cases these will be some combination of protein and ligand atoms.
         Constants for the force are set in the protocol."""
+        self.findAbsoluteCOMAtoms()
         # Groups contained within the constraint
-        protein_com = self.data["protein_com_atoms"]
-        lig1_com = self.data["ligand1_com_atoms"]
-        lig2_com = self.data["ligand2_com_atoms"]
+        protein_com = self.protein_com_atoms
+        lig1_com = self.lig1_com_atoms
+        lig2_com = self.lig2_com_atoms
+        self.getCMConstants()
         # Constants for the force
-        kf_cm = self.protocol.getCMKf()
-        tol_cm = self.protocol.getCMTol()
+        kf_cm = self.cm_kf
+        tol_cm = self.cm_tol
         output = ""
         output += "protein_com = {}\n".format(protein_com)
         output += "lig1_com = {}\n".format(lig1_com)
@@ -259,10 +282,8 @@ class _AToMUtils:
         output += "tolcm = {} * angstrom \n".format(tol_cm)
 
         # Add expression for cm restraint
-        output += """
-        expr = "(kfcm/2)*step(d12-tolcm)*(d12-tolcm)^2 "
-        expr += " ; d12 = sqrt((x1 - offx - x2)^2 + (y1 - offy - y2)^2 + (z1 - offz - z2)^2 ) ; "
-        """
+        output += 'expr = "(kfcm/2)*step(d12-tolcm)*(d12-tolcm)^2 "\n'
+        output += 'expr += " ; d12 = sqrt((x1 - offx - x2)^2 + (y1 - offy - y2)^2 + (z1 - offz - z2)^2 ) ; "\n'
         output += "force_CMCM = CustomCentroidBondForce(2, expr)\n"
         output += "force_CMCM.addPerBondParameter('kfcm')\n"
         output += "force_CMCM.addPerBondParameter('tolcm')\n"
@@ -275,23 +296,24 @@ class _AToMUtils:
         output += "force_CMCM.addGroup(lig2_com)\n"
 
         output += """parameters_free = (
-        kfcm.value_unit(openmm.unit.kilojoules_per_mole / openmm.unit.nanometer**2),
-        tolcm.value_in_unit(openmm.unit.nanometer),
+        kfcm.value_in_unit(kilojoules_per_mole / nanometer**2),
+        tolcm.value_in_unit(nanometer),
         displacement[0],
         displacement[1],
         displacement[2],
-        )"""
+        )\n"""
 
         output += """parameters_bound = (
-        kfcm.value_unit(openmm.unit.kilojoules_per_mole / openmm.unit.nanometer**2),
-        tolcm.value_in_unit(openmm.unit.nanometer),
+        kfcm.value_in_unit(kilojoules_per_mole / nanometer**2),
+        tolcm.value_in_unit(nanometer),
         0.0,
         0.0,
         0.0,
-        )"""
+        )\n"""
 
         output += "force_CMCM.addBond((0,1), parameters_bound)\n"
         output += "force_CMCM.addBond((0,2), parameters_free)\n"
+        output += "#End of CM-CM force\n\n"
 
         return output
 
@@ -299,11 +321,11 @@ class _AToMUtils:
         """
         Create a string which can be added directly to an openmm script to add an annealing protocol to the system.
         """
-        options = self.protocol.getAnnealOptions().copy()
-        anneal_runtime = options["runtime"]
-        anneal_cycle_time = options["cycle_time"]
-        num_cycles = anneal_runtime / anneal_cycle_time
-        cycle_numsteps = anneal_cycle_time / self.protocol.getTimeStep()
+        anneal_runtime = self.protocol.getRunTime()
+        num_cycles = self.protocol.getAnnealNumCycles()
+        cycle_numsteps = int(
+            (anneal_runtime / num_cycles) / self.protocol.getTimeStep()
+        )
 
         prot = self.protocol.getAnnealValues()
         # Find all entries whose keys contain "start" and create a dictionary of these entries
@@ -326,15 +348,8 @@ class _AToMUtils:
         output += f"for i in range({int(num_cycles)}):\n"
         output += f"    simulation.step({cycle_numsteps})\n"
         output += "    print(f'Cycle {i+1}')\n"
-        if options["save_state"]:
-            output += "    state = simulation.context.getState(getPositions=True, getVelocities=True)\n"
+        output += "    state = simulation.context.getState(getPositions=True, getVelocities=True)\n"
         output += "    for key in values_start.keys():\n"
         output += "        simulation.context.setParameter(key, simulation.context.getParameter(key) + increments[key])\n"
-        # Now add post-annealing equilibration if set
-        if options["post_anneal_eq_time"] is not None:
-            output += "#post-annealing equilibration\n"
-            output += "simulation.context.setParameter('lambda1', 0.5)\n"
-            output += "simulation.context.setParameter('lambda2', 0.5)\n"
-            output += f"simulation.step({int(options['post_anneal_eq_time']/self.protocol.getTimeStep())})\n"
         output += "simulation.saveState('openmm.xml')"
         return output

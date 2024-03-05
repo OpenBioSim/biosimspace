@@ -1642,27 +1642,13 @@ class OpenMM(_process.Process):
 
         if not type(index) is int:
             raise TypeError("'index' must be of type 'int'")
-
-        if (
-            isinstance(self._protocol, _Protocol.AToM)
-            and self._protocol._get_is_annealing_step()
-        ):
-            anneal_opts = self._protocol.getAnnealOptions()
-            max_index = (
-                int(
-                    (anneal_opts["runtime"] / self._protocol.getTimeStep())
-                    / self._protocol.getRestartInterval()
-                )
-                - 1
+        max_index = (
+            int(
+                (self._protocol.getRunTime() / self._protocol.getTimeStep())
+                / self._protocol.getRestartInterval()
             )
-        else:
-            max_index = (
-                int(
-                    (self._protocol.getRunTime() / self._protocol.getTimeStep())
-                    / self._protocol.getRestartInterval()
-                )
-                - 1
-            )
+            - 1
+        )
         if index < 0 or index > max_index:
             raise ValueError(f"'index' must be in range [0, {max_index}].")
 

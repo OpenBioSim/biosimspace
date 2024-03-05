@@ -1019,6 +1019,7 @@ class anneal(_Process.OpenMM):
         exe=None,
         platform="CPU",
         seed=None,
+        work_dir="anneal",
         property_map={},
     ):
         """
@@ -1056,7 +1057,6 @@ class anneal(_Process.OpenMM):
         self._protocol._set_is_annealing_step(True)
         # Use values from lambda=0 for annealing
         protocol._set_current_index(0)
-        work_dir = protocol.getAnnealOptions()["output_dir"]
         super().__init__(
             system=system,
             protocol=protocol,
