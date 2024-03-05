@@ -1240,9 +1240,8 @@ def roiMatch(
             molecule0_atoms = [a.name() for a in molecule0_roi.getAtoms()]
             molecule1_atoms = [a.name() for a in molecule1_roi.getAtoms()]
             if molecule0_atoms == molecule1_atoms:
-                raise ValueError(
-                    """ROI between the two input molecules is identical,
-                      stopping atom matching"""
+                _logger.warning(
+                    f"Residue {res_idx} in molecule0 and molecule1 have identical atomtypes."
                 )
 
         res0_idx = [a.index() for a in molecule0_roi]
