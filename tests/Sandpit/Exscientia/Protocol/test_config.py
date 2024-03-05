@@ -111,6 +111,18 @@ class TestGromacsRBFE:
         expected_res = {"tau-t = 2.00000"}
         assert expected_res.issubset(res)
 
+    @pytest.mark.parametrize(
+        "protocol", [Production, FreeEnergy]
+    )
+    def test_integrator(self, system, protocol):
+        config = ConfigFactory(system, protocol(tau_t=BSS.Types.Time(2, "picosecond")))
+        res = config.generateGromacsConfig()
+        if isinstance(protocol(), BSS.Protocol._FreeEnergyMixin):
+            expected_res = {'integrator = sd'}
+        else:
+            expected_res = {'integrator = md', 'tcoupl = v-rescale'}
+        assert expected_res.issubset(res)
+
     @pytest.mark.skipif(
         has_gromacs is False, reason="Requires GROMACS to be installed."
     )
@@ -408,6 +420,7 @@ class TestGromacsABFE:
         with open(f"{freenrg._work_dir}/lambda_6/gromacs.mdp", "r") as f:
             mdp_text = f.read()
             assert "sc-alpha = 0.5" in mdp_text
+
 
 
 @pytest.mark.skipif(
