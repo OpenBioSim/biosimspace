@@ -26,9 +26,9 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["Somd"]
 
-from .._Utils import _try_import
-
 import os as _os
+
+from .._Utils import _try_import
 
 _pygtail = _try_import("pygtail")
 import glob as _glob
@@ -38,23 +38,21 @@ import sys as _sys
 import timeit as _timeit
 import warnings as _warnings
 
-from sire.legacy import Base as _SireBase
 from sire.legacy import CAS as _SireCAS
 from sire.legacy import IO as _SireIO
 from sire.legacy import MM as _SireMM
+from sire.legacy import Base as _SireBase
 from sire.legacy import Mol as _SireMol
-
-from .. import _isVerbose
-from .._Exceptions import IncompatibleError as _IncompatibleError
-from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
-from .._SireWrappers import Molecule as _Molecule
-from .._SireWrappers import System as _System
+from sire.legacy import Units as _SireUnits
 
 from .. import IO as _IO
 from .. import Protocol as _Protocol
 from .. import Trajectory as _Trajectory
-from .. import _Utils
-
+from .. import _isVerbose, _Utils
+from .._Exceptions import IncompatibleError as _IncompatibleError
+from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
+from .._SireWrappers import Molecule as _Molecule
+from .._SireWrappers import System as _System
 from . import _process
 
 
@@ -1001,6 +999,9 @@ def _to_pert_file(
     if not isinstance(perturbation_type, str):
         raise TypeError("'perturbation_type' must be of type 'str'")
 
+    if not isinstance(property_map, dict):
+        raise TypeError("'property_map' must be of type 'dict'")
+
     # Convert to lower case and strip whitespace.
     perturbation_type = perturbation_type.lower().replace(" ", "")
 
@@ -1026,6 +1027,60 @@ def _to_pert_file(
 
     # Extract and copy the Sire molecule.
     mol = molecule._sire_object.__deepcopy__()
+
+    # If the molecule is decoupled (for an ABFE calculation), then we need to
+    # set the end-state properties of the molecule.
+    if molecule.isDecoupled():
+        # Invert the user property mappings.
+        inv_property_map = {v: k for k, v in property_map.items()}
+
+        # Get required properties.
+        lj = inv_property_map.get("LJ", "LJ")
+        charge = inv_property_map.get("charge", "charge")
+        element = inv_property_map.get("element", "element")
+        ambertype = inv_property_map.get("ambertype", "ambertype")
+
+        # Check for missing information.
+        if not mol.hasProperty(lj):
+            raise _IncompatibleError("Cannot determine LJ terms for molecule")
+        if not mol.hasProperty(charge):
+            raise _IncompatibleError("Cannot determine charges for molecule")
+        if not mol.hasProperty(element):
+            raise _IncompatibleError("Cannot determine elements in molecule")
+
+        # Check for ambertype property.
+        has_ambertype = True
+        if not mol.hasProperty(ambertype):
+            has_ambertype = False
+
+        mol_edit = mol.edit()
+
+        # Set final charges and LJ terms to 0, elements to "X" and (if required) ambertypes to du
+        for atom in mol.atoms():
+            mol_edit = (
+                mol_edit.atom(atom.index())
+                .setProperty("charge1", 0 * _SireUnits.e_charge)
+                .molecule()
+            )
+            mol_edit = (
+                mol_edit.atom(atom.index())
+                .setProperty("LJ1", _SireMM.LJParameter())
+                .molecule()
+            )
+            mol_edit = (
+                mol_edit.atom(atom.index())
+                .setProperty("element1", _SireMol.Element(0))
+                .molecule()
+            )
+            if has_ambertype:
+                mol_edit = (
+                    mol_edit.atom(atom.index())
+                    .setProperty("ambertype1", "du")
+                    .molecule()
+                )
+
+        # Update the Sire molecule object of the new molecule.
+        mol = mol_edit.commit()
 
     # First work out the indices of atoms that are perturbed.
     pert_idxs = []

@@ -592,7 +592,7 @@ class Funnel(_CollectiveVariable):
         volume = _Volume(_math.pi * result, "nanometers cubed")
 
         # Estimate the average area of the restraint (in Angstrom squared).
-        area = (volume / proj_max).angstroms2()
+        area = (volume / (proj_max - proj_min)).angstroms2()
 
         # Compute the correction. (1/1660 A-3 is the standard concentration.)
         correction = _Energy(_math.log((area / 1660).value()), "kt")
