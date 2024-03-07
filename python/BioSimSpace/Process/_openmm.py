@@ -1138,10 +1138,7 @@ class OpenMM(_process.Process):
             # TODO: check extra_options, extra_lines and property_map
             from ._atom_utils import _AToMUtils as _AToMUtils
 
-            if (
-                self._protocol._get_window_index() is None
-                and not self._protocol._get_is_annealing_step()
-            ):
+            if self._protocol._get_window_index() is None:
                 raise _IncompatibleError(
                     "AToM protocol requires the current window index to be set."
                 )
@@ -1235,7 +1232,6 @@ class OpenMM(_process.Process):
             # Atom force is the only window-dependent force
             self.addToConfig("\n# Add AToM Force.")
             self.addToConfig(util.createATMForce(self._protocol._get_window_index()))
-            util = _AToMUtils(self._protocol)
             if self._protocol.getCoreAlignment():
                 alignment = util.createAlignmentForce()
                 self.addToConfig("\n# Add alignment force.")
@@ -1323,17 +1319,11 @@ class OpenMM(_process.Process):
             # Work out the number of steps per cycle.
             steps_per_cycle = int(steps / cycles)
 
-            if not self._protocol._get_is_annealing_step():
-                # Now run the simulation.
-                self.addToConfig("\n# Run the simulation in 100 picosecond cycles.")
-                self.addToConfig(f"for x in range(0, {cycles}):")
-                self.addToConfig(f"    simulation.step({steps_per_cycle})")
-                self.addToConfig(f"    simulation.saveState('{self._name}.xml')")
-            # Need a separate run protocol for annealing steps
-            else:
-                # get annealing protocol from atom utils
-                annealing_protocol = util.createAnnealingProtocol()
-                self.addToConfig(annealing_protocol)
+            # Now run the simulation.
+            self.addToConfig("\n# Run the simulation in 100 picosecond cycles.")
+            self.addToConfig(f"for x in range(0, {cycles}):")
+            self.addToConfig(f"    simulation.step({steps_per_cycle})")
+            self.addToConfig(f"    simulation.saveState('{self._name}.xml')")
 
         else:
             raise _IncompatibleError(
@@ -1479,7 +1469,9 @@ class OpenMM(_process.Process):
         # Try to get the most recent trajectory frame.
         try:
             # Handle minimisation protocols separately.
-            if isinstance(self._protocol, _Protocol.Minimisation):
+            if isinstance(
+                self._protocol, (_Protocol.Minimisation, _Protocol.AToMMinimisation)
+            ):
                 # Do we need to get coordinates for the lambda=1 state.
                 if "is_lambda1" in self._property_map:
                     is_lambda1 = True
@@ -1527,29 +1519,13 @@ class OpenMM(_process.Process):
                 return old_system
 
             else:
-                # If this is an AToM annealing step then the runtime is different
-                if (
-                    isinstance(self._protocol, _Protocol.AToM)
-                    and self._protocol._get_is_annealing_step()
-                ):
-                    num_frames = int(
-                        (
-                            self._protocol.getAnnealOptions()["runtime"]
-                            / self._protocol.getTimeStep()
-                        )
-                        / self._protocol.getRestartInterval()
-                    )
-                    frac_complete = (
-                        self._protocol.getAnnealOptions()["runtime"] / self.getTime()
-                    )
-                else:
-                    # Work out the total number of trajectory frames.
-                    num_frames = int(
-                        (self._protocol.getRunTime() / self._protocol.getTimeStep())
-                        / self._protocol.getRestartInterval()
-                    )
-                    # Work out the fraction of the simulation that has been completed.
-                    frac_complete = self._protocol.getRunTime() / self.getTime()
+                # Work out the total number of trajectory frames.
+                num_frames = int(
+                    (self._protocol.getRunTime() / self._protocol.getTimeStep())
+                    / self._protocol.getRestartInterval()
+                )
+                # Work out the fraction of the simulation that has been completed.
+                frac_complete = self._protocol.getRunTime() / self.getTime()
                 # Make sure the fraction doesn't exceed one. OpenMM can report
                 # time values that are larger than the number of integration steps
                 # multiplied by the time step.
@@ -2289,7 +2265,9 @@ class OpenMM(_process.Process):
         )
 
         # Disable specific state information for minimisation protocols.
-        if isinstance(self._protocol, _Protocol.Minimisation):
+        if isinstance(
+            self._protocol, (_Protocol.Minimisation, _Protocol.AToMMinimisation)
+        ):
             is_step = False
             is_time = False
             is_temperature = False
@@ -2299,7 +2277,9 @@ class OpenMM(_process.Process):
             is_temperature = True
 
         # Work out the total number of steps.
-        if isinstance(self._protocol, _Protocol.Minimisation):
+        if isinstance(
+            self._protocol, (_Protocol.Minimisation, _Protocol.AToMMinimisation)
+        ):
             total_steps = 1
         else:
             total_steps = _math.ceil(

@@ -27,8 +27,16 @@ class _AToMUtils:
     # Internal class for creating openmm forces within an AToM process.
     def __init__(self, protocol):
         # Check for proper typing
-        if not isinstance(protocol, _Protocol.AToM):
-            raise TypeError("Protocol must be a BioSimSpace.Protocol object")
+        if not isinstance(
+            protocol,
+            (
+                _Protocol.AToMMinimisation,
+                _Protocol.AToMEquilibration,
+                _Protocol.AToMAnnealing,
+                _Protocol.AToMProduction,
+            ),
+        ):
+            raise TypeError("Protocol must be an AToM protocol")
         self.protocol = protocol
         self.data = self.protocol.getData()
 
@@ -71,6 +79,31 @@ class _AToMUtils:
             np.add(self.lig2_first_atomnum, self.data["ligand2_com_atoms"])
         )
 
+    def getATMForceConstants(self, index=None):
+        self.lig1_atoms = self.getLigand1AtomsAsList()
+        self.lig2_atoms = self.getLigand2AtomsAsList()
+        self.SCUmax = self.protocol.getSCUmax()
+        self.SCU0 = self.protocol.getSCU0()
+        self.SCa = self.protocol.getSCa()
+        if isinstance(self.protocol, _Protocol.AToMProduction):
+            if index is None:
+                raise ValueError("Index must be set for AToMProduction protocol")
+            self.lambda1 = self.protocol.getLambda1()[index]
+            self.lambda2 = self.protocol.getLambda2()[index]
+            self.alpha = self.protocol.getAlpha()[index]
+            self.uh = self.protocol.getUh()[index]
+            self.w0 = self.protocol.getW0()[index]
+            self.direction = self.protocol.getDirections()[index]
+        elif isinstance(
+            self.protocol, (_Protocol.AToMEquilibration, _Protocol.AToMAnnealing)
+        ):
+            self.lambda1 = self.protocol.getLambda1()
+            self.lambda2 = self.protocol.getLambda2()
+            self.alpha = self.protocol.getAlpha()
+            self.uh = self.protocol.getUh()
+            self.w0 = self.protocol.getW0()
+            self.direction = self.protocol.getDirection()
+
     def findDisplacement(self):
         d = self.data["displacement"]
         if isinstance(d, (list)):
@@ -82,6 +115,15 @@ class _AToMUtils:
             self.displacement = disp
         else:
             raise TypeError("Displacement must be a list or BioSimSpace vector")
+
+    def createDisplacement(self):
+        self.findDisplacement()
+        d = [round(x, 3) for x in self.displacement]
+        output = ""
+        output += "displacement = {}\n".format(self.displacement)
+        output += "#BioSimSpace output is in angstrom, divide by 10 to convert to the expected units of nm\n"
+        output += "displacement = [i/10.0 for i in displacement]\n"
+        return output
 
     def createAlignmentForce(self):
         # This force is the same in every lambda window
@@ -208,24 +250,20 @@ class _AToMUtils:
             Index of current window - used to set window-dependent variables.
         """
         self.findDisplacement()
+        self.getATMForceConstants(index)
         output = ""
         output += "#Parameters for ATM force\n"
-        output += "lig1_atoms = {}\n".format(self.getLigand1AtomsAsList())
-        output += "lig2_atoms = {}\n".format(self.getLigand2AtomsAsList())
-        # Divide by 10 to convert to nm
-        d = [round(x, 3) for x in self.displacement]
-        output += "displacement = {}\n".format(d)
-        output += "#BioSimSpace output is in angstrom, divide by 10 to convert to the expected units of nm\n"
-        output += "displacement = [i/10.0 for i in displacement]\n"
-        output += "lambda1 = {}\n".format(self.protocol.getLambda1()[index])
-        output += "lambda2 = {}\n".format(self.protocol.getLambda2()[index])
-        output += "alpha = {}\n".format(self.protocol.getAlpha()[index])
-        output += "uh = {}\n".format(self.protocol.getuh()[index])
-        output += "w0 = {}\n".format(self.protocol.getW0()[index])
-        output += "direction = {}\n".format(self.protocol.getDirections()[index])
-        output += "sc_Umax = {}\n".format(self.protocol.getSCUmax())
-        output += "sc_U0 = {}\n".format(self.protocol.getSCU0())
-        output += "sc_a = {}\n".format(self.protocol.getSCa())
+        output += "lig1_atoms = {}\n".format(self.lig1_atoms)
+        output += "lig2_atoms = {}\n".format(self.lig2_atoms)
+        output += "lambda1 = {}\n".format(self.lambda1)
+        output += "lambda2 = {}\n".format(self.lambda2)
+        output += "alpha = {}\n".format(self.alpha)
+        output += "uh = {}\n".format(self.uh)
+        output += "w0 = {}\n".format(self.w0)
+        output += "direction = {}\n".format(self.direction)
+        output += "sc_Umax = {}\n".format(self.SCUmax)
+        output += "sc_U0 = {}\n".format(self.SCU0)
+        output += "sc_a = {}\n".format(self.SCa)
 
         output += "\n\n #Define ATM force\n"
         output += """atm_force = ATMForce(

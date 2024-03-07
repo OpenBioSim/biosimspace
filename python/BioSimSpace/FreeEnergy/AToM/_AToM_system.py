@@ -21,7 +21,15 @@
 
 # Functionality for creating and viewing systems for Atomic transfer.
 
-__all__ = ["makeSystem", "viewRigidCores", "relativeATM", "anneal"]
+__all__ = [
+    "makeSystem",
+    "viewRigidCores",
+    "relativeATM",
+    "anneal",
+    "Minimise",
+    "Equilibrate",
+    "Anneal",
+]
 
 from ... import _is_notebook
 from ..._SireWrappers import Molecule as _Molecule
@@ -34,10 +42,12 @@ from ...Align import matchAtoms as _matchAtoms
 from ...Align import rmsdAlign as _rmsdAlign
 from ... import Process as _Process
 from ...Notebook import View as _View
+from ...Process._atom_utils import _AToMUtils as _AtomUtils
 import os as _os
 import shutil as _shutil
 import copy as _copy
 import warnings as _warnings
+import math as _math
 
 
 class makeSystem:
@@ -745,9 +755,9 @@ class relativeATM:
 
         # Validate the protocol.
         if protocol is not None:
-            from ...Protocol._AToM import AToM as _AToM
+            from ...Protocol._AToM import AToMProduction as _Production
 
-            if not isinstance(protocol, _AToM):
+            if not isinstance(protocol, _Production):
                 raise TypeError(
                     "'protocol' must be of type 'BioSimSpace.Protocol.AToM'"
                 )
@@ -842,8 +852,6 @@ class relativeATM:
             raise RuntimeError("No protocol has been set - cannot run simulations.")
         # Initialise list to store the processe
         processes = []
-        # Make sure production protocol is used, not annealing
-        self._protocol._set_is_annealing_step(False)
         # Get the list of lambda1 values so that the total number of simulations can
         # be asserted
         lambda_list = self._protocol._get_lambda_values()
@@ -1056,6 +1064,428 @@ class anneal(_Process.OpenMM):
         self._protocol = protocol
         self._protocol._set_is_annealing_step(True)
         # Use values from lambda=0 for annealing
+
+        super().__init__(
+            system=system,
+            protocol=protocol,
+            exe=exe,
+            name="anneal",
+            platform=platform,
+            work_dir=work_dir,
+            seed=seed,
+            property_map=property_map,
+        )
+
+
+class Minimise(_Process.OpenMM):
+    """A class for minimising AToM systems.
+    Includes restraints."""
+
+    def __init__(
+        self,
+        system,
+        protocol,
+        exe=None,
+        platform="CPU",
+        seed=None,
+        work_dir="minimise",
+        property_map={},
+    ):
+        # Validate the protocol.
+        if protocol is not None:
+            from ...Protocol._AToM import AToMMinimisation as _Minimisation
+
+            if not isinstance(protocol, _Minimisation):
+                raise TypeError(
+                    "'protocol' must be of type 'BioSimSpace.Protocol.AToM'"
+                )
+            else:
+                self._protocol = protocol
+        else:
+            # No default protocol due to the need for well-defined rigid cores
+            raise ValueError("A protocol must be specified")
+        super().__init__(
+            system=system,
+            protocol=protocol,
+            exe=exe,
+            name="minimise",
+            platform=platform,
+            work_dir=work_dir,
+            seed=seed,
+            property_map=property_map,
+        )
+
+    def _generate_config(self):
+        """Custom config generation, mixing in restraints
+        with minimisation protocol. AToM force is not applied here."""
+
+        util = _AtomUtils(self._protocol)
+        # Clear the existing configuration list.
+        self._config = []
+
+        # Get the "space" property from the user mapping.
+        prop = self._property_map.get("space", "space")
+
+        # Check whether the system contains periodic box information.
+        if prop in self._system._sire_object.propertyKeys():
+            try:
+                # Make sure that we have a periodic box. The system will now have
+                # a default cartesian space.
+                box = self._system._sire_object.property(prop)
+                has_box = box.isPeriodic()
+            except:
+                has_box = False
+        else:
+            _warnings.warn("No simulation box found. Assuming gas phase simulation.")
+            has_box = False
+
+        # Write the OpenMM import statements.
+        self._add_config_imports()
+        self._add_config_monkey_patches()
+        # Load the input files.
+        self.addToConfig("\n# Load the topology and coordinate files.")
+        self.addToConfig(
+            "\n# We use ParmEd due to issues with the built in AmberPrmtopFile for certain triclinic spaces."
+        )
+        self.addToConfig(
+            f"prm = parmed.load_file('{self._name}.prm7', '{self._name}.rst7')"
+        )
+
+        # Don't use a cut-off if this is a vacuum simulation or if box information
+        # is missing.
+        self.addToConfig("\n# Initialise the molecular system.")
+        if not has_box or not self._has_water:
+            self.addToConfig("system = prm.createSystem(nonbondedMethod=NoCutoff,")
+        else:
+            self.addToConfig("system = prm.createSystem(nonbondedMethod=PME,")
+        self.addToConfig("                          nonbondedCutoff=1*nanometer,")
+        self.addToConfig("                          constraints=HBonds)")
+
+        # Set the integrator. (Use zero-temperature as this is just a dummy step.)
+        self.addToConfig("\n# Define the integrator.")
+        self.addToConfig("integrator = LangevinMiddleIntegrator(0*kelvin,")
+        self.addToConfig("                                1/picosecond,")
+        self.addToConfig("                                0.002*picoseconds)")
+
+        # Add the platform information.
+        self._add_config_platform()
+
+        # Add the atom-specific restraints.
+        disp = util.createDisplacement()
+        self.addToConfig(disp)
+        if self._protocol.getCoreAlignment():
+            alignment = util.createAlignmentForce()
+            self.addToConfig("\n# Add alignment force.")
+            self.addToConfig(alignment)
+        if self._protocol.getCMCMRestraint():
+            CMCM = util.createCOMRestraint()
+            self.addToConfig("\n# Add COM restraint.")
+            self.addToConfig(CMCM)
+
+        # Add any position restraints.
+        if self._protocol.getRestraint() is not None:
+            self._add_config_restraints()
+
+        # Set up the simulation object.
+        self.addToConfig("\n# Initialise and configure the simulation object.")
+        self.addToConfig("simulation = Simulation(prm.topology,")
+        self.addToConfig("                        system,")
+        self.addToConfig("                        integrator,")
+        self.addToConfig("                        platform,")
+        self.addToConfig("                        properties)")
+        if self._protocol.getRestraint() is not None:
+            self.addToConfig("simulation.context.setPositions(positions)")
+        else:
+            self.addToConfig("simulation.context.setPositions(prm.positions)")
+        self.addToConfig("if prm.box_vectors is not None:")
+        self.addToConfig("    box_vectors = reducePeriodicBoxVectors(prm.box_vectors)")
+        self.addToConfig("    simulation.context.setPeriodicBoxVectors(*box_vectors)")
+        self.addToConfig(
+            f"simulation.minimizeEnergy(maxIterations={self._protocol.getSteps()})"
+        )
+
+        # Add the reporters.
+        self.addToConfig("\n# Add reporters.")
+        self._add_config_reporters(state_interval=1, traj_interval=1)
+
+        # Now run the simulation.
+        self.addToConfig(
+            "\n# Run a single simulation step to allow us to get the system and energy."
+        )
+        self.addToConfig(f"simulation.step(1)")
+
+        # Flag that this isn't a custom protocol.
+        self._protocol._setCustomised(False)
+
+
+class Equilibrate(_Process.OpenMM):
+    """A class for running a pre-production equilibration step.
+    Required for most systems to preven atom overlapping issues."""
+
+    def __init__(
+        self,
+        system,
+        protocol,
+        exe=None,
+        platform="CPU",
+        seed=None,
+        work_dir="equilibrate",
+        property_map={},
+    ):
+        # Validate the protocol.
+        if protocol is not None:
+            from ...Protocol._AToM import AToMEquilibration as _Equilibration
+
+            if not isinstance(protocol, _Equilibration):
+                raise TypeError(
+                    "'protocol' must be of type 'BioSimSpace.Protocol.AToMEquilibration'"
+                )
+            else:
+                self._protocol = protocol
+        else:
+            # No default protocol due to the need for well-defined rigid cores
+            raise ValueError("A protocol must be specified")
+        super().__init__(
+            system=system,
+            protocol=protocol,
+            exe=exe,
+            name="equilibrate",
+            platform=platform,
+            work_dir=work_dir,
+            seed=seed,
+            property_map=property_map,
+        )
+
+    def _generate_config(self):
+
+        util = _AtomUtils(self._protocol)
+        # Clear the existing configuration list.
+        self._config = []
+
+        # Get the "space" property from the user mapping.
+        prop = self._property_map.get("space", "space")
+
+        # Check whether the system contains periodic box information.
+        if prop in self._system._sire_object.propertyKeys():
+            try:
+                # Make sure that we have a periodic box. The system will now have
+                # a default cartesian space.
+                box = self._system._sire_object.property(prop)
+                has_box = box.isPeriodic()
+            except:
+                has_box = False
+        else:
+            _warnings.warn("No simulation box found. Assuming gas phase simulation.")
+            has_box = False
+
+        # Write the OpenMM import statements and monkey-patches.
+        self._add_config_imports()
+        self._add_config_monkey_patches()
+
+        # Load the input files.
+        self.addToConfig("\n# Load the topology and coordinate files.")
+        self.addToConfig(
+            "\n# We use ParmEd due to issues with the built in AmberPrmtopFile for certain triclinic spaces."
+        )
+        self.addToConfig(
+            f"prm = parmed.load_file('{self._name}.prm7', '{self._name}.rst7')"
+        )
+
+        # Don't use a cut-off if this is a vacuum simulation or if box information
+        # is missing.
+        is_periodic = True
+        self.addToConfig("\n# Initialise the molecular system.")
+        if not has_box or not self._has_water:
+            is_periodic = False
+            self.addToConfig("system = prm.createSystem(nonbondedMethod=NoCutoff,")
+        else:
+            self.addToConfig("system = prm.createSystem(nonbondedMethod=PME,")
+        self.addToConfig("                          nonbondedCutoff=1*nanometer,")
+        self.addToConfig("                          constraints=HBonds)")
+
+        # Get the starting temperature and system pressure.
+        temperature = self._protocol.getStartTemperature().kelvin().value()
+        pressure = self._protocol.getPressure()
+
+        # Add a Monte Carlo barostat if the simulation is at constant pressure.
+        is_const_pressure = False
+        if pressure is not None:
+            # Cannot use a barostat with a non-periodic system.
+            if not is_periodic:
+                _warnings.warn(
+                    "Cannot use a barostat for a vacuum or non-periodic simulation"
+                )
+            else:
+                is_const_pressure = True
+
+                # Convert to bar and get the value.
+                pressure = pressure.bar().value()
+
+                # Create the barostat and add its force to the system.
+                self.addToConfig("\n# Add a barostat to run at constant pressure.")
+                self.addToConfig(
+                    f"barostat = MonteCarloBarostat({pressure}*bar, {temperature}*kelvin)"
+                )
+                if self._is_seeded:
+                    self.addToConfig(f"barostat.setRandomNumberSeed({self._seed})")
+                self.addToConfig("system.addForce(barostat)")
+
+        # Add any position restraints.
+        if self._protocol.getRestraint() is not None:
+            self._add_config_restraints()
+
+            # Add the atom-specific restraints.
+        disp = util.createDisplacement()
+        self.addToConfig(disp)
+        if self._protocol.getUseATMForce():
+            atm = util.createATMForce(index=None)
+            self.addToConfig(atm)
+
+        if self._protocol.getCoreAlignment():
+            alignment = util.createAlignmentForce()
+            self.addToConfig("\n# Add alignment force.")
+            self.addToConfig(alignment)
+        if self._protocol.getCMCMRestraint():
+            CMCM = util.createCOMRestraint()
+            self.addToConfig("\n# Add COM restraint.")
+            self.addToConfig(CMCM)
+
+        # Get the integration time step from the protocol.
+        timestep = self._protocol.getTimeStep().picoseconds().value()
+
+        # Set the integrator.
+        self.addToConfig("\n# Define the integrator.")
+        self.addToConfig(f"integrator = LangevinMiddleIntegrator({temperature}*kelvin,")
+        friction = 1 / self._protocol.getThermostatTimeConstant().picoseconds().value()
+        self.addToConfig(f"                                {friction:.5f}/picosecond,")
+        self.addToConfig(f"                                {timestep}*picoseconds)")
+        if self._is_seeded:
+            self.addToConfig(f"integrator.setRandomNumberSeed({self._seed})")
+
+        # Add the platform information.
+        self._add_config_platform()
+
+        # Set up the simulation object.
+        self.addToConfig("\n# Initialise and configure the simulation object.")
+        self.addToConfig("simulation = Simulation(prm.topology,")
+        self.addToConfig("                        system,")
+        self.addToConfig("                        integrator,")
+        self.addToConfig("                        platform,")
+        self.addToConfig("                        properties)")
+        if self._protocol.getRestraint() is not None:
+            self.addToConfig("simulation.context.setPositions(positions)")
+        else:
+            self.addToConfig("simulation.context.setPositions(prm.positions)")
+        self.addToConfig("if prm.box_vectors is not None:")
+        self.addToConfig("    box_vectors = reducePeriodicBoxVectors(prm.box_vectors)")
+        self.addToConfig("    simulation.context.setPeriodicBoxVectors(*box_vectors)")
+
+        # Set initial velocities from temperature distribution.
+        self.addToConfig("\n# Setting initial system velocities.")
+        self.addToConfig(
+            f"simulation.context.setVelocitiesToTemperature({temperature})"
+        )
+
+        # Work out the number of integration steps.
+        steps = _math.ceil(self._protocol.getRunTime() / self._protocol.getTimeStep())
+
+        # Get the report and restart intervals.
+        report_interval = self._protocol.getReportInterval()
+        restart_interval = self._protocol.getRestartInterval()
+
+        # Cap the intervals at the total number of steps.
+        if report_interval > steps:
+            report_interval = steps
+        if restart_interval > steps:
+            restart_interval = steps
+
+        # Add the reporters.
+        self.addToConfig("\n# Add reporters.")
+        self._add_config_reporters(
+            state_interval=report_interval,
+            traj_interval=restart_interval,
+            is_restart=False,
+        )
+
+        # Now run the simulation.
+        self.addToConfig("\n# Run the simulation.")
+
+        # Constant temperature equilibration.
+        if self._protocol.isConstantTemp():
+            self.addToConfig(f"simulation.step({steps})")
+
+        # Heating / cooling cycle.
+        else:
+            # Adjust temperature every 100 cycles, assuming that there at
+            # least that many cycles.
+            if steps > 100:
+                # Work out the number of temperature cycles.
+                temp_cycles = _math.ceil(steps / 100)
+
+                # Work out the temperature change per cycle.
+                delta_temp = (
+                    self._protocol.getEndTemperature().kelvin().value()
+                    - self._protocol.getStartTemperature().kelvin().value()
+                ) / temp_cycles
+
+                self.addToConfig(f"start_temperature = {temperature}")
+                self.addToConfig(f"for x in range(0, {temp_cycles}):")
+                self.addToConfig(f"    temperature = {temperature} + x*{delta_temp}")
+                self.addToConfig(f"    integrator.setTemperature(temperature*kelvin)")
+                if is_const_pressure:
+                    self.addToConfig(
+                        f"    barostat.setDefaultTemperature(temperature*kelvin)"
+                    )
+                self.addToConfig("    simulation.step(100)")
+            else:
+                # Work out the temperature change per step.
+                delta_temp = (
+                    self._protocol.getEndTemperature().kelvin().value()
+                    - self._protocol.getStartTemperature().kelvin().value()
+                ) / steps
+
+                self.addToConfig(f"start_temperature = {temperature}")
+                self.addToConfig(f"for x in range(0, {steps}):")
+                self.addToConfig(f"    temperature = {temperature} + x*{delta_temp}")
+                self.addToConfig(f"    integrator.setTemperature(temperature*kelvin)")
+                if is_const_pressure:
+                    self.addToConfig(
+                        f"    barostat.setDefaultTemperature(temperature*kelvin)"
+                    )
+                self.addToConfig("    simulation.step(1)")
+
+
+class Anneal(_Process.OpenMM):
+    """A class for pre-production annealing of AToM systems."""
+
+    def __init__(
+        self,
+        system,
+        protocol,
+        exe=None,
+        platform="CUDA",
+        seed=None,
+        work_dir="anneal",
+        property_map={},
+    ):
+        # Validate the protocol.
+        if protocol is not None:
+            from ...Protocol._AToM import AToMAnnealing as _Annealing
+
+            if not isinstance(protocol, _Annealing):
+                raise TypeError(
+                    "'protocol' must be of type 'BioSimSpace.Protocol.AToMEquilibration'"
+                )
+            else:
+                self._protocol = protocol
+        else:
+            # No default protocol due to the need for well-defined rigid cores
+            raise ValueError("A protocol must be specified")
+
+        if protocol.getAnnealValues() is None or protocol.getAnnealNumCycles is None:
+            raise ValueError("Anneal values and cycles must be specified")
+
+        # Use this to set default values for the protocol
         protocol._set_current_index(0)
         super().__init__(
             system=system,
@@ -1067,3 +1497,192 @@ class anneal(_Process.OpenMM):
             seed=seed,
             property_map=property_map,
         )
+
+    def _generate_config(self):
+        util = _AtomUtils(self._protocol)
+        # Clear the existing configuration list.
+        self._config = []
+
+        # Get the "space" property from the user mapping.
+        prop = self._property_map.get("space", "space")
+
+        # Check whether the system contains periodic box information.
+        if prop in self._system._sire_object.propertyKeys():
+            try:
+                # Make sure that we have a periodic box. The system will now have
+                # a default cartesian space.
+                box = self._system._sire_object.property(prop)
+                has_box = box.isPeriodic()
+            except:
+                has_box = False
+        else:
+            _warnings.warn("No simulation box found. Assuming gas phase simulation.")
+            has_box = False
+
+        # Write the OpenMM import statements.
+        self._add_config_imports()
+        self._add_config_monkey_patches()
+
+        # Add standard openMM config
+        self.addToConfig("from glob import glob")
+        self.addToConfig("import math")
+        self.addToConfig("import os")
+        self.addToConfig("import shutil")
+
+        # Load the input files.
+        self.addToConfig("\n# Load the topology and coordinate files.")
+        self.addToConfig(
+            "\n# We use ParmEd due to issues with the built in AmberPrmtopFile for certain triclinic spaces."
+        )
+        self.addToConfig(
+            f"prm = parmed.load_file('{self._name}.prm7', '{self._name}.rst7')"
+        )
+
+        # Don't use a cut-off if this is a vacuum simulation or if box information
+        # is missing.
+        is_periodic = True
+        self.addToConfig("\n# Initialise the molecular system.")
+        if not has_box or not self._has_water:
+            is_periodic = False
+            self.addToConfig("system = prm.createSystem(nonbondedMethod=NoCutoff,")
+        else:
+            self.addToConfig("system = prm.createSystem(nonbondedMethod=PME,")
+        self.addToConfig("                          nonbondedCutoff=1*nanometer,")
+        self.addToConfig("                          constraints=HBonds)")
+
+        # Get the starting temperature and system pressure.
+        temperature = self._protocol.getTemperature().kelvin().value()
+        pressure = self._protocol.getPressure()
+
+        # Add a Monte Carlo barostat if the simulation is at constant pressure.
+        is_const_pressure = False
+        if pressure is not None:
+            # Cannot use a barostat with a non-periodic system.
+            if not is_periodic:
+                _warnings.warn(
+                    "Cannot use a barostat for a vacuum or non-periodic simulation"
+                )
+            else:
+                is_const_pressure = True
+
+                # Convert to bar and get the value.
+                pressure = pressure.bar().value()
+
+                # Create the barostat and add its force to the system.
+                self.addToConfig("\n# Add a barostat to run at constant pressure.")
+                self.addToConfig(
+                    f"barostat = MonteCarloBarostat({pressure}*bar, {temperature}*kelvin)"
+                )
+                if self._is_seeded:
+                    self.addToConfig(f"barostat.setRandomNumberSeed({self._seed})")
+                self.addToConfig("system.addForce(barostat)")
+
+        # Add any position restraints.
+        if self._protocol.getRestraint() is not None:
+            self._add_config_restraints()
+
+        # Get the integration time step from the protocol.
+        timestep = self._protocol.getTimeStep().picoseconds().value()
+
+        # Set the integrator.
+        self.addToConfig("\n# Define the integrator.")
+        self.addToConfig(f"integrator = LangevinMiddleIntegrator({temperature}*kelvin,")
+        friction = 1 / self._protocol.getThermostatTimeConstant().picoseconds().value()
+        self.addToConfig(f"                                {friction:.5f}/picosecond,")
+        self.addToConfig(f"                                {timestep}*picoseconds)")
+        if self._is_seeded:
+            self.addToConfig(f"integrator.setRandomNumberSeed({self._seed})")
+
+        # Add the platform information.
+        self._add_config_platform()
+
+        # Use utils to create AToM-specific forces
+        # Atom force is the only window-dependent force
+        disp = util.createDisplacement()
+        self.addToConfig(disp)
+        self.addToConfig("\n# Add AToM Force.")
+        self.addToConfig(util.createATMForce(self._protocol._get_window_index()))
+        if self._protocol.getCoreAlignment():
+            alignment = util.createAlignmentForce()
+            self.addToConfig("\n# Add alignment force.")
+            self.addToConfig(alignment)
+
+        if self._protocol.getCMCMRestraint():
+            CMCM = util.createCOMRestraint()
+            self.addToConfig("\n# Add COM restraint.")
+            self.addToConfig(CMCM)
+
+        self.addToConfig("\n# Initialise and configure the simulation object.")
+        self.addToConfig("simulation = Simulation(prm.topology,")
+        self.addToConfig("                        system,")
+        self.addToConfig("                        integrator,")
+        self.addToConfig("                        platform,")
+        self.addToConfig("                        properties)")
+        if self._protocol.getRestraint() is not None:
+            self.addToConfig("simulation.context.setPositions(positions)")
+        else:
+            self.addToConfig("simulation.context.setPositions(prm.positions)")
+        self.addToConfig("if prm.box_vectors is not None:")
+        self.addToConfig("    box_vectors = reducePeriodicBoxVectors(prm.box_vectors)")
+        self.addToConfig("    simulation.context.setPeriodicBoxVectors(*box_vectors)")
+
+        # Set initial velocities from temperature distribution.
+        self.addToConfig("\n# Setting initial system velocities.")
+        self.addToConfig(
+            f"simulation.context.setVelocitiesToTemperature({temperature})"
+        )
+
+        # Check for a restart file and load the simulation state.
+        is_restart, step = self._add_config_restart()
+
+        # Work out the number of integration steps.
+        total_steps = _math.ceil(
+            self._protocol.getRunTime() / self._protocol.getTimeStep()
+        )
+
+        # Subtract the current number of steps.
+        steps = total_steps - step
+
+        # Exit if the simulation has already finished.
+        if steps <= 0:
+            print("The simulation has already finished!")
+            return
+
+        # Inform user that a restart was loaded.
+        self.addToConfig("\n# Print restart information.")
+        self.addToConfig("if is_restart:")
+        self.addToConfig(f"    steps = {total_steps}")
+        self.addToConfig("    percent_complete = 100 * (step / steps)")
+        self.addToConfig("    print('Loaded state from an existing simulation.')")
+        self.addToConfig("    print(f'Simulation is {percent_complete}% complete.')")
+
+        # Get the report and restart intervals.
+        report_interval = self._protocol.getReportInterval()
+        restart_interval = self._protocol.getRestartInterval()
+
+        # Cap the intervals at the total number of steps.
+        if report_interval > steps:
+            report_interval = steps
+        if restart_interval > steps:
+            restart_interval = steps
+
+        # Add the reporters.
+        self.addToConfig("\n# Add reporters.")
+        self._add_config_reporters(
+            state_interval=report_interval,
+            traj_interval=restart_interval,
+            is_restart=is_restart,
+        )
+
+        # Work out the total simulation time in picoseconds.
+        run_time = steps * timestep
+
+        # Work out the number of cycles in 100 picosecond intervals.
+        cycles = _math.ceil(run_time / 100)
+
+        # Work out the number of steps per cycle.
+        steps_per_cycle = int(steps / cycles)
+
+        # get annealing protocol from atom utils
+        annealing_protocol = util.createAnnealingProtocol()
+        self.addToConfig(annealing_protocol)
