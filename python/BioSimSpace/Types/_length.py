@@ -87,9 +87,8 @@ class Length(_Type):
     # Null type unit for avoiding issue printing configargparse help.
     _default_unit = "ANGSTROM"
 
-    # The dimension mask:
-    #     Angle, Charge, Length, Mass, Quantity, Temperature, Time
-    _dimensions = (0, 0, 1, 0, 0, 0, 0)
+    # The dimension mask.
+    _dimensions = tuple(list(_supported_units.values())[0].dimensions())
 
     def __init__(self, *args):
         """
@@ -194,29 +193,6 @@ class Length(_Type):
 
         # Multiplication is commutative: a*b = b*a
         return self.__mul__(other)
-
-    def __pow__(self, other):
-        """Power operator."""
-
-        if not isinstance(other, int):
-            raise ValueError("We can only raise to the power of integer values.")
-
-        # No change.
-        if other == 1:
-            return self
-
-        # Area.
-        if other == 2:
-            mag = self.angstroms().value() ** 2
-            return _Area(mag, "A2")
-
-        # Volume.
-        if other == 3:
-            mag = self.angstroms().value() ** 3
-            return _Volume(mag, "A3")
-
-        else:
-            return super().__pow__(other)
 
     def meters(self):
         """

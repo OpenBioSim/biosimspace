@@ -68,9 +68,8 @@ class Energy(_Type):
     # Null type unit for avoiding issue printing configargparse help.
     _default_unit = "KILO CALORIES PER MOL"
 
-    # The dimension mask:
-    #     Angle, Charge, Length, Mass, Quantity, Temperature, Time
-    _dimensions = (0, 0, 2, 1, -1, 0, -2)
+    # The dimension mask.
+    _dimensions = tuple(list(_supported_units.values())[0].dimensions())
 
     def __init__(self, *args):
         """

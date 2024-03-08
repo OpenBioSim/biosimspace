@@ -60,9 +60,8 @@ class Temperature(_Type):
     # Null type unit for avoiding issue printing configargparse help.
     _default_unit = "KELVIN"
 
-    # The dimension mask:
-    #     Angle, Charge, Length, Mass, Quantity, Temperature, Time
-    _dimensions = (0, 0, 0, 0, 0, 1, 0)
+    # The dimension mask.
+    _dimensions = tuple(list(_supported_units.values())[0].dimensions())
 
     def __init__(self, *args):
         """
@@ -444,13 +443,13 @@ class Temperature(_Type):
         if isinstance(sire_unit, _SireUnits.GeneralUnit):
             # Create a mask for the dimensions of the object.
             dimensions = (
-                sire_unit.ANGLE(),
-                sire_unit.CHARGE(),
-                sire_unit.LENGTH(),
                 sire_unit.MASS(),
-                sire_unit.QUANTITY(),
-                sire_unit.TEMPERATURE(),
+                sire_unit.LENGTH(),
                 sire_unit.TIME(),
+                sire_unit.CHARGE(),
+                sire_unit.TEMPERATURE(),
+                sire_unit.QUANTITY(),
+                sire_unit.ANGLE(),
             )
 
             # Make sure the dimensions match.

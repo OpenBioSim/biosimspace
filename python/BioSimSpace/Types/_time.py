@@ -96,9 +96,8 @@ class Time(_Type):
     # Null type unit for avoiding issue printing configargparse help.
     _default_unit = "NANOSECOND"
 
-    # The dimension mask:
-    #     Angle, Charge, Length, Mass, Quantity, Temperature, Time
-    _dimensions = (0, 0, 0, 0, 0, 0, 1)
+    # The dimension mask.
+    _dimensions = tuple(list(_supported_units.values())[0].dimensions())
 
     def __init__(self, *args):
         """
