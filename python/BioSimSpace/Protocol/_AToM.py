@@ -2224,7 +2224,7 @@ class AToMProduction(_AToM):
         self.setAlpha(alpha)
 
         # Store the uh values.
-        self.setuh(uh)
+        self.setUh(uh)
 
         # Store the W0 values.
         self.setW0(W0)
@@ -2700,7 +2700,7 @@ class AToMProduction(_AToM):
         """
         return self._uh
 
-    def setuh(self, uh):
+    def setUh(self, uh):
         """
         Set the uh values.
 
