@@ -440,48 +440,39 @@ class GeneralUnit(_Type):
                 % (self.__class__.__qualname__, other.__class__.__qualname__)
             )
 
-        is_inverse = False
+        import math
+        import decimal
 
-        if isinstance(other, float):
-            if other > 1:
-                if not other.is_integer():
-                    raise ValueError("float exponent must be integer valued.")
-            else:
-                is_inverse = True
-                other = 1 / other
-                if not other.is_integer():
-                    raise ValueError(
-                        "Divisor in fractional exponent must be integer valued."
-                    )
-                other = int(other)
+        # Convert to a decimal representation.
+        d = decimal.Decimal(f"{other:.2f}")
+        numerator, denominator = d.as_integer_ratio()
 
-        if other == 0:
+        if numerator == 0:
             return GeneralUnit(self._sire_unit / self._sire_unit)
 
-        # Get the current unit dimemsions.
-        dims = self._sire_unit.dimensions()
+        # Get the existing unit dimensions.
+        dims = self.dimensions()
 
-        # Check that the exponent is a factor of all the unit dimensions.
-        if is_inverse:
-            for dim in dims:
-                if dim % other != 0:
-                    raise ValueError(
-                        "The divisor of the exponent must be a factor of all the unit dimensions."
-                    )
+        # First raise to the power of the numerator.
+        new_dims = [int(dim * numerator) for dim in dims]
 
-        if is_inverse:
-            new_dims = [int(dim / other) for dim in dims]
-        else:
-            new_dims = [int(dim * other) for dim in dims]
+        # Compute the new value.
+        value = self.value() ** other
 
-        if is_inverse:
-            value = self.value() ** (1 / other)
-        else:
-            value = self.value() ** other
+        if denominator != 1:
+            # Now check that the denominator is a factor of all the unit dimensions, within
+            # the accuracy of the decimal representation.
+            for dim in new_dims:
+                if dim % denominator != 0:
+                    small = min(dim, denominator)
+                    big = max(dim, denominator)
+                    if small / big < 0.99:
+                        raise ValueError(
+                            "The exponent must be a factor of all the unit dimensions."
+                        )
 
-        # Invert the value.
-        if other < 0 and not is_inverse:
-            value = 1 / value
+            # Divide the dimensions by the denominator.
+            new_dims = [math.ceil(dim / denominator) for dim in new_dims]
 
         # Return a new GeneralUnit object.
         return GeneralUnit(_GeneralUnit(value, new_dims))
