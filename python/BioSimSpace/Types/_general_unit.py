@@ -441,7 +441,6 @@ class GeneralUnit(_Type):
             )
 
         is_inverse = False
-        offset = 0
 
         if isinstance(other, float):
             if other > 1:
