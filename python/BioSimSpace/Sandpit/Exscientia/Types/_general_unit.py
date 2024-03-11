@@ -261,11 +261,21 @@ class GeneralUnit(_Type):
             temp = self._from_string(other)
             return self + temp
 
+        # Addition of a zero-valued integer or float.
+        elif isinstance(other, (int, float)) and other == 0:
+            return self
+
         else:
             raise TypeError(
                 "unsupported operand type(s) for +: '%s' and '%s'"
                 % (self.__class__.__qualname__, other.__class__.__qualname__)
             )
+
+    def __radd__(self, other):
+        """Addition operator."""
+
+        # Addition is commutative: a+b = b+a
+        return self.__add__(other)
 
     def __sub__(self, other):
         """Subtraction operator."""
@@ -275,16 +285,26 @@ class GeneralUnit(_Type):
             temp = self._sire_unit - other._to_sire_unit()
             return GeneralUnit(temp)
 
-        # Addition of a string.
+        # Subtraction of a string.
         elif isinstance(other, str):
             temp = self._from_string(other)
             return self - temp
+
+        # Subtraction of a zero-valued integer or float.
+        elif isinstance(other, (int, float)) and other == 0:
+            return self
 
         else:
             raise TypeError(
                 "unsupported operand type(s) for -: '%s' and '%s'"
                 % (self.__class__.__qualname__, other.__class__.__qualname__)
             )
+
+    def __rsub__(self, other):
+        """Subtraction operator."""
+
+        # Subtraction is not commutative: a-b != b-a
+        return -self.__sub__(other)
 
     def __mul__(self, other):
         """Multiplication operator."""
