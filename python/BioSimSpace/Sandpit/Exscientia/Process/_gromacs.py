@@ -407,6 +407,8 @@ class Gromacs(_process.Process):
                         self._restraint.toString(
                             engine="GROMACS",
                             perturbation_type=self._protocol.getPerturbationType(),
+                            restraint_lambda="restraint"
+                            in self._protocol.getLambda(type="series"),
                         )
                     )
 

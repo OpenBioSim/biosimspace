@@ -167,57 +167,87 @@ def test_restraints(perturbable_system, restraint):
     has_gromacs is False or has_pyarrow is False,
     reason="Requires GROMACS and pyarrow to be installed.",
 )
-def test_write_restraint(system, tmp_path):
-    """Test if the restraint has been written in a way that could be processed
-    correctly.
-    """
-    ligand = ligand = BSS.IO.readMolecules(
-        [f"{url}/ligand01.prm7.bz2", f"{url}/ligand01.rst7.bz2"]
-    ).getMolecule(0)
-    decoupled_ligand = decouple(ligand)
-    l1 = decoupled_ligand.getAtoms()[0]
-    l2 = decoupled_ligand.getAtoms()[1]
-    l3 = decoupled_ligand.getAtoms()[2]
-    ligand_2 = BSS.IO.readMolecules(
-        [f"{url}/ligand04.prm7.bz2", f"{url}/ligand04.rst7.bz2"]
-    ).getMolecule(0)
-    r1 = ligand_2.getAtoms()[0]
-    r2 = ligand_2.getAtoms()[1]
-    r3 = ligand_2.getAtoms()[2]
-    system = (decoupled_ligand + ligand_2).toSystem()
+class TestRestraint:
+    @pytest.fixture(scope="class")
+    def setup(self):
+        ligand = BSS.IO.readMolecules(
+            [f"{url}/ligand01.prm7.bz2", f"{url}/ligand01.rst7.bz2"]
+        ).getMolecule(0)
+        decoupled_ligand = decouple(ligand)
+        l1 = decoupled_ligand.getAtoms()[0]
+        l2 = decoupled_ligand.getAtoms()[1]
+        l3 = decoupled_ligand.getAtoms()[2]
+        ligand_2 = BSS.IO.readMolecules(
+            [f"{url}/ligand04.prm7.bz2", f"{url}/ligand04.rst7.bz2"]
+        ).getMolecule(0)
+        r1 = ligand_2.getAtoms()[0]
+        r2 = ligand_2.getAtoms()[1]
+        r3 = ligand_2.getAtoms()[2]
+        system = (decoupled_ligand + ligand_2).toSystem()
+        restraint_dict = {
+            "anchor_points": {
+                "r1": r1,
+                "r2": r2,
+                "r3": r3,
+                "l1": l1,
+                "l2": l2,
+                "l3": l3,
+            },
+            "equilibrium_values": {
+                "r0": 7.84 * angstrom,
+                "thetaA0": 0.81 * radian,
+                "thetaB0": 1.74 * radian,
+                "phiA0": 2.59 * radian,
+                "phiB0": -1.20 * radian,
+                "phiC0": 2.63 * radian,
+            },
+            "force_constants": {
+                "kr": 10 * kcal_per_mol / angstrom**2,
+                "kthetaA": 10 * kcal_per_mol / (radian * radian),
+                "kthetaB": 10 * kcal_per_mol / (radian * radian),
+                "kphiA": 10 * kcal_per_mol / (radian * radian),
+                "kphiB": 10 * kcal_per_mol / (radian * radian),
+                "kphiC": 10 * kcal_per_mol / (radian * radian),
+            },
+        }
+        restraint = Restraint(
+            system, restraint_dict, 300 * kelvin, restraint_type="Boresch"
+        )
+        return system, restraint
 
-    restraint_dict = {
-        "anchor_points": {"r1": r1, "r2": r2, "r3": r3, "l1": l1, "l2": l2, "l3": l3},
-        "equilibrium_values": {
-            "r0": 7.84 * angstrom,
-            "thetaA0": 0.81 * radian,
-            "thetaB0": 1.74 * radian,
-            "phiA0": 2.59 * radian,
-            "phiB0": -1.20 * radian,
-            "phiC0": 2.63 * radian,
-        },
-        "force_constants": {
-            "kr": 10 * kcal_per_mol / angstrom**2,
-            "kthetaA": 10 * kcal_per_mol / (radian * radian),
-            "kthetaB": 10 * kcal_per_mol / (radian * radian),
-            "kphiA": 10 * kcal_per_mol / (radian * radian),
-            "kphiB": 10 * kcal_per_mol / (radian * radian),
-            "kphiC": 10 * kcal_per_mol / (radian * radian),
-        },
-    }
-    restraint = Restraint(
-        system, restraint_dict, 300 * kelvin, restraint_type="Boresch"
-    )
+    def test_regular_protocol(self, setup, tmp_path_factory):
+        """Test if the restraint has been written in a way that could be processed
+        correctly.
+        """
+        tmp_path = tmp_path_factory.mktemp("out")
+        system, restraint = setup
+        # Create a short production protocol.
+        protocol = BSS.Protocol.FreeEnergy(
+            runtime=BSS.Types.Time(0.0001, "nanoseconds"), perturbation_type="full"
+        )
 
-    # Create a short production protocol.
-    protocol = BSS.Protocol.FreeEnergy(
-        runtime=BSS.Types.Time(0.0001, "nanoseconds"), perturbation_type="full"
-    )
+        # Run the process and check that it finishes without error.
+        run_process(system, protocol, restraint=restraint, work_dir=str(tmp_path))
+        with open(tmp_path / "test.top", "r") as f:
+            assert "intermolecular_interactions" in f.read()
 
-    # Run the process and check that it finishes without error.
-    run_process(system, protocol, restraint=restraint, work_dir=str(tmp_path))
-    with open(tmp_path / "test.top", "r") as f:
-        assert "intermolecular_interactions" in f.read()
+    def test_restraint_lambda(self, setup, tmp_path_factory):
+        """Test if the restraint has been written correctly when restraint lambda is evoked."""
+        tmp_path = tmp_path_factory.mktemp("out")
+        system, restraint = setup
+        # Create a short production protocol.
+        protocol = BSS.Protocol.FreeEnergy(
+            runtime=BSS.Types.Time(0.0001, "nanoseconds"),
+            lam=pd.Series(data={"bonded": 0.0, "restraint": 0.0}),
+            lam_vals=pd.DataFrame(data={"bonded": [0.0, 1.0], "restraint": [0.0, 1.0]}),
+        )
+
+        # Run the process and check that it finishes without error.
+        run_process(system, protocol, restraint=restraint, work_dir=str(tmp_path))
+        with open(tmp_path / "test.top", "r") as f:
+            assert "dihedral_restraints" in f.read()
+        with open(tmp_path / "test.mdp", "r") as f:
+            assert "restraint-lambdas" in f.read()
 
 
 def run_process(system, protocol, **kwargs):

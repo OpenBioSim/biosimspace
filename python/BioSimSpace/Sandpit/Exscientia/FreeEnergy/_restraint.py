@@ -380,7 +380,7 @@ class Restraint:
         # Store a copy of solvated system.
         self._system = system.copy()
 
-    def _gromacs_boresch(self, perturbation_type=None):
+    def _gromacs_boresch(self, perturbation_type=None, restraint_lambda=False):
         """Format the Gromacs string for boresch restraint."""
 
         # Format the atoms into index list
@@ -398,9 +398,18 @@ class Restraint:
             return " ".join(formated_index)
 
         parameters_string = "{eq0:<10} {fc0:<10} {eq1:<10} {fc1:<10}"
+        # The Gromacs dihedral restraints has the format of
+        # phi dphi fc and we don't want dphi for the restraint, it is hence zero
+        dihedral_restraints_parameters_string = (
+            "{eq0:<10} 0.00 {fc0:<10} {eq1:<10} 0.00 {fc1:<10}"
+        )
 
         # Format the parameters for the bonds
         def format_bond(equilibrium_values, force_constants):
+            """
+            Format the bonds equilibrium values and force constant
+            in into the Gromacs topology format.
+            """
             converted_equ_val = (
                 self._restraint_dict["equilibrium_values"][equilibrium_values]
                 / _nanometer
@@ -416,14 +425,33 @@ class Restraint:
             )
 
         # Format the parameters for the angles and dihedrals
-        def format_angle(equilibrium_values, force_constants):
+        def format_angle(equilibrium_values, force_constants, restraint_lambda):
+            """
+            Format the angle equilibrium values and force constant
+            in into the Gromacs topology format.
+
+            For Boresch restraint, we might want the dihedral to be stored
+            under the [ dihedral_restraints ] and controlled by restraint-lambdas.
+            Instead of under the [ dihedrals ] directive and controlled by bonded-lambdas.
+
+            However, for dihedrals, the [ dihedral_restraints ] has a different function type
+            compared with [ dihedrals ] and more values for the force constant, so we need
+            to format them differently.
+
+            When restraint_lambda is True, the dihedrals will be stored in the dihedral_restraints.
+            """
             converted_equ_val = (
                 self._restraint_dict["equilibrium_values"][equilibrium_values] / _degree
             )
             converted_fc = self._restraint_dict["force_constants"][force_constants] / (
                 _kj_per_mol / (_radian * _radian)
             )
-            return parameters_string.format(
+            par_string = (
+                dihedral_restraints_parameters_string
+                if restraint_lambda
+                else parameters_string
+            )
+            return par_string.format(
                 eq0="{:.3f}".format(converted_equ_val),
                 fc0="{:.2f}".format(0),
                 eq1="{:.3f}".format(converted_equ_val),
@@ -444,14 +472,28 @@ class Restraint:
             return master_string.format(
                 index=format_index(key_list),
                 func_type=1,
-                parameters=format_angle(equilibrium_values, force_constants),
+                parameters=format_angle(
+                    equilibrium_values, force_constants, restraint_lambda=False
+                ),
             )
 
-        def write_dihedral(key_list, equilibrium_values, force_constants):
+        def write_dihedral(
+            key_list, equilibrium_values, force_constants, restraint_lambda
+        ):
+            if restraint_lambda:
+                # In [ dihedral_restraints ], function type 1
+                # means the dihedral is restrained harmonically.
+                func_type = 1
+            else:
+                # In [ dihedrals ], function type 2
+                # means the dihedral is restrained harmonically.
+                func_type = 2
             return master_string.format(
                 index=format_index(key_list),
-                func_type=2,
-                parameters=format_angle(equilibrium_values, force_constants),
+                func_type=func_type,
+                parameters=format_angle(
+                    equilibrium_values, force_constants, restraint_lambda
+                ),
             )
 
         # Writing the string
@@ -473,16 +515,43 @@ class Restraint:
         # Angles: r1-l1-l2 (thetaB0, kthetaB)
         output.append(write_angle(("r1", "l1", "l2"), "thetaB0", "kthetaB"))
 
-        output.append("[ dihedrals ]")
-        output.append(
-            "; ai         aj         ak         al      type phiA       fcA        phiB       fcB"
-        )
+        if restraint_lambda:
+            output.append("[ dihedral_restraints ]")
+            output.append(
+                "; ai         aj         ak         al      type phiA       dphiA fcA       phiB       dphiB  fcB"
+            )
+        else:
+            output.append("[ dihedrals ]")
+            output.append(
+                "; ai         aj         ak         al      type phiA       fcA        phiB       fcB"
+            )
         # Dihedrals: r3-r2-r1-l1 (phiA0, kphiA)
-        output.append(write_dihedral(("r3", "r2", "r1", "l1"), "phiA0", "kphiA"))
+        output.append(
+            write_dihedral(
+                ("r3", "r2", "r1", "l1"),
+                "phiA0",
+                "kphiA",
+                restraint_lambda=restraint_lambda,
+            )
+        )
         # Dihedrals: r2-r1-l1-l2 (phiB0, kphiB)
-        output.append(write_dihedral(("r2", "r1", "l1", "l2"), "phiB0", "kphiB"))
+        output.append(
+            write_dihedral(
+                ("r2", "r1", "l1", "l2"),
+                "phiB0",
+                "kphiB",
+                restraint_lambda=restraint_lambda,
+            )
+        )
         # Dihedrals: r1-l1-l2-l3 (phiC0, kphiC)
-        output.append(write_dihedral(("r1", "l1", "l2", "l3"), "phiC0", "kphiC"))
+        output.append(
+            write_dihedral(
+                ("r1", "l1", "l2", "l3"),
+                "phiC0",
+                "kphiC",
+                restraint_lambda=restraint_lambda,
+            )
+        )
 
         return "\n".join(output)
 
@@ -702,7 +771,7 @@ class Restraint:
             )
             return standard_restr_string + permanent_restr_string[:-2] + "}"
 
-    def toString(self, engine, perturbation_type=None):
+    def toString(self, engine, perturbation_type=None, restraint_lambda=False):
         """
         The method for convert the restraint to a format that could be used
         by MD Engines.
@@ -721,25 +790,28 @@ class Restraint:
             turned on when the perturbation type is "restraint", but for which the permanent
             distance restraint is always active if the perturbation type is "release_restraint"
             (or any other perturbation type).
+        restraint_lambda : str, optional, default=False
+            Whether to use restraint_lambda in Gromacs, this would move the dihedral restraints
+            from [ dihedrals ], which is controlled by the bonded-lambda to
+            [ dihedral_restraints ], which is controlled by restraint-lambda.
         """
-        to_str_functions = {
-            "boresch": {"gromacs": self._gromacs_boresch, "somd": self._somd_boresch},
-            "multiple_distance": {
-                "gromacs": self._gromacs_multiple_distance,
-                "somd": self._somd_multiple_distance,
-            },
-        }
-
         engine = engine.strip().lower()
-        try:
-            str_fn = to_str_functions[self._restraint_type][engine]
-        except KeyError:
-            raise NotImplementedError(
-                f"Restraint type {self._restraint_type} not implemented "
-                f"yet for {engine}."
-            )
-
-        return str_fn(perturbation_type)
+        match (self._restraint_type, engine):
+            case "boresch", "gromacs":
+                return self._gromacs_boresch(
+                    perturbation_type, restraint_lambda=restraint_lambda
+                )
+            case "boresch", "somd":
+                return self._somd_boresch(perturbation_type)
+            case "multiple_distance", "gromacs":
+                return self._gromacs_multiple_distance(perturbation_type)
+            case "multiple_distance", "somd":
+                return self._somd_multiple_distance(perturbation_type)
+            case _:
+                raise NotImplementedError(
+                    f"Restraint type {self._restraint_type} not implemented "
+                    f"yet for {engine}."
+                )
 
     def getCorrection(self, method="analytical"):
         """

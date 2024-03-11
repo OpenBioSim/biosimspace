@@ -171,7 +171,9 @@ class TestGromacsOutputBoresch:
         assert aj == "2"
         assert ak == "1"
         assert al == "1496"
+        assert type == "2"
         assert phiA == "148.396"
+        assert kA == "0.00"
         assert phiB == "148.396"
         assert kB == "41.84"
         ai, aj, ak, al, type, phiA, kA, phiB, kB = Topology[11].split()
@@ -184,6 +186,30 @@ class TestGromacsOutputBoresch:
         assert aj == "1496"
         assert ak == "1497"
         assert al == "1498"
+
+
+class TestGromacsOutputBoreschRestraintLambda(TestGromacsOutputBoresch):
+    @staticmethod
+    @pytest.fixture(scope="class")
+    def Topology(boresch_restraint):
+        return boresch_restraint.toString(
+            engine="Gromacs", restraint_lambda=True
+        ).split("\n")
+
+    def test_dihedral(self, Topology):
+        assert "dihedral_restraints" in Topology[8]
+        ai, aj, ak, al, type, phiA, dphiA, kA, phiB, dphiB, kB = Topology[10].split()
+        assert ai == "3"
+        assert aj == "2"
+        assert ak == "1"
+        assert al == "1496"
+        assert type == "1"
+        assert phiA == "148.396"
+        assert dphiA == "0.00"
+        assert dphiB == "0.00"
+        assert kA == "0.00"
+        assert phiB == "148.396"
+        assert kB == "41.84"
 
 
 class TestSomdOutputBoresch:
