@@ -440,39 +440,29 @@ class GeneralUnit(_Type):
                 % (self.__class__.__qualname__, other.__class__.__qualname__)
             )
 
-        import math
-        import decimal
-
-        # Convert to a decimal representation.
-        d = decimal.Decimal(f"{other:.2f}")
-        numerator, denominator = d.as_integer_ratio()
-
-        if numerator == 0:
+        if other == 0:
             return GeneralUnit(self._sire_unit / self._sire_unit)
+
+        # Convert to float.
+        other = float(other)
 
         # Get the existing unit dimensions.
         dims = self.dimensions()
 
-        # First raise to the power of the numerator.
-        new_dims = [int(dim * numerator) for dim in dims]
+        # Compute the new dimensions, rounding floats to 16 decimal places.
+        new_dims = [round(dim * other, 16) for dim in dims]
+
+        # Make sure the new dimensions are integers.
+        if not all(dim.is_integer() for dim in new_dims):
+            raise ValueError(
+                "The exponent must be a factor of all the unit dimensions."
+            )
+
+        # Convert to integers.
+        new_dims = [int(dim) for dim in new_dims]
 
         # Compute the new value.
         value = self.value() ** other
-
-        if denominator != 1:
-            # Now check that the denominator is a factor of all the unit dimensions, within
-            # the accuracy of the decimal representation.
-            for dim in new_dims:
-                if dim % denominator != 0:
-                    small = min(dim, denominator)
-                    big = max(dim, denominator)
-                    if small / big < 0.99:
-                        raise ValueError(
-                            "The exponent must be a factor of all the unit dimensions."
-                        )
-
-            # Divide the dimensions by the denominator.
-            new_dims = [math.ceil(dim / denominator) for dim in new_dims]
 
         # Return a new GeneralUnit object.
         return GeneralUnit(_GeneralUnit(value, new_dims))
