@@ -290,13 +290,13 @@ class Restraint:
                             "'BioSimSpace.Types.Length'"
                         )
                 if not single_restraint_dict["kr"].dimensions() == (
-                    0,
-                    0,
-                    0,
                     1,
-                    -1,
                     0,
                     -2,
+                    0,
+                    0,
+                    -1,
+                    0,
                 ):
                     raise ValueError(
                         "distance_restraint_dict['kr'] must be of type "
