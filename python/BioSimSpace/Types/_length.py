@@ -338,7 +338,8 @@ class Length(_Type):
                 "Supported units are: '%s'" % list(self._supported_units.keys())
             )
 
-    def _validate_unit(self, unit):
+    @classmethod
+    def _validate_unit(cls, unit):
         """Validate that the unit are supported."""
 
         # Strip whitespace and convert to upper case.
@@ -352,13 +353,13 @@ class Length(_Type):
             unit = "ANGS" + unit[3:]
 
         # Check that the unit is supported.
-        if unit in self._supported_units:
+        if unit in cls._supported_units:
             return unit
-        elif unit in self._abbreviations:
-            return self._abbreviations[unit]
+        elif unit in cls._abbreviations:
+            return cls._abbreviations[unit]
         else:
             raise ValueError(
-                "Supported units are: '%s'" % list(self._supported_units.keys())
+                "Supported units are: '%s'" % list(cls._supported_units.keys())
             )
 
     @staticmethod

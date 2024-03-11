@@ -391,7 +391,8 @@ class Temperature(_Type):
                 "Supported units are: '%s'" % list(self._supported_units.keys())
             )
 
-    def _validate_unit(self, unit):
+    @classmethod
+    def _validate_unit(cls, unit):
         """Validate that the unit are supported."""
 
         # Strip whitespace and convert to upper case.
@@ -404,16 +405,16 @@ class Temperature(_Type):
         unit = unit.replace("DEG", "")
 
         # Check that the unit is supported.
-        if unit in self._supported_units:
+        if unit in cls._supported_units:
             return unit
-        elif unit in self._abbreviations:
-            return self._abbreviations[unit]
+        elif unit in cls._abbreviations:
+            return cls._abbreviations[unit]
         elif len(unit) == 0:
             raise ValueError(f"Unit is not given. You must supply the unit.")
         else:
             raise ValueError(
                 "Unsupported unit '%s'. Supported units are: '%s'"
-                % (unit, list(self._supported_units.keys()))
+                % (unit, list(cls._supported_units.keys()))
             )
 
     def _to_sire_unit(self):
