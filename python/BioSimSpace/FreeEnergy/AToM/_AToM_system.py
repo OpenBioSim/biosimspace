@@ -86,6 +86,7 @@ class makeSystem:
             The diplacement between the bound and free ligands.
             If a float is given, BioSimSpace will attempt to find the ideal vector along which to displace the ligand by the given magnitude.
             If a list is given, the vector will be used directly.
+            Lengths should always be given in angstroms.
         protein_index : int
             The index of the protein in the system (only needed if passing in a pre-prepared system).
         ligand1_index : int
@@ -1771,6 +1772,8 @@ class _Production(_Process.OpenMM):
 
         # Use utils to create AToM-specific forces
         # Atom force is the only window-dependent force
+        disp = util.createDisplacement()
+        self.addToConfig(disp)
         self.addToConfig("\n# Add AToM Force.")
         self.addToConfig(util.createATMForce(self._protocol._get_window_index()))
         if self._protocol.getCoreAlignment():

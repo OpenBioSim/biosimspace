@@ -41,13 +41,13 @@ class _AToMUtils:
         self.data = self.protocol.getData()
 
     def getAlignmentConstants(self):
-        self.alignment_k_distance = self.protocol.getAlignKfSep()
-        self.alignment_k_theta = self.protocol.getAlignKTheta()
-        self.alignment_k_psi = self.protocol.getAlignKPsi()
+        self.alignment_k_distance = self.protocol.getAlignKfSep().value()
+        self.alignment_k_theta = self.protocol.getAlignKTheta().value()
+        self.alignment_k_psi = self.protocol.getAlignKPsi().value()
 
     def getCMConstants(self):
-        self.cm_kf = self.protocol.getCMKf()
-        self.cm_tol = self.protocol.getCMTol()
+        self.cm_kf = self.protocol.getCMKf().value()
+        self.cm_tol = self.protocol.getCMTol().value()
 
     def findAbsoluteCoreIndices(self):
         import numpy as np
@@ -82,26 +82,26 @@ class _AToMUtils:
     def getATMForceConstants(self, index=None):
         self.lig1_atoms = self.getLigand1AtomsAsList()
         self.lig2_atoms = self.getLigand2AtomsAsList()
-        self.SCUmax = self.protocol.getSCUmax()
-        self.SCU0 = self.protocol.getSCU0()
-        self.SCa = self.protocol.getSCa()
+        self.SCUmax = self.protocol.getSCUmax().value()
+        self.SCU0 = self.protocol.getSCU0().value()
+        self.SCa = self.protocol.getSCa().value()
         if isinstance(self.protocol, _Protocol.AToMProduction):
             if index is None:
                 raise ValueError("Index must be set for AToMProduction protocol")
             self.lambda1 = self.protocol.getLambda1()[index]
             self.lambda2 = self.protocol.getLambda2()[index]
-            self.alpha = self.protocol.getAlpha()[index]
-            self.uh = self.protocol.getUh()[index]
-            self.w0 = self.protocol.getW0()[index]
+            self.alpha = self.protocol.getAlpha()[index].value()
+            self.uh = self.protocol.getUh()[index].value()
+            self.w0 = self.protocol.getW0()[index].value()
             self.direction = self.protocol.getDirections()[index]
         elif isinstance(
             self.protocol, (_Protocol.AToMEquilibration, _Protocol.AToMAnnealing)
         ):
             self.lambda1 = self.protocol.getLambda1()
             self.lambda2 = self.protocol.getLambda2()
-            self.alpha = self.protocol.getAlpha()
-            self.uh = self.protocol.getUh()
-            self.w0 = self.protocol.getW0()
+            self.alpha = self.protocol.getAlpha().value()
+            self.uh = self.protocol.getUh().value()
+            self.w0 = self.protocol.getW0().value()
             self.direction = self.protocol.getDirection()
 
     def findDisplacement(self):
@@ -252,28 +252,28 @@ class _AToMUtils:
         self.findDisplacement()
         self.getATMForceConstants(index)
         output = ""
-        output += "#Parameters for ATM force\n"
+        output += "#Parameters for ATM force in original units\n"
         output += "lig1_atoms = {}\n".format(self.lig1_atoms)
         output += "lig2_atoms = {}\n".format(self.lig2_atoms)
         output += "lambda1 = {}\n".format(self.lambda1)
         output += "lambda2 = {}\n".format(self.lambda2)
-        output += "alpha = {}\n".format(self.alpha)
-        output += "uh = {}\n".format(self.uh)
-        output += "w0 = {}\n".format(self.w0)
+        output += "alpha = {} * kilocalories_per_mole\n".format(self.alpha)
+        output += "uh = {} * kilocalories_per_mole\n".format(self.uh)
+        output += "w0 = {} kilocalories_per_mole\n".format(self.w0)
         output += "direction = {}\n".format(self.direction)
-        output += "sc_Umax = {}\n".format(self.SCUmax)
-        output += "sc_U0 = {}\n".format(self.SCU0)
+        output += "sc_Umax = {} kilocalories_per_mole\n".format(self.SCUmax)
+        output += "sc_U0 = {}kilocalories_per_mole\n".format(self.SCU0)
         output += "sc_a = {}\n".format(self.SCa)
 
         output += "\n\n #Define ATM force\n"
         output += """atm_force = ATMForce(
         lambda1,
         lambda2,
-        alpha * kilojoules_per_mole,
-        uh * kilojoules_per_mole,
-        w0 * kilojoules_per_mole,
-        sc_Umax * kilojoules_per_mole,
-        sc_U0 * kilojoules_per_mole,
+        alpha.value_in_unit(kilojoules_per_mole),
+        uh.value_in_unit(kilojoules_per_mole),
+        w0.value_in_unit(kilojoules_per_mole),
+        sc_Umax.value_in_unit(kilojoules_per_mole),
+        sc_U0.value_in_unit(kilojoules_per_mole),
         sc_a,
         direction,
         )"""
@@ -336,17 +336,17 @@ class _AToMUtils:
         output += """parameters_free = (
         kfcm.value_in_unit(kilojoules_per_mole / nanometer**2),
         tolcm.value_in_unit(nanometer),
-        displacement[0],
-        displacement[1],
-        displacement[2],
+        displacement[0] * nanometer,
+        displacement[1] * nanometer,
+        displacement[2] * nanometer,
         )\n"""
 
         output += """parameters_bound = (
         kfcm.value_in_unit(kilojoules_per_mole / nanometer**2),
         tolcm.value_in_unit(nanometer),
-        0.0,
-        0.0,
-        0.0,
+        0.0 * nanometer,
+        0.0 * nanometer,
+        0.0 * nanometer,
         )\n"""
 
         output += "force_CMCM.addBond((0,1), parameters_bound)\n"

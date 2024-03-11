@@ -1,5 +1,6 @@
 from BioSimSpace.Units.Area import angstrom2
 from BioSimSpace.Units.Energy import kcal_per_mol
+from BioSimSpace.Units.Length import angstrom
 from .. import Types as _Types
 from ._protocol import Protocol as _Protocol
 from ._position_restraint_mixin import _PositionRestraintMixin
@@ -18,18 +19,17 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         core_alignment=True,
         CMCM_restraint=True,
         restraint=None,
-        force_constant=10 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
-        align_kf_sep=25.0,
-        align_k_theta=10.0,
-        align_k_psi=10.0,
-        SC_umax=100.0,
-        SC_u0=50.0,
+        force_constant=10 * kcal_per_mol / angstrom2,
+        align_kf_sep=2.5 * kcal_per_mol / angstrom2,
+        align_k_theta=10.0 * kcal_per_mol,
+        align_k_psi=10.0 * kcal_per_mol,
+        SC_umax=1000.0 * kcal_per_mol,
+        SC_u0=500.0 * kcal_per_mol,
         sc_a=0.0625,
-        cm_kf=25.0,
-        cm_tol=5.0,
+        cm_kf=25.0 * kcal_per_mol / angstrom2,
+        cm_tol=5.0 * angstrom,
     ):
         """
-        TODO: Self-consistency with units - use BSS units and then convert to openmm later
         Create a protocol object.
 
         Parameters
@@ -68,28 +68,28 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         pos_restrained_atoms : list of int
             The atoms to be restrained.
 
-        align_kf_sep : float
+        align_kf_sep : int, float, str, :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>
             The force constant for the distance portion of the alignment restraint (kcal/(mol A^2)).
 
-        align_k_theta : float
-            The force constant for the angular portion of the alignment restaint (kcal/(mol deg^2)).
+        align_k_theta : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>
+            The force constant for the angular portion of the alignment restaint (kcal/mol).
 
-        align_k_psi : float
-            The force constant for the dihedral portion of the alignment restraint (kcal/(mol deg^2)).
+        align_k_psi : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>
+            The force constant for the dihedral portion of the alignment restraint (kcal/mol).
 
-        SC_umax : float
+        SC_umax : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>
             The Umax value for the ATM softcore potential (kcal/mol).
 
-        SC_u0 : float
+        SC_u0 : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>
             The uh value for the ATM softcore potential (kcal/mol).
 
-        sc_a : float
+        sc_a : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>
             The a value for the ATM softcore potential.
 
-        cm_kf : float
+        cm_kf : int, float, str, :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>
             The force constant for the center of mass distance restraint (kcal/mol/A^2).
 
-        cm_tol : float
+        cm_tol : int, float, str, :class:`Length <BioSimSpace.Types.Length>
             The tolerance for the center of mass distance restraint (A).
         """
         # Call the base class constructor.
@@ -232,8 +232,8 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         Returns
         -------
 
-        align_kf_sep : str, BSS.Types.Length
-            The align_kf_sep value.
+        align_kf_sep : :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>`
+            The align_kf_sep value in kcal/mol angstrom**2.
         """
         return self._align_kf_sep
 
@@ -244,13 +244,36 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         Parameters
         ----------
 
-        align_kf_sep : str, BSS.Types.Length
-            Length value for the alignment restraint.
+        align_kf_sep : int, float, str, :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>`, float
+            Length value for the alignment restraint kcal/mol angstrom**2.
         """
-        if isinstance(align_kf_sep, (int, float)):
-            self._align_kf_sep = float(align_kf_sep)
+        # Convert int to float.
+        if type(align_kf_sep) is int:
+            align_kf_sep = float(align_kf_sep)
+
+        if isinstance(align_kf_sep, float):
+            # Use default units.
+            align_kf_sep *= _Units.Energy.kcal_per_mol / _Units.Area.angstrom2
+
         else:
-            raise TypeError("'align_kf_sep' must be of type 'float'")
+            if isinstance(align_kf_sep, str):
+                try:
+                    align_kf_sep = _Types._GeneralUnit(align_kf_sep)
+                except Exception:
+                    raise ValueError("Unable to parse 'align_kf_sep' string.") from None
+
+            elif not isinstance(align_kf_sep, _Types._GeneralUnit):
+                raise TypeError(
+                    "'align_kf_sep' must be of type 'BioSimSpace.Types._GeneralUnit', 'str', or 'float'."
+                )
+
+            # Validate the dimensions.
+            if align_kf_sep.dimensions() != (0, 0, 0, 1, -1, 0, -2):
+                raise ValueError(
+                    "'align_kf_sep' has invalid dimensions! "
+                    f"Expected dimensions are 'M Q-1 T-2', found '{align_kf_sep.unit()}'"
+                )
+        self._align_kf_sep = align_kf_sep
 
     def getAlignKTheta(self):
         """
@@ -259,8 +282,8 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         Returns
         -------
 
-        align_k_theta : str, BSS.Types.Angle
-            The align_k_theta value.
+        align_k_theta : :class:`Energy <BioSimSpace.Types.Energy>`
+            The align_k_theta value in kcal/mol.
         """
         return self._align_k_theta
 
@@ -271,13 +294,39 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         Parameters
         ----------
 
-        align_k_theta : str, BSS.Types.Angle
-            Angle value for the alignment angular constraint.
+        align_k_theta : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
+            Force constant for the alignment angular constraint in kcal/mol.
+
         """
-        if isinstance(align_k_theta, (int, float)):
-            self._align_k_theta = float(align_k_theta)
+        # Convert int to float.
+        if type(align_k_theta) is int:
+            align_k_theta = float(align_k_theta)
+
+        if isinstance(align_k_theta, float):
+            # Use default units.
+            align_k_theta *= _Units.Energy.kcal_per_mol
+
         else:
-            raise TypeError("'align_k_theta' must be of type 'float'")
+            if isinstance(align_k_theta, str):
+                try:
+                    align_k_theta = _Types.Energy(align_k_theta)
+                except Exception:
+                    raise ValueError(
+                        "Unable to parse 'align_k_theta' string."
+                    ) from None
+
+            elif not isinstance(align_k_theta, _Types.Energy):
+                raise TypeError(
+                    "'align_k_theta' must be of type 'BioSimSpace.Types._GeneralUnit', 'str', or 'float'."
+                )
+
+            # Validate the dimensions.
+            if align_k_theta.dimensions() != (0, 0, 2, 1, -1, 0, -2):
+                raise ValueError(
+                    "'align_k_theta' has invalid dimensions! "
+                    f"Expected dimensions are 'L2 M Q-1 T-2', found '{align_k_theta.unit()}'"
+                )
+        self._align_k_theta = align_k_theta
 
     def getAlignKPsi(self):
         """
@@ -286,8 +335,8 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         Returns
         -------
 
-        align_k_psi : str, BSS.Types.Angle
-            The align_k_psi value.
+        align_k_psi: :class:`Energy <BioSimSpace.Types.Energy>`
+            The align_k_psi value in kcal/mol.
         """
         return self._align_k_psi
 
@@ -298,13 +347,36 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         Parameters
         ----------
 
-        align_k_psi : float
-            Angle value for the alignment dihedral constraint.
+        align_k_psi : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
+            Force constant for the alignment dihedral constraint in kcal/mol.
         """
-        if isinstance(align_k_psi, (int, float)):
-            self._align_k_psi = float(align_k_psi)
+        # Convert int to float.
+        if type(align_k_psi) is int:
+            align_k_psi = float(align_k_psi)
+
+        if isinstance(align_k_psi, float):
+            # Use default units.
+            align_k_psi *= _Units.Energy.kcal_per_mol
+
         else:
-            raise TypeError("'align_k_psi' must be of type 'float'")
+            if isinstance(align_k_psi, str):
+                try:
+                    align_k_psi = _Types.Energy(align_k_psi)
+                except Exception:
+                    raise ValueError("Unable to parse 'align_k_psi' string.") from None
+
+            elif not isinstance(align_k_psi, _Types.Energy):
+                raise TypeError(
+                    "'align_k_psi' must be of type 'BioSimSpace.Types._GeneralUnit', 'str', or 'float'."
+                )
+
+            # Validate the dimensions.
+            if align_k_psi.dimensions() != (0, 0, 2, 1, -1, 0, -2):
+                raise ValueError(
+                    "'align_k_theta' has invalid dimensions! "
+                    f"Expected dimensions are 'L2 M Q-1 T-2', found '{align_k_psi.unit()}'"
+                )
+        self._align_k_psi = align_k_psi
 
     def getSCUmax(self):
         """
@@ -313,8 +385,8 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         Returns
         -------
 
-        SC_umax : float
-            The SC_umax value.
+        SC_umax : :class:`Energy <BioSimSpace.Types.Energy>`
+            The SC_umax value in kcal/mol.
         """
         return self._SC_umax
 
@@ -325,13 +397,36 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         Parameters
         ----------
 
-        SC_umax : float
-            The SC_umax value.
+        SC_umax : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
+            The softcore Umax value in kcal/mol.
         """
-        if isinstance(SC_umax, (int, float)):
-            self._SC_umax = float(SC_umax)
+        # Convert int to float.
+        if type(SC_umax) is int:
+            SC_umax = float(SC_umax)
+
+        if isinstance(SC_umax, float):
+            # Use default units.
+            SC_umax *= _Units.Energy.kcal_per_mol
+
         else:
-            raise TypeError("'SC_umax' must be of type 'float'")
+            if isinstance(SC_umax, str):
+                try:
+                    SC_umax = _Types.Energy(SC_umax)
+                except Exception:
+                    raise ValueError("Unable to parse 'SC_umax' string.") from None
+
+            elif not isinstance(SC_umax, _Types.Energy):
+                raise TypeError(
+                    "'SC_umax' must be of type 'BioSimSpace.Types._GeneralUnit', 'str', or 'float'."
+                )
+
+            # Validate the dimensions.
+            if SC_umax.dimensions() != (0, 0, 2, 1, -1, 0, -2):
+                raise ValueError(
+                    "'align_k_theta' has invalid dimensions! "
+                    f"Expected dimensions are 'L2 M Q-1 T-2', found '{SC_umax.unit()}'"
+                )
+        self._SC_umax = SC_umax
 
     def getSCU0(self):
         """
@@ -340,8 +435,8 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         Returns
         -------
 
-        SC_u0 : float
-            The SC_u0 value.
+        SC_u0 : :class:`Energy <BioSimSpace.Types.Energy>`
+            The SC_u0 value in kcal/mol.
         """
         return self._SC_u0
 
@@ -352,13 +447,36 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         Parameters
         ----------
 
-        SC_u0 : float
-            The SC_u0 value.
+        SC_u0 : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
+            The softcore u0 value in kcal/mol.
         """
-        if isinstance(SC_u0, (int, float)):
-            self._SC_u0 = float(SC_u0)
+        # Convert int to float.
+        if type(SC_u0) is int:
+            SC_u0 = float(SC_u0)
+
+        if isinstance(SC_u0, float):
+            # Use default units.
+            SC_u0 *= _Units.Energy.kcal_per_mol
+
         else:
-            raise TypeError("'SC_u0' must be of type 'float'")
+            if isinstance(SC_u0, str):
+                try:
+                    SC_u0 = _Types.Energy(SC_u0)
+                except Exception:
+                    raise ValueError("Unable to parse 'SC_u0' string.") from None
+
+            elif not isinstance(SC_u0, _Types.Energy):
+                raise TypeError(
+                    "'SC_u0' must be of type 'BioSimSpace.Types._GeneralUnit', 'str', or 'float'."
+                )
+
+            # Validate the dimensions.
+            if SC_u0.dimensions() != (0, 0, 2, 1, -1, 0, -2):
+                raise ValueError(
+                    "'align_k_theta' has invalid dimensions! "
+                    f"Expected dimensions are 'L2 M Q-1 T-2', found '{SC_u0.unit()}'"
+                )
+        self._SC_u0 = SC_u0
 
     def getSCa(self):
         """
@@ -380,7 +498,7 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         ----------
 
         sc_a : float
-            The sc_a value.
+            The softcore a value.
         """
         if isinstance(sc_a, (int, float)):
             self._sc_a = float(sc_a)
@@ -394,8 +512,8 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         Returns
         -------
 
-        cm_kf : float
-            The cm_kf value.
+        cm_kf : :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>`
+            The cm_kf value in kcal/mol A**2.
         """
         return self._cm_kf
 
@@ -406,13 +524,36 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         Parameters
         ----------
 
-        cm_kf : float
-            The cm_kf value.
+        cm_kf : int, float, str, :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>
+            The force constant for the CM-CM force in kcal/mol A**2.
         """
-        if isinstance(cm_kf, (int, float)):
-            self._cm_kf = float(cm_kf)
+        # Convert int to float.
+        if type(cm_kf) is int:
+            cm_kf = float(cm_kf)
+
+        if isinstance(cm_kf, float):
+            # Use default units.
+            cm_kf *= _Units.Energy.kcal_per_mol / _Units.Area.angstrom2
+
         else:
-            raise TypeError("'cm_kf' must be of type 'float'")
+            if isinstance(cm_kf, str):
+                try:
+                    cm_kf = _Types._GeneralUnit(cm_kf)
+                except Exception:
+                    raise ValueError("Unable to parse 'cm_kf' string.") from None
+
+            elif not isinstance(cm_kf, _Types._GeneralUnit):
+                raise TypeError(
+                    "'cm_kf' must be of type 'BioSimSpace.Types._GeneralUnit', 'str', or 'float'."
+                )
+
+            # Validate the dimensions.
+            if cm_kf.dimensions() != (0, 0, 0, 1, -1, 0, -2):
+                raise ValueError(
+                    "'align_k_theta' has invalid dimensions! "
+                    f"Expected dimensions are 'M Q-1 T-2', found '{cm_kf.unit()}'"
+                )
+        self._cm_kf = cm_kf
 
     def getCMTol(self):
         """
@@ -421,8 +562,8 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         Returns
         -------
 
-        cm_tol : float
-            The cm_tol value.
+        cm_tol : :class:`Length <BioSimSpace.Types.Length>`
+            The cm_tol value in angstroms.
         """
         return self._cm_tol
 
@@ -433,13 +574,36 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         Parameters
         ----------
 
-        cm_tol : float
-            The cm_tol value.
+        cm_tol : int, float, str, :class:`Length <BioSimSpace.Types.Length>
+            The cm_tol value in angstroms.
         """
-        if isinstance(cm_tol, (int, float)):
-            self._cm_tol = float(cm_tol)
+        # Convert int to float.
+        if type(cm_tol) is int:
+            cm_tol = float(cm_tol)
+
+        if isinstance(cm_tol, float):
+            # Use default units.
+            cm_tol *= _Units.Length.angstrom
+
         else:
-            raise TypeError("'cm_tol' must be of type 'float'")
+            if isinstance(cm_tol, str):
+                try:
+                    cm_tol = _Types.Length(cm_tol)
+                except Exception:
+                    raise ValueError("Unable to parse 'cm_tol' string.") from None
+
+            elif not isinstance(cm_tol, _Types.Length):
+                raise TypeError(
+                    "'cm_tol' must be of type 'BioSimSpace.Types._GeneralUnit', 'str', or 'float'."
+                )
+
+            # Validate the dimensions.
+            if cm_tol.dimensions() != (0, 0, 1, 0, 0, 0, 0):
+                raise ValueError(
+                    "'align_k_theta' has invalid dimensions! "
+                    f"Expected dimensions are 'L', found '{cm_tol.unit()}'"
+                )
+        self._cm_tol = cm_tol
 
     def _set_lambda_values(self):
         # Internal function to set the 'master lambda'
@@ -510,28 +674,28 @@ class AToMMinimisation(_AToM):
     pos_restrained_atoms : list of int
         The atoms to be restrained.
 
-    align_kf_sep : float
+    align_kf_sep : int, float, str, :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>
         The force constant for the distance portion of the alignment restraint (kcal/(mol A^2)).
 
-    align_k_theta : float
-        The force constant for the angular portion of the alignment restaint (kcal/(mol deg^2)).
+    align_k_theta : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>
+        The force constant for the angular portion of the alignment restaint (kcal/mol).
 
-    align_k_psi : float
-        The force constant for the dihedral portion of the alignment restraint (kcal/(mol deg^2)).
+    align_k_psi : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>
+        The force constant for the dihedral portion of the alignment restraint (kcal/mol).
 
-    SC_umax : float
+    SC_umax : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>
         The Umax value for the ATM softcore potential (kcal/mol).
 
-    SC_u0 : float
+    SC_u0 : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>
         The uh value for the ATM softcore potential (kcal/mol).
 
-    sc_a : float
+    sc_a : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>
         The a value for the ATM softcore potential.
 
-    cm_kf : float
+    cm_kf : int, float, str, :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>
         The force constant for the center of mass distance restraint (kcal/mol/A^2).
 
-    cm_tol : float
+    cm_tol : int, float, str, :class:`Length <BioSimSpace.Types.Length>
         The tolerance for the center of mass distance restraint (A).
     """
 
@@ -543,14 +707,14 @@ class AToMMinimisation(_AToM):
         CMCM_restraint=True,
         restraint=None,
         force_constant=10 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
-        align_kf_sep=25,
-        align_k_theta=10,
-        align_k_psi=10,
-        SC_umax=100,
-        SC_u0=50,
+        align_kf_sep=2.5 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
+        align_k_theta=10 * _Units.Energy.kcal_per_mol,
+        align_k_psi=10 * _Units.Energy.kcal_per_mol,
+        SC_umax=1000 * _Units.Energy.kcal_per_mol,
+        SC_u0=500 * _Units.Energy.kcal_per_mol,
         sc_a=0.0625,
-        cm_kf=25,
-        cm_tol=5,
+        cm_kf=25 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
+        cm_tol=5 * _Units.Length.angstrom,
     ):
         super().__init__(
             data,
@@ -617,14 +781,14 @@ class AToMEquilibration(_AToM):
         CMCM_restraint=True,
         restraint=None,
         force_constant=10 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
-        align_kf_sep=25,
-        align_k_theta=10,
-        align_k_psi=10,
-        SC_umax=100,
-        SC_u0=50,
+        align_kf_sep=2.5 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
+        align_k_theta=10 * _Units.Energy.kcal_per_mol,
+        align_k_psi=10 * _Units.Energy.kcal_per_mol,
+        SC_umax=1000 * _Units.Energy.kcal_per_mol,
+        SC_u0=500 * _Units.Energy.kcal_per_mol,
         sc_a=0.0625,
-        cm_kf=25,
-        cm_tol=5,
+        cm_kf=25 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
+        cm_tol=5 * _Units.Length.angstrom,
         use_atm_force=False,
         direction=1,
         lambda1=0.0,
@@ -699,28 +863,28 @@ class AToMEquilibration(_AToM):
         pos_restrained_atoms : list of int
             The atoms to be restrained.
 
-        align_kf_sep : float
+        align_kf_sep : int, float, str, :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>
             The force constant for the distance portion of the alignment restraint (kcal/(mol A^2)).
 
-        align_k_theta : float
-            The force constant for the angular portion of the alignment restaint (kcal/(mol deg^2)).
+        align_k_theta : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>
+            The force constant for the angular portion of the alignment restaint (kcal/mol).
 
-        align_k_psi : float
-            The force constant for the dihedral portion of the alignment restraint (kcal/(mol deg^2)).
+        align_k_psi : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>
+            The force constant for the dihedral portion of the alignment restraint (kcal/mol).
 
-        SC_umax : float
+        SC_umax : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>
             The Umax value for the ATM softcore potential (kcal/mol).
 
-        SC_u0 : float
+        SC_u0 : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>
             The uh value for the ATM softcore potential (kcal/mol).
 
-        sc_a : float
+        sc_a : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>
             The a value for the ATM softcore potential.
 
-        cm_kf : float
+        cm_kf : int, float, str, :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>
             The force constant for the center of mass distance restraint (kcal/mol/A^2).
 
-        cm_tol : float
+        cm_tol : int, float, str, :class:`Length <BioSimSpace.Types.Length>
             The tolerance for the center of mass distance restraint (A).
 
         use_atm_force : bool
@@ -735,14 +899,17 @@ class AToMEquilibration(_AToM):
         lambda2 : float
             The lambda2 value for the ATM force. Ignored if use_atm_force is False.
 
-        alpha : float
+        alpha : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
             The alpha value for the ATM force. Ignored if use_atm_force is False.
+            Value in kcal/mol.
 
-        uh : float
+        uh : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
             The uh value for the ATM force. Ignored if use_atm_force is False.
+            Value in kcal/mol.
 
-        W0 : float
+        W0 : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
             The W0 value for the ATM force. Ignored if use_atm_force is False.
+            Value in kcal/mol.
         """
         super().__init__(
             data,
@@ -1199,8 +1366,8 @@ class AToMEquilibration(_AToM):
         Returns
         -------
 
-        alpha : float
-            The alpha value for the ATM force. Ignored if use_atm_force is False.
+        alpha : :class:`Energy <BioSimSpace.Types.Energy>`
+            The alpha value for the ATM force in kcal/mol. Ignored if use_atm_force is False.
         """
         return self._alpha
 
@@ -1211,12 +1378,36 @@ class AToMEquilibration(_AToM):
         Parameters
         ----------
 
-        alpha : float
-            The alpha value for the ATM force. Ignored if use_atm_force is False.
+        alpha : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
+            The alpha value for the ATM force in kcal/mol. Ignored if use_atm_force is False.
         """
-        if not isinstance(alpha, (float, int)):
-            raise TypeError("'alpha' must be of type 'float'")
-        self._alpha = float(alpha)
+        # Convert int to float.
+        if type(alpha) is int:
+            alpha = float(alpha)
+
+        if isinstance(alpha, float):
+            # Use default units.
+            alpha *= _Units.Energy.kcal_per_mol
+
+        else:
+            if isinstance(alpha, str):
+                try:
+                    alpha = _Types.Energy(alpha)
+                except Exception:
+                    raise ValueError("Unable to parse 'alpha' string.") from None
+
+            elif not isinstance(alpha, _Types.Energy):
+                raise TypeError(
+                    "'alpha' must be of type 'BioSimSpace.Types._GeneralUnit', 'str', or 'float'."
+                )
+
+            # Validate the dimensions.
+            if alpha.dimensions() != (0, 0, 2, 1, -1, 0, -2):
+                raise ValueError(
+                    "'align_k_theta' has invalid dimensions! "
+                    f"Expected dimensions are 'L2 M Q-1 T-2', found '{alpha.unit()}'"
+                )
+        self._alpha = alpha
 
     def getUh(self):
         """
@@ -1225,8 +1416,8 @@ class AToMEquilibration(_AToM):
         Returns
         -------
 
-        uh : float
-            The uh value for the ATM force. Ignored if use_atm_force is False.
+        uh : :class:`Energy <BioSimSpace.Types.Energy>`
+            The uh value for the ATM force in kcal/mol. Ignored if use_atm_force is False.
         """
         return self._uh
 
@@ -1237,12 +1428,36 @@ class AToMEquilibration(_AToM):
         Parameters
         ----------
 
-        uh : float
-            The uh value for the ATM force. Ignored if use_atm_force is False.
+        uh : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
+            The uh value for the ATM force in kcal/mol. Ignored if use_atm_force is False.
         """
-        if not isinstance(uh, (float, int)):
-            raise TypeError("'uh' must be of type 'float'")
-        self._uh = float(uh)
+        # Convert int to float.
+        if type(uh) is int:
+            uh = float(uh)
+
+        if isinstance(uh, float):
+            # Use default units.
+            uh *= _Units.Energy.kcal_per_mol
+
+        else:
+            if isinstance(uh, str):
+                try:
+                    uh = _Types.Energy(uh)
+                except Exception:
+                    raise ValueError("Unable to parse 'uh' string.") from None
+
+            elif not isinstance(uh, _Types.Energy):
+                raise TypeError(
+                    "'uh' must be of type 'BioSimSpace.Types._GeneralUnit', 'str', or 'float'."
+                )
+
+            # Validate the dimensions.
+            if uh.dimensions() != (0, 0, 2, 1, -1, 0, -2):
+                raise ValueError(
+                    "'align_k_theta' has invalid dimensions! "
+                    f"Expected dimensions are 'L2 M Q-1 T-2', found '{uh.unit()}'"
+                )
+        self._uh = uh
 
     def getW0(self):
         """
@@ -1251,8 +1466,8 @@ class AToMEquilibration(_AToM):
         Returns
         -------
 
-        W0 : float
-            The W0 value for the ATM force. Ignored if use_atm_force is False.
+        W0 : :class:`Energy <BioSimSpace.Types.Energy>`
+            The W0 value for the ATM force in kcal/mol. Ignored if use_atm_force is False.
         """
         return self._W0
 
@@ -1263,12 +1478,36 @@ class AToMEquilibration(_AToM):
         Parameters
         ----------
 
-        W0 : float
-            The W0 value for the ATM force. Ignored if use_atm_force is False.
+        W0 :int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
+            The W0 value for the ATM force in kcal/mol. Ignored if use_atm_force is False.
         """
-        if not isinstance(W0, (float, int)):
-            raise TypeError("'W0' must be of type 'float'")
-        self._W0 = float(W0)
+        # Convert int to float.
+        if type(W0) is int:
+            W0 = float(W0)
+
+        if isinstance(W0, float):
+            # Use default units.
+            W0 *= _Units.Energy.kcal_per_mol
+
+        else:
+            if isinstance(W0, str):
+                try:
+                    W0 = _Types.Energy(W0)
+                except Exception:
+                    raise ValueError("Unable to parse 'W0' string.") from None
+
+            elif not isinstance(W0, _Types.Energy):
+                raise TypeError(
+                    "'W0' must be of type 'BioSimSpace.Types._GeneralUnit', 'str', or 'float'."
+                )
+
+            # Validate the dimensions.
+            if W0.dimensions() != (0, 0, 2, 1, -1, 0, -2):
+                raise ValueError(
+                    "'align_k_theta' has invalid dimensions! "
+                    f"Expected dimensions are 'L2 M Q-1 T-2', found '{W0.unit()}'"
+                )
+        self._W0 = W0
 
     def isConstantTemp(self):
         """
@@ -1311,14 +1550,14 @@ class AToMAnnealing(_AToM):
         CMCM_restraint=True,
         restraint=None,
         force_constant=10 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
-        align_kf_sep=25,
-        align_k_theta=10,
-        align_k_psi=10,
-        SC_umax=100,
-        SC_u0=50,
+        align_kf_sep=2.5 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
+        align_k_theta=10 * _Units.Energy.kcal_per_mol,
+        align_k_psi=10 * _Units.Energy.kcal_per_mol,
+        SC_umax=1000 * _Units.Energy.kcal_per_mol,
+        SC_u0=500 * _Units.Energy.kcal_per_mol,
         sc_a=0.0625,
-        cm_kf=25,
-        cm_tol=5,
+        cm_kf=25 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
+        cm_tol=5 * _Units.Length.angstrom,
         direction=1,
         lambda1=0.0,
         lambda2=0.0,
@@ -1384,47 +1623,55 @@ class AToMAnnealing(_AToM):
         pos_restrained_atoms : list of int
             The atoms to be restrained.
 
-        align_kf_sep : float
+        align_kf_sep : int, float, str, :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>
             The force constant for the distance portion of the alignment restraint (kcal/(mol A^2)).
 
-        align_k_theta : float
-            The force constant for the angular portion of the alignment restaint (kcal/(mol deg^2)).
+        align_k_theta : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>
+            The force constant for the angular portion of the alignment restaint (kcal/mol).
 
-        align_k_psi : float
-            The force constant for the dihedral portion of the alignment restraint (kcal/(mol deg^2)).
+        align_k_psi : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>
+            The force constant for the dihedral portion of the alignment restraint (kcal/mol).
 
-        SC_umax : float
+        SC_umax : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>
             The Umax value for the ATM softcore potential (kcal/mol).
 
-        SC_u0 : float
+        SC_u0 : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>
             The uh value for the ATM softcore potential (kcal/mol).
 
-        sc_a : float
+        sc_a : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>
             The a value for the ATM softcore potential.
 
-        cm_kf : float
+        cm_kf : int, float, str, :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>
             The force constant for the center of mass distance restraint (kcal/mol/A^2).
 
-        cm_tol : float
+        cm_tol : int, float, str, :class:`Length <BioSimSpace.Types.Length>
             The tolerance for the center of mass distance restraint (A).
 
         direction : str
-            The direction of Annealing.
+            The direction of the Annealing.
 
         lambda1 : float
-            The lambda1 value for the ATM force. Overwritten if values are given in anneal_values.
+            The lambda1 value for the ATM force.
+            Superceded by any values defined in anneal_values.
 
         lambda2 : float
-            The lambda2 value for the ATM force. Overwritten if values are given in anneal_values.
+            The lambda2 value for the ATM force.
+            Superceded by any values defined in anneal_values.
 
-        alpha : float
-            The alpha value for the ATM force. Overwritten if values are given in anneal_values.
+        alpha : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
+            The alpha value for the ATM force.
+            Value in kcal/mol.
+            Superceded by any values defined in anneal_values.
 
-        uh : float
-            The uh value for the ATM force. Overwritten if values are given in anneal_values.
+        uh : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
+            The uh value for the ATM force.
+            Value in kcal/mol.
+            Superceded by any values defined in anneal_values.
 
-        W0 : float
-            The W0 value for the ATM force. Overwritten if values are given in anneal_values.
+        W0 : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
+            The W0 value for the ATM force.
+            Value in kcal/mol.
+            Superceded by any values defined in anneal_values.
 
         anneal_values : dict, None, "default"
             If None, then no annealing will be performed.
@@ -1833,8 +2080,8 @@ class AToMAnnealing(_AToM):
         Returns
         -------
 
-        alpha : float
-            The alpha value for the ATM force. Ignored if use_atm_force is False.
+        alpha : :class:`Energy <BioSimSpace.Types.Energy>`
+            The alpha value for the ATM force in kcal/mol. Ignored if use_atm_force is False.
         """
         return self._alpha
 
@@ -1845,12 +2092,36 @@ class AToMAnnealing(_AToM):
         Parameters
         ----------
 
-        alpha : float
-            The alpha value for the ATM force. Ignored if use_atm_force is False.
+        alpha : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
+            The alpha value for the ATM force in kcal/mol. Ignored if use_atm_force is False.
         """
-        if not isinstance(alpha, (float, int)):
-            raise TypeError("'alpha' must be of type 'float'")
-        self._alpha = float(alpha)
+        # Convert int to float.
+        if type(alpha) is int:
+            alpha = float(alpha)
+
+        if isinstance(alpha, float):
+            # Use default units.
+            alpha *= _Units.Energy.kcal_per_mol
+
+        else:
+            if isinstance(alpha, str):
+                try:
+                    alpha = _Types.Energy(alpha)
+                except Exception:
+                    raise ValueError("Unable to parse 'alpha' string.") from None
+
+            elif not isinstance(alpha, _Types.Energy):
+                raise TypeError(
+                    "'alpha' must be of type 'BioSimSpace.Types._GeneralUnit', 'str', or 'float'."
+                )
+
+            # Validate the dimensions.
+            if alpha.dimensions() != (0, 0, 2, 1, -1, 0, -2):
+                raise ValueError(
+                    "'align_k_theta' has invalid dimensions! "
+                    f"Expected dimensions are 'L2 M Q-1 T-2', found '{alpha.unit()}'"
+                )
+        self._alpha = alpha
 
     def getUh(self):
         """
@@ -1859,8 +2130,8 @@ class AToMAnnealing(_AToM):
         Returns
         -------
 
-        uh : float
-            The uh value for the ATM force. Ignored if use_atm_force is False.
+        uh : :class:`Energy <BioSimSpace.Types.Energy>`
+            The uh value for the ATM force in kcal/mol. Ignored if use_atm_force is False.
         """
         return self._uh
 
@@ -1871,12 +2142,36 @@ class AToMAnnealing(_AToM):
         Parameters
         ----------
 
-        uh : float
-            The uh value for the ATM force. Ignored if use_atm_force is False.
+        uh : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
+            The uh value for the ATM force in kcal/mol. Ignored if use_atm_force is False.
         """
-        if not isinstance(uh, (float, int)):
-            raise TypeError("'uh' must be of type 'float'")
-        self._uh = float(uh)
+        # Convert int to float.
+        if type(uh) is int:
+            uh = float(uh)
+
+        if isinstance(uh, float):
+            # Use default units.
+            uh *= _Units.Energy.kcal_per_mol
+
+        else:
+            if isinstance(uh, str):
+                try:
+                    uh = _Types.Energy(uh)
+                except Exception:
+                    raise ValueError("Unable to parse 'uh' string.") from None
+
+            elif not isinstance(uh, _Types.Energy):
+                raise TypeError(
+                    "'uh' must be of type 'BioSimSpace.Types._GeneralUnit', 'str', or 'float'."
+                )
+
+            # Validate the dimensions.
+            if uh.dimensions() != (0, 0, 2, 1, -1, 0, -2):
+                raise ValueError(
+                    "'align_k_theta' has invalid dimensions! "
+                    f"Expected dimensions are 'L2 M Q-1 T-2', found '{uh.unit()}'"
+                )
+        self._uh = uh
 
     def getW0(self):
         """
@@ -1885,8 +2180,8 @@ class AToMAnnealing(_AToM):
         Returns
         -------
 
-        W0 : float
-            The W0 value for the ATM force. Ignored if use_atm_force is False.
+        W0 : :class:`Energy <BioSimSpace.Types.Energy>`
+            The W0 value for the ATM force in kcal/mol. Ignored if use_atm_force is False.
         """
         return self._W0
 
@@ -1897,12 +2192,36 @@ class AToMAnnealing(_AToM):
         Parameters
         ----------
 
-        W0 : float
-            The W0 value for the ATM force. Ignored if use_atm_force is False.
+        W0 :int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
+            The W0 value for the ATM force in kcal/mol. Ignored if use_atm_force is False.
         """
-        if not isinstance(W0, (float, int)):
-            raise TypeError("'W0' must be of type 'float'")
-        self._W0 = float(W0)
+        # Convert int to float.
+        if type(W0) is int:
+            W0 = float(W0)
+
+        if isinstance(W0, float):
+            # Use default units.
+            W0 *= _Units.Energy.kcal_per_mol
+
+        else:
+            if isinstance(W0, str):
+                try:
+                    W0 = _Types.Energy(W0)
+                except Exception:
+                    raise ValueError("Unable to parse 'W0' string.") from None
+
+            elif not isinstance(W0, _Types.Energy):
+                raise TypeError(
+                    "'W0' must be of type 'BioSimSpace.Types._GeneralUnit', 'str', or 'float'."
+                )
+
+            # Validate the dimensions.
+            if W0.dimensions() != (0, 0, 2, 1, -1, 0, -2):
+                raise ValueError(
+                    "'align_k_theta' has invalid dimensions! "
+                    f"Expected dimensions are 'L2 M Q-1 T-2', found '{W0.unit()}'"
+                )
+        self._W0 = W0
 
     def getAnnealValues(self):
         """
@@ -2053,14 +2372,14 @@ class AToMProduction(_AToM):
         alpha=None,
         uh=None,
         W0=None,
-        align_kf_sep=25,
-        align_k_theta=10,
-        align_k_psi=10,
-        SC_umax=100,
-        SC_u0=50,
+        align_kf_sep=2.5 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
+        align_k_theta=10 * _Units.Energy.kcal_per_mol,
+        align_k_psi=10 * _Units.Energy.kcal_per_mol,
+        SC_umax=1000 * _Units.Energy.kcal_per_mol,
+        SC_u0=500 * _Units.Energy.kcal_per_mol,
         sc_a=0.0625,
-        cm_kf=25,
-        cm_tol=5,
+        cm_kf=25 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
+        cm_tol=5 * _Units.Length.angstrom,
     ):
         """
                 data : dict
@@ -2117,28 +2436,29 @@ class AToMProduction(_AToM):
         pos_restrained_atoms : list of int
             The atoms to be restrained.
 
-        align_kf_sep : float
+
+        align_kf_sep : int, float, str, :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>
             The force constant for the distance portion of the alignment restraint (kcal/(mol A^2)).
 
-        align_k_theta : float
-            The force constant for the angular portion of the alignment restaint (kcal/(mol deg^2)).
+        align_k_theta : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>
+            The force constant for the angular portion of the alignment restaint (kcal/mol).
 
-        align_k_psi : float
-            The force constant for the dihedral portion of the alignment restraint (kcal/(mol deg^2)).
+        align_k_psi : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>
+            The force constant for the dihedral portion of the alignment restraint (kcal/mol).
 
-        SC_umax : float
+        SC_umax : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>
             The Umax value for the ATM softcore potential (kcal/mol).
 
-        SC_u0 : float
+        SC_u0 : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>
             The uh value for the ATM softcore potential (kcal/mol).
 
-        sc_a : float
+        sc_a : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>
             The a value for the ATM softcore potential.
 
-        cm_kf : float
+        cm_kf : int, float, str, :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>
             The force constant for the center of mass distance restraint (kcal/mol/A^2).
 
-        cm_tol : float
+        cm_tol : int, float, str, :class:`Length <BioSimSpace.Types.Length>
             The tolerance for the center of mass distance restraint (A).
 
         restart : bool
@@ -2160,13 +2480,13 @@ class AToMProduction(_AToM):
         lambda2 : list of float
             The lambda2 values.
 
-        alpha : list of float
+        alpha : list of int, float, str, :class:`Energy <BioSimSpace.Types.Energy>
             The alpha values.
 
-        uh : list of float
+        uh : list of int, float, str, :class:`Energy <BioSimSpace.Types.Energy>
             The uh values.
 
-        W0 : list of float
+        W0 : list of int, float, str, :class:`Energy <BioSimSpace.Types.Energy>
             The W0 values.
 
         """
@@ -2661,8 +2981,8 @@ class AToMProduction(_AToM):
         Returns
         -------
 
-        alpha : list of float
-            The alpha values.
+        alpha : list of :class:`Energy <BioSimSpace.Types.Energy>
+            The alpha values in kcal/mol.
         """
         return self._alpha
 
@@ -2673,20 +2993,48 @@ class AToMProduction(_AToM):
         Parameters
         ----------
 
-        alpha : list of float
-            The alpha values.
+        alpha : list of :class:`Energy <BioSimSpace.Types.Energy>
+            The alpha values in kcal/mol.
         """
         if isinstance(alpha, list):
             if len(alpha) != self._num_lambda:
                 raise ValueError("'alpha' must have the same length as 'num_lambda'")
-            if all(isinstance(item, float) for item in alpha):
-                self._alpha = alpha
-            else:
-                raise ValueError("all entries in 'alpha' must be floats")
+            alpha_fin = []
+            for a in alpha:
+                # Convert int to float.
+                if type(a) is int:
+                    a = float(a)
+
+                if isinstance(a, float):
+                    # Use default units.
+                    a *= _Units.Energy.kcal_per_mol
+
+                else:
+                    if isinstance(a, str):
+                        try:
+                            a = _Types.Energy(a)
+                        except Exception:
+                            raise ValueError(
+                                "Unable to parse 'alpha' string."
+                            ) from None
+
+                    elif not isinstance(a, _Types.Energy):
+                        raise TypeError(
+                            "'alpha' must be of type 'BioSimSpace.Types._GeneralUnit', 'str', or 'float'."
+                        )
+
+                    # Validate the dimensions.
+                    if a.dimensions() != (0, 0, 2, 1, -1, 0, -2):
+                        raise ValueError(
+                            "'alpha' has invalid dimensions! "
+                            f"Expected dimensions are 'L2 M Q-1 T-2', found '{a.unit()}'"
+                        )
+                alpha.append(a)
+            self._alpha = alpha_fin
         elif alpha is None:
-            self._alpha = [0.00] * self._num_lambda
+            self._alpha = [0.00 * _Units.Energy.kcal_per_mol] * self._num_lambda
         else:
-            raise TypeError("'alpha' must be of type 'list'")
+            raise TypeError("'alpha' must be of type 'list' or None")
 
     def getUh(self):
         """
@@ -2695,8 +3043,8 @@ class AToMProduction(_AToM):
         Returns
         -------
 
-        uh : list of float
-            The uh values.
+        uh : list of :class:`Energy <BioSimSpace.Types.Energy>
+            The uh values in kcal/mol.
         """
         return self._uh
 
@@ -2707,18 +3055,45 @@ class AToMProduction(_AToM):
         Parameters
         ----------
 
-        uh : list of float
-            The uh values.
+        uh : list of :class:`Energy <BioSimSpace.Types.Energy>
+            The uh values in kcal/mol.
         """
         if isinstance(uh, list):
             if len(uh) != self._num_lambda:
                 raise ValueError("'uh' must have the same length as 'num_lambda'")
-            if all(isinstance(item, float) for item in uh):
-                self._uh = uh
-            else:
-                raise ValueError("all entries in 'uh' must be floats")
+            uh_fin = []
+            for u in uh:
+                # Convert int to float.
+                if type(u) is int:
+                    u = float(u)
+
+                if isinstance(u, float):
+                    # Use default units.
+                    u *= _Units.Energy.kcal_per_mol
+
+                else:
+                    if isinstance(u, str):
+                        try:
+                            u = _Types.Energy(u)
+                        except Exception:
+                            raise ValueError(
+                                "Unable to parse 'alpha' string."
+                            ) from None
+
+                    elif not isinstance(u, _Types.Energy):
+                        raise TypeError(
+                            "'alpha' must be of type 'BioSimSpace.Types._GeneralUnit', 'str', or 'float'."
+                        )
+
+                    # Validate the dimensions.
+                    if u.dimensions() != (0, 0, 2, 1, -1, 0, -2):
+                        raise ValueError(
+                            "'alpha' has invalid dimensions! "
+                            f"Expected dimensions are 'L2 M Q-1 T-2', found '{u.unit()}'"
+                        )
+                uh_fin.append(u)
         elif uh is None:
-            self._uh = [0.00] * self._num_lambda
+            self._uh = [0.00 * _Units.Energy.kcal_per_mol] * self._num_lambda
         else:
             raise TypeError("'uh' must be of type 'list'")
 
@@ -2729,8 +3104,8 @@ class AToMProduction(_AToM):
         Returns
         -------
 
-        W0 : list of float
-            The W0 values.
+        W0 : list of :class:`Energy <BioSimSpace.Types.Energy>
+            The W0 values in kcal/mol.
         """
         return self._W0
 
@@ -2741,18 +3116,45 @@ class AToMProduction(_AToM):
         Parameters
         ----------
 
-        W0 : list of float
-            The W0 values.
+        W0 : list of :class:`Energy <BioSimSpace.Types.Energy>
+            The W0 values in kcal/mol.
         """
         if isinstance(W0, list):
             if len(W0) != self._num_lambda:
                 raise ValueError("'W0' must have the same length as 'num_lambda'")
-            if all(isinstance(item, float) for item in W0):
-                self._W0 = W0
-            else:
-                raise ValueError("all entries in 'W0' must be floats")
+            W0_fin = []
+            for w in W0:
+                # Convert int to float.
+                if type(w) is int:
+                    w = float(w)
+
+                if isinstance(w, float):
+                    # Use default units.
+                    w *= _Units.Energy.kcal_per_mol
+
+                else:
+                    if isinstance(w, str):
+                        try:
+                            w = _Types.Energy(w)
+                        except Exception:
+                            raise ValueError(
+                                "Unable to parse 'alpha' string."
+                            ) from None
+
+                    elif not isinstance(w, _Types.Energy):
+                        raise TypeError(
+                            "'alpha' must be of type 'BioSimSpace.Types._GeneralUnit', 'str', or 'float'."
+                        )
+
+                    # Validate the dimensions.
+                    if w.dimensions() != (0, 0, 2, 1, -1, 0, -2):
+                        raise ValueError(
+                            "'alpha' has invalid dimensions! "
+                            f"Expected dimensions are 'L2 M Q-1 T-2', found '{w.unit()}'"
+                        )
+                W0_fin.append(w)
         elif W0 is None:
-            self._W0 = [0.00] * self._num_lambda
+            self._W0 = [0.00 * _Units.Energy.kcal_per_mol] * self._num_lambda
         else:
             raise TypeError("'W0' must be of type 'list'")
 
