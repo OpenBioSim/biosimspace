@@ -22,29 +22,54 @@
 """
 A class for holding restraints.
 """
-from math import e
-from scipy import integrate as _integrate
-import numpy as _np
+import math as _math
 import warnings as _warnings
+from typing import Literal
 
-from sire.legacy.Units import angstrom3 as _Sire_angstrom3
-from sire.legacy.Units import k_boltz as _k_boltz
-from sire.legacy.Units import meter3 as _Sire_meter3
-from sire.legacy.Units import mole as _Sire_mole
+import numpy as _np
+from scipy import integrate as _integrate
+from scipy.special import erf as _erf
+from sire.legacy.Units import (
+    angstrom3 as _Sire_angstrom3,
+    k_boltz as _k_boltz,
+    meter3 as _Sire_meter3,
+    mole as _Sire_mole,
+)
+from sire.units import GeneralUnit as _sire_GeneralUnit
 
-from .._SireWrappers import Atom as _Atom
-from .._SireWrappers import System as _System
-from ..Types import Angle as _Angle
-from ..Types import Length as _Length
-from ..Types import Temperature as _Temperature
-from ..Units.Angle import degree as _degree
-from ..Units.Angle import radian as _radian
+from BioSimSpace.Sandpit.Exscientia.Types._general_unit import (
+    GeneralUnit as _GeneralUnit,
+)
+from ..Types import Angle as _Angle, Length as _Length, Temperature as _Temperature
+from ..Units.Angle import degree as _degree, radian as _radian
 from ..Units.Area import angstrom2 as _angstrom2
-from ..Units.Energy import kcal_per_mol as _kcal_per_mol
-from ..Units.Energy import kj_per_mol as _kj_per_mol
-from ..Units.Length import angstrom as _angstrom
-from ..Units.Length import nanometer as _nanometer
+from ..Units.Energy import kcal_per_mol as _kcal_per_mol, kj_per_mol as _kj_per_mol
+from ..Units.Length import angstrom as _angstrom, nanometer as _nanometer
 from ..Units.Temperature import kelvin as _kelvin
+from ..Units.Volume import angstrom3 as _angstrom3
+from .._SireWrappers import Atom as _Atom, System as _System
+
+
+def sqrt(u):
+    dims = u._sire_unit.dimensions()
+    for dim in dims:
+        if dim % 2 != 0:
+            raise ValueError(
+                "Square root not possible on dimension that is not divisible by 2!"
+            )
+    return _GeneralUnit(
+        _sire_GeneralUnit(_math.sqrt(u.value()), [int(0.5 * dim) for dim in dims])
+    )
+
+
+def exp(u):
+    dims = u._sire_unit.dimensions()
+    return _GeneralUnit(_sire_GeneralUnit(_math.exp(u.value()), dims))
+
+
+def erf(u):
+    dims = u._sire_unit.dimensions()
+    return _GeneralUnit(_sire_GeneralUnit(_erf(u.value()), dims))
 
 
 class Restraint:
@@ -813,7 +838,11 @@ class Restraint:
                     f"yet for {engine}."
                 )
 
-    def getCorrection(self, method="analytical"):
+    def getCorrection(
+        self,
+        method="analytical",
+        flavour: Literal["boresch", "schrodinger"] = "boresch",
+    ):
         """
         Calculate the free energy of releasing the restraint
         to the standard state volume.
@@ -827,6 +856,11 @@ class Restraint:
             correction can introduce errors when the restraints are weak,
             restrained angles are close to 0 or pi radians, or the restrained
             distance is close to 0.
+        flavour : str
+            When analytical correction is used, one could either use
+            Boresch's derivation or Schrodinger's derivation. Both of
+            them usually agrees quite well with each other to the extent
+            of 0.2 kcal/mol.
 
         Returns
         ----------
@@ -975,59 +1009,10 @@ class Restraint:
                 return dg
 
             elif method == "analytical":
-                # Only need three equilibrium values for the analytical correction
-                r0 = (
-                    self._restraint_dict["equilibrium_values"]["r0"] / _angstrom
-                )  # Distance in A
-                thetaA0 = (
-                    self._restraint_dict["equilibrium_values"]["thetaA0"] / _radian
-                )  # Angle in radians
-                thetaB0 = (
-                    self._restraint_dict["equilibrium_values"]["thetaB0"] / _radian
-                )  # Angle in radians
-
-                force_constants = []
-
-                # Loop through and correct for force constants of zero,
-                # which break the analytical correction. To account for this,
-                # divide the prefactor accordingly. Note that setting
-                # certain force constants to zero while others are non-zero
-                # will result in unstable restraints, but this will be checked when
-                # the restraint object is created
-                for k, val in self._restraint_dict["force_constants"].items():
-                    if val.value() == 0:
-                        if k == "kr":
-                            raise ValueError("The force constant kr must not be zero")
-                        if k == "kthetaA":
-                            prefactor /= 2 / _np.sin(thetaA0)
-                        if k == "kthetaB":
-                            prefactor /= 2 / _np.sin(thetaB0)
-                        if k[:4] == "kphi":
-                            prefactor /= 2 * _np.pi
-                    else:
-                        if k == "kr":
-                            force_constants.append(val / (_kcal_per_mol / _angstrom2))
-                        else:
-                            force_constants.append(
-                                val / (_kcal_per_mol / (_radian * _radian))
-                            )
-
-                # Calculation
-                n_nonzero_k = len(force_constants)
-                prod_force_constants = _np.prod(force_constants)
-                numerator = prefactor * _np.sqrt(prod_force_constants)
-                denominator = (
-                    (r0**2)
-                    * _np.sin(thetaA0)
-                    * _np.sin(thetaB0)
-                    * (2 * _np.pi * R * T) ** (n_nonzero_k / 2)
-                )
-
-                # Compute dg and attach unit
-                dg = -R * T * _np.log(numerator / denominator)
-                dg *= _kcal_per_mol
-
-                return dg
+                if flavour.lower() == "schrodinger":
+                    return self._schrodinger_analytical_correction()
+                elif flavour.lower() == "boresch":
+                    return self._boresch_analytical_correction()
 
             else:
                 raise ValueError(
@@ -1126,6 +1111,125 @@ class Restraint:
                     "the 'permanent_distance_restraint' is active."
                 )
                 return _get_correction(r0, r_fb, kr)
+
+    def _schrodinger_analytical_correction(self):
+        # Adapted from DOI: 10.1021/acs.jcim.3c00013
+        k_boltz = _GeneralUnit(_k_boltz)
+        beta = 1 / (k_boltz * self.T)
+        V = 1660 * _angstrom3
+
+        r = self._restraint_dict["equilibrium_values"]["r0"]
+        # Schrodinger uses k(b-b0)**2
+        kr = self._restraint_dict["force_constants"]["kr"] / 2
+
+        Z_dist = r / (2 * beta * kr) * _np.exp(-beta * kr * r**2) + _np.sqrt(
+            _np.pi
+        ) / (4 * beta * kr * sqrt(beta * kr)) * (1 + 2 * beta * kr * r**2) * (
+            1 + _erf(sqrt(beta * kr) * r)
+        )
+
+        Z_angles = []
+        for angle in ["A", "B"]:
+            theta = (
+                self._restraint_dict["equilibrium_values"][f"theta{angle}0"] / _radian
+            )  # Angle in radians
+            # Schrodinger uses k instead of k/2
+            ktheta = self._restraint_dict["force_constants"][f"ktheta{angle}"] / 2
+            Z_angle = (
+                sqrt(_np.pi / (beta * ktheta))
+                * exp(-1 / (4 * beta * ktheta))
+                * _np.sin(theta)
+            )
+            Z_angle /= _radian**3
+            Z_angles.append(Z_angle)
+
+        Z_dihedrals = []
+        for dihedral in ["A", "B", "C"]:
+            # Schrodinger uses k instead of k/2
+            kphi = self._restraint_dict["force_constants"][f"kphi{dihedral}"] / 2
+            Z_dihedral = sqrt(_np.pi / (beta * kphi)) * erf(_np.pi * sqrt(beta * kphi))
+            Z_dihedrals.append(Z_dihedral)
+
+        dG = (
+            k_boltz
+            * self.T
+            * _np.log(
+                Z_angles[0]
+                * Z_angles[1]
+                * Z_dist
+                * Z_dihedrals[0]
+                * Z_dihedrals[1]
+                * Z_dihedrals[2]
+                / (8 * _np.pi**2 * V)
+            )
+        )
+        return dG
+
+    def _boresch_analytical_correction(self):
+        R = (
+            _k_boltz.value() * _kcal_per_mol / _kelvin
+        ).value()  # molar gas constant in kcal mol-1 K-1
+
+        # Parameters
+        T = self.T / _kelvin  # Temperature in Kelvin
+        v0 = (
+            ((_Sire_meter3 / 1000) / _Sire_mole) / _Sire_angstrom3
+        ).value()  # standard state volume in A^3
+        prefactor = (
+            8 * (_np.pi**2) * v0
+        )  # In A^3. Divide this to account for force constants of 0 in the
+        # analytical correction
+        # Only need three equilibrium values for the analytical correction
+        r0 = (
+            self._restraint_dict["equilibrium_values"]["r0"] / _angstrom
+        )  # Distance in A
+        thetaA0 = (
+            self._restraint_dict["equilibrium_values"]["thetaA0"] / _radian
+        )  # Angle in radians
+        thetaB0 = (
+            self._restraint_dict["equilibrium_values"]["thetaB0"] / _radian
+        )  # Angle in radians
+
+        force_constants = []
+
+        # Loop through and correct for force constants of zero,
+        # which break the analytical correction. To account for this,
+        # divide the prefactor accordingly. Note that setting
+        # certain force constants to zero while others are non-zero
+        # will result in unstable restraints, but this will be checked when
+        # the restraint object is created
+        for k, val in self._restraint_dict["force_constants"].items():
+            if val.value() == 0:
+                if k == "kr":
+                    raise ValueError("The force constant kr must not be zero")
+                if k == "kthetaA":
+                    prefactor /= 2 / _np.sin(thetaA0)
+                if k == "kthetaB":
+                    prefactor /= 2 / _np.sin(thetaB0)
+                if k[:4] == "kphi":
+                    prefactor /= 2 * _np.pi
+            else:
+                if k == "kr":
+                    force_constants.append(val / (_kcal_per_mol / _angstrom2))
+                else:
+                    force_constants.append(val / (_kcal_per_mol / (_radian * _radian)))
+
+        # Calculation
+        n_nonzero_k = len(force_constants)
+        prod_force_constants = _np.prod(force_constants)
+        numerator = prefactor * _np.sqrt(prod_force_constants)
+        denominator = (
+            (r0**2)
+            * _np.sin(thetaA0)
+            * _np.sin(thetaB0)
+            * (2 * _np.pi * R * T) ** (n_nonzero_k / 2)
+        )
+
+        # Compute dg and attach unit
+        dg = -R * T * _np.log(numerator / denominator)
+        dg *= _kcal_per_mol
+
+        return dg
 
     @property
     def correction(self):

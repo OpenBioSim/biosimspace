@@ -97,9 +97,20 @@ def test_numerical_correction_boresch(boresch_restraint):
 
 
 def test_analytical_correction_boresch(boresch_restraint):
-    dG = boresch_restraint.getCorrection(method="analytical") / kcal_per_mol
+    dG = (
+        boresch_restraint.getCorrection(method="analytical", flavour="boresch")
+        / kcal_per_mol
+    )
     assert np.isclose(-7.2, dG, atol=0.1)
     assert isinstance(boresch_restraint, Restraint)
+
+
+def test_analytical_schrodinger_correction_boresch(boresch_restraint):
+    dG = (
+        boresch_restraint.getCorrection(method="analytical", flavour="schrodinger")
+        / kcal_per_mol
+    )
+    assert np.isclose(-7.2, dG, atol=0.1)
 
 
 test_force_constants_boresch = [
