@@ -2076,7 +2076,6 @@ class Relative:
             first_process = _Process.Amber(
                 system,
                 self._protocol,
-                exe=self._exe,
                 work_dir=first_dir,
                 extra_options=self._extra_options,
                 extra_lines=self._extra_lines,
