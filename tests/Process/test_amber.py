@@ -314,11 +314,15 @@ def run_process(system, protocol, check_data=False):
 def test_parse_fep_output(perturbable_system, protocol):
     """Make sure that we can correctly parse AMBER FEP output."""
 
+    from sire.legacy.Base import findExe
+
     # Copy the system.
     system_copy = perturbable_system.copy()
 
-    # Create a process using any system and the protocol.
-    process = BSS.Process.Amber(system_copy, protocol)
+    # Use the first instance of sander in the path so that we can
+    # test without pmemd.
+    exe = findExe("sander").absoluteFilePath()
+    process = BSS.Process.Amber(system_copy, protocol, exe=exe)
 
     # Assign the path to the output file.
     if isinstance(protocol, BSS.Protocol.FreeEnergy):

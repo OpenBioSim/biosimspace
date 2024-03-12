@@ -73,6 +73,7 @@ class Amber(_process.Process):
         reference_system=None,
         explicit_dummies=False,
         exe=None,
+        is_gpu=False,
         name="amber",
         work_dir=None,
         seed=None,
@@ -102,6 +103,9 @@ class Amber(_process.Process):
 
         exe : str
             The full path to the AMBER executable.
+
+        is_gpu : bool
+            Whether to use the GPU accelerated version of AMBER.
 
         name : str
             The name of the process.
@@ -144,22 +148,18 @@ class Amber(_process.Process):
         # This process can generate trajectory data.
         self._has_trajectory = True
 
+        if not isinstance(is_gpu, bool):
+            raise TypeError("'is_gpu' must be of type 'bool'")
+
         # If the path to the executable wasn't specified, then search
-        # for it in $PATH. For now, we'll just search for 'sander', which
-        # is available free as part of AmberTools. In future, we will
-        # look for all possible executables in order of preference: pmemd.cuda,
-        # pmemd, sander, etc., as well as their variants, e.g. pmemd.MPI.
+        # for it in AMBERHOME and the PATH.
         if exe is None:
-            # Search AMBERHOME, if set.
-            if _amber_home is not None:
-                exe = "%s/bin/sander" % _amber_home
-                if _os.path.isfile(exe):
-                    self._exe = exe
-                else:
-                    raise _MissingSoftwareError(
-                        "'BioSimSpace.Process.Amber' is not supported. "
-                        "Please install AMBER (http://ambermd.org)."
-                    )
+            if isinstance(protocol, _FreeEnergyMixin):
+                is_free_energy = True
+            else:
+                is_free_energy = False
+
+            self._exe = _find_exe(is_gpu=is_gpu, is_free_energy=is_free_energy)
         else:
             # Make sure executable exists.
             if _os.path.isfile(exe):
@@ -2703,3 +2703,86 @@ class Amber(_process.Process):
 
             except KeyError:
                 return None
+
+
+def _find_exe(is_gpu=False, is_free_energy=False):
+    """
+    Helper function to search for an AMBER executable.
+
+    Parameters
+    ----------
+
+    is_gpu : bool
+        Whether to search for a GPU-enabled executable.
+
+    is_free_energy : bool
+        Whether the executable is for a free energy protocol.
+
+    Returns
+    -------
+
+    exe : str
+        The path to the executable.
+    """
+
+    if not isinstance(is_gpu, bool):
+        raise TypeError("'is_gpu' must be of type 'bool'.")
+
+    if not isinstance(is_free_energy, bool):
+        raise TypeError("'is_free_energy' must be of type 'bool'.")
+
+    # If the user has requested a GPU-enabled executable, search for pmemd.cuda only.
+    if is_gpu:
+        targets = ["pmemd.cuda"]
+    else:
+        # If the this is a free energy simulation, then only use pmemd or pmemd.cuda.
+        if is_free_energy:
+            targets = ["pmemd"]
+        else:
+            targets = ["pmemd", "sander"]
+
+    # Search for the executable.
+
+    import os as _os
+    import pathlib as _pathlib
+
+    from glob import glob as _glob
+
+    # Get the current path.
+    path = _os.environ["PATH"].split(_os.pathsep)
+
+    # If AMBERHOME is set, then prepend to the path.
+    if _amber_home is not None:
+        path = [_amber_home + "/bin"] + path
+
+    # Helper function to check whether a file is executable.
+    def is_exe(fpath):
+        return _os.path.isfile(fpath) and _os.access(fpath, _os.X_OK)
+
+    # Loop over each directory in the path and search for the executable.
+    for p in path:
+        # Loop over each target.
+        for t in targets:
+            # Glob for the executable.
+            results = _glob(f"{t}*", root_dir=p)
+            # If we find a match, check that it's executable and return the path.
+            # Note that this returns the first match, not the best match. If a
+            # user requires a specific version of the executable, they should
+            # order their path accordingly, or use the exe keyword argument.
+            if results:
+                for exe in results:
+                    exe = _pathlib.Path(p) / exe
+                    if is_exe(exe):
+                        return str(exe)
+
+    msg = (
+        "'BioSimSpace.Process.Amber' is not supported. "
+        "Unable to find AMBER executable in AMBERHOME or PATH. "
+        "Please install AMBER (http://ambermd.org)."
+    )
+
+    if is_free_energy:
+        msg += " Free energy simulations require 'pmemd' or 'pmemd.cuda'."
+
+    # If we don't find the executable, raise an error.
+    raise _MissingSoftwareError(msg)

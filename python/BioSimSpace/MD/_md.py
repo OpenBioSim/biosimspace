@@ -68,7 +68,7 @@ _file_extensions = {
 # Whether each engine supports free energy simulations. This dictionary needs to
 # be updated as support for different engines is added.
 _free_energy = {
-    "AMBER": False,
+    "AMBER": True,
     "GROMACS": True,
     "NAMD": False,
     "OPENMM": False,
@@ -96,7 +96,7 @@ _steering = {
 }
 
 
-def _find_md_engines(system, protocol, engine="auto", gpu_support=False):
+def _find_md_engines(system, protocol, engine="AUTO", gpu_support=False):
     """
     Find molecular dynamics engines on the system that
     support the given protocol and GPU requirements.
@@ -173,20 +173,45 @@ def _find_md_engines(system, protocol, engine="auto", gpu_support=False):
             and (not is_metadynamics or _metadynamics[engine])
             and (not is_steering or _steering[engine])
         ):
-            # Check whether this engine exists on the system and has the desired
-            # GPU support.
-            for exe, gpu in _md_engines[engine].items():
-                # If the user has requested GPU support make sure the engine
-                # supports it.
-                if not gpu_support or gpu:
-                    # AMBER
-                    if engine == "AMBER":
-                        # Search AMBERHOME, if set.
-                        if _amber_home is not None:
-                            _exe = "%s/bin/%s" % (_amber_home, exe)
-                            if _os.path.isfile(_exe):
+            # Special handling for AMBER which has a custom executable finding
+            # function.
+            if engine == "AMBER":
+                from ..Process._amber import _find_exe
+
+                try:
+                    exe = _find_exe(is_gpu=gpu_support, is_free_energy=is_free_energy)
+                    found_engines.append(engine)
+                    found_exes.append(exe)
+                except:
+                    pass
+            else:
+                # Check whether this engine exists on the system and has the desired
+                # GPU support.
+                for exe, gpu in _md_engines[engine].items():
+                    # If the user has requested GPU support make sure the engine
+                    # supports it.
+                    if not gpu_support or gpu:
+                        # GROMACS
+                        if engine == "GROMACS":
+                            if (
+                                _gmx_exe is not None
+                                and _os.path.basename(_gmx_exe) == exe
+                            ):
                                 found_engines.append(engine)
-                                found_exes.append(_exe)
+                                found_exes.append(_gmx_exe)
+                        # OPENMM
+                        elif engine == "OPENMM":
+                            found_engines.append(engine)
+                            found_exes.append(_SireBase.getBinDir() + "/sire_python")
+                        # SOMD
+                        elif engine == "SOMD":
+                            found_engines.append(engine)
+                            if is_free_energy:
+                                found_exes.append(
+                                    _SireBase.getBinDir() + "/somd-freenrg"
+                                )
+                            else:
+                                found_exes.append(_SireBase.getBinDir() + "/somd")
                         # Search system PATH.
                         else:
                             try:
@@ -195,30 +220,6 @@ def _find_md_engines(system, protocol, engine="auto", gpu_support=False):
                                 found_exes.append(exe)
                             except:
                                 pass
-                    # GROMACS
-                    elif engine == "GROMACS":
-                        if _gmx_exe is not None and _os.path.basename(_gmx_exe) == exe:
-                            found_engines.append(engine)
-                            found_exes.append(_gmx_exe)
-                    # OPENMM
-                    elif engine == "OPENMM":
-                        found_engines.append(engine)
-                        found_exes.append(_SireBase.getBinDir() + "/sire_python")
-                    # SOMD
-                    elif engine == "SOMD":
-                        found_engines.append(engine)
-                        if is_free_energy:
-                            found_exes.append(_SireBase.getBinDir() + "/somd-freenrg")
-                        else:
-                            found_exes.append(_SireBase.getBinDir() + "/somd")
-                    # Search system PATH.
-                    else:
-                        try:
-                            exe = _SireBase.findExe(exe).absoluteFilePath()
-                            found_engines.append(engine)
-                            found_exes.append(exe)
-                        except:
-                            pass
 
     # No engine was found.
     if len(found_engines) == 0:
