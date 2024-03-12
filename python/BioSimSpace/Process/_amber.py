@@ -299,11 +299,11 @@ class Amber(_process.Process):
     def _generate_config(self):
         """Generate AMBER configuration file strings."""
 
-        # Work out whether we're generating a config for PMEMD.
-        if "pmemd" in self._exe.lower():
-            is_pmemd = True
+        # Is this a CUDA enabled version of AMBER?
+        if "cuda" in self._exe.lower():
+            is_pmemd_cuda = True
         else:
-            is_pmemd = False
+            is_pmemd_cuda = False
 
         extra_options = self._extra_options.copy()
         extra_lines = self._extra_lines.copy()
@@ -346,7 +346,7 @@ class Amber(_process.Process):
         # Create the configuration.
         self.setConfig(
             amber_config.createConfig(
-                is_pmemd=is_pmemd,
+                is_pmemd_cuda=is_pmemd_cuda,
                 explicit_dummies=self._explicit_dummies,
                 extra_options=extra_options,
                 extra_lines=extra_lines,

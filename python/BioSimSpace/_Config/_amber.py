@@ -68,6 +68,7 @@ class Amber(_Config):
         self,
         version=None,
         is_pmemd=False,
+        is_pmemd_cuda=False,
         explicit_dummies=False,
         extra_options={},
         extra_lines=[],
@@ -78,8 +79,8 @@ class Amber(_Config):
         version : float
             The AMBER version.
 
-        is_pmemd : bool
-            Whether the configuration is for a simulation using PMEMD.
+        is_pmemd_cuda : bool
+            Whether the configuration is for a simulation using PMEMD with CUDA.
 
         explicit_dummies : bool
             Whether to keep the dummy atoms explicit at the endstates or remove them.
@@ -103,8 +104,8 @@ class Amber(_Config):
         if version and not isinstance(version, float):
             raise TypeError("'version' must be of type 'float'.")
 
-        if not isinstance(is_pmemd, bool):
-            raise TypeError("'is_pmemd' must be of type 'bool'.")
+        if not isinstance(is_pmemd_cuda, bool):
+            raise TypeError("'is_pmemd_cuda' must be of type 'bool'.")
 
         if not isinstance(explicit_dummies, bool):
             raise TypeError("'explicit_dummies' must be of type 'bool'.")
@@ -192,7 +193,7 @@ class Amber(_Config):
             protocol_dict["ntb"] = 0
             # Non-bonded cut-off.
             protocol_dict["cut"] = "999."
-            if is_pmemd:
+            if is_pmemd_cuda:
                 # Use vacuum generalised Born model.
                 protocol_dict["igb"] = "6"
         else:
