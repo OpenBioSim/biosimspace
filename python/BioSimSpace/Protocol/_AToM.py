@@ -3020,7 +3020,7 @@ class AToMProduction(_AToM):
 
                     elif not isinstance(a, _Types.Energy):
                         raise TypeError(
-                            "'alpha' must be of type 'BioSimSpace.Types._GeneralUnit', 'str', or 'float'."
+                            "'alpha' must be of type 'BioSimSpace.Types.Energy', 'str', or 'float'."
                         )
 
                     # Validate the dimensions.

@@ -901,9 +901,9 @@ class relativeATM:
             # All variables that need to change
             new_lam_1 = self._protocol.getLambda1()[index]
             new_lam_2 = self._protocol.getLambda2()[index]
-            new_alpha = self._protocol.getAlpha()[index]
-            new_uh = self._protocol.getUh()[index]
-            new_w0 = self._protocol.getW0()[index]
+            new_alpha = self._protocol.getAlpha()[index].value()
+            new_uh = self._protocol.getUh()[index].value()
+            new_w0 = self._protocol.getW0()[index].value()
             new_direction = self._protocol.getDirections()[index]
             with open(new_dir + "/openmm_script.py", "r") as f:
                 for line in f:
@@ -912,11 +912,13 @@ class relativeATM:
                     elif line.startswith("lambda2"):
                         new_config.append(f"lambda2 = {new_lam_2}\n")
                     elif line.startswith("alpha"):
-                        new_config.append(f"alpha = {new_alpha}\n")
+                        new_config.append(
+                            f"alpha = {new_alpha} * kilocalories_per_mole\n"
+                        )
                     elif line.startswith("uh"):
-                        new_config.append(f"uh = {new_uh}\n")
+                        new_config.append(f"uh = {new_uh} * kilocalories_per_mole\n")
                     elif line.startswith("w0"):
-                        new_config.append(f"w0 = {new_w0}\n")
+                        new_config.append(f"w0 = {new_w0} * kilocalories_per_mole\n")
                     elif line.startswith("direction"):
                         new_config.append(f"direction = {new_direction}\n")
                     else:

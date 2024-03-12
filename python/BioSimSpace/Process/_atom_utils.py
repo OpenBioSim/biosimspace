@@ -84,7 +84,7 @@ class _AToMUtils:
         self.lig2_atoms = self.getLigand2AtomsAsList()
         self.SCUmax = self.protocol.getSCUmax().value()
         self.SCU0 = self.protocol.getSCU0().value()
-        self.SCa = self.protocol.getSCa().value()
+        self.SCa = self.protocol.getSCa()
         if isinstance(self.protocol, _Protocol.AToMProduction):
             if index is None:
                 raise ValueError("Index must be set for AToMProduction protocol")
@@ -252,17 +252,17 @@ class _AToMUtils:
         self.findDisplacement()
         self.getATMForceConstants(index)
         output = ""
-        output += "#Parameters for ATM force in original units\n"
+        output += "#Parameters for ATM force in  original units\n"
         output += "lig1_atoms = {}\n".format(self.lig1_atoms)
         output += "lig2_atoms = {}\n".format(self.lig2_atoms)
         output += "lambda1 = {}\n".format(self.lambda1)
         output += "lambda2 = {}\n".format(self.lambda2)
         output += "alpha = {} * kilocalories_per_mole\n".format(self.alpha)
         output += "uh = {} * kilocalories_per_mole\n".format(self.uh)
-        output += "w0 = {} kilocalories_per_mole\n".format(self.w0)
+        output += "w0 = {} * kilocalories_per_mole\n".format(self.w0)
         output += "direction = {}\n".format(self.direction)
-        output += "sc_Umax = {} kilocalories_per_mole\n".format(self.SCUmax)
-        output += "sc_U0 = {}kilocalories_per_mole\n".format(self.SCU0)
+        output += "sc_Umax = {} * kilocalories_per_mole\n".format(self.SCUmax)
+        output += "sc_U0 = {} * kilocalories_per_mole\n".format(self.SCU0)
         output += "sc_a = {}\n".format(self.SCa)
 
         output += "\n\n #Define ATM force\n"
