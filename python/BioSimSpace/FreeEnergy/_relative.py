@@ -2082,6 +2082,10 @@ class Relative:
                 property_map=self._property_map,
                 **self._kwargs,
             )
+            if self._setup_only:
+                del first_process
+            else:
+                processes.append(first_process)
 
         # Loop over the rest of the lambda values.
         for x, lam in enumerate(lam_vals[1:]):
