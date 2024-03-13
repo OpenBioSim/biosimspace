@@ -83,6 +83,7 @@ class Gromacs(_process.Process):
         seed=None,
         extra_options={},
         extra_lines=[],
+        extra_args={},
         property_map={},
         ignore_warnings=False,
         show_errors=True,
@@ -124,6 +125,10 @@ class Gromacs(_process.Process):
         extra_lines : [str]
             A list of extra lines to put at the end of the configuration file.
 
+        extra_args : dict
+            A dictionary of extra command-line arguments to pass to the GROMACS
+            executable.
+
         property_map : dict
             A dictionary that maps system "properties" to their user defined
             values. This allows the user to refer to properties with their
@@ -154,6 +159,7 @@ class Gromacs(_process.Process):
             seed=seed,
             extra_options=extra_options,
             extra_lines=extra_lines,
+            extra_args=extra_args,
             property_map=property_map,
         )
 
@@ -444,6 +450,10 @@ class Gromacs(_process.Process):
         if isinstance(self._protocol, (_Protocol.Metadynamics, _Protocol.Steering)):
             self.setArg("-plumed", "plumed.dat")
 
+        # Add any extra arguments.
+        for key, value in self._extra_args.items():
+            self.setArg(key, value)
+
     @staticmethod
     def _generate_binary_run_file(
         mdp_file,
@@ -455,6 +465,7 @@ class Gromacs(_process.Process):
         checkpoint_file=None,
         ignore_warnings=False,
         show_errors=True,
+        **kwargs,
     ):
         """
         Use grommp to generate the binary run input file.
@@ -494,6 +505,9 @@ class Gromacs(_process.Process):
         show_errors : bool
             Whether to show warning/error messages when generating the binary
             run file.
+
+        **kwargs : dict
+            Additional keyword arguments.
         """
 
         if not isinstance(mdp_file, str):

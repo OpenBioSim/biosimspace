@@ -79,6 +79,7 @@ class Amber(_process.Process):
         seed=None,
         extra_options={},
         extra_lines=[],
+        extra_args={},
         property_map={},
     ):
         """
@@ -123,6 +124,9 @@ class Amber(_process.Process):
         extra_lines : [str]
             A list of extra lines to put at the end of the configuration file.
 
+        extra_args : dict
+            A dictionary of extra command-line arguments to pass to the AMBER executable.
+
         property_map : dict
             A dictionary that maps system "properties" to their user defined
             values. This allows the user to refer to properties with their
@@ -139,6 +143,7 @@ class Amber(_process.Process):
             seed=seed,
             extra_options=extra_options,
             extra_lines=extra_lines,
+            extra_args=extra_args,
             property_map=property_map,
         )
 
@@ -382,6 +387,10 @@ class Amber(_process.Process):
             # Append a trajectory file if this anything other than a minimisation.
             if not isinstance(self._protocol, _Protocol.Minimisation):
                 self.setArg("-x", "%s.nc" % self._name)
+
+        # Add the extra arguments.
+        for key, value in self._extra_args.items():
+            self.setArg(key, value)
 
     def start(self):
         """

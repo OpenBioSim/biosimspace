@@ -135,10 +135,6 @@ class Relative:
         work_dir=None,
         engine=None,
         setup_only=False,
-        ignore_warnings=False,
-        show_errors=True,
-        extra_options={},
-        extra_lines=[],
         property_map={},
         **kwargs,
     ):
@@ -176,23 +172,6 @@ class Relative:
             hierarchy and input files to run a simulation externally. This
             can be useful when you don't intend to use BioSimSpace to run
             the simulation. Note that a 'work_dir' must also be specified.
-
-        ignore_warnings : bool
-            Whether to ignore warnings when generating the binary run file.
-            This option is specific to GROMACS and will be ignored when a
-            different molecular dynamics engine is chosen.
-
-        show_errors : bool
-            Whether to show warning/error messages when generating the binary
-            run file. This option is specific to GROMACS and will be ignored
-            when a different molecular dynamics engine is chosen.
-
-        extra_options : dict
-            A dictionary containing extra options. Overrides the defaults generated
-            by the protocol.
-
-        extra_lines : [str]
-            A list of extra lines to put at the end of the configuration file.
 
         property_map : dict
             A dictionary that maps system "properties" to their user defined
@@ -292,31 +271,6 @@ class Relative:
 
         # Create the working directory.
         self._work_dir = _Utils.WorkDir(work_dir)
-
-        if not isinstance(ignore_warnings, bool):
-            raise ValueError("'ignore_warnings' must be of type 'bool.")
-        self._ignore_warnings = ignore_warnings
-
-        if not isinstance(show_errors, bool):
-            raise ValueError("'show_errors' must be of type 'bool.")
-        self._show_errors = show_errors
-
-        # Check the extra options.
-        if not isinstance(extra_options, dict):
-            raise TypeError("'extra_options' must be of type 'dict'.")
-        else:
-            keys = extra_options.keys()
-            if not all(isinstance(k, str) for k in keys):
-                raise TypeError("Keys of 'extra_options' must be of type 'str'.")
-        self._extra_options = extra_options
-
-        # Check the extra lines.
-        if not isinstance(extra_lines, list):
-            raise TypeError("'extra_lines' must be of type 'list'.")
-        else:
-            if not all(isinstance(line, str) for line in extra_lines):
-                raise TypeError("Lines in 'extra_lines' must be of type 'str'.")
-        self._extra_lines = extra_lines
 
         # Check that the map is valid.
         if not isinstance(property_map, dict):
@@ -2045,8 +1999,6 @@ class Relative:
                 self._protocol,
                 platform=platform,
                 work_dir=first_dir,
-                extra_options=self._extra_options,
-                extra_lines=self._extra_lines,
                 property_map=self._property_map,
                 **self._kwargs,
             )
@@ -2061,10 +2013,6 @@ class Relative:
                 system,
                 self._protocol,
                 work_dir=first_dir,
-                ignore_warnings=self._ignore_warnings,
-                show_errors=self._show_errors,
-                extra_options=self._extra_options,
-                extra_lines=self._extra_lines,
                 property_map=self._property_map,
                 **self._kwargs,
             )
@@ -2077,8 +2025,6 @@ class Relative:
                 system,
                 self._protocol,
                 work_dir=first_dir,
-                extra_options=self._extra_options,
-                extra_lines=self._extra_lines,
                 property_map=self._property_map,
                 **self._kwargs,
             )
@@ -2173,8 +2119,7 @@ class Relative:
                     gro,
                     tpr,
                     first_process._exe,
-                    ignore_warnings=self._ignore_warnings,
-                    show_errors=self._show_errors,
+                    **self._kwargs,
                 )
 
                 # Create a copy of the process and update the working
@@ -2239,24 +2184,6 @@ class Relative:
             # Initialise the process runner. All processes have already been nested
             # inside the working directory so no need to re-nest.
             self._runner = _Process.ProcessRunner(processes)
-
-    def _update_run_args(self, args):
-        """
-        Internal function to update run arguments for all subprocesses.
-
-        Parameters
-        ----------
-
-        args : dict, collections.OrderedDict
-            A dictionary which contains the new command-line arguments
-            for the process executable.
-        """
-
-        if not isinstance(args, dict):
-            raise TypeError("'args' must be of type 'dict'")
-
-        for process in self._runner.processes():
-            process.setArgs(args)
 
 
 def getData(name="data", file_link=False, work_dir=None):

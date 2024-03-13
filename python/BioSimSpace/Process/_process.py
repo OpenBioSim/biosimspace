@@ -76,6 +76,7 @@ class Process:
         seed=None,
         extra_options={},
         extra_lines=[],
+        extra_args={},
         property_map={},
     ):
         """
@@ -114,6 +115,9 @@ class Process:
 
         extra_lines : [str]
             A list of extra lines to put at the end of the configuration file.
+
+        extra_args : dict
+            A dictionary containing extra command-line arguments.
 
         property_map : dict
             A dictionary that maps system "properties" to their user defined
@@ -189,6 +193,14 @@ class Process:
             if not all(isinstance(line, str) for line in extra_lines):
                 raise TypeError("Lines in 'extra_lines' must be of type 'str'.")
 
+        # Check the extra arguments.
+        if not isinstance(extra_args, dict):
+            raise TypeError("'extra_args' must be of type 'dict'.")
+        else:
+            keys = extra_args.keys()
+            if not all(isinstance(k, str) for k in keys):
+                raise TypeError("Keys of 'extra_args' must be of type 'str'.")
+
         # Check that the map is valid.
         if not isinstance(property_map, dict):
             raise TypeError("'property_map' must be of type 'dict'")
@@ -244,9 +256,10 @@ class Process:
             self._is_seeded = True
             self.setSeed(seed)
 
-        # Set the extra options and lines.
+        # Set the extra options, lines, and args.
         self._extra_options = extra_options
         self._extra_lines = extra_lines
+        self._extra_args = extra_args
 
         # Set the map.
         self._property_map = property_map.copy()
@@ -1460,6 +1473,10 @@ class Process:
             raise TypeError(
                 "'args' must be of type 'dict' or 'collections.OrderedDict'"
             )
+
+        # Add extra arguments.
+        if self._extra_args:
+            self.addArgs(self._extra_args)
 
     def setArg(self, arg, value):
         """
