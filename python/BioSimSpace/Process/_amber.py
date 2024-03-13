@@ -168,7 +168,15 @@ class Amber(_process.Process):
             else:
                 is_free_energy = False
 
-            self._exe = _find_exe(is_gpu=is_gpu, is_free_energy=is_free_energy)
+            # Check whether this is a vacuum simulation.
+            is_vacuum = not (
+                _AmberConfig.hasBox(self._system, self._property_map)
+                or _AmberConfig.hasWater(self._system)
+            )
+
+            self._exe = _find_exe(
+                is_gpu=is_gpu, is_free_energy=is_free_energy, is_vacuum=is_vacuum
+            )
         else:
             # Make sure executable exists.
             if _os.path.isfile(exe):
@@ -2718,7 +2726,7 @@ class Amber(_process.Process):
                 return None
 
 
-def _find_exe(is_gpu=False, is_free_energy=False):
+def _find_exe(is_gpu=False, is_free_energy=False, is_vacuum=False):
     """
     Helper function to search for an AMBER executable.
 
@@ -2729,7 +2737,10 @@ def _find_exe(is_gpu=False, is_free_energy=False):
         Whether to search for a GPU-enabled executable.
 
     is_free_energy : bool
-        Whether the executable is for a free energy protocol.
+        Whether this is a free energy simulation.
+
+    is_vacuum : bool
+        Whether this is a vacuum simulation.
 
     Returns
     -------
@@ -2744,13 +2755,27 @@ def _find_exe(is_gpu=False, is_free_energy=False):
     if not isinstance(is_free_energy, bool):
         raise TypeError("'is_free_energy' must be of type 'bool'.")
 
-    # If the user has requested a GPU-enabled executable, search for pmemd.cuda only.
+    if not isinstance(is_vacuum, bool):
+        raise TypeError("'is_vacuum' must be of type 'bool'.")
+
+    # It is not possible to use implicit solvent for free energy simulations
+    # on GPU, so we fall back to pmemd for vacuum free energy simulations.
+
+    if is_gpu and is_free_energy and is_vacuum:
+        _warnings.warn(
+            "Implicit solvent is not supported for free energy simulations on GPU. "
+            "Falling back to pmemd for vacuum free energy simulations."
+        )
+        is_gpu = False
+
     if is_gpu:
         targets = ["pmemd.cuda"]
     else:
-        # If the this is a free energy simulation, then only use pmemd or pmemd.cuda.
-        if is_free_energy:
-            targets = ["pmemd"]
+        if is_free_energy and not is_vacuum:
+            if is_vacuum:
+                targets = ["pmemd"]
+            else:
+                targets = ["pmemd", "pmemd.cuda"]
         else:
             targets = ["pmemd", "sander"]
 

@@ -79,9 +79,21 @@ class Config:
         self._protocol = protocol
         self._property_map = property_map
 
-    def hasBox(self):
+    @staticmethod
+    def hasBox(system, property_map={}):
         """
         Whether the system has a box.
+
+        Parameters
+        ----------
+
+        system : :class:`System <BioSimSpace._SireWrappers.System>`
+            The molecular system.
+
+        property_map : dict
+            A dictionary that maps system "properties" to their user defined
+            values. This allows the user to refer to properties with their
+            own naming scheme, e.g. { "charge" : "my-charge" }
 
         Returns
         -------
@@ -89,12 +101,21 @@ class Config:
         has_box : bool
             Whether the system has a simulation box.
         """
-        space_prop = self._property_map.get("space", "space")
-        if space_prop in self._system._sire_object.propertyKeys():
+
+        if not isinstance(system, _System):
+            raise TypeError(
+                "'system' must be of type 'BioSimSpace._SireWrappers.System'"
+            )
+
+        if not isinstance(property_map, dict):
+            raise TypeError("'property_map' must be of type 'dict'")
+
+        space_prop = property_map.get("space", "space")
+        if space_prop in system._sire_object.propertyKeys():
             try:
                 # Make sure that we have a periodic box. The system will now have
                 # a default cartesian space.
-                box = self._system._sire_object.property(space_prop)
+                box = system._sire_object.property(space_prop)
                 has_box = box.isPeriodic()
             except:
                 has_box = False
@@ -104,9 +125,15 @@ class Config:
 
         return has_box
 
-    def hasWater(self):
+    @staticmethod
+    def hasWater(system):
         """
         Whether the system is contains water molecules.
+
+        Parameters
+
+        system : :class:`System <BioSimSpace._SireWrappers.System>`
+            The molecular system.
 
         Returns
         -------
@@ -114,7 +141,12 @@ class Config:
         has_water : bool
             Whether the system contains water molecules.
         """
-        return self._system.nWaterMolecules() > 0
+        if not isinstance(system, _System):
+            raise TypeError(
+                "'system' must be of type 'BioSimSpace._SireWrappers.System'"
+            )
+
+        return system.nWaterMolecules() > 0
 
     def reportInterval(self):
         """

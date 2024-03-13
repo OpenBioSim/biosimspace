@@ -188,7 +188,9 @@ class Amber(_Config):
             protocol_dict["ntf"] = 2
 
         # Periodic boundary conditions.
-        if not self.hasBox() or not self.hasWater():
+        if not self.hasBox(self._system, self._property_map) or not self.hasWater(
+            self._system
+        ):
             # No periodic box.
             protocol_dict["ntb"] = 0
             # Non-bonded cut-off.
@@ -277,7 +279,9 @@ class Amber(_Config):
         if not isinstance(self._protocol, _Protocol.Minimisation):
             if self._protocol.getPressure() is not None:
                 # Don't use barostat for vacuum simulations.
-                if self.hasBox() and self.hasWater():
+                if self.hasBox(self._system, self._property_map) and self.hasWater(
+                    self._system
+                ):
                     # Isotropic pressure scaling.
                     protocol_dict["ntp"] = 1
                     # Pressure in bar.

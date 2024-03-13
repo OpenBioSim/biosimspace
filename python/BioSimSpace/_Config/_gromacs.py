@@ -145,7 +145,9 @@ class Gromacs(_Config):
         protocol_dict["pbc"] = "xyz"
         # Use Verlet pair lists.
         protocol_dict["cutoff-scheme"] = "Verlet"
-        if self.hasBox() and self.hasWater():
+        if self.hasBox(self._system, self._property_map) and self.hasWater(
+            self._system
+        ):
             # Use a grid to search for neighbours.
             protocol_dict["ns-type"] = "grid"
             # Rebuild neighbour list every 20 steps.
@@ -186,7 +188,9 @@ class Gromacs(_Config):
         if not isinstance(self._protocol, _Protocol.Minimisation):
             if self._protocol.getPressure() is not None:
                 # Don't use barostat for vacuum simulations.
-                if self.hasBox() and self.hasWater():
+                if self.hasBox(self._system, self._property_map) and self.hasWater(
+                    self._system
+                ):
                     # Barostat type.
                     if version and version >= 2021:
                         protocol_dict["pcoupl"] = "c-rescale"

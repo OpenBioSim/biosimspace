@@ -176,10 +176,20 @@ def _find_md_engines(system, protocol, engine="AUTO", gpu_support=False):
             # Special handling for AMBER which has a custom executable finding
             # function.
             if engine == "AMBER":
+                from .._Config import Amber as _AmberConfig
                 from ..Process._amber import _find_exe
 
+                # Is this a vacuum simulation.
+                is_vacuum = not (
+                    _AmberConfig.hasBox(system) or _AmberConfig.hasWater(system)
+                )
+
                 try:
-                    exe = _find_exe(is_gpu=gpu_support, is_free_energy=is_free_energy)
+                    exe = _find_exe(
+                        is_gpu=gpu_support,
+                        is_free_energy=is_free_energy,
+                        is_vacuum=is_vacuum,
+                    )
                     found_engines.append(engine)
                     found_exes.append(exe)
                 except:

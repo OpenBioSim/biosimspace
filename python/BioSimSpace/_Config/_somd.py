@@ -176,7 +176,9 @@ class Somd(_Config):
         if self.hasWater():
             # Solvated box.
             protocol_dict["reaction field dielectric"] = "78.3"
-        if not self.hasBox() or not self.hasWater():
+        if not self.hasBox(self._system, self._property_map) or not self.hasWater(
+            self._system
+        ):
             # No periodic box.
             protocol_dict["cutoff type"] = "cutoffnonperiodic"
         else:
@@ -199,7 +201,9 @@ class Somd(_Config):
         if not isinstance(self._protocol, _Protocol.Minimisation):
             if self._protocol.getPressure() is not None:
                 # Don't use barostat for vacuum simulations.
-                if self.hasBox() and self.hasWater():
+                if self.hasBox(self._system, self._property_map) and self.hasWater(
+                    self._system
+                ):
                     # Enable barostat.
                     protocol_dict["barostat"] = True
                     pressure = self._protocol.getPressure().atm().value()
