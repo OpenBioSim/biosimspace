@@ -79,6 +79,7 @@ class OpenMM(_process.Process):
         work_dir=None,
         seed=None,
         property_map={},
+        **kwargs,
     ):
         """
         Constructor.
@@ -120,6 +121,9 @@ class OpenMM(_process.Process):
             A dictionary that maps system "properties" to their user defined
             values. This allows the user to refer to properties with their
             own naming scheme, e.g. { "charge" : "my-charge" }
+
+        kwargs : dict
+            Additional keyword arguments.
         """
 
         # Call the base class constructor.

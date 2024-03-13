@@ -81,6 +81,7 @@ class Amber(_process.Process):
         extra_lines=[],
         extra_args={},
         property_map={},
+        **kwargs,
     ):
         """
         Constructor.
@@ -131,6 +132,9 @@ class Amber(_process.Process):
             A dictionary that maps system "properties" to their user defined
             values. This allows the user to refer to properties with their
             own naming scheme, e.g. { "charge" : "my-charge" }
+
+        kwargs : dict
+            Additional keyword arguments.
         """
 
         # Call the base class constructor.
