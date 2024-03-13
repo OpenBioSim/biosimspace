@@ -1,13 +1,12 @@
 import math
-import numpy as np
-import pytest
-import pandas as pd
 import shutil
-
 from pathlib import Path
 
-import BioSimSpace.Sandpit.Exscientia as BSS
+import numpy as np
+import pandas as pd
+import pytest
 
+import BioSimSpace.Sandpit.Exscientia as BSS
 from BioSimSpace.Sandpit.Exscientia.Align import decouple
 from BioSimSpace.Sandpit.Exscientia.FreeEnergy import Restraint
 from BioSimSpace.Sandpit.Exscientia.Units.Angle import radian
@@ -17,15 +16,13 @@ from BioSimSpace.Sandpit.Exscientia.Units.Pressure import bar
 from BioSimSpace.Sandpit.Exscientia.Units.Temperature import kelvin
 from BioSimSpace.Sandpit.Exscientia.Units.Time import picosecond
 from BioSimSpace.Sandpit.Exscientia.Units.Volume import nanometer3
-
 from tests.Sandpit.Exscientia.conftest import (
-    url,
-    has_alchemlyb,
     has_alchemtest,
     has_amber,
     has_gromacs,
     has_openff,
     has_pyarrow,
+    url,
 )
 from tests.conftest import root_fp
 

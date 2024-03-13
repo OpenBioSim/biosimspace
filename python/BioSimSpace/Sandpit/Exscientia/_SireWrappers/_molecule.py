@@ -32,20 +32,22 @@ __all__ = ["Molecule"]
 from math import isclose as _isclose
 from warnings import warn as _warn
 
-from sire.legacy import Base as _SireBase
-from sire.legacy import IO as _SireIO
-from sire.legacy import MM as _SireMM
-from sire.legacy import Maths as _SireMaths
-from sire.legacy import Mol as _SireMol
-from sire.legacy import System as _SireSystem
-from sire.legacy import Units as _SireUnits
-
-from .. import _isVerbose
-from .._Exceptions import IncompatibleError as _IncompatibleError
-from ..Types import Coordinate as _Coordinate
-from ..Types import Length as _Length
+import numpy as _np
+from sire.legacy import (
+    Base as _SireBase,
+    IO as _SireIO,
+    MM as _SireMM,
+    Maths as _SireMaths,
+    Mol as _SireMol,
+    System as _SireSystem,
+    Units as _SireUnits,
+)
 
 from ._sire_wrapper import SireWrapper as _SireWrapper
+from .. import _isVerbose
+from ..Types import Coordinate as _Coordinate, Length as _Length, Vector as _BSSVector
+from ..Units.Length import angstrom as _angstrom
+from .._Exceptions import IncompatibleError as _IncompatibleError
 
 
 class Molecule(_SireWrapper):
@@ -1878,6 +1880,20 @@ class Molecule(_SireWrapper):
                 idxs.append(idx)
 
         return idxs
+
+    def getCOMIdx(self):
+        """Get the index of the atom that closest to the center of mass."""
+        if self.isPerturbable():
+            property_map = {"coordinates": "coordinates0", "mass": "mass0"}
+        else:
+            property_map = {"coordinates": "coordinates", "mass": "mass"}
+        coords = self.coordinates(property_map=property_map)
+        com = self._getCenterOfMass(property_map=property_map)
+        com = _BSSVector(*[e / _angstrom for e in com])
+        diffs = [coord.toVector() - com for coord in coords]
+        sq_distances = [diff.dot(diff) for diff in diffs]
+        idx = int(_np.argmin(sq_distances))
+        return idx
 
 
 # Import at bottom of module to avoid circular dependency.

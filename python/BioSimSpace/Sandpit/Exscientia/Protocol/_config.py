@@ -1,16 +1,15 @@
+import math as _math
 import warnings as _warnings
 
-import math as _math
 from sire.legacy import Units as _SireUnits
-from ..Units.Time import nanosecond as _nanosecond
 
-from .. import Protocol as _Protocol
-from .. import _gmx_version
-from .._Exceptions import IncompatibleError as _IncompatibleError
+from .. import Protocol as _Protocol, _gmx_version
+from ..Align._alch_ion import _get_protein_com_idx
 from ..Align._squash import _amber_mask_from_indices, _squashed_atom_mapping
 from ..FreeEnergy._restraint import Restraint as _Restraint
 from ..Units.Energy import kj_per_mol as _kj_per_mol
 from ..Units.Length import nanometer as _nanometer
+from .._Exceptions import IncompatibleError as _IncompatibleError
 
 
 class ConfigFactory:
@@ -217,9 +216,9 @@ class ConfigFactory:
             protocol_dict["imin"] = 1  # Minimisation simulation.
             protocol_dict["ntmin"] = 2  # Set the minimisation method to XMIN
             protocol_dict["maxcyc"] = self._steps  # Set the number of steps.
-            protocol_dict[
-                "ncyc"
-            ] = num_steep  # Set the number of steepest descent steps.
+            protocol_dict["ncyc"] = (
+                num_steep  # Set the number of steepest descent steps.
+            )
             # FIX need to remove and fix this, only for initial testing
             timestep = 0.004
         else:
@@ -247,6 +246,13 @@ class ConfigFactory:
         if isinstance(self.protocol, _Protocol._PositionRestraintMixin):
             # Restrain the backbone.
             restraint = self.protocol.getRestraint()
+
+            if self.system.getAlchemicalIon():
+                alchem_ion_idx = self.system.getAlchemicalIonIdx()
+                protein_com_idx = _get_protein_com_idx(self.system)
+                alchemical_ion_mask = f"@{alchem_ion_idx} | @{protein_com_idx}"
+            else:
+                alchemical_ion_mask = None
 
             if restraint is not None:
                 # Get the indices of the atoms that are restrained.
@@ -293,9 +299,9 @@ class ConfigFactory:
                                     ]
                                 restraint_mask = "@" + ",".join(restraint_atom_names)
                             elif restraint == "heavy":
-                                restraint_mask = "!:WAT & !@H="
+                                restraint_mask = "!:WAT & !@%NA,CL & !@H="
                             elif restraint == "all":
-                                restraint_mask = "!:WAT"
+                                restraint_mask = "!:WAT & !@%NA,CL"
 
                         # We can't do anything about a custom restraint, since we don't
                         # know anything about the atoms.
@@ -304,13 +310,22 @@ class ConfigFactory:
                                 "AMBER atom 'restraintmask' exceeds 256 character limit!"
                             )
 
-                    protocol_dict["ntr"] = 1
-                    force_constant = self.protocol.getForceConstant()._sire_unit
-                    force_constant = force_constant.to(
-                        _SireUnits.kcal_per_mol / _SireUnits.angstrom2
-                    )
-                    protocol_dict["restraint_wt"] = force_constant
-                    protocol_dict["restraintmask"] = f'"{restraint_mask}"'
+            else:
+                restraint_mask = None
+
+            if restraint_mask or alchemical_ion_mask:
+                if restraint_mask and alchemical_ion_mask:
+                    restraint_mask = f"{restraint_mask} | {alchemical_ion_mask}"
+                elif alchemical_ion_mask:
+                    restraint_mask = alchemical_ion_mask
+
+                protocol_dict["ntr"] = 1
+                force_constant = self.protocol.getForceConstant()._sire_unit
+                force_constant = force_constant.to(
+                    _SireUnits.kcal_per_mol / _SireUnits.angstrom2
+                )
+                protocol_dict["restraint_wt"] = force_constant
+                protocol_dict["restraintmask"] = f'"{restraint_mask}"'
 
         # Pressure control.
         if not isinstance(self.protocol, _Protocol.Minimisation):
@@ -318,9 +333,9 @@ class ConfigFactory:
                 # Don't use barostat for vacuum simulations.
                 if self._has_box and self._has_water:
                     protocol_dict["ntp"] = 1  # Isotropic pressure scaling.
-                    protocol_dict[
-                        "pres0"
-                    ] = f"{self.protocol.getPressure().bar().value():.5f}"  # Pressure in bar.
+                    protocol_dict["pres0"] = (
+                        f"{self.protocol.getPressure().bar().value():.5f}"  # Pressure in bar.
+                    )
                     if isinstance(self.protocol, _Protocol.Equilibration):
                         protocol_dict["barostat"] = 1  # Berendsen barostat.
                     else:
@@ -466,23 +481,23 @@ class ConfigFactory:
         protocol_dict["cutoff-scheme"] = "Verlet"  # Use Verlet pair lists.
         if self._has_box and self._has_water:
             protocol_dict["ns-type"] = "grid"  # Use a grid to search for neighbours.
-            protocol_dict[
-                "nstlist"
-            ] = "20"  # Rebuild neighbour list every 20 steps. Recommended in the manual for parallel simulations and/or non-bonded force calculation on the GPU.
+            protocol_dict["nstlist"] = (
+                "20"  # Rebuild neighbour list every 20 steps. Recommended in the manual for parallel simulations and/or non-bonded force calculation on the GPU.
+            )
             protocol_dict["rlist"] = "0.8"  # Set short-range cutoff.
             protocol_dict["rvdw"] = "0.8"  # Set van der Waals cutoff.
             protocol_dict["rcoulomb"] = "0.8"  # Set Coulomb cutoff.
             protocol_dict["coulombtype"] = "PME"  # Fast smooth Particle-Mesh Ewald.
-            protocol_dict[
-                "DispCorr"
-            ] = "EnerPres"  # Dispersion corrections for energy and pressure.
+            protocol_dict["DispCorr"] = (
+                "EnerPres"  # Dispersion corrections for energy and pressure.
+            )
         else:
             # Perform vacuum simulations by implementing pseudo-PBC conditions,
             # i.e. run calculation in a near-infinite box (333.3 nm).
             # c.f.: https://pubmed.ncbi.nlm.nih.gov/29678588
-            protocol_dict[
-                "nstlist"
-            ] = "1"  # Single neighbour list (all particles interact).
+            protocol_dict["nstlist"] = (
+                "1"  # Single neighbour list (all particles interact).
+            )
             protocol_dict["rlist"] = "333.3"  # "Infinite" short-range cutoff.
             protocol_dict["rvdw"] = "333.3"  # "Infinite" van der Waals cutoff.
             protocol_dict["rcoulomb"] = "333.3"  # "Infinite" Coulomb cutoff.
@@ -503,12 +518,12 @@ class ConfigFactory:
                     # 4ps time constant for pressure coupling.
                     # As the tau-p has to be 10 times larger than nstpcouple * dt (4 fs)
                     protocol_dict["tau-p"] = 4
-                    protocol_dict[
-                        "ref-p"
-                    ] = f"{self.protocol.getPressure().bar().value():.5f}"  # Pressure in bar.
-                    protocol_dict[
-                        "compressibility"
-                    ] = "4.5e-5"  # Compressibility of water.
+                    protocol_dict["ref-p"] = (
+                        f"{self.protocol.getPressure().bar().value():.5f}"  # Pressure in bar.
+                    )
+                    protocol_dict["compressibility"] = (
+                        "4.5e-5"  # Compressibility of water.
+                    )
                 else:
                     _warnings.warn(
                         "Cannot use a barostat for a vacuum or non-periodic simulation"
@@ -521,9 +536,9 @@ class ConfigFactory:
             else:
                 protocol_dict["integrator"] = "md"  # leap-frog dynamics.
                 protocol_dict["tcoupl"] = "v-rescale"
-            protocol_dict[
-                "tc-grps"
-            ] = "system"  # A single temperature group for the entire system.
+            protocol_dict["tc-grps"] = (
+                "system"  # A single temperature group for the entire system.
+            )
             protocol_dict["tau-t"] = "{:.5f}".format(
                 self.protocol.getTauT().picoseconds().value()
             )  # Collision frequency (ps).
@@ -538,12 +553,12 @@ class ConfigFactory:
                     timestep = self.protocol.getTimeStep().picoseconds().value()
                     end_time = _math.floor(timestep * self._steps)
 
-                    protocol_dict[
-                        "annealing"
-                    ] = "single"  # Single sequence of annealing points.
-                    protocol_dict[
-                        "annealing-npoints"
-                    ] = 2  # Two annealing points for "system" temperature group.
+                    protocol_dict["annealing"] = (
+                        "single"  # Single sequence of annealing points.
+                    )
+                    protocol_dict["annealing-npoints"] = (
+                        2  # Two annealing points for "system" temperature group.
+                    )
 
                     # Linearly change temperature between start and end times.
                     protocol_dict["annealing-time"] = "0 %d" % end_time
@@ -613,20 +628,20 @@ class ConfigFactory:
                 "temperature",
             ]:
                 if name in LambdaValues:
-                    protocol_dict[
-                        "{:<20}".format("{}-lambdas".format(name))
-                    ] = " ".join(
-                        list(map("{:.5f}".format, LambdaValues[name].to_list()))
+                    protocol_dict["{:<20}".format("{}-lambdas".format(name))] = (
+                        " ".join(
+                            list(map("{:.5f}".format, LambdaValues[name].to_list()))
+                        )
                     )
-            protocol_dict[
-                "init-lambda-state"
-            ] = self.protocol.getLambdaIndex()  # Current lambda value.
-            protocol_dict[
-                "nstcalcenergy"
-            ] = self._report_interval  # Calculate energies every report_interval steps.
-            protocol_dict[
-                "nstdhdl"
-            ] = self._report_interval  # Write gradients every report_interval steps.
+            protocol_dict["init-lambda-state"] = (
+                self.protocol.getLambdaIndex()
+            )  # Current lambda value.
+            protocol_dict["nstcalcenergy"] = (
+                self._report_interval
+            )  # Calculate energies every report_interval steps.
+            protocol_dict["nstdhdl"] = (
+                self._report_interval
+            )  # Write gradients every report_interval steps.
 
             # Handle the combination of multiple distance restraints and perturbation type
             # of "release_restraint". In this case, the force constant of the "permanent"
@@ -833,18 +848,18 @@ class ConfigFactory:
         # Free energies.
         if isinstance(self.protocol, _Protocol._FreeEnergyMixin):
             if not isinstance(self.protocol, _Protocol.Minimisation):
-                protocol_dict[
-                    "constraint"
-                ] = "hbonds-notperturbed"  # Handle hydrogen perturbations.
-                protocol_dict[
-                    "energy frequency"
-                ] = 250  # Write gradients every 250 steps.
+                protocol_dict["constraint"] = (
+                    "hbonds-notperturbed"  # Handle hydrogen perturbations.
+                )
+                protocol_dict["energy frequency"] = (
+                    250  # Write gradients every 250 steps.
+                )
 
             protocol = [str(x) for x in self.protocol.getLambdaValues()]
             protocol_dict["lambda array"] = ", ".join(protocol)
-            protocol_dict[
-                "lambda_val"
-            ] = self.protocol.getLambda()  # Current lambda value.
+            protocol_dict["lambda_val"] = (
+                self.protocol.getLambda()
+            )  # Current lambda value.
 
             try:  # RBFE
                 res_num = (
@@ -861,9 +876,9 @@ class ConfigFactory:
                     .value()
                 )
 
-            protocol_dict[
-                "perturbed residue number"
-            ] = res_num  # Perturbed residue number.
+            protocol_dict["perturbed residue number"] = (
+                res_num  # Perturbed residue number.
+            )
 
         # Put everything together in a line-by-line format.
         total_dict = {**protocol_dict, **extra_options}
