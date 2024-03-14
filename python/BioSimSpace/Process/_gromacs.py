@@ -241,7 +241,7 @@ class Gromacs(_process.Process):
                     )
 
         # Now set up the working directory for the process.
-        self._setup()
+        self._setup(**kwargs)
 
     def _setup(self):
         """Setup the input files and working directory ready for simulation."""
@@ -267,6 +267,15 @@ class Gromacs(_process.Process):
                     "for multistep perturbation types."
                 )
                 raise NotImplementedError(msg)
+
+            # Apply SOMD1 compatibility to the perturbation.
+            if (
+                "somd1_compatibility" in kwargs
+                and kwargs.get("somd1_compatibility") is True
+            ):
+                from ._somd import _somd1_compatibility
+
+                system = _somd1_compatibility(system)
 
         else:
             # Check for perturbable molecules and convert to the chosen end state.

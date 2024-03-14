@@ -239,9 +239,9 @@ class Amber(_process.Process):
             self._input_files.append(self._ref_file)
 
         # Now set up the working directory for the process.
-        self._setup()
+        self._setup(**kwargs)
 
-    def _setup(self):
+    def _setup(self, **kwargs):
         """Setup the input files and working directory ready for simulation."""
 
         # Create the input files...
@@ -254,6 +254,22 @@ class Amber(_process.Process):
 
         # Create the squashed system.
         if isinstance(self._protocol, _FreeEnergyMixin):
+            # Check that the system contains a perturbable molecule.
+            if self._system.nPerturbableMolecules() == 0:
+                raise ValueError(
+                    "'BioSimSpace.Protocol.FreeEnergy' requires a "
+                    "perturbable molecule!"
+                )
+
+            # Apply SOMD1 compatibility to the perturbation.
+            if (
+                "somd1_compatibility" in kwargs
+                and kwargs.get("somd1_compatibility") is True
+            ):
+                from ._somd import _somd1_compatibility
+
+                system = _somd1_compatibility(system)
+
             system, self._mapping = _squash(
                 system, explicit_dummies=self._explicit_dummies
             )
