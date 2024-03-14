@@ -25,9 +25,6 @@ jobs:
             python-version: "3.9"
           - platform: { name: "windows", os: "windows-latest", shell: "pwsh" }
             python-version: "3.9"
-          - platform:
-              { name: "macos", os: "macos-latest", shell: "bash -l {0}" }
-            python-version: "3.10"
           - platform: { name: "windows", os: "windows-latest", shell: "pwsh" }
             python-version: "3.10"
     environment:

@@ -9,8 +9,8 @@ which will be released as 2023.1.X+1.
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 2023.1.x | :white_check_mark: |
-| < 2023.1.x| :x:                |
+| 2023.5.x | :white_check_mark: |
+| < 2023.5.x| :x:                |
 
 ## Reporting a Vulnerability
 

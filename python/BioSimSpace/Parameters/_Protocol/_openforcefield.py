@@ -1,7 +1,7 @@
 ######################################################################
 # BioSimSpace: Making biomolecular simulation a breeze!
 #
-# Copyright: 2017-2023
+# Copyright: 2017-2024
 #
 # Authors: Lester Hedges <lester.hedges@gmail.com>
 #
@@ -37,7 +37,6 @@ from ..._Utils import _try_import, _have_imported
 
 import os as _os
 
-_parmed = _try_import("parmed")
 import queue as _queue
 import subprocess as _subprocess
 
@@ -62,6 +61,7 @@ with _warnings.catch_warnings():
 import sys as _sys
 
 # Temporarily redirect stderr to suppress import warnings.
+_orig_stderr = _sys.stderr
 _sys.stderr = open(_os.devnull, "w")
 
 _openmm = _try_import("openmm")
@@ -85,8 +85,8 @@ else:
     _Forcefield = _openff
 
 # Reset stderr.
-_sys.stderr = _sys.__stderr__
-del _sys
+_sys.stderr = _orig_stderr
+del _sys, _orig_stderr
 
 from sire.legacy import IO as _SireIO
 from sire.legacy import Mol as _SireMol
@@ -187,10 +187,6 @@ class OpenForceField(_protocol.Protocol):
             is_smiles = True
         else:
             is_smiles = False
-
-        # The following is adapted from the Open Force Field examples, where an
-        # OpenFF system is converted to AMBER format files using ParmEd:
-        # https://github.com/openforcefield/openff-toolkit/blob/master/examples/using_smirnoff_in_amber_or_gromacs/convert_to_amber_gromacs.ipynb
 
         if is_smiles:
             # Convert SMILES string to an OpenFF molecule.
@@ -333,8 +329,8 @@ class OpenForceField(_protocol.Protocol):
 
         # Export AMBER format files.
         try:
-            interchange.to_prmtop(prefix + "interchange.prmtop")
-            interchange.to_inpcrd(prefix + "interchange.inpcrd")
+            interchange.to_prmtop(prefix + "interchange.prm7")
+            interchange.to_inpcrd(prefix + "interchange.rst7")
         except Exception as e:
             msg = "Unable to write Interchange object to AMBER format!"
             if _isVerbose():
@@ -346,13 +342,13 @@ class OpenForceField(_protocol.Protocol):
         # Load the parameterised molecule. (This could be a system of molecules.)
         try:
             par_mol = _IO.readMolecules(
-                [prefix + "interchange.prmtop", prefix + "interchange.inpcrd"]
+                [prefix + "interchange.prm7", prefix + "interchange.rst7"]
             )
             # Extract single molecules.
             if par_mol.nMolecules() == 1:
                 par_mol = par_mol.getMolecules()[0]
         except Exception as e:
-            msg = "Failed to read molecule from: 'parmed.prmtop', 'parmed.inpcrd'"
+            msg = "Failed to read molecule from: 'interchange.prm7', 'interchange.rst7'"
             if _isVerbose():
                 msg += ": " + getattr(e, "message", repr(e))
                 raise IOError(msg) from e
