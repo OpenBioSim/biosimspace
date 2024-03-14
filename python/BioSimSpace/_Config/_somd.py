@@ -173,7 +173,7 @@ class Somd(_Config):
                 pass
 
         # Periodic boundary conditions.
-        if self.hasWater():
+        if self.hasWater(self._system):
             # Solvated box.
             protocol_dict["reaction field dielectric"] = "78.3"
         if not self.hasBox(self._system, self._property_map) or not self.hasWater(
