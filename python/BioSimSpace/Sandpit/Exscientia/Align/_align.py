@@ -1103,6 +1103,81 @@ def _get_backbone(molecule):
     return atom_idx, relative_backbone_atoms
 
 
+def _kartograf_map(molecule0, molecule1, kartograf_kwargs):
+    """
+    A wrapper function for kartograf mapping algorithm.
+
+    Parameters
+    ----------
+
+    molecule0 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
+        The molecule of interest.
+
+    molecule1 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
+        The reference molecule.
+
+    kartograf_kwargs : dict
+        A dictionary of keyword arguments to be passed to kartograf.
+
+    Returns
+    -------
+
+    kartograf_mapping : gufe.mapping.ligandatommapping.LigandAtomMapping
+        The kartograf mapping object.
+
+    """
+    # try to import kartograf
+    try:
+        import rdkit.Chem as _Chem
+        from kartograf.atom_aligner import align_mol_shape as _align_mol_shape
+        from kartograf.atom_mapping_scorer import (
+            MappingRMSDScorer as _MappingRMSDScorer,
+        )
+        from kartograf import (
+            KartografAtomMapper,
+            SmallMoleculeComponent as _SmallMoleculeComponent,
+        )
+    except ImportError:
+        raise ImportError(
+            "Kartograf is not installed. Please install kartograf to use this function."
+        )
+
+    # Validate input
+    if not isinstance(molecule0, _Molecule):
+        raise TypeError(
+            "'molecule0' must be of type 'BioSimSpace._SireWrappers.Molecule'"
+        )
+
+    if not isinstance(molecule1, _Molecule):
+        raise TypeError(
+            "'molecule1' must be of type 'BioSimSpace._SireWrappers.Molecule'"
+        )
+    from ..Convert import toRDKit as _toRDKit
+
+    rdkit_mol0 = _toRDKit(molecule0)
+    rdkit_mol1 = _toRDKit(molecule1)
+    rdkit_mols = [rdkit_mol0, rdkit_mol1]
+
+    # build small molecule components
+    mol0, mol1 = [_SmallMoleculeComponent.from_rdkit(m) for m in rdkit_mols]
+
+    # align molecules first
+    a_mol1 = _align_mol_shape(mol1, ref_mol=mol0)
+
+    # build Kartograf Atom Mapper
+    mapper = KartografAtomMapper(**kartograf_kwargs)
+
+    # get mapping
+    kartograf_mapping = next(mapper.suggest_mappings(mol0, a_mol1))
+
+    # score mapping
+    rmsd_scorer = _MappingRMSDScorer()
+    score = rmsd_scorer(mapping=kartograf_mapping)
+    _logger.debug(f"RMSD score: {score:.2f}")
+
+    return kartograf_mapping
+
+
 # NOTE: This function is currently experimental and has not gone through
 # rigorous validation. Proceed with caution.
 def roiMatch(
@@ -1110,6 +1185,8 @@ def roiMatch(
     molecule1,
     roi,
     force_backbone_match=False,
+    use_kartograf=False,
+    kartograf_kwargs={},
 ):
     """
     Matching of two molecules based on a region of interest (ROI).
@@ -1134,6 +1211,13 @@ def roiMatch(
         If set to True, will force the backbone atoms to be matched which
         is useful for ensuring a more stable match between the two molecules.
         This is set to False by default.
+
+    use_kartograf : bool
+        If set to True, will use the kartograf algorithm to match the
+        molecules. This is set to False by default.
+
+    kartograf_kwargs : dict
+        A dictionary of keyword arguments to be passed to kartograf.
 
     Returns
     -------
@@ -1308,10 +1392,23 @@ def roiMatch(
             _logger.debug(f"Absolute backbone mapping: {absolute_backbone_mapping}")
 
             mapping = matchAtoms(
-                res0_extracted, res1_extracted, prematch=absolute_backbone_mapping
+                res0_extracted,
+                res1_extracted,
+                prematch=absolute_backbone_mapping,
+                complete_rings_only=False,
             )
         else:
-            mapping = matchAtoms(res0_extracted, res1_extracted)
+            if use_kartograf:
+                _logger.debug("Using kartograf to map the ROI.")
+                kartograf_mapping = _kartograf_map(
+                    res0_extracted, res1_extracted, kartograf_kwargs
+                )
+                mapping = kartograf_mapping.componentA_to_componentB
+            else:
+                _logger.debug("Using rdKit MCS to map the ROI.")
+                mapping = matchAtoms(
+                    res0_extracted, res1_extracted, complete_rings_only=False
+                )
 
         _logger.debug(f"Mapping: {mapping}")
 
