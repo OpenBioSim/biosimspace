@@ -320,26 +320,15 @@ class _AToMUtils:
         output += "tolcm = {} * angstrom \n".format(tol_cm)
 
         # Add expression for cm restraint
-        output += 'expr = "(kfcm/2)*step(d12-tolcm)*(d12-tolcm)^2 "\n'
-        output += 'expr += " ; d12 = sqrt((x1 - offx - x2)^2 + (y1 - offy - y2)^2 + (z1 - offz - z2)^2 ) ; "\n'
+        output += 'expr = "0.5 * kfcm * step(dist - tolcm) * (dist - tolcm)^2;""dist = sqrt((x1 - x2 - offx)^2 + (y1 - y2 - offy)^2 + (z1 - z2 - offz)^2);"\n'
         output += "force_CMCM = CustomCentroidBondForce(2, expr)\n"
         output += "force_CMCM.addPerBondParameter('kfcm')\n"
         output += "force_CMCM.addPerBondParameter('tolcm')\n"
         output += "force_CMCM.addPerBondParameter('offx')\n"
         output += "force_CMCM.addPerBondParameter('offy')\n"
         output += "force_CMCM.addPerBondParameter('offz')\n"
-        output += "system.addForce(force_CMCM)\n"
         output += "force_CMCM.addGroup(protein_com)\n"
         output += "force_CMCM.addGroup(lig1_com)\n"
-        output += "force_CMCM.addGroup(lig2_com)\n"
-
-        output += """parameters_free = (
-        kfcm.value_in_unit(kilojoules_per_mole / nanometer**2),
-        tolcm.value_in_unit(nanometer),
-        displacement[0] * nanometer,
-        displacement[1] * nanometer,
-        displacement[2] * nanometer,
-        )\n"""
 
         output += """parameters_bound = (
         kfcm.value_in_unit(kilojoules_per_mole / nanometer**2),
@@ -348,11 +337,57 @@ class _AToMUtils:
         0.0 * nanometer,
         0.0 * nanometer,
         )\n"""
+        output += "force_CMCM.addBond((1,0), parameters_bound)\n"
+        output += "numgroups = force_CMCM.getNumGroups()\n"
 
-        output += "force_CMCM.addBond((0,1), parameters_bound)\n"
-        output += "force_CMCM.addBond((0,2), parameters_free)\n"
+        output += "force_CMCM.addGroup(protein_com)\n"
+        output += "force_CMCM.addGroup(lig2_com)\n"
+        output += """parameters_free = (
+        kfcm.value_in_unit(kilojoules_per_mole / nanometer**2),
+        tolcm.value_in_unit(nanometer),
+        displacement[0] * nanometer,
+        displacement[1] * nanometer,
+        displacement[2] * nanometer,
+        )\n"""
+
+        output += "force_CMCM.addBond((numgroups+1,numgroups+0), parameters_free)\n"
+        output += "system.addForce(force_CMCM)\n"
         output += "#End of CM-CM force\n\n"
 
+        return output
+
+    def create_flat_bottom_restraint(self, restrained_atoms):
+        """Flat bottom restraint for atom-compatible position restraints
+
+        Parameters
+        ----------
+        restrained_atoms : list
+            List of atom indices to be restrained. Need to be explicitly given due to the ability to parse strings in the protocol.
+        """
+        # Still using the position restraint mixin, get the values of the relevant constants
+        pos_const = self.protocol.getForceConstant().value()
+        output = ""
+        output += "fc = {} * kilocalorie_per_mole / angstrom**2\n".format(pos_const)
+        output += "tol = 5.0 * angstrom\n"
+        output += "restrained_atoms = {}\n".format(restrained_atoms)
+        output += "positions = prm.positions\n"
+        output += 'posrestforce = CustomExternalForce("0.5*fc*select(step(dist-tol), (dist-tol)^2, 0); dist = periodicdistance(x,y,z,x0,y0,z0)")\n'
+
+        output += 'posrestforce.addPerParticleParameter("x0")\n'
+        output += 'posrestforce.addPerParticleParameter("y0")\n'
+        output += 'posrestforce.addPerParticleParameter("z0")\n'
+        output += 'posrestforce.addPerParticleParameter("fc")\n'
+        output += 'posrestforce.addPerParticleParameter("tol")\n'
+
+        output += "for i in restrained_atoms:\n"
+        output += "    x1 = positions[i][0].value_in_unit_system(openmm.unit.md_unit_system)\n"
+        output += "    y1 = positions[i][1].value_in_unit_system(openmm.unit.md_unit_system)\n"
+        output += "    z1 = positions[i][2].value_in_unit_system(openmm.unit.md_unit_system)\n"
+        output += "    fc1 = fc.value_in_unit(kilojoules_per_mole / nanometer**2)\n"
+        output += "    tol1 = tol.value_in_unit(nanometer)\n"
+        output += "    posrestforce.addParticle(i, [x1, y1, z1, fc1, tol1])\n"
+
+        output += "system.addForce(posrestforce)\n"
         return output
 
     def createAnnealingProtocol(self):

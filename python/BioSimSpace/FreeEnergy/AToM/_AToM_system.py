@@ -1111,6 +1111,19 @@ class Minimise(_Process.OpenMM):
         # Add the platform information.
         self._add_config_platform()
 
+        # Add any position restraints.
+        if self._protocol.getRestraint() is not None:
+            restraint = self._protocol.getRestraint()
+            # Search for the atoms to restrain by keyword.
+            if isinstance(restraint, str):
+                restrained_atoms = self._system.getRestraintAtoms(restraint)
+            # Use the user-defined list of indices.
+            else:
+                restrained_atoms = restraint
+            self.addToConfig("\n# Add position restraints.")
+            frc = util.create_flat_bottom_restraint(restrained_atoms)
+            self.addToConfig(frc)
+
         # Add the atom-specific restraints.
         disp = util.createDisplacement()
         self.addToConfig(disp)
@@ -1122,10 +1135,6 @@ class Minimise(_Process.OpenMM):
             CMCM = util.createCOMRestraint()
             self.addToConfig("\n# Add COM restraint.")
             self.addToConfig(CMCM)
-
-        # Add any position restraints.
-        if self._protocol.getRestraint() is not None:
-            self._add_config_restraints()
 
         # Set up the simulation object.
         self.addToConfig("\n# Initialise and configure the simulation object.")
@@ -1273,7 +1282,16 @@ class Equilibrate(_Process.OpenMM):
 
         # Add any position restraints.
         if self._protocol.getRestraint() is not None:
-            self._add_config_restraints()
+            restraint = self._protocol.getRestraint()
+            # Search for the atoms to restrain by keyword.
+            if isinstance(restraint, str):
+                restrained_atoms = self._system.getRestraintAtoms(restraint)
+            # Use the user-defined list of indices.
+            else:
+                restrained_atoms = restraint
+            self.addToConfig("\n# Add position restraints.")
+            frc = util.create_flat_bottom_restraint(restrained_atoms)
+            self.addToConfig(frc)
 
             # Add the atom-specific restraints.
         disp = util.createDisplacement()
@@ -1520,7 +1538,16 @@ class Anneal(_Process.OpenMM):
 
         # Add any position restraints.
         if self._protocol.getRestraint() is not None:
-            self._add_config_restraints()
+            restraint = self._protocol.getRestraint()
+            # Search for the atoms to restrain by keyword.
+            if isinstance(restraint, str):
+                restrained_atoms = self._system.getRestraintAtoms(restraint)
+            # Use the user-defined list of indices.
+            else:
+                restrained_atoms = restraint
+            self.addToConfig("\n# Add position restraints.")
+            frc = util.create_flat_bottom_restraint(restrained_atoms)
+            self.addToConfig(frc)
 
         # Get the integration time step from the protocol.
         timestep = self._protocol.getTimeStep().picoseconds().value()
@@ -1755,7 +1782,16 @@ class _Production(_Process.OpenMM):
 
         # Add any position restraints.
         if self._protocol.getRestraint() is not None:
-            self._add_config_restraints()
+            restraint = self._protocol.getRestraint()
+            # Search for the atoms to restrain by keyword.
+            if isinstance(restraint, str):
+                restrained_atoms = self._system.getRestraintAtoms(restraint)
+            # Use the user-defined list of indices.
+            else:
+                restrained_atoms = restraint
+            self.addToConfig("\n# Add position restraints.")
+            frc = util.create_flat_bottom_restraint(restrained_atoms)
+            self.addToConfig(frc)
 
         # Get the integration time step from the protocol.
         timestep = self._protocol.getTimeStep().picoseconds().value()
