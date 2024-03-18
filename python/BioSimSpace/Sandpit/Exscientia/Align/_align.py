@@ -725,7 +725,9 @@ def matchAtoms(
     return_scores=False,
     prematch={},
     timeout=5 * _Units.Time.second,
+    atomCompare=_rdFMCS.AtomCompare.CompareAny,
     complete_rings_only=True,
+    ring_matches_ring_only=True,
     prune_perturbed_constraints=None,
     prune_crossing_constraints=None,
     max_scoring_matches=1000,
@@ -939,10 +941,10 @@ def matchAtoms(
         # Generate the MCS match.
         mcs = _rdFMCS.FindMCS(
             mols,
-            atomCompare=_rdFMCS.AtomCompare.CompareAny,
+            atomCompare=atomCompare,
             bondCompare=_rdFMCS.BondCompare.CompareAny,
             completeRingsOnly=complete_rings_only,
-            ringMatchesRingOnly=True,
+            ringMatchesRingOnly=ring_matches_ring_only,
             matchChiralTag=False,
             matchValences=False,
             maximizeBonds=False,
@@ -1185,6 +1187,9 @@ def roiMatch(
     molecule1,
     roi,
     force_backbone_match=False,
+    ring_matches_ring_only=True,
+    complete_rings_only=True,
+    atomCompare=_rdFMCS.AtomCompare.CompareAny,
     use_kartograf=False,
     kartograf_kwargs={},
 ):
@@ -1211,6 +1216,10 @@ def roiMatch(
         If set to True, will force the backbone atoms to be matched which
         is useful for ensuring a more stable match between the two molecules.
         This is set to False by default.
+
+    ring_matches_ring_only : bool
+        Whether ring bonds can only match ring bonds.
+        This is set to True by default.
 
     use_kartograf : bool
         If set to True, will use the kartograf algorithm to match the
@@ -1361,7 +1370,7 @@ def roiMatch(
             _logger.debug(f"Backbone res1 indices: {backbone_res1_idx}")
 
             relative_backbone_mapping = matchAtoms(
-                backbone_res0_atoms, backbone_res1_atoms
+                backbone_res0_atoms, backbone_res1_atoms, scoring_function="rmsd"
             )
 
             # Translate the relative mapping to the absolute indices.
@@ -1395,7 +1404,9 @@ def roiMatch(
                 res0_extracted,
                 res1_extracted,
                 prematch=absolute_backbone_mapping,
-                complete_rings_only=False,
+                complete_rings_only=complete_rings_only,
+                scoring_function="rmsd",
+                ring_matches_ring_only=ring_matches_ring_only,
             )
         else:
             if use_kartograf:
@@ -1407,7 +1418,11 @@ def roiMatch(
             else:
                 _logger.debug("Using rdKit MCS to map the ROI.")
                 mapping = matchAtoms(
-                    res0_extracted, res1_extracted, complete_rings_only=False
+                    res0_extracted,
+                    res1_extracted,
+                    complete_rings_only=complete_rings_only,
+                    ring_matches_ring_only=ring_matches_ring_only,
+                    atomCompare=atomCompare,
                 )
 
         _logger.debug(f"Mapping: {mapping}")
