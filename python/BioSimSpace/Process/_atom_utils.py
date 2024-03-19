@@ -366,9 +366,10 @@ class _AToMUtils:
         """
         # Still using the position restraint mixin, get the values of the relevant constants
         pos_const = self.protocol.getForceConstant().value()
+        pos_width = self.protocol.getPosRestWidth().value()
         output = ""
         output += "fc = {} * kilocalorie_per_mole / angstrom**2\n".format(pos_const)
-        output += "tol = 5.0 * angstrom\n"
+        output += "tol = {} * angstrom\n".format(pos_width)
         output += "restrained_atoms = {}\n".format(restrained_atoms)
         output += "positions = prm.positions\n"
         output += 'posrestforce = CustomExternalForce("0.5*fc*select(step(dist-tol), (dist-tol)^2, 0); dist = periodicdistance(x,y,z,x0,y0,z0)")\n'

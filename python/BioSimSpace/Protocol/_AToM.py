@@ -20,6 +20,7 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         CMCM_restraint=True,
         restraint=None,
         force_constant=10 * kcal_per_mol / angstrom2,
+        pos_rest_width=0.5 * angstrom,
         align_kf_sep=2.5 * kcal_per_mol / angstrom2,
         align_k_theta=10.0 * kcal_per_mol,
         align_k_psi=10.0 * kcal_per_mol,
@@ -65,6 +66,9 @@ class _AToM(_Protocol, _PositionRestraintMixin):
             passed, then default units of 'kcal_per_mol / angstrom**2' will
             be used.
 
+        pos_rest_width : :class:`Length <BioSimSpace.Types.Length>`, float
+            The width of the flat-bottom potential used for coordinate restraint in Angstroms.
+
         pos_restrained_atoms : list of int
             The atoms to be restrained.
 
@@ -106,6 +110,9 @@ class _AToM(_Protocol, _PositionRestraintMixin):
 
         # Whether or not to use the CMCM restraint.
         self.setCMCMRestraint(CMCM_restraint)
+
+        # Store the width of the coordinate retraint.
+        self.setPosRestWidth(pos_rest_width)
 
         # Store the align_kf_sep value.
         self.setAlignKfSep(align_kf_sep)
@@ -224,6 +231,58 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         else:
             print("Non-boolean CMCM restraint flag. Defaulting to True!")
             self._CMCM_restraint = True
+
+    def getPosRestWidth(self):
+        """
+        Return the width of the position restraint.
+
+        Returns
+        -------
+
+        pos_rest_width : :class:`Length <BioSimSpace.Types.Length>`
+            The width of the position restraint.
+        """
+        return self._pos_rest_width
+
+    def setPosRestWidth(self, pos_rest_width):
+        """
+        Set the width of the position restraint.
+
+        Parameters
+        ----------
+
+        pos_rest_width : int, float, str, :class:`Length <BioSimSpace.Types.Length>`
+            The width of the position restraint.
+        """
+        # Convert int to float.
+        if type(pos_rest_width) is int:
+            pos_rest_width = float(pos_rest_width)
+
+        if isinstance(pos_rest_width, float):
+            # Use default units.
+            pos_rest_width *= _Units.Length.angstrom
+
+        else:
+            if isinstance(pos_rest_width, str):
+                try:
+                    pos_rest_width = _Types.Length(pos_rest_width)
+                except Exception:
+                    raise ValueError(
+                        "Unable to parse 'pos_rest_width' string."
+                    ) from None
+
+            elif not isinstance(pos_rest_width, _Types.Length):
+                raise TypeError(
+                    "'pos_rest_width' must be of type 'BioSimSpace.Types._GeneralUnit', 'str', or 'float'."
+                )
+
+            # Validate the dimensions.
+            if pos_rest_width.dimensions() != (0, 0, 1, 0, 0, 0, 0):
+                raise ValueError(
+                    "'pos_rest_width' has invalid dimensions! "
+                    f"Expected dimensions are 'L', found '{pos_rest_width.unit()}'"
+                )
+        self._pos_rest_width = pos_rest_width
 
     def getAlignKfSep(self):
         """
@@ -671,6 +730,9 @@ class AToMMinimisation(_AToM):
         passed, then default units of 'kcal_per_mol / angstrom**2' will
         be used.
 
+    pos_rest_width : :class:`Length <BioSimSpace.Types.Length>`, float
+            The width of the flat-bottom potential used for coordinate restraint in Angstroms.
+
     pos_restrained_atoms : list of int
         The atoms to be restrained.
 
@@ -707,6 +769,7 @@ class AToMMinimisation(_AToM):
         CMCM_restraint=True,
         restraint=None,
         force_constant=10 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
+        pos_rest_width=0.5 * angstrom,
         align_kf_sep=2.5 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
         align_k_theta=10 * _Units.Energy.kcal_per_mol,
         align_k_psi=10 * _Units.Energy.kcal_per_mol,
@@ -722,6 +785,7 @@ class AToMMinimisation(_AToM):
             CMCM_restraint,
             restraint,
             force_constant,
+            pos_rest_width,
             align_kf_sep,
             align_k_theta,
             align_k_psi,
@@ -781,6 +845,7 @@ class AToMEquilibration(_AToM):
         CMCM_restraint=True,
         restraint=None,
         force_constant=10 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
+        pos_rest_width=0.5 * angstrom,
         align_kf_sep=2.5 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
         align_k_theta=10 * _Units.Energy.kcal_per_mol,
         align_k_psi=10 * _Units.Energy.kcal_per_mol,
@@ -860,6 +925,9 @@ class AToMEquilibration(_AToM):
             passed, then default units of 'kcal_per_mol / angstrom**2' will
             be used.
 
+        pos_rest_width : :class:`Length <BioSimSpace.Types.Length>`, float
+            The width of the flat-bottom potential used for coordinate restraint in Angstroms.
+
         pos_restrained_atoms : list of int
             The atoms to be restrained.
 
@@ -917,6 +985,7 @@ class AToMEquilibration(_AToM):
             CMCM_restraint,
             restraint,
             force_constant,
+            pos_rest_width,
             align_kf_sep,
             align_k_theta,
             align_k_psi,
@@ -1550,6 +1619,7 @@ class AToMAnnealing(_AToM):
         CMCM_restraint=True,
         restraint=None,
         force_constant=10 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
+        pos_rest_width=0.5 * angstrom,
         align_kf_sep=2.5 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
         align_k_theta=10 * _Units.Energy.kcal_per_mol,
         align_k_psi=10 * _Units.Energy.kcal_per_mol,
@@ -1619,6 +1689,9 @@ class AToMAnnealing(_AToM):
             The force constant for the restraint potential. If a 'float' is
             passed, then default units of 'kcal_per_mol / angstrom**2' will
             be used.
+
+        pos_rest_width : :class:`Length <BioSimSpace.Types.Length>`, float
+            The width of the flat-bottom potential used for coordinate restraint in Angstroms.
 
         pos_restrained_atoms : list of int
             The atoms to be restrained.
@@ -1709,6 +1782,7 @@ class AToMAnnealing(_AToM):
             CMCM_restraint,
             restraint,
             force_constant,
+            pos_rest_width,
             align_kf_sep,
             align_k_theta,
             align_k_psi,
@@ -2365,6 +2439,7 @@ class AToMProduction(_AToM):
         CMCM_restraint=True,
         restraint=None,
         force_constant=10 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
+        pos_rest_width=0.5 * angstrom,
         num_lambda=22,
         directions=None,
         lambda1=None,
@@ -2433,6 +2508,9 @@ class AToMProduction(_AToM):
             passed, then default units of 'kcal_per_mol / angstrom**2' will
             be used.
 
+        pos_rest_width : :class:`Length <BioSimSpace.Types.Length>`, float
+            The width of the flat-bottom potential used for coordinate restraint in Angstroms.
+
         pos_restrained_atoms : list of int
             The atoms to be restrained.
 
@@ -2496,6 +2574,7 @@ class AToMProduction(_AToM):
             CMCM_restraint,
             restraint,
             force_constant,
+            pos_rest_width,
             align_kf_sep,
             align_k_theta,
             align_k_psi,
