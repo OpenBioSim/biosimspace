@@ -3,15 +3,26 @@ import pytest
 import BioSimSpace.Types as Types
 import BioSimSpace.Units as Units
 
+import sire as sr
+
 
 @pytest.mark.parametrize(
     "string, dimensions",
     [
-        ("kilo Cal oriEs per Mole / angstrom **2", (0, 0, 0, 1, -1, 0, -2)),
-        ("k Cal_per  _mOl / nm^2", (0, 0, 0, 1, -1, 0, -2)),
-        ("kj p  eR  moles / pico METERs2", (0, 0, 0, 1, -1, 0, -2)),
-        ("coul oMbs / secs * ATm os phereS", (0, 1, -1, 1, 0, 0, -3)),
-        ("pm**3 * rads * de grEE", (2, 0, 3, 0, 0, 0, 0)),
+        (
+            "kilo Cal oriEs per Mole / angstrom **2",
+            tuple(sr.u("kcal_per_mol / angstrom**2").dimensions()),
+        ),
+        ("k Cal_per  _mOl / nm^2", tuple(sr.u("kcal_per_mol / nm**2").dimensions())),
+        (
+            "kj p  eR  moles / pico METERs2",
+            tuple(sr.u("kJ_per_mol / pm**2").dimensions()),
+        ),
+        (
+            "coul oMbs / secs * ATm os phereS",
+            tuple(sr.u("coulombs / second / atm").dimensions()),
+        ),
+        ("pm**3 * rads * de grEE", tuple(sr.u("pm**3 * rad * degree").dimensions())),
     ],
 )
 def test_supported_units(string, dimensions):
@@ -138,6 +149,61 @@ def test_neg_pow(unit_type):
     # Each dimension entry should be the inverse of the old value.
     for d0, d1 in zip(old_dimensions, new_dimensions):
         assert d1 == -d0
+
+
+def test_frac_pow():
+    """Test that unit-based types can be raised to fractional powers."""
+
+    # Create a base unit type.
+    unit_type = 2 * Units.Length.angstrom
+
+    # Store the original value and dimensions.
+    value = unit_type.value()
+    dimensions = unit_type.dimensions()
+
+    # Square the type.
+    unit_type = unit_type**2
+
+    # Assert that we can't take the cube root.
+    with pytest.raises(ValueError):
+        unit_type = unit_type ** (1 / 3)
+
+    # Now take the square root.
+    unit_type = unit_type ** (1 / 2)
+
+    # The value should be the same.
+    assert unit_type.value() == value
+
+    # The dimensions should be the same.
+    assert unit_type.dimensions() == dimensions
+
+    # Cube the type.
+    unit_type = unit_type**3
+
+    # Assert that we can't take the square root.
+    with pytest.raises(ValueError):
+        unit_type = unit_type ** (1 / 2)
+
+    # Now take the cube root.
+    unit_type = unit_type ** (1 / 3)
+
+    # The value should be the same.
+    assert unit_type.value() == value
+
+    # The dimensions should be the same.
+    assert unit_type.dimensions() == dimensions
+
+    # Square the type again.
+    unit_type = unit_type**2
+
+    # Now take the negative square root.
+    unit_type = unit_type ** (-1 / 2)
+
+    # The value should be inverted.
+    assert unit_type.value() == 1 / value
+
+    # The dimensions should be negated.
+    assert unit_type.dimensions() == tuple(-d for d in dimensions)
 
 
 @pytest.mark.parametrize(

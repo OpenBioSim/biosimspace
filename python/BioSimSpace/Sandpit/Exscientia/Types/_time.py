@@ -96,9 +96,8 @@ class Time(_Type):
     # Null type unit for avoiding issue printing configargparse help.
     _default_unit = "NANOSECOND"
 
-    # The dimension mask:
-    #     Angle, Charge, Length, Mass, Quantity, Temperature, Time
-    _dimensions = (0, 0, 0, 0, 0, 0, 1)
+    # The dimension mask.
+    _dimensions = tuple(list(_supported_units.values())[0].dimensions())
 
     def __init__(self, *args):
         """
@@ -337,24 +336,25 @@ class Time(_Type):
                 "Supported units are: '%s'" % list(self._supported_units.keys())
             )
 
-    def _validate_unit(self, unit):
+    @classmethod
+    def _validate_unit(cls, unit):
         """Validate that the unit are supported."""
 
         # Strip whitespace and convert to upper case.
         unit = unit.replace(" ", "").upper()
 
         # Check that the unit is supported.
-        if unit in self._supported_units:
+        if unit in cls._supported_units:
             return unit
-        elif unit[:-1] in self._supported_units:
+        elif unit[:-1] in cls._supported_units:
             return unit[:-1]
-        elif unit in self._abbreviations:
-            return self._abbreviations[unit]
-        elif unit[:-1] in self._abbreviations:
-            return self._abbreviations[unit[:-1]]
+        elif unit in cls._abbreviations:
+            return cls._abbreviations[unit]
+        elif unit[:-1] in cls._abbreviations:
+            return cls._abbreviations[unit[:-1]]
         else:
             raise ValueError(
-                "Supported units are: '%s'" % list(self._supported_units.keys())
+                "Supported units are: '%s'" % list(cls._supported_units.keys())
             )
 
     @staticmethod

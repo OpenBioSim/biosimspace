@@ -174,7 +174,7 @@ class Restraint:
             for key in ["kthetaA", "kthetaB", "kphiA", "kphiB", "kphiC"]:
                 if restraint_dict["force_constants"][key] != 0:
                     dim = restraint_dict["force_constants"][key].dimensions()
-                    if dim != (-2, 0, 2, 1, -1, 0, -2):
+                    if dim != (1, 2, -2, 0, 0, -1, -2):
                         raise ValueError(
                             f"restraint_dict['force_constants']['{key}'] must be of type "
                             f"'BioSimSpace.Types.Energy'/'BioSimSpace.Types.Angle^2'"
@@ -202,7 +202,7 @@ class Restraint:
             # Test if the force constant of the bond r1-l1 is the correct unit
             # Such as kcal/mol/angstrom^2
             dim = restraint_dict["force_constants"]["kr"].dimensions()
-            if dim != (0, 0, 0, 1, -1, 0, -2):
+            if dim != (1, 0, -2, 0, 0, -1, 0):
                 raise ValueError(
                     "restraint_dict['force_constants']['kr'] must be of type "
                     "'BioSimSpace.Types.Energy'/'BioSimSpace.Types.Length^2'"
@@ -290,13 +290,13 @@ class Restraint:
                             "'BioSimSpace.Types.Length'"
                         )
                 if not single_restraint_dict["kr"].dimensions() == (
-                    0,
-                    0,
-                    0,
                     1,
-                    -1,
                     0,
                     -2,
+                    0,
+                    0,
+                    -1,
+                    0,
                 ):
                     raise ValueError(
                         "distance_restraint_dict['kr'] must be of type "
