@@ -1,7 +1,7 @@
 ######################################################################
 # BioSimSpace: Making biomolecular simulation a breeze!
 #
-# Copyright: 2017-2023
+# Copyright: 2017-2024
 #
 # Authors: Lester Hedges <lester.hedges@gmail.com>
 #
@@ -103,7 +103,7 @@ class Type:
                 self._value = temp._value
                 self._unit = temp._unit
 
-            # The user has passed a string representation of the temperature.
+            # The user has passed a string representation of the type.
             elif isinstance(args[0], str):
                 # Convert the string to an object of this type.
                 obj = self._from_string(args[0])
@@ -168,11 +168,21 @@ class Type:
             temp = self._from_string(other)
             return self + temp
 
+        # Addition of a zero-valued integer or float.
+        elif isinstance(other, (int, float)) and other == 0:
+            return self
+
         else:
             raise TypeError(
                 "unsupported operand type(s) for +: '%s' and '%s'"
                 % (self.__class__.__qualname__, other.__class__.__qualname__)
             )
+
+    def __radd__(self, other):
+        """Addition operator."""
+
+        # Addition is commutative: a+b = b+a
+        return self.__add__(other)
 
     def __sub__(self, other):
         """Subtraction operator."""
@@ -185,21 +195,31 @@ class Type:
             # Return a new object of the same type with the original unit.
             return self._to_default_unit(val)._convert_to(self._unit)
 
-        # Addition of a different type with the same dimensions.
+        # Subtraction of a different type with the same dimensions.
         elif isinstance(other, Type) and self._dimensions == other.dimensions:
             # Negate other and add.
             return -other + self
 
-        # Addition of a string.
+        # Subtraction of a string.
         elif isinstance(other, str):
             temp = self._from_string(other)
             return self - temp
+
+        # Subtraction of a zero-valued integer or float.
+        elif isinstance(other, (int, float)) and other == 0:
+            return self
 
         else:
             raise TypeError(
                 "unsupported operand type(s) for -: '%s' and '%s'"
                 % (self.__class__.__qualname__, other.__class__.__qualname__)
             )
+
+    def __rsub__(self, other):
+        """Subtraction operator."""
+
+        # Subtraction is not commutative: a-b != b-a
+        return -self.__sub__(other)
 
     def __mul__(self, other):
         """Multiplication operator."""
@@ -244,19 +264,9 @@ class Type:
     def __pow__(self, other):
         """Power operator."""
 
-        if not isinstance(other, int):
-            raise ValueError("We can only raise to the power of integer values.")
-
         from ._general_unit import GeneralUnit as _GeneralUnit
 
-        default_unit = self._to_default_unit()
-        mag = default_unit.value() ** other
-        unit = default_unit.unit().lower()
-        pow_to_mul = "*".join(abs(other) * [unit])
-        if other > 0:
-            return _GeneralUnit(f"{mag}*{pow_to_mul}")
-        else:
-            return _GeneralUnit(f"{mag}/({pow_to_mul})")
+        return _GeneralUnit(self._to_sire_unit(), no_cast=True) ** other
 
     def __truediv__(self, other):
         """Division operator."""
@@ -486,49 +496,10 @@ class Type:
         containing the power in each dimension.
 
         Returns : (int, int, int, int, int, int)
-            The power in each dimension: 'angle', 'charge', 'length',
-            'mass', 'quantity', 'temperature', and 'time'.
+            The power in each dimension: 'mass', 'length', 'temperature',
+            'charge', 'time', 'quantity', and 'angle'.
         """
         return cls._dimensions
-
-    @classmethod
-    def angle(cls):
-        """
-        Return the power in the 'angle' dimension.
-
-        Returns
-        -------
-
-        angle : int
-            The power in the 'angle' dimension.
-        """
-        return cls._dimensions[0]
-
-    @classmethod
-    def charge(cls):
-        """
-        Return the power in the 'charge' dimension.
-
-        Returns
-        -------
-
-        charge : int
-            The power in the 'charge' dimension.
-        """
-        return cls._dimensions[1]
-
-    @classmethod
-    def length(cls):
-        """
-        Return the power in the 'length' dimension.
-
-        Returns
-        -------
-
-        length : int
-            The power in the 'length' dimension.
-        """
-        return cls._dimensions[2]
 
     @classmethod
     def mass(cls):
@@ -541,20 +512,46 @@ class Type:
         mass : int
             The power in the 'mass' dimension.
         """
-        return cls._dimensions[3]
+        return cls._dimensions[0]
 
     @classmethod
-    def quantity(cls):
+    def length(cls):
         """
-        Return the power in the 'quantity' dimension.
+        Return the power in the 'length' dimension.
 
         Returns
         -------
 
-        quantity : int
-            The power in the 'quantity' dimension.
+        length : int
+            The power in the 'length' dimension.
         """
-        return cls._dimensions[4]
+        return cls._dimensions[1]
+
+    @classmethod
+    def time(cls):
+        """
+        Return the power in the 'time' dimension.
+
+        Returns
+        -------
+
+        time : int
+            The power the 'time' dimension.
+        """
+        return cls._dimensions[2]
+
+    @classmethod
+    def charge(cls):
+        """
+        Return the power in the 'charge' dimension.
+
+        Returns
+        -------
+
+        charge : int
+            The power in the 'charge' dimension.
+        """
+        return cls._dimensions[3]
 
     @classmethod
     def temperature(cls):
@@ -567,18 +564,31 @@ class Type:
         temperature : int
             The power in the 'temperature' dimension.
         """
-        return cls._dimensions[5]
+        return cls._dimensions[4]
 
     @classmethod
-    def time(cls):
+    def quantity(cls):
         """
-        Return the power in the 'time' dimension.
+        Return the power in the 'quantity' dimension.
 
         Returns
         -------
 
-        time : int
-            The power the 'time' dimension.
+        quantity : int
+            The power in the 'quantity' dimension.
+        """
+        return cls._dimensions[5]
+
+    @classmethod
+    def angle(cls):
+        """
+        Return the power in the 'angle' dimension.
+
+        Returns
+        -------
+
+        angle : int
+            The power in the 'angle' dimension.
         """
         return cls._dimensions[6]
 
@@ -662,15 +672,7 @@ class Type:
             raise TypeError("'sire_unit' must be of type 'sire.units.GeneralUnit'")
 
         # Create a mask for the dimensions of the object.
-        dimensions = (
-            sire_unit.ANGLE(),
-            sire_unit.CHARGE(),
-            sire_unit.LENGTH(),
-            sire_unit.MASS(),
-            sire_unit.QUANTITY(),
-            sire_unit.TEMPERATURE(),
-            sire_unit.TIME(),
-        )
+        dimensions = tuple(sire_unit.dimensions())
 
         # Make sure that this isn't zero.
         if hasattr(sire_unit, "is_zero"):

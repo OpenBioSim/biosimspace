@@ -1,7 +1,7 @@
 ######################################################################
 # BioSimSpace: Making biomolecular simulation a breeze!
 #
-# Copyright: 2017-2023
+# Copyright: 2017-2024
 #
 # Authors: Lester Hedges <lester.hedges@gmail.com>
 #
@@ -746,9 +746,8 @@ class Molecule(_SireWrapper):
 
             # Have we matched all of the atoms?
             if len(matches) < num_atoms0:
-                # Atom names might have changed. Try to match by residue index
-                # and coordinates.
-                matcher = _SireMol.ResIdxAtomCoordMatcher()
+                # Atom names or order might have changed. Try to match by coordinates.
+                matcher = _SireMol.AtomCoordMatcher()
                 matches = matcher.match(mol0, mol1)
 
                 # We need to rename the atoms.
@@ -948,9 +947,6 @@ class Molecule(_SireWrapper):
             # Tally counter for the total number of matches.
             num_matches = 0
 
-            # Initialise the offset.
-            offset = 0
-
             # Get the molecule numbers in the system.
             mol_nums = mol1.molNums()
 
@@ -960,15 +956,12 @@ class Molecule(_SireWrapper):
                 mol = mol1[num]
 
                 # Initialise the matcher.
-                matcher = _SireMol.ResIdxAtomCoordMatcher(_SireMol.ResIdx(offset))
+                matcher = _SireMol.AtomCoordMatcher()
 
                 # Get the matches for this molecule and append to the list.
                 match = matcher.match(mol0, mol)
                 matches.append(match)
                 num_matches += len(match)
-
-                # Increment the offset.
-                offset += mol.nResidues()
 
             # Have we matched all of the atoms?
             if num_matches < num_atoms0:

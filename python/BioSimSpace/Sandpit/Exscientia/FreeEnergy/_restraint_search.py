@@ -1,7 +1,7 @@
 ######################################################################
 # BioSimSpace: Making biomolecular simulation a breeze!
 #
-# Copyright: 2017-2023
+# Copyright: 2017-2024
 #
 # Authors: Lester Hedges <lester.hedges@gmail.com>
 #
@@ -641,7 +641,7 @@ class RestraintSearch:
 
         if force_constant:
             dim = force_constant.dimensions()
-            if dim != (0, 0, 0, 1, -1, 0, -2):
+            if dim != (1, 0, -2, 0, 0, -1, 0):
                 raise ValueError(
                     "force_constant must be of type "
                     "'BioSimSpace.Types.Energy'/'BioSimSpace.Types.Length^2'"
