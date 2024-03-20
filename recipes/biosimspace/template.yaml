@@ -31,6 +31,7 @@ test:
     - pytest-black  # [linux and x86_64 and py==311]
     - ambertools    # [linux and x86_64]
     - gromacs       # [linux and x86_64]
+    - requests
   imports:
     - BioSimSpace
   source_files:
