@@ -2102,8 +2102,10 @@ class Gromacs(_process.Process):
             # Create a copy of the system.
             system = self._system.copy()
 
-            # Convert to the lambda = 0 state if this is a perturbable system.
-            system = self._checkPerturbable(system)
+            # Convert to the lambda = 0 state if this is a perturbable system and this
+            # isn't a free energy protocol.
+            if not isinstance(self._protocol, _Protocol._FreeEnergyMixin):
+                system = self._checkPerturbable(system)
 
             # Convert the water model topology so that it matches the GROMACS naming convention.
             system._set_water_topology("GROMACS")

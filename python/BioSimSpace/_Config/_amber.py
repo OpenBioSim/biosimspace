@@ -1,7 +1,7 @@
 ######################################################################
 # BioSimSpace: Making biomolecular simulation a breeze!
 #
-# Copyright: 2017-2023
+# Copyright: 2017-2024
 #
 # Authors: Lester Hedges <lester.hedges@gmail.com>
 #
@@ -224,9 +224,9 @@ class Amber(_Config):
                                     ]
                                 restraint_mask = "@" + ",".join(restraint_atom_names)
                             elif restraint == "heavy":
-                                restraint_mask = "!:WAT & !@H="
+                                restraint_mask = "!:WAT & !@%NA,CL & !@H="
                             elif restraint == "all":
-                                restraint_mask = "!:WAT"
+                                restraint_mask = "!:WAT & !@%NA,CL"
 
                         # We can't do anything about a custom restraint, since we don't
                         # know anything about the atoms.

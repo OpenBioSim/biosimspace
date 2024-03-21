@@ -197,6 +197,7 @@ def test_gromacs(alchemical_ion_system, restraint, alchemical_ion_system_psores)
         protocol,
         name="test",
         reference_system=alchemical_ion_system_psores,
+        ignore_warnings=True,
     )
 
     # Test the position restraint for protein center

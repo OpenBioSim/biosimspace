@@ -1,7 +1,7 @@
 ######################################################################
 # BioSimSpace: Making biomolecular simulation a breeze!
 #
-# Copyright: 2017-2023
+# Copyright: 2017-2024
 #
 # Authors: Lester Hedges <lester.hedges@gmail.com>
 #
@@ -58,9 +58,8 @@ class Charge(_Type):
     # Null type unit for avoiding issue printing configargparse help.
     _default_unit = "ELECTRON CHARGE"
 
-    # The dimension mask:
-    #     Angle, Charge, Length, Mass, Quantity, Temperature, Time
-    _dimensions = (0, 1, 0, 0, 0, 0, 0)
+    # The dimension mask.
+    _dimensions = tuple(list(_supported_units.values())[0].dimensions())
 
     def __init__(self, *args):
         """
@@ -182,7 +181,8 @@ class Charge(_Type):
                 "Supported units are: '%s'" % list(self._supported_units.keys())
             )
 
-    def _validate_unit(self, unit):
+    @classmethod
+    def _validate_unit(cls, unit):
         """Validate that the unit are supported."""
 
         # Strip whitespace and convert to upper case.
@@ -213,11 +213,11 @@ class Charge(_Type):
         unit = unit.replace("COUL", "C")
 
         # Check that the unit is supported.
-        if unit in self._abbreviations:
-            return self._abbreviations[unit]
+        if unit in cls._abbreviations:
+            return cls._abbreviations[unit]
         else:
             raise ValueError(
-                "Supported units are: '%s'" % list(self._supported_units.keys())
+                "Supported units are: '%s'" % list(cls._supported_units.keys())
             )
 
     @staticmethod

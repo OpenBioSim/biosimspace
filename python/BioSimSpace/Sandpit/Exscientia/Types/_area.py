@@ -1,7 +1,7 @@
 ######################################################################
 # BioSimSpace: Making biomolecular simulation a breeze!
 #
-# Copyright: 2017-2023
+# Copyright: 2017-2024
 #
 # Authors: Lester Hedges <lester.hedges@gmail.com>
 #
@@ -72,9 +72,8 @@ class Area(_Type):
     # Null type unit for avoiding issue printing configargparse help.
     _default_unit = "ANGSTROM2"
 
-    # The dimension mask:
-    #     Angle, Charge, Length, Mass, Quantity, Temperature, Time
-    _dimensions = (0, 0, 2, 0, 0, 0, 0)
+    # The dimension mask.
+    _dimensions = tuple(list(_supported_units.values())[0].dimensions())
 
     def __init__(self, *args):
         """
@@ -330,7 +329,8 @@ class Area(_Type):
                 "Supported units are: '%s'" % list(self._supported_units.keys())
             )
 
-    def _validate_unit(self, unit):
+    @classmethod
+    def _validate_unit(cls, unit):
         """Validate that the unit is supported."""
 
         # Strip whitespace and convert to upper case.
@@ -360,13 +360,13 @@ class Area(_Type):
             unit = unit[0:index] + unit[index + 1 :] + "2"
 
         # Check that the unit is supported.
-        if unit in self._supported_units:
+        if unit in cls._supported_units:
             return unit
-        elif unit in self._abbreviations:
-            return self._abbreviations[unit]
+        elif unit in cls._abbreviations:
+            return cls._abbreviations[unit]
         else:
             raise ValueError(
-                "Supported units are: '%s'" % list(self._supported_units.keys())
+                "Supported units are: '%s'" % list(cls._supported_units.keys())
             )
 
     @staticmethod
