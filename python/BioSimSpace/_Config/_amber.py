@@ -367,7 +367,9 @@ class Amber(_Config):
             # Atom masks.
             protocol_dict = {
                 **protocol_dict,
-                **self._generate_amber_fep_masks(timestep),
+                **self._generate_amber_fep_masks(
+                    timestep, explicit_dummies=explicit_dummies
+                ),
             }
 
         # Put everything together in a line-by-line format.
