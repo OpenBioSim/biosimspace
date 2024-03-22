@@ -76,12 +76,10 @@ _openff = _try_import("openff")
 if _have_imported(_openff):
     from openff.interchange import Interchange as _Interchange
     from openff.toolkit.topology import Molecule as _OpenFFMolecule
-    from openff.toolkit.topology import Topology as _OpenFFTopology
     from openff.toolkit.typing.engines.smirnoff import ForceField as _Forcefield
 else:
     _Interchange = _openff
     _OpenFFMolecule = _openff
-    _OpenFFTopology = _openff
     _Forcefield = _openff
 
 # Reset stderr.
