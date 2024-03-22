@@ -77,6 +77,27 @@ if _have_imported(_openff):
     from openff.interchange import Interchange as _Interchange
     from openff.toolkit.topology import Molecule as _OpenFFMolecule
     from openff.toolkit.typing.engines.smirnoff import ForceField as _Forcefield
+
+    try:
+        from openff.toolkit.utils.nagl_wrapper import (
+            NAGLToolkitWrapper as _NAGLToolkitWrapper,
+        )
+
+        _has_nagl = _NAGLToolkitWrapper.is_available()
+        from openff.nagl_models import get_models_by_type as _get_models_by_type
+
+        _models = _get_models_by_type("am1bcc")
+        try:
+            # Find the most recent AM1-BCC release candidate.
+            _nagl = _NAGLToolkitWrapper()
+            _nagl_model = sorted(
+                [str(model) for model in _models if "rc" in str(model)], reverse=True
+            )[0]
+        except:
+            _has_nagl = False
+        del _models
+    except:
+        _has_nagl = False
 else:
     _Interchange = _openff
     _OpenFFMolecule = _openff
@@ -289,6 +310,23 @@ class OpenForceField(_protocol.Protocol):
                 else:
                     raise _ThirdPartyError(msg) from None
 
+        # Apply AM1-BCC charges using NAGL.
+        if _has_nagl:
+            try:
+                _nagl.assign_partial_charges(
+                    off_molecule, partial_charge_method=_nagl_model
+                )
+            except Exception as e:
+                msg = "Failed to assign AM1-BCC charges using NAGL."
+                if _isVerbose():
+                    msg += ": " + getattr(e, "message", repr(e))
+                    raise _ThirdPartyError(msg) from e
+                else:
+                    raise _ThirdPartyError(msg) from None
+            charge_from_molecules = [off_molecule]
+        else:
+            charge_from_molecules = None
+
         # Extract the molecular topology.
         try:
             off_topology = off_molecule.to_topology()
@@ -315,7 +353,9 @@ class OpenForceField(_protocol.Protocol):
         # Create an Interchange object.
         try:
             interchange = _Interchange.from_smirnoff(
-                force_field=forcefield, topology=off_topology
+                force_field=forcefield,
+                topology=off_topology,
+                charge_from_molecules=charge_from_molecules,
             )
         except Exception as e:
             msg = "Unable to create OpenFF Interchange object!"
