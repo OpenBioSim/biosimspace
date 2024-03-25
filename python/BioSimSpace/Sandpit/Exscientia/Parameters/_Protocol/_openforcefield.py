@@ -73,6 +73,9 @@ else:
 
 _openff = _try_import("openff")
 
+# Initialise the NAGL support flag.
+_has_nagl = False
+
 if _have_imported(_openff):
     from openff.interchange import Interchange as _Interchange
     from openff.toolkit.topology import Molecule as _OpenFFMolecule
