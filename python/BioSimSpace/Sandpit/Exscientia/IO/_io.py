@@ -66,8 +66,9 @@ from .._SireWrappers import Molecules as _Molecules
 from .._SireWrappers import System as _System
 from .. import _Utils
 
-from ._file_cache import check_cache as _check_cache
-from ._file_cache import update_cache as _update_cache
+from ._file_cache import _check_cache
+from ._file_cache import _update_cache
+from ._file_cache import _cache_active
 
 
 # Context manager for capturing stdout.
@@ -741,14 +742,17 @@ def saveMolecules(
     # Save the system using each file format.
     for format in formats:
         # Copy an existing file if it exists in the cache.
-        ext = _check_cache(
-            system,
-            format,
-            filebase,
-            match_water=match_water,
-            property_map=property_map,
-            **kwargs,
-        )
+        if _cache_active():
+            ext = _check_cache(
+                system,
+                format,
+                filebase,
+                match_water=match_water,
+                property_map=property_map,
+                **kwargs,
+            )
+        else:
+            ext = None
         if ext:
             files.append(_os.path.abspath(filebase + ext))
             continue
@@ -835,7 +839,10 @@ def saveMolecules(
             files += file
 
             # If this is a new file, then add it to the cache.
-            _update_cache(system, format, file[0], match_water=match_water, **kwargs)
+            if _cache_active():
+                _update_cache(
+                    system, format, file[0], match_water=match_water, **kwargs
+                )
 
         except Exception as e:
             msg = "Failed to save system to format: '%s'" % format
@@ -1162,7 +1169,7 @@ def readPerturbableSystem(top0, coords0, top1, coords1, property_map={}):
         prop = property_map.get("time", "time")
         time = system0._sire_object.property(prop)
         system0._sire_object.removeSharedProperty(prop)
-        system0._sire_object.setPropery(prop, time)
+        system0._sire_object.setProperty(prop, time)
     except:
         pass
 
