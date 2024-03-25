@@ -127,7 +127,9 @@ from . import _protocol
 class OpenForceField(_protocol.Protocol):
     """A class for handling protocols for Open Force Field models."""
 
-    def __init__(self, forcefield, ensure_compatible=True, property_map={}):
+    def __init__(
+        self, forcefield, ensure_compatible=True, use_nagl=True, property_map={}
+    ):
         """
         Constructor.
 
@@ -145,6 +147,11 @@ class OpenForceField(_protocol.Protocol):
             original molecule, e.g. the original atom and residue names will be
             kept.
 
+        use_nagl : bool
+            Whether to use NAGL to compute AM1-BCC charges. If False, the default
+            is to use AmberTools via antechamber and sqm. (This option is only
+            used if NAGL is available.)
+
         property_map : dict
             A dictionary that maps system "properties" to their user defined
             values. This allows the user to refer to properties with their
@@ -157,6 +164,12 @@ class OpenForceField(_protocol.Protocol):
             ensure_compatible=ensure_compatible,
             property_map=property_map,
         )
+
+        if not isinstance(use_nagl, bool):
+            raise TypeError("'use_nagl' must be of type 'bool'")
+
+        # Set the NAGL flag.
+        self._use_nagl = use_nagl
 
         # Set the compatibility flags.
         self._tleap = False
@@ -314,7 +327,7 @@ class OpenForceField(_protocol.Protocol):
                     raise _ThirdPartyError(msg) from None
 
         # Apply AM1-BCC charges using NAGL.
-        if _has_nagl:
+        if _has_nagl and self._use_nagl:
             try:
                 _nagl.assign_partial_charges(
                     off_molecule, partial_charge_method=_nagl_model
