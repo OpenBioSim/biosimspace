@@ -40,7 +40,7 @@ jobs:
       SIRE_SILENT_PHONEHOME: 1
       REPO: "${{ github.event.pull_request.head.repo.full_name || github.repository }}"
     steps:
-      - uses: conda-incubator/setup-miniconda@v2
+      - uses: conda-incubator/setup-miniconda@v3
         with:
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
