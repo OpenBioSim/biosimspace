@@ -463,6 +463,7 @@ def _parameterise_openff(
     forcefield,
     molecule,
     ensure_compatible=True,
+    use_nagl=True,
     work_dir=None,
     property_map={},
     **kwargs,
@@ -488,6 +489,11 @@ def _parameterise_openff(
         raised if this isn't the case, e.g. if atoms have been added. When True,
         the parameterised molecule will preserve the topology of the original
         molecule, e.g. the original atom and residue names will be kept.
+
+    use_nagl : bool
+        Whether to use NAGL to compute AM1-BCC charges. If False, the default
+        is to use AmberTools via antechamber and sqm. (This option is only
+        used if NAGL is available.)
 
     work_dir : str
         The working directory for the process.
@@ -583,12 +589,21 @@ def _parameterise_openff(
         if forcefield not in _forcefields_lower:
             raise ValueError("Supported force fields are: %s" % openForceFields())
 
+    if not isinstance(ensure_compatible, bool):
+        raise TypeError("'ensure_compatible' must be of type 'bool'.")
+
+    if not isinstance(use_nagl, bool):
+        raise TypeError("'use_nagl' must be of type 'bool'.")
+
     if not isinstance(property_map, dict):
         raise TypeError("'property_map' must be of type 'dict'")
 
     # Create a default protocol.
     protocol = _Protocol.OpenForceField(
-        forcefield, ensure_compatible=ensure_compatible, property_map=property_map
+        forcefield,
+        ensure_compatible=ensure_compatible,
+        use_nagl=use_nagl,
+        property_map=property_map,
     )
 
     # Run the parameterisation protocol in the background and return
@@ -1079,7 +1094,9 @@ def _make_amber_protein_function(name):
 # it conforms to sensible function naming standards, i.e. "-" and "."
 # characters replaced by underscores.
 def _make_openff_function(name):
-    def _function(molecule, ensure_compatible=True, work_dir=None, property_map={}):
+    def _function(
+        molecule, ensure_compatible=True, use_nagl=True, work_dir=None, property_map={}
+    ):
         """
         Parameterise a molecule using the named force field from the
         Open Force Field initiative.
@@ -1100,6 +1117,11 @@ def _make_openff_function(name):
             molecule will preserve the topology of the original molecule, e.g.
             the original atom and residue names will be kept.
 
+        use_nagl : bool
+            Whether to use NAGL to compute AM1-BCC charges. If False, the default
+            is to use AmberTools via antechamber and sqm. (This option is only
+            used if NAGL is available.)
+
         work_dir : str
             The working directory for the process.
 
@@ -1118,6 +1140,7 @@ def _make_openff_function(name):
             name,
             molecule,
             ensure_compatible=ensure_compatible,
+            use_nagl=use_nagl,
             work_dir=work_dir,
             property_map=property_map,
         )
