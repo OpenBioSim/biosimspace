@@ -203,9 +203,7 @@ class Amber(_Config):
             protocol_dict["ntf"] = 2
 
         # Periodic boundary conditions.
-        if not self.hasBox(self._system, self._property_map) or not self.hasWater(
-            self._system
-        ):
+        if is_vacuum:
             # No periodic box.
             protocol_dict["ntb"] = 0
             # Non-bonded cut-off.
