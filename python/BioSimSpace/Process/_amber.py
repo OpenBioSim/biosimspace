@@ -160,6 +160,12 @@ class Amber(_process.Process):
         if not isinstance(is_gpu, bool):
             raise TypeError("'is_gpu' must be of type 'bool'")
 
+        # Check whether this is a vacuum simulation.
+        is_vacuum = not (
+            _AmberConfig.hasBox(self._system, self._property_map)
+            or _AmberConfig.hasWater(self._system)
+        )
+
         # If the path to the executable wasn't specified, then search
         # for it in AMBERHOME and the PATH.
         if exe is None:
@@ -167,12 +173,6 @@ class Amber(_process.Process):
                 is_free_energy = True
             else:
                 is_free_energy = False
-
-            # Check whether this is a vacuum simulation.
-            is_vacuum = not (
-                _AmberConfig.hasBox(self._system, self._property_map)
-                or _AmberConfig.hasWater(self._system)
-            )
 
             self._exe = _find_exe(
                 is_gpu=is_gpu, is_free_energy=is_free_energy, is_vacuum=is_vacuum
@@ -183,6 +183,15 @@ class Amber(_process.Process):
                 self._exe = exe
             else:
                 raise IOError("AMBER executable doesn't exist: '%s'" % exe)
+
+            # pmemd.cuda doesn't support vacuum free-energy simulations.
+            if isinstance(protocol, _FreeEnergyMixin):
+                is_cuda = "cuda" in self._exe.lower()
+
+                if is_cuda and is_vacuum:
+                    _warnings.warn(
+                        "pmemd.cuda doesn't support vacuum free-energy simulations!"
+                    )
 
         if not isinstance(explicit_dummies, bool):
             raise TypeError("'explicit_dummies' must be of type 'bool'")

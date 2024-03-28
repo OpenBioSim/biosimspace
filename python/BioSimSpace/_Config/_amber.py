@@ -123,6 +123,14 @@ class Amber(_Config):
             if not all(isinstance(line, str) for line in extra_lines):
                 raise TypeError("Lines in 'extra_lines' must be of type 'str'.")
 
+        # Vaccum simulation.
+        if not self.hasBox(self._system, self._property_map) or not self.hasWater(
+            self._system
+        ):
+            is_vacuum = True
+        else:
+            is_vacuum = False
+
         # Initialise the protocol lines.
         protocol_lines = []
 
@@ -173,8 +181,15 @@ class Amber(_Config):
             # Report energies every 100 steps.
             protocol_dict["ntpr"] = 100
         else:
-            # Define the timestep
+            # Get the time step.
             timestep = self._protocol.getTimeStep().picoseconds().value()
+            # For free-energy calculations, we can only use a 1fs time step in
+            # vacuum.
+            if isinstance(self._protocol, _FreeEnergyMixin):
+                if is_vacuum and timestep > 0.001:
+                    raise ValueError(
+                        "AMBER free-energy calculations in vacuum must use a 1fs time step."
+                    )
             # Set the integration time step.
             protocol_dict["dt"] = f"{timestep:.3f}"
             # Number of integration steps.
@@ -368,7 +383,7 @@ class Amber(_Config):
             protocol_dict = {
                 **protocol_dict,
                 **self._generate_amber_fep_masks(
-                    timestep, explicit_dummies=explicit_dummies
+                    self._system, is_vacuum, explicit_dummies=explicit_dummies
                 ),
             }
 
@@ -459,7 +474,7 @@ class Amber(_Config):
 
         return restraint_mask
 
-    def _generate_amber_fep_masks(self, timestep, explicit_dummies=False):
+    def _generate_amber_fep_masks(self, system, is_vacuum, explicit_dummies=False):
         """
         Internal helper function which generates timasks and scmasks based
         on the system.
@@ -467,9 +482,11 @@ class Amber(_Config):
         Parameters
         ----------
 
-        timestep : [float]
-            The timestep in ps for the FEP perturbation. Generates a different
-            mask based on this.
+        system : :class:`System <BioSimSpace._SireWrappers.System>`
+            The molecular system.
+
+        is_vacuum : bool
+            Whether this is a vacuum simulation.
 
         explicit_dummies : bool
             Whether to keep the dummy atoms explicit at the endstates or remove them.
@@ -509,19 +526,34 @@ class Amber(_Config):
         ti0_indices = mcs0_indices + dummy0_indices
         ti1_indices = mcs1_indices + dummy1_indices
 
-        # SHAKE should be used for timestep > 2 fs.
-        if timestep is not None and timestep >= 0.002:
-            no_shake_mask = ""
-        else:
-            no_shake_mask = _amber_mask_from_indices(ti0_indices + ti1_indices)
-
         # Create an option dict with amber masks generated from the above indices.
         option_dict = {
             "timask1": f'"{_amber_mask_from_indices(ti0_indices)}"',
             "timask2": f'"{_amber_mask_from_indices(ti1_indices)}"',
             "scmask1": f'"{_amber_mask_from_indices(dummy0_indices)}"',
             "scmask2": f'"{_amber_mask_from_indices(dummy1_indices)}"',
-            "noshakemask": f'"{no_shake_mask}"',
+            "tishake": 1 if is_vacuum else 0,
         }
+
+        # Add a noshakemask for the perturbed residue.
+        if is_vacuum:
+            # Get the perturbable molecules.
+            pert_mols = system.getPerturbableMolecules()
+
+            # Initialise the noshakemask string.
+            noshakemask = ""
+
+            # Loop over all perturbable molecules and add residues to the mask.
+            for mol in pert_mols:
+                if noshakemask == "":
+                    noshakemask += ":"
+                for res in mol.getResidues():
+                    noshakemask += f"{system.getIndex(res) + 1},"
+
+            # Strip the trailing comma.
+            noshakemask = noshakemask[:-1]
+
+            # Add the noshakemask to the option dict.
+            option_dict["noshakemask"] = f'"{noshakemask}"'
 
         return option_dict
