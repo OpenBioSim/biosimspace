@@ -431,9 +431,9 @@ def readMolecules(
         )
         _has_gmx_warned = True
 
+    # Convert a single string to a list.
     if isinstance(files, str):
-        if not files.startswith(("http", "www")):
-            files = [files]
+        files = [files]
 
     # Check that all arguments are of type 'str'.
     if isinstance(files, (list, tuple)):
