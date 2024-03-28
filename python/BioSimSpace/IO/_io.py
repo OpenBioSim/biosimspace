@@ -66,8 +66,9 @@ from .._SireWrappers import Molecules as _Molecules
 from .._SireWrappers import System as _System
 from .. import _Utils
 
-from ._file_cache import check_cache as _check_cache
-from ._file_cache import update_cache as _update_cache
+from ._file_cache import _check_cache
+from ._file_cache import _update_cache
+from ._file_cache import _cache_active
 
 
 # Context manager for capturing stdout.
@@ -430,11 +431,8 @@ def readMolecules(
         )
         _has_gmx_warned = True
 
-    # Glob string to catch wildcards and convert to list.
     if isinstance(files, str):
         if not files.startswith(("http", "www")):
-            files = _glob(files)
-        else:
             files = [files]
 
     # Check that all arguments are of type 'str'.
@@ -448,6 +446,12 @@ def readMolecules(
             files = list(files)
     else:
         raise TypeError("'files' must be of type 'str', or a list of 'str' types.")
+
+    # Glob all files to catch wildcards.
+    new_files = []
+    for file in files:
+        new_files += _glob(file)
+    files = new_files
 
     # Validate the molecule unwrapping flag.
     if not isinstance(make_whole, bool):
@@ -741,14 +745,17 @@ def saveMolecules(
     # Save the system using each file format.
     for format in formats:
         # Copy an existing file if it exists in the cache.
-        ext = _check_cache(
-            system,
-            format,
-            filebase,
-            match_water=match_water,
-            property_map=property_map,
-            **kwargs,
-        )
+        if _cache_active():
+            ext = _check_cache(
+                system,
+                format,
+                filebase,
+                match_water=match_water,
+                property_map=property_map,
+                **kwargs,
+            )
+        else:
+            ext = None
         if ext:
             files.append(_os.path.abspath(filebase + ext))
             continue
@@ -835,7 +842,10 @@ def saveMolecules(
             files += file
 
             # If this is a new file, then add it to the cache.
-            _update_cache(system, format, file[0], match_water=match_water, **kwargs)
+            if _cache_active():
+                _update_cache(
+                    system, format, file[0], match_water=match_water, **kwargs
+                )
 
         except Exception as e:
             msg = "Failed to save system to format: '%s'" % format
