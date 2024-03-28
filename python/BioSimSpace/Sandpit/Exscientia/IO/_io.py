@@ -450,7 +450,10 @@ def readMolecules(
     # Glob all files to catch wildcards.
     new_files = []
     for file in files:
-        new_files += _glob(file)
+        if not file.startswith(("http", "www")):
+            new_files += _glob(file)
+        else:
+            new_files.append(file)
     files = new_files
 
     # Validate the molecule unwrapping flag.
