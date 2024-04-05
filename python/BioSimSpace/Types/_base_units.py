@@ -24,6 +24,8 @@
 
 __all__ = ["_base_units", "_base_dimensions", "_sire_units_locals"]
 
+import sys as _sys
+
 from ._angle import *
 from ._area import *
 from ._charge import *
@@ -34,12 +36,12 @@ from ._temperature import *
 from ._time import *
 from ._volume import *
 
-import sys as _sys
-
 _namespace = _sys.modules[__name__]
 
 # Create the list of base unit types.
-_base_units = [getattr(_namespace, var) for var in dir() if var[0] != "_"]
+_base_units = [
+    getattr(_namespace, var) for var in dir() if var[0] != "_" and isinstance(var, type)
+]
 
 _base_dimensions = {}
 for unit in _base_units:
