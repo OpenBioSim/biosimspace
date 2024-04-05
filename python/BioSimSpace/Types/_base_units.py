@@ -39,9 +39,9 @@ from ._volume import *
 _namespace = _sys.modules[__name__]
 
 # Create the list of base unit types.
-_base_units = [
-    getattr(_namespace, var) for var in dir() if var[0] != "_" and isinstance(var, type)
-]
+_base_units = [getattr(_namespace, var) for var in dir() if var[0] != "_"]
+# Filter out modules
+_base_units = [unit for unit in _base_units if isinstance(unit, type)]
 
 _base_dimensions = {}
 for unit in _base_units:
