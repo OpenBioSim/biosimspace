@@ -43,7 +43,7 @@ jobs:
         run: git clone -b main https://github.com/openbiosim/biosimspace
 #
       - name: Setup Conda
-        run: mamba install -y -c conda-forge boa=0.16 anaconda-client packaging=21 pip-requirements-parser
+        run: mamba install -y -c conda-forge boa anaconda-client packaging pip-requirements-parser
 #
       - name: Update Conda recipe
         run: python ${{ github.workspace }}/biosimspace/actions/update_recipe.py
