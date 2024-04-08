@@ -353,10 +353,17 @@ class Molecule(_SireWrapper):
             for idx in indices_:
                 selection.select(idx)
 
+            # Store the Sire molecule.
+            sire_mol = self._sire_object
+
+            # Remove the "parameters" property, if it exists.
+            if sire_mol.hasProperty("parameters"):
+                sire_mol = (
+                    sire_mol.edit().removeProperty("parameters").commit().molecule()
+                )
+
             partial_mol = (
-                _SireMol.PartialMolecule(self._sire_object, selection)
-                .extract()
-                .molecule()
+                _SireMol.PartialMolecule(sire_mol, selection).extract().molecule()
             )
         except Exception as e:
             msg = "Unable to create partial molecule!"
