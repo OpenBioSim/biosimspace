@@ -88,6 +88,7 @@ class Gromacs(_process.Process):
         ignore_warnings=False,
         show_errors=True,
         checkpoint_file=None,
+        **kwargs,
     ):
         """
         Constructor.
@@ -147,6 +148,9 @@ class Gromacs(_process.Process):
            The path to a checkpoint file from a previous run. This can be used
            to continue an existing simulation. Currently we only support the
            use of checkpoint files for Equilibration protocols.
+
+        kwargs : dict
+            Additional keyword arguments.
         """
 
         # Call the base class constructor.
@@ -243,7 +247,7 @@ class Gromacs(_process.Process):
         # Now set up the working directory for the process.
         self._setup(**kwargs)
 
-    def _setup(self):
+    def _setup(self, **kwargs):
         """Setup the input files and working directory ready for simulation."""
 
         # Create the input files...
