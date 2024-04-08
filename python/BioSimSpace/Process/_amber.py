@@ -161,10 +161,13 @@ class Amber(_process.Process):
             raise TypeError("'is_gpu' must be of type 'bool'")
 
         # Check whether this is a vacuum simulation.
-        is_vacuum = not (
+        self._is_vacuum = not (
             _AmberConfig.hasBox(self._system, self._property_map)
             or _AmberConfig.hasWater(self._system)
         )
+
+        # Flag to indicate whether the original system has a box.
+        self._has_box = _AmberConfig.hasBox(self._system, self._property_map)
 
         # If the path to the executable wasn't specified, then search
         # for it in AMBERHOME and the PATH.
@@ -175,7 +178,7 @@ class Amber(_process.Process):
                 is_free_energy = False
 
             self._exe = _find_exe(
-                is_gpu=is_gpu, is_free_energy=is_free_energy, is_vacuum=is_vacuum
+                is_gpu=is_gpu, is_free_energy=is_free_energy, is_vacuum=self._is_vacuum
             )
         else:
             # Make sure executable exists.
@@ -184,14 +187,16 @@ class Amber(_process.Process):
             else:
                 raise IOError("AMBER executable doesn't exist: '%s'" % exe)
 
-            # pmemd.cuda doesn't support vacuum free-energy simulations.
-            if isinstance(protocol, _FreeEnergyMixin):
-                is_cuda = "cuda" in self._exe.lower()
-
-                if is_cuda and is_vacuum:
-                    _warnings.warn(
-                        "pmemd.cuda doesn't support vacuum free-energy simulations!"
-                    )
+        # Is this a CUDA enabled version of AMBER?
+        if "cuda" in self._exe.lower():
+            self._is_pmemd_cuda = True
+            self._is_pmemd = False
+        else:
+            self._is_pmemd_cuda = False
+            if "pmemd" in self._exe.lower():
+                self._is_pmemd = True
+            else:
+                self._is_pmemd = False
 
         if not isinstance(explicit_dummies, bool):
             raise TypeError("'explicit_dummies' must be of type 'bool'")
@@ -270,6 +275,33 @@ class Amber(_process.Process):
                     "perturbable molecule!"
                 )
 
+            # If this is vacuum simulation with pmemd.cuda then
+            # we need to add a simulation box.
+            if self._is_vacuum and self._is_pmemd_cuda:
+                # Get the existing box information.
+                box, _ = system.getBox()
+
+                # We need to add a box.
+                if box is None:
+                    from ..Box import cubic as _cubic
+                    from ..Units.Length import angstrom as _angstrom
+
+                    # Get the bounding box of the system.
+                    box_min, box_max = system.getAxisAlignedBoundingBox()
+
+                    # Work out the box size from the difference in the coordinates.
+                    box_size = [y - x for x, y in zip(box_min, box_max)]
+
+                    # Work out the size of the box assuming an 8 Angstrom non-bonded cutoff.
+                    padding = 8 * _angstrom
+                    box_length = max(box_size) + padding
+                    # Small box fix. Should be patched in future versions of pmemd.cuda.
+                    if box_length < 30 * _angstrom:
+                        box_length = 30 * _angstrom
+
+                    # Set the simulation box.
+                    system.setBox(*_cubic(box_length))
+
             # Apply SOMD1 compatibility to the perturbation.
             if (
                 "somd1_compatibility" in kwargs
@@ -283,6 +315,7 @@ class Amber(_process.Process):
                 system, explicit_dummies=self._explicit_dummies
             )
             self._squashed_system = system
+
         else:
             # Check for perturbable molecules and convert to the chosen end state.
             system = self._checkPerturbable(system)
@@ -341,12 +374,6 @@ class Amber(_process.Process):
     def _generate_config(self):
         """Generate AMBER configuration file strings."""
 
-        # Is this a CUDA enabled version of AMBER?
-        if "cuda" in self._exe.lower():
-            is_pmemd_cuda = True
-        else:
-            is_pmemd_cuda = False
-
         extra_options = self._extra_options.copy()
         extra_lines = self._extra_lines.copy()
 
@@ -388,7 +415,8 @@ class Amber(_process.Process):
         # Create the configuration.
         self.setConfig(
             amber_config.createConfig(
-                is_pmemd_cuda=is_pmemd_cuda,
+                is_pmemd=self._is_pmemd,
+                is_pmemd_cuda=self._is_pmemd_cuda,
                 explicit_dummies=self._explicit_dummies,
                 extra_options=extra_options,
                 extra_lines=extra_lines,
@@ -577,12 +605,13 @@ class Amber(_process.Process):
                 self._mapping = mapping
 
             # Update the box information in the original system.
-            if "space" in new_system._sire_object.propertyKeys():
-                box = new_system._sire_object.property("space")
-                if box.isPeriodic():
-                    old_system._sire_object.setProperty(
-                        self._property_map.get("space", "space"), box
-                    )
+            if self._has_box:
+                if "space" in new_system._sire_object.propertyKeys():
+                    box = new_system._sire_object.property("space")
+                    if box.isPeriodic():
+                        old_system._sire_object.setProperty(
+                            self._property_map.get("space", "space"), box
+                        )
 
             return old_system
 
@@ -705,11 +734,12 @@ class Amber(_process.Process):
             self._mapping = mapping
 
             # Update the box information in the original system.
-            if "space" in new_system._sire_object.propertyKeys():
-                box = new_system._sire_object.property("space")
-                old_system._sire_object.setProperty(
-                    self._property_map.get("space", "space"), box
-                )
+            if self._has_box:
+                if "space" in new_system._sire_object.propertyKeys():
+                    box = new_system._sire_object.property("space")
+                    old_system._sire_object.setProperty(
+                        self._property_map.get("space", "space"), box
+                    )
 
             return old_system
 
@@ -2783,26 +2813,10 @@ def _find_exe(is_gpu=False, is_free_energy=False, is_vacuum=False):
     if not isinstance(is_vacuum, bool):
         raise TypeError("'is_vacuum' must be of type 'bool'.")
 
-    # It is not possible to use implicit solvent for free energy simulations
-    # on GPU, so we fall back to pmemd for vacuum free energy simulations.
-
-    if is_gpu and is_free_energy and is_vacuum:
-        _warnings.warn(
-            "Implicit solvent is not supported for free energy simulations on GPU. "
-            "Falling back to pmemd for vacuum free energy simulations."
-        )
-        is_gpu = False
-
     if is_gpu:
         targets = ["pmemd.cuda"]
     else:
-        if is_free_energy and not is_vacuum:
-            if is_vacuum:
-                targets = ["pmemd"]
-            else:
-                targets = ["pmemd", "pmemd.cuda"]
-        else:
-            targets = ["pmemd", "sander"]
+        targets = ["pmemd", "sander"]
 
     # Search for the executable.
 

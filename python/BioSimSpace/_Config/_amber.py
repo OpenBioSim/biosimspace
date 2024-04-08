@@ -79,6 +79,9 @@ class Amber(_Config):
         version : float
             The AMBER version.
 
+        is_pmemd : bool
+            Whether the configuration is for a simulation using PMEMD.
+
         is_pmemd_cuda : bool
             Whether the configuration is for a simulation using PMEMD with CUDA.
 
@@ -103,6 +106,9 @@ class Amber(_Config):
 
         if version and not isinstance(version, float):
             raise TypeError("'version' must be of type 'float'.")
+
+        if not isinstance(is_pmemd, bool):
+            raise TypeError("'is_pmemd' must be of type 'bool'.")
 
         if not isinstance(is_pmemd_cuda, bool):
             raise TypeError("'is_pmemd_cuda' must be of type 'bool'.")
@@ -186,9 +192,9 @@ class Amber(_Config):
             # For free-energy calculations, we can only use a 1fs time step in
             # vacuum.
             if isinstance(self._protocol, _FreeEnergyMixin):
-                if is_vacuum and timestep > 0.001:
+                if is_vacuum and not is_pmemd_cuda and timestep > 0.001:
                     raise ValueError(
-                        "AMBER free-energy calculations in vacuum must use a 1fs time step."
+                        "AMBER free-energy calculations in vacuum using pmemd must use a 1fs time step."
                     )
             # Set the integration time step.
             protocol_dict["dt"] = f"{timestep:.3f}"
@@ -203,7 +209,9 @@ class Amber(_Config):
             protocol_dict["ntf"] = 2
 
         # Periodic boundary conditions.
-        if is_vacuum:
+        if is_vacuum and not (
+            is_pmemd_cuda and isinstance(self._protocol, _FreeEnergyMixin)
+        ):
             # No periodic box.
             protocol_dict["ntb"] = 0
             # Non-bonded cut-off.
@@ -381,7 +389,11 @@ class Amber(_Config):
             protocol_dict = {
                 **protocol_dict,
                 **self._generate_amber_fep_masks(
-                    self._system, is_vacuum, explicit_dummies=explicit_dummies
+                    self._system,
+                    is_vacuum,
+                    is_pmemd_cuda,
+                    timestep,
+                    explicit_dummies=explicit_dummies,
                 ),
             }
 
@@ -472,7 +484,9 @@ class Amber(_Config):
 
         return restraint_mask
 
-    def _generate_amber_fep_masks(self, system, is_vacuum, explicit_dummies=False):
+    def _generate_amber_fep_masks(
+        self, system, is_vacuum, is_pmemd_cuda, timestep, explicit_dummies=False
+    ):
         """
         Internal helper function which generates timasks and scmasks based
         on the system.
@@ -485,6 +499,12 @@ class Amber(_Config):
 
         is_vacuum : bool
             Whether this is a vacuum simulation.
+
+        is_pmemd_cuda : bool
+            Whether this is a CUDA simulation.
+
+        timestep : float
+            The timestep of the simulation in femtoseconds.
 
         explicit_dummies : bool
             Whether to keep the dummy atoms explicit at the endstates or remove them.
@@ -524,34 +544,20 @@ class Amber(_Config):
         ti0_indices = mcs0_indices + dummy0_indices
         ti1_indices = mcs1_indices + dummy1_indices
 
+        # SHAKE should be used for timestep >= 2 fs.
+        if timestep is None or timestep >= 0.002:
+            no_shake_mask = ""
+        else:
+            no_shake_mask = _amber_mask_from_indices(ti0_indices + ti1_indices)
+
         # Create an option dict with amber masks generated from the above indices.
         option_dict = {
             "timask1": f'"{_amber_mask_from_indices(ti0_indices)}"',
             "timask2": f'"{_amber_mask_from_indices(ti1_indices)}"',
             "scmask1": f'"{_amber_mask_from_indices(dummy0_indices)}"',
             "scmask2": f'"{_amber_mask_from_indices(dummy1_indices)}"',
-            "tishake": 1 if is_vacuum else 0,
+            "tishake": 0 if is_pmemd_cuda else 1,
+            "noshakemask": f'"{no_shake_mask}"',
         }
-
-        # Add a noshakemask for the perturbed residue.
-        if is_vacuum:
-            # Get the perturbable molecules.
-            pert_mols = system.getPerturbableMolecules()
-
-            # Initialise the noshakemask string.
-            noshakemask = ""
-
-            # Loop over all perturbable molecules and add residues to the mask.
-            for mol in pert_mols:
-                if noshakemask == "":
-                    noshakemask += ":"
-                for res in mol.getResidues():
-                    noshakemask += f"{system.getIndex(res) + 1},"
-
-            # Strip the trailing comma.
-            noshakemask = noshakemask[:-1]
-
-            # Add the noshakemask to the option dict.
-            option_dict["noshakemask"] = f'"{noshakemask}"'
 
         return option_dict
