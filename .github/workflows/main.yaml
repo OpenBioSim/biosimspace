@@ -21,6 +21,10 @@ jobs:
           - { name: "windows", os: "windows-latest", shell: "pwsh" }
           - { name: "linux", os: "ubuntu-latest", shell: "bash -l {0}" }
           - { name: "macos", os: "macos-latest", shell: "bash -l {0}" }
+        exclude:
+          - platform:
+              { name: "macos", os: "macos-latest", shell: "bash -l {0}" }
+            python-version: "3.12"  # MacOS can't run 3.12 yet...
     environment:
       name: biosimspace-build
     defaults:
