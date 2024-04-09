@@ -73,10 +73,34 @@ else:
 
 _openff = _try_import("openff")
 
+# Initialise the NAGL support flag.
+_has_nagl = False
+
 if _have_imported(_openff):
     from openff.interchange import Interchange as _Interchange
     from openff.toolkit.topology import Molecule as _OpenFFMolecule
     from openff.toolkit.typing.engines.smirnoff import ForceField as _Forcefield
+
+    try:
+        from openff.toolkit.utils.nagl_wrapper import (
+            NAGLToolkitWrapper as _NAGLToolkitWrapper,
+        )
+
+        _has_nagl = _NAGLToolkitWrapper.is_available()
+        from openff.nagl_models import get_models_by_type as _get_models_by_type
+
+        _models = _get_models_by_type("am1bcc")
+        try:
+            # Find the most recent AM1-BCC release candidate.
+            _nagl = _NAGLToolkitWrapper()
+            _nagl_model = sorted(
+                [str(model) for model in _models if "rc" in str(model)], reverse=True
+            )[0]
+        except:
+            _has_nagl = False
+        del _models
+    except:
+        _has_nagl = False
 else:
     _Interchange = _openff
     _OpenFFMolecule = _openff
@@ -103,7 +127,9 @@ from . import _protocol
 class OpenForceField(_protocol.Protocol):
     """A class for handling protocols for Open Force Field models."""
 
-    def __init__(self, forcefield, ensure_compatible=True, property_map={}):
+    def __init__(
+        self, forcefield, ensure_compatible=True, use_nagl=True, property_map={}
+    ):
         """
         Constructor.
 
@@ -121,6 +147,11 @@ class OpenForceField(_protocol.Protocol):
             original molecule, e.g. the original atom and residue names will be
             kept.
 
+        use_nagl : bool
+            Whether to use NAGL to compute AM1-BCC charges. If False, the default
+            is to use AmberTools via antechamber and sqm. (This option is only
+            used if NAGL is available.)
+
         property_map : dict
             A dictionary that maps system "properties" to their user defined
             values. This allows the user to refer to properties with their
@@ -133,6 +164,12 @@ class OpenForceField(_protocol.Protocol):
             ensure_compatible=ensure_compatible,
             property_map=property_map,
         )
+
+        if not isinstance(use_nagl, bool):
+            raise TypeError("'use_nagl' must be of type 'bool'")
+
+        # Set the NAGL flag.
+        self._use_nagl = use_nagl
 
         # Set the compatibility flags.
         self._tleap = False
@@ -289,6 +326,23 @@ class OpenForceField(_protocol.Protocol):
                 else:
                     raise _ThirdPartyError(msg) from None
 
+        # Apply AM1-BCC charges using NAGL.
+        if _has_nagl and self._use_nagl:
+            try:
+                _nagl.assign_partial_charges(
+                    off_molecule, partial_charge_method=_nagl_model
+                )
+            except Exception as e:
+                msg = "Failed to assign AM1-BCC charges using NAGL."
+                if _isVerbose():
+                    msg += ": " + getattr(e, "message", repr(e))
+                    raise _ThirdPartyError(msg) from e
+                else:
+                    raise _ThirdPartyError(msg) from None
+            charge_from_molecules = [off_molecule]
+        else:
+            charge_from_molecules = None
+
         # Extract the molecular topology.
         try:
             off_topology = off_molecule.to_topology()
@@ -315,7 +369,9 @@ class OpenForceField(_protocol.Protocol):
         # Create an Interchange object.
         try:
             interchange = _Interchange.from_smirnoff(
-                force_field=forcefield, topology=off_topology
+                force_field=forcefield,
+                topology=off_topology,
+                charge_from_molecules=charge_from_molecules,
             )
         except Exception as e:
             msg = "Unable to create OpenFF Interchange object!"

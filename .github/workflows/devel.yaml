@@ -36,7 +36,7 @@ jobs:
       SIRE_DONT_PHONEHOME: 1
       SIRE_SILENT_PHONEHOME: 1
     steps:
-      - uses: conda-incubator/setup-miniconda@v2
+      - uses: conda-incubator/setup-miniconda@v3
         with:
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
@@ -49,7 +49,7 @@ jobs:
         run: git clone -b devel https://github.com/openbiosim/biosimspace
 #
       - name: Setup Conda
-        run: mamba install -y -c conda-forge boa anaconda-client packaging=21 pip-requirements-parser
+        run: mamba install -y -c conda-forge boa anaconda-client packaging pip-requirements-parser
 #
       - name: Update Conda recipe
         run: python ${{ github.workspace }}/biosimspace/actions/update_recipe.py

@@ -211,10 +211,14 @@ class Gromacs(_Config):
 
         # Temperature control.
         if not isinstance(self._protocol, _Protocol.Minimisation):
-            # Leap-frog molecular dynamics.
-            protocol_dict["integrator"] = "md"
-            # Temperature coupling using velocity rescaling with a stochastic term.
-            protocol_dict["tcoupl"] = "v-rescale"
+            if isinstance(self._protocol, _FreeEnergyMixin):
+                # Langevin dynamics.
+                protocol_dict["integrator"] = "sd"
+            else:
+                # Leap-frog molecular dynamics.
+                protocol_dict["integrator"] = "md"
+                # Temperature coupling using velocity rescaling with a stochastic term.
+                protocol_dict["tcoupl"] = "v-rescale"
             # A single temperature group for the entire system.
             protocol_dict["tc-grps"] = "system"
             # Thermostat coupling frequency (ps).

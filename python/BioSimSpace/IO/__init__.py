@@ -28,6 +28,9 @@ Functions
 .. autosummary::
     :toctree: generated/
 
+    clearCache
+    disableCache
+    enableCache
     fileFormats
     formatInfo
     readMolecules
@@ -38,3 +41,4 @@ Functions
 """
 
 from ._io import *
+from ._file_cache import *
