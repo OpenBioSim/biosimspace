@@ -431,12 +431,9 @@ def readMolecules(
         )
         _has_gmx_warned = True
 
-    # Glob string to catch wildcards and convert to list.
+    # Convert a single string to a list.
     if isinstance(files, str):
-        if not files.startswith(("http", "www")):
-            files = _glob(files)
-        else:
-            files = [files]
+        files = [files]
 
     # Check that all arguments are of type 'str'.
     if isinstance(files, (list, tuple)):
@@ -449,6 +446,15 @@ def readMolecules(
             files = list(files)
     else:
         raise TypeError("'files' must be of type 'str', or a list of 'str' types.")
+
+    # Glob all files to catch wildcards.
+    new_files = []
+    for file in files:
+        if not file.startswith(("http", "www")):
+            new_files += _glob(file)
+        else:
+            new_files.append(file)
+    files = new_files
 
     # Validate the molecule unwrapping flag.
     if not isinstance(make_whole, bool):
