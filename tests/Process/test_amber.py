@@ -1,7 +1,9 @@
 from collections import OrderedDict
 
+import math
 import pytest
 import shutil
+import socket
 
 import BioSimSpace as BSS
 
@@ -41,6 +43,17 @@ def perturbable_system():
         f"{url}/perturbable_system0.rst7",
         f"{url}/perturbable_system1.prm7",
         f"{url}/perturbable_system1.rst7",
+    )
+
+
+@pytest.fixture(scope="module")
+def solvated_perturbable_system():
+    """Re-use the same solvated perturbable system for each test."""
+    return BSS.IO.readPerturbableSystem(
+        f"{url}/solvated_perturbable_system0.prm7",
+        f"{url}/solvated_perturbable_system0.rst7",
+        f"{url}/solvated_perturbable_system1.prm7",
+        f"{url}/solvated_perturbable_system1.rst7",
     )
 
 
@@ -364,3 +377,131 @@ def test_parse_fep_output(perturbable_system, protocol):
     else:
         assert len(records_sc0) == 0
         assert len(records_sc1) != 0
+
+
+@pytest.mark.skipif(
+    socket.gethostname() != "porridge",
+    reason="Local test requiring pmemd installation.",
+)
+def test_pmemd(system):
+    """Single-point energy tests for pmemd."""
+
+    # Path to the pmemd conda environment bin directory.
+    bin_dir = "/home/lester/.conda/envs/pmemd/bin"
+
+    # Single-point minimisation protocol.
+    protocol = BSS.Protocol.Minimisation(steps=1)
+
+    # First perform single-point comparisons in solvent.
+
+    # Compute the single-point energy using sander.
+    process = BSS.Process.Amber(system, protocol)
+    process.start()
+    process.wait()
+    assert not process.isError()
+    nrg_sander = process.getTotalEnergy().value()
+
+    # Compute the single-point energy using pmemd.
+    process = BSS.Process.Amber(system, protocol, exe=f"{bin_dir}/pmemd")
+    process.start()
+    process.wait()
+    assert not process.isError()
+    nrg_pmemd = process.getTotalEnergy().value()
+
+    # Compute the single-point energy using pmemd.cuda.
+    process = BSS.Process.Amber(system, protocol, exe=f"{bin_dir}/pmemd.cuda")
+    process.start()
+    process.wait()
+    assert not process.isError()
+    nrg_pmemd_cuda = process.getTotalEnergy().value()
+
+    # Check that the energies are the same.
+    assert math.isclose(nrg_sander, nrg_pmemd, rel_tol=1e-4)
+    assert math.isclose(nrg_sander, nrg_pmemd_cuda, rel_tol=1e-4)
+
+    # Now perform single-point comparisons in vacuum.
+
+    vac_system = system[0].toSystem()
+
+    # Compute the single-point energy using sander.
+    process = BSS.Process.Amber(vac_system, protocol)
+    process.start()
+    process.wait()
+    assert not process.isError()
+    nrg_sander = process.getTotalEnergy().value()
+
+    # Compute the single-point energy using pmemd.
+    process = BSS.Process.Amber(vac_system, protocol, exe=f"{bin_dir}/pmemd")
+    process.start()
+    process.wait()
+    assert not process.isError()
+    nrg_pmemd = process.getTotalEnergy().value()
+
+    # Compute the single-point energy using pmemd.cuda.
+    process = BSS.Process.Amber(vac_system, protocol, exe=f"{bin_dir}/pmemd.cuda")
+    process.start()
+    process.wait()
+    assert not process.isError()
+    nrg_pmemd_cuda = process.getTotalEnergy().value()
+
+    # Check that the energies are the same.
+    assert math.isclose(nrg_sander, nrg_pmemd, rel_tol=1e-4)
+    assert math.isclose(nrg_sander, nrg_pmemd_cuda, rel_tol=1e-4)
+
+
+@pytest.mark.skipif(
+    socket.gethostname() != "porridge",
+    reason="Local test requiring pmemd installation.",
+)
+def test_pmemd_fep(solvated_perturbable_system):
+    """Single-point FEP energy tests for pmemd."""
+
+    # Path to the pmemd conda environment bin directory.
+    bin_dir = "/home/lester/.conda/envs/pmemd/bin"
+
+    # Single-point minimisation protocol.
+    protocol = BSS.Protocol.FreeEnergyMinimisation(steps=1)
+
+    # First perform single-point comparisons in solvent.
+
+    # Compute the single-point energy using pmemd.
+    process = BSS.Process.Amber(
+        solvated_perturbable_system, protocol, exe=f"{bin_dir}/pmemd"
+    )
+    process.start()
+    process.wait()
+    assert not process.isError()
+    nrg_pmemd = process.getTotalEnergy().value()
+
+    # Compute the single-point energy using pmemd.cuda.
+    process = BSS.Process.Amber(
+        solvated_perturbable_system, protocol, exe=f"{bin_dir}/pmemd.cuda"
+    )
+    process.start()
+    process.wait()
+    assert not process.isError()
+    nrg_pmemd_cuda = process.getTotalEnergy().value()
+
+    # Check that the energies are the same.
+    assert math.isclose(nrg_pmemd, nrg_pmemd_cuda, rel_tol=1e-4)
+
+    # Now perform single-point comparisons in vacuum.
+
+    vac_system = solvated_perturbable_system[0].toSystem()
+
+    # Compute the single-point energy using pmemd.
+    process = BSS.Process.Amber(vac_system, protocol, exe=f"{bin_dir}/pmemd")
+    process.start()
+    process.wait()
+    assert not process.isError()
+    nrg_pmemd = process.getTotalEnergy().value()
+
+    # Compute the single-point energy using pmemd.cuda.
+    process = BSS.Process.Amber(vac_system, protocol, exe=f"{bin_dir}/pmemd.cuda")
+    process.start()
+    process.wait()
+    assert not process.isError()
+    nrg_pmemd_cuda = process.getTotalEnergy().value()
+
+    # Vaccum energies currently differ between pmemd and pmemd.cuda.
+    assert not math.isclose(nrg_pmemd, nrg_pmemd_cuda, rel_tol=1e-4)
