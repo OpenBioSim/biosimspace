@@ -248,6 +248,9 @@ class OpenMM(_process.Process):
 
         # Convert the water model topology so that it matches the AMBER naming convention.
         system._set_water_topology("AMBER", property_map=self._property_map)
+        self._reference_system._set_water_topology(
+            "AMBER", property_map=self._property_map
+        )
 
         # Check for perturbable molecules and convert to the chosen end state.
         system = self._checkPerturbable(system)
@@ -269,7 +272,12 @@ class OpenMM(_process.Process):
         if self._protocol.getRestraint() is not None:
             try:
                 file = _os.path.splitext(self._ref_file)[0]
-                _IO.saveMolecules(file, system, "rst7", property_map=self._property_map)
+                _IO.saveMolecules(
+                    file,
+                    self._reference_system,
+                    "rst7",
+                    property_map=self._property_map,
+                )
             except Exception as e:
                 msg = "Failed to write reference system to 'RST7' format."
                 if _isVerbose():
@@ -2174,7 +2182,7 @@ class OpenMM(_process.Process):
                 restrained_atoms = restraint
 
             self.addToConfig(
-                f"ref_prm = parmed.load_file('{self._top_file}', '{self._rst_file}')"
+                f"ref_prm = parmed.load_file('{self._top_file}', '{self._ref_file}')"
             )
 
             # Get the force constant in units of kJ_per_mol/nanometer**2
