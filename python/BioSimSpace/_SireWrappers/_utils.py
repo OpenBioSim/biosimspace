@@ -22,8 +22,8 @@
 Utilities.
 """
 
-# A set of protein residues. Taken from MDAnalysis.
-_prot_res = {
+# A list of protein residues. Taken from MDAnalysis.
+_prot_res = [
     # CHARMM top_all27_prot_lipid.rtf
     "ALA",
     "ARG",
@@ -135,10 +135,10 @@ _prot_res = {
     "CMET",
     "CME",
     "ASF",
-}
+]
 
-# A set of nucleic acid residues. Taken from MDAnalysis.
-_nucl_res = {
+# A list of nucleic acid residues. Taken from MDAnalysis.
+_nucl_res = [
     "ADE",
     "URA",
     "CYT",
@@ -173,7 +173,7 @@ _nucl_res = {
     "RU3",
     "RG3",
     "RC3",
-}
+]
 
 # A list of ion elements.
 _ions = [

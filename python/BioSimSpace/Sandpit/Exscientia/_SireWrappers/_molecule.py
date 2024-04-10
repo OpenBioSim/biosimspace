@@ -799,7 +799,11 @@ class Molecule(_SireWrapper):
             if len(matches) < num_atoms0:
                 # Atom names or order might have changed. Try to match by coordinates.
                 matcher = _SireMol.AtomCoordMatcher()
-                matches = matcher.match(mol0, mol1)
+
+                try:
+                    matches = matcher.match(mol0, mol1)
+                except:
+                    matches = []
 
                 # We need to rename the atoms.
                 is_renamed = True
@@ -1010,7 +1014,11 @@ class Molecule(_SireWrapper):
                 matcher = _SireMol.AtomCoordMatcher()
 
                 # Get the matches for this molecule and append to the list.
-                match = matcher.match(mol0, mol)
+                try:
+                    match = matcher.match(mol0, mol)
+                except:
+                    match = []
+
                 matches.append(match)
                 num_matches += len(match)
 
