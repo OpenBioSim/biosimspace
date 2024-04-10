@@ -558,6 +558,8 @@ class Amber(_Config):
             "scmask2": f'"{_amber_mask_from_indices(dummy1_indices)}"',
             "tishake": 0 if is_pmemd_cuda else 1,
             "noshakemask": f'"{no_shake_mask}"',
+            "gti_add_sc": 1,
+            "gti_bat_sc": 1,
         }
 
         return option_dict

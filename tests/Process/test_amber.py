@@ -490,20 +490,25 @@ def test_pmemd_fep(solvated_perturbable_system):
     vac_system = solvated_perturbable_system[0].toSystem()
 
     # Compute the single-point energy using pmemd.
-    process = BSS.Process.Amber(vac_system, protocol, exe=f"{bin_dir}/pmemd")
+    process = BSS.Process.Amber(
+        vac_system, protocol, exe=f"{bin_dir}/pmemd", extra_options={"gti_bat_sc": 2}
+    )
     process.start()
     process.wait()
     assert not process.isError()
     nrg_pmemd = process.getTotalEnergy().value()
 
     # Compute the single-point energy using pmemd.cuda.
-    process = BSS.Process.Amber(vac_system, protocol, exe=f"{bin_dir}/pmemd.cuda")
+    process = BSS.Process.Amber(
+        vac_system,
+        protocol,
+        exe=f"{bin_dir}/pmemd.cuda",
+        extra_options={"gti_bat_sc": 2},
+    )
     process.start()
     process.wait()
     assert not process.isError()
     nrg_pmemd_cuda = process.getTotalEnergy().value()
 
-    # Vaccum energies currently differ between pmemd and pmemd.cuda.
-    # pmemd appears to be wrong as the CUDA version is consistent with
-    # sander and the result of non-FEP simulation.
-    assert not math.isclose(nrg_pmemd, nrg_pmemd_cuda, rel_tol=1e-4)
+    # Check that the energies are the same.
+    assert math.isclose(nrg_pmemd, nrg_pmemd_cuda, rel_tol=1e-3)
