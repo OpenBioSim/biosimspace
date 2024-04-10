@@ -13,20 +13,21 @@ jobs:
       max-parallel: 9
       fail-fast: false
       matrix:
-        python-version: ["3.9", "3.10", "3.11"]
+        python-version: ["3.10", "3.11", "3.12"]
         platform:
           - { name: "windows", os: "windows-latest", shell: "pwsh" }
           - { name: "linux", os: "ubuntu-latest", shell: "bash -l {0}" }
           - { name: "macos", os: "macos-latest", shell: "bash -l {0}" }
         exclude:
-          # Exclude all but the latest Python from all but Linux
+          # Exclude all but the latest Python from all
+          # but Linux
           - platform:
               { name: "macos", os: "macos-latest", shell: "bash -l {0}" }
-            python-version: "3.9"
-          - platform: { name: "windows", os: "windows-latest", shell: "pwsh" }
-            python-version: "3.9"
+            python-version: "3.12"  # MacOS can't run 3.12 yet... We want 3.10 and 3.11
           - platform: { name: "windows", os: "windows-latest", shell: "pwsh" }
             python-version: "3.10"
+          - platform: { name: "windows", os: "windows-latest", shell: "pwsh" }
+            python-version: "3.11"
     environment:
       name: biosimspace-build
     defaults:
