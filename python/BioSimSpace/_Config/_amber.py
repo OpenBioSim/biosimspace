@@ -545,7 +545,7 @@ class Amber(_Config):
         ti1_indices = mcs1_indices + dummy1_indices
 
         # SHAKE should be used for timestep >= 2 fs.
-        if timestep is None or timestep >= 0.002:
+        if timestep is not None and timestep >= 0.002:
             no_shake_mask = ""
         else:
             no_shake_mask = _amber_mask_from_indices(ti0_indices + ti1_indices)
