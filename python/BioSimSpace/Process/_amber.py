@@ -265,6 +265,9 @@ class Amber(_process.Process):
 
         # Convert the water model topology so that it matches the AMBER naming convention.
         system._set_water_topology("AMBER", property_map=self._property_map)
+        self._reference_system._set_water_topology(
+            "AMBER", property_map=self._property_map
+        )
 
         # Create the squashed system.
         if isinstance(self._protocol, _FreeEnergyMixin):
