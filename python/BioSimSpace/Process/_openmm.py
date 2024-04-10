@@ -344,7 +344,7 @@ class OpenMM(_process.Process):
                 "\n# We use ParmEd due to issues with the built in AmberPrmtopFile for certain triclinic spaces."
             )
             self.addToConfig(
-                f"prm = parmed.load_file('{self._top_file}', '{self._rst_file}')"
+                f"prm = parmed.load_file('{self._name}.prm7', '{self._name}.rst7')"
             )
 
             # Don't use a cut-off if this is a vacuum simulation or if box information
@@ -413,7 +413,7 @@ class OpenMM(_process.Process):
                 "\n# We use ParmEd due to issues with the built in AmberPrmtopFile for certain triclinic spaces."
             )
             self.addToConfig(
-                f"prm = parmed.load_file('{self._top_file}', '{self._rst_file}')"
+                f"prm = parmed.load_file('{self._name}.prm7', '{self._name}.rst7')"
             )
 
             # Don't use a cut-off if this is a vacuum simulation or if box information
@@ -597,7 +597,7 @@ class OpenMM(_process.Process):
                 "\n# We use ParmEd due to issues with the built in AmberPrmtopFile for certain triclinic spaces."
             )
             self.addToConfig(
-                f"prm = parmed.load_file('{self._top_file}', '{self._rst_file}')"
+                f"prm = parmed.load_file('{self._name}.prm7', '{self._name}.rst7')"
             )
 
             # Don't use a cut-off if this is a vacuum simulation or if box information
@@ -796,7 +796,7 @@ class OpenMM(_process.Process):
                 "\n# We use ParmEd due to issues with the built in AmberPrmtopFile for certain triclinic spaces."
             )
             self.addToConfig(
-                f"prm = parmed.load_file('{self._top_file}', '{self._rst_file}')"
+                f"prm = parmed.load_file('{self._name}.prm7', '{self._name}.rst7')"
             )
 
             # Don't use a cut-off if this is a vacuum simulation or if box information
@@ -2182,7 +2182,7 @@ class OpenMM(_process.Process):
                 restrained_atoms = restraint
 
             self.addToConfig(
-                f"ref_prm = parmed.load_file('{self._top_file}', '{self._ref_file}')"
+                f"ref_prm = parmed.load_file('{self._name}.prm7', '{self._name}_ref.rst7')"
             )
 
             # Get the force constant in units of kJ_per_mol/nanometer**2
