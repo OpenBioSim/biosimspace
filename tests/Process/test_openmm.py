@@ -129,6 +129,9 @@ def run_process(system, protocol):
     # Wait for the process to end.
     process.wait()
 
+    print(process.stdout(1000))
+    print(process.stderr(1000))
+
     # Make sure the process didn't error.
     assert not process.isError()
 
