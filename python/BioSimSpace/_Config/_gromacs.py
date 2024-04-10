@@ -199,9 +199,9 @@ class Gromacs(_Config):
                     # 1ps time constant for pressure coupling.
                     protocol_dict["tau-p"] = 1
                     # Pressure in bar.
-                    protocol_dict[
-                        "ref-p"
-                    ] = f"{self._protocol.getPressure().bar().value():.5f}"
+                    protocol_dict["ref-p"] = (
+                        f"{self._protocol.getPressure().bar().value():.5f}"
+                    )
                     # Compressibility of water.
                     protocol_dict["compressibility"] = "4.5e-5"
                 else:

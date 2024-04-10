@@ -306,9 +306,9 @@ class Amber(_Config):
                     # Isotropic pressure scaling.
                     protocol_dict["ntp"] = 1
                     # Pressure in bar.
-                    protocol_dict[
-                        "pres0"
-                    ] = f"{self._protocol.getPressure().bar().value():.5f}"
+                    protocol_dict["pres0"] = (
+                        f"{self._protocol.getPressure().bar().value():.5f}"
+                    )
                     if isinstance(self._protocol, _Protocol.Equilibration):
                         # Berendsen barostat.
                         protocol_dict["barostat"] = 1
