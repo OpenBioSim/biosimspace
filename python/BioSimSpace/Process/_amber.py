@@ -2816,7 +2816,10 @@ def _find_exe(is_gpu=False, is_free_energy=False, is_vacuum=False):
     if is_gpu:
         targets = ["pmemd.cuda"]
     else:
-        targets = ["pmemd", "sander"]
+        if is_free_energy:
+            targets = ["pmemd"]
+        else:
+            targets = ["pmemd", "sander"]
 
     # Search for the executable.
 
