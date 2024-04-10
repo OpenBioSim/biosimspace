@@ -504,4 +504,6 @@ def test_pmemd_fep(solvated_perturbable_system):
     nrg_pmemd_cuda = process.getTotalEnergy().value()
 
     # Vaccum energies currently differ between pmemd and pmemd.cuda.
+    # pmemd appears to be wrong as the CUDA version is consistent with
+    # sander and the result of non-FEP simulation.
     assert not math.isclose(nrg_pmemd, nrg_pmemd_cuda, rel_tol=1e-4)
