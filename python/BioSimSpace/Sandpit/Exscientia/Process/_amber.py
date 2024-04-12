@@ -44,7 +44,6 @@ import warnings as _warnings
 from sire.legacy import Base as _SireBase
 from sire.legacy import IO as _SireIO
 from sire.legacy import Mol as _SireMol
-import pandas as pd
 
 from .._Utils import _assert_imported, _have_imported, _try_import
 
@@ -236,8 +235,12 @@ class Amber(_process.Process):
         )
 
         # Create the reference file
-        if self._ref_system is not None and self._protocol.getRestraint() is not None:
-            self._write_system(self._ref_system, ref_file=self._ref_file)
+        if self._ref_system is not None:
+            if (
+                self._system.getAlchemicalIon()
+                or self._protocol.getRestraint() is not None
+            ):
+                self._write_system(self._ref_system, ref_file=self._ref_file)
         else:
             _shutil.copy(self._rst_file, self._ref_file)
 
@@ -543,7 +546,10 @@ class Amber(_process.Process):
         if not isinstance(self._protocol, _Protocol.Custom):
             # Append a reference file if this a restrained simulation.
             if isinstance(self._protocol, _Protocol._PositionRestraintMixin):
-                if self._protocol.getRestraint() is not None:
+                if (
+                    self._protocol.getRestraint() is not None
+                    or self._system.getAlchemicalIon()
+                ):
                     self.setArg("-ref", "%s_ref.rst7" % self._name)
 
             # Append a trajectory file if this anything other than a minimisation.

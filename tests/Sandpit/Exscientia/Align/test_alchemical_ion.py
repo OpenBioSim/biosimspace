@@ -1,10 +1,12 @@
 import pytest
 
 import BioSimSpace.Sandpit.Exscientia as BSS
-from BioSimSpace.Sandpit.Exscientia.Align._alch_ion import _mark_alchemical_ion
+from BioSimSpace.Sandpit.Exscientia.Align._alch_ion import (
+    _get_protein_com_idx,
+    _mark_alchemical_ion,
+)
 from BioSimSpace.Sandpit.Exscientia._SireWrappers import Molecule
-
-from tests.conftest import root_fp, has_gromacs
+from tests.conftest import has_gromacs, root_fp
 
 
 @pytest.fixture
@@ -50,3 +52,8 @@ def test_getAlchemicalIon(input_system, isalchem, request):
 def test_getAlchemicalIonIdx(alchemical_ion_system):
     index = alchemical_ion_system.getAlchemicalIonIdx()
     assert index == 680
+
+
+def test_get_protein_com_idx(alchemical_ion_system):
+    index = _get_protein_com_idx(alchemical_ion_system)
+    assert index == 8
