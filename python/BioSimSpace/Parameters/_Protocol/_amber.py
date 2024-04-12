@@ -552,7 +552,7 @@ class AmberProtein(_protocol.Protocol):
         ) and _os.path.isfile(_os.path.join(str(work_dir), "leap.crd")):
             # Check the output of tLEaP for missing atoms.
             if self._ensure_compatible:
-                if _has_missing_atoms(_os.path.join(str(work_dir), "leap.top")):
+                if _has_missing_atoms(_os.path.join(str(work_dir), "leap.out")):
                     raise _ParameterisationError(
                         "tLEaP added missing atoms. The topology is now "
                         "inconsistent with the original molecule. Please "
