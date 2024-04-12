@@ -14,12 +14,6 @@ restraints = BSS.Protocol._position_restraint_mixin._PositionRestraintMixin.rest
 
 
 @pytest.fixture(scope="session")
-def system():
-    """Re-use the same molecuar system for each test."""
-    return BSS.IO.readMolecules(["tests/input/ala.top", "tests/input/ala.crd"])
-
-
-@pytest.fixture(scope="session")
 def rna_system():
     """An RNA system for re-use."""
     return BSS.IO.readMolecules(
@@ -32,28 +26,6 @@ def large_protein_system():
     """A large protein system for re-use."""
     return BSS.IO.readMolecules(
         BSS.IO.expand(BSS.tutorialUrl(), ["complex_vac0.prm7", "complex_vac0.rst7"])
-    )
-
-
-@pytest.fixture(scope="module")
-def perturbable_system():
-    """Re-use the same perturbable system for each test."""
-    return BSS.IO.readPerturbableSystem(
-        f"{url}/perturbable_system0.prm7",
-        f"{url}/perturbable_system0.rst7",
-        f"{url}/perturbable_system1.prm7",
-        f"{url}/perturbable_system1.rst7",
-    )
-
-
-@pytest.fixture(scope="module")
-def solvated_perturbable_system():
-    """Re-use the same solvated perturbable system for each test."""
-    return BSS.IO.readPerturbableSystem(
-        f"{url}/solvated_perturbable_system0.prm7",
-        f"{url}/solvated_perturbable_system0.rst7",
-        f"{url}/solvated_perturbable_system1.prm7",
-        f"{url}/solvated_perturbable_system1.rst7",
     )
 
 

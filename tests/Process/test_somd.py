@@ -9,23 +9,6 @@ import BioSimSpace as BSS
 url = BSS.tutorialUrl()
 
 
-@pytest.fixture(scope="session")
-def system():
-    """Re-use the same molecuar system for each test."""
-    return BSS.IO.readMolecules(["tests/input/ala.top", "tests/input/ala.crd"])
-
-
-@pytest.fixture(scope="session")
-def perturbable_system():
-    """Re-use the same perturbable system for each test."""
-    return BSS.IO.readPerturbableSystem(
-        f"{url}/perturbable_system0.prm7",
-        f"{url}/perturbable_system0.rst7",
-        f"{url}/perturbable_system1.prm7",
-        f"{url}/perturbable_system1.rst7",
-    )
-
-
 def test_minimise(system):
     """Test a minimisation protocol."""
 

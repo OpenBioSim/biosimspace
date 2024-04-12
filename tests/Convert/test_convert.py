@@ -5,11 +5,6 @@ from sire.legacy import Mol as SireMol
 import pytest
 
 
-@pytest.fixture(scope="session")
-def system():
-    return BSS.IO.readMolecules(["tests/input/ala.crd", "tests/input/ala.top"])
-
-
 def test_system(system):
     """
     Check that system conversions work as expected.

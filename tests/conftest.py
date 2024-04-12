@@ -1,6 +1,7 @@
 collect_ignore_glob = ["*/out_test*.py"]
 
 import os
+import pytest
 
 from pathlib import Path
 
@@ -55,3 +56,33 @@ has_alchemlyb = _have_imported(_alchemlyb)
 
 # Allow tests to be run from any directory.
 root_fp = Path(__file__).parent.resolve()
+
+# Fixtures for tests.
+
+
+@pytest.fixture(scope="session")
+def system():
+    """Solvated alanine dipeptide system."""
+    return BSS.IO.readMolecules(["tests/input/ala.top", "tests/input/ala.crd"])
+
+
+@pytest.fixture(scope="module")
+def perturbable_system():
+    """A vacuum perturbable system."""
+    return BSS.IO.readPerturbableSystem(
+        f"{url}/perturbable_system0.prm7",
+        f"{url}/perturbable_system0.rst7",
+        f"{url}/perturbable_system1.prm7",
+        f"{url}/perturbable_system1.rst7",
+    )
+
+
+@pytest.fixture(scope="module")
+def solvated_perturbable_system():
+    """A solvated perturbable system."""
+    return BSS.IO.readPerturbableSystem(
+        f"{url}/solvated_perturbable_system0.prm7",
+        f"{url}/solvated_perturbable_system0.rst7",
+        f"{url}/solvated_perturbable_system1.prm7",
+        f"{url}/solvated_perturbable_system1.rst7",
+    )

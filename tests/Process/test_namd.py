@@ -8,18 +8,6 @@ from tests.conftest import url, has_namd
 restraints = BSS.Protocol._position_restraint_mixin._PositionRestraintMixin.restraints()
 
 
-@pytest.fixture(scope="session")
-def system():
-    """Re-use the same molecuar system for each test."""
-    return BSS.IO.readMolecules(
-        [
-            "tests/input/alanin.psf",
-            f"tests/input/alanin.pdb",
-            f"tests/input/alanin.params",
-        ]
-    )
-
-
 @pytest.mark.skipif(has_namd is False, reason="Requires NAMD to be installed.")
 @pytest.mark.parametrize("restraint", restraints)
 def test_minimise(system, restraint):
