@@ -83,6 +83,10 @@ def test_steering(system):
     assert not process.isError()
 
 
+@pytest.mark.skipif(
+    socket.gethostname() != "porridge",
+    reason="Local test requiring PLUMED patched GROMACS.",
+)
 def test_funnel_metadynamics():
     # Load the protein-ligand system.
     system = BSS.IO.readMolecules(
