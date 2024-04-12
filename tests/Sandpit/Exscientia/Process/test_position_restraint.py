@@ -186,11 +186,17 @@ def test_amber(protocol, system, ref_system, tmp_path):
     assert f"{proc._work_dir}/{proc.getArgs()['-ref']}" == proc._ref_file
 
 
+@pytest.mark.skipif(
+    has_gromacs is False or has_openff is False,
+    reason="Requires GROMACS and openff to be installed",
+)
 @pytest.mark.parametrize(
     "restraint",
     ["backbone", "heavy", "all", "none"],
 )
-def test_gromacs(alchemical_ion_system, restraint, alchemical_ion_system_psores):
+def test_gromacs_alchemical_ion(
+    alchemical_ion_system, restraint, alchemical_ion_system_psores
+):
     protocol = BSS.Protocol.FreeEnergy(restraint=restraint)
     process = BSS.Process.Gromacs(
         alchemical_ion_system,
@@ -229,6 +235,10 @@ def test_gromacs(alchemical_ion_system, restraint, alchemical_ion_system_psores)
     assert gro[2].split() == ["1ACE", "HH31", "1", "0.000", "0.000", "0.000"]
 
 
+@pytest.mark.skipif(
+    has_amber is False or has_openff is False,
+    reason="Requires AMBER and openff to be installed",
+)
 @pytest.mark.parametrize(
     ("restraint", "target"),
     [
@@ -238,7 +248,9 @@ def test_gromacs(alchemical_ion_system, restraint, alchemical_ion_system_psores)
         ("none", "@2148 | @8"),
     ],
 )
-def test_amber(alchemical_ion_system, restraint, target, alchemical_ion_system_psores):
+def test_amber_alchemical_ion(
+    alchemical_ion_system, restraint, target, alchemical_ion_system_psores
+):
     # Create an equilibration protocol with backbone restraints.
     protocol = BSS.Protocol.Equilibration(restraint=restraint)
 

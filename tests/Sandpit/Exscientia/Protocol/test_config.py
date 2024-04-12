@@ -312,6 +312,9 @@ class TestGromacsABFE:
             assert "couple-lambda1 = none" in mdp_text
             assert "couple-intramol = yes" in mdp_text
 
+    @pytest.mark.skipif(
+        has_gromacs is False, reason="Requires GROMACS to be installed."
+    )
     def test_decouple_perturbable(self, system):
         m, protocol = system
         mol = decouple(m)
