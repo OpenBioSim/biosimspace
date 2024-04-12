@@ -235,15 +235,15 @@ class Amber(_process.Process):
         self._is_header = False
 
         # The names of the input files.
-        self._rst_file = "%s/%s.rst7" % (self._work_dir, name)
-        self._top_file = "%s/%s.prm7" % (self._work_dir, name)
-        self._ref_file = "%s/%s_ref.rst7" % (self._work_dir, name)
+        self._rst_file = _os.path.join(str(self._work_dir), f"{name}.rst7")
+        self._top_file = _os.path.join(str(self._work_dir), f"{name}.prm7")
+        self._ref_file = _os.path.join(str(self._work_dir), f"{name}_ref.rst7")
 
         # The name of the trajectory file.
-        self._traj_file = "%s/%s.nc" % (self._work_dir, name)
+        self._traj_file = _os.path.join(str(self._work_dir), f"{name}.nc")
 
         # Set the path for the AMBER configuration file.
-        self._config_file = "%s/%s.cfg" % (self._work_dir, name)
+        self._config_file = _os.path.join(str(self._work_dir), f"{name}.cfg")
 
         # Create the list of input files.
         self._input_files = [self._config_file, self._rst_file, self._top_file]
@@ -400,7 +400,9 @@ class Amber(_process.Process):
             if auxiliary_files is not None:
                 for file in auxiliary_files:
                     file_name = _os.path.basename(file)
-                    _shutil.copyfile(file, self._work_dir + f"/{file_name}")
+                    _shutil.copyfile(
+                        file, _os.path.join(str(self._work_dir), file_name)
+                    )
             self._input_files.append(self._plumed_config_file)
 
             # Expose the PLUMED specific member functions.
@@ -534,7 +536,7 @@ class Amber(_process.Process):
             _warnings.warn("The process exited with an error!")
 
         # Create the name of the restart CRD file.
-        restart = "%s/%s.crd" % (self._work_dir, self._name)
+        restart = _os.path.join(str(self._work_dir), "%s.crd" % self._name)
 
         # Check that the file exists.
         if _os.path.isfile(restart):

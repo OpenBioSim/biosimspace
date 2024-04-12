@@ -316,9 +316,6 @@ class AmberProtein(_protocol.Protocol):
         else:
             is_smiles = False
 
-        # Create the file prefix.
-        prefix = work_dir + "/"
-
         if not is_smiles:
             # Create a copy of the molecule.
             new_mol = molecule.copy()
@@ -352,7 +349,10 @@ class AmberProtein(_protocol.Protocol):
                 )
 
         # Prepend the working directory to the output file names.
-        output = [prefix + output[0], prefix + output[1]]
+        output = [
+            _os.path.join(str(work_dir), output[0]),
+            _os.path.join(str(work_dir), output[1]),
+        ]
 
         try:
             # Load the parameterised molecule. (This could be a system of molecules.)
@@ -443,9 +443,6 @@ class AmberProtein(_protocol.Protocol):
         else:
             _molecule = molecule
 
-        # Create the file prefix.
-        prefix = work_dir + "/"
-
         # Write the system to a PDB file.
         try:
             # LEaP expects residue numbering to be ascending and continuous.
@@ -454,7 +451,7 @@ class AmberProtein(_protocol.Protocol):
             )[0]
             renumbered_molecule = _Molecule(renumbered_molecule)
             _IO.saveMolecules(
-                prefix + "leap",
+                _os.path.join(str(work_dir), "leap"),
                 renumbered_molecule,
                 "pdb",
                 property_map=self._property_map,
@@ -500,7 +497,7 @@ class AmberProtein(_protocol.Protocol):
                 pruned_bond_records.append(bond)
 
         # Write the LEaP input file.
-        with open(prefix + "leap.txt", "w") as file:
+        with open(_os.path.join(str(work_dir), "leap.txt"), "w") as file:
             file.write("source %s\n" % ff)
             if self._water_model is not None:
                 if self._water_model in ["tip4p", "tip5p"]:
@@ -528,14 +525,14 @@ class AmberProtein(_protocol.Protocol):
         # Generate the tLEaP command.
         command = "%s -f leap.txt" % _tleap_exe
 
-        with open(prefix + "README.txt", "w") as file:
+        with open(_os.path.join(str(work_dir), "README.txt"), "w") as file:
             # Write the command to file.
             file.write("# tLEaP was run with the following command:\n")
             file.write("%s\n" % command)
 
         # Create files for stdout/stderr.
-        stdout = open(prefix + "leap.out", "w")
-        stderr = open(prefix + "leap.err", "w")
+        stdout = open(_os.path.join(str(work_dir), "leap.out"), "w")
+        stderr = open(_os.path.join(str(work_dir), "leap.err"), "w")
 
         # Run tLEaP as a subprocess.
         proc = _subprocess.run(
@@ -550,12 +547,12 @@ class AmberProtein(_protocol.Protocol):
 
         # tLEaP doesn't return sensible error codes, so we need to check that
         # the expected output was generated.
-        if _os.path.isfile(prefix + "leap.top") and _os.path.isfile(
-            prefix + "leap.crd"
-        ):
+        if _os.path.isfile(
+            _os.path.join(str(work_dir), "leap.top")
+        ) and _os.path.isfile(_os.path.join(str(work_dir), "leap.crd")):
             # Check the output of tLEaP for missing atoms.
             if self._ensure_compatible:
-                if _has_missing_atoms(prefix + "leap.out"):
+                if _has_missing_atoms(_os.path.join(str(work_dir), "leap.top")):
                     raise _ParameterisationError(
                         "tLEaP added missing atoms. The topology is now "
                         "inconsistent with the original molecule. Please "
@@ -604,13 +601,13 @@ class AmberProtein(_protocol.Protocol):
         else:
             _molecule = molecule
 
-        # Create the file prefix.
-        prefix = work_dir + "/"
-
         # Write the system to a PDB file.
         try:
             _IO.saveMolecules(
-                prefix + "leap", _molecule, "pdb", property_map=self._property_map
+                _os.path.join(str(work_dir), "input"),
+                _molecule,
+                "pdb",
+                property_map=self._property_map,
             )
         except Exception as e:
             msg = "Failed to write system to 'PDB' format."
@@ -626,14 +623,14 @@ class AmberProtein(_protocol.Protocol):
             % (_gmx_exe, supported_ff[self._forcefield])
         )
 
-        with open(prefix + "README.txt", "w") as file:
+        with open(_os.path.join(str(work_dir), "README.txt"), "w") as file:
             # Write the command to file.
             file.write("# pdb2gmx was run with the following command:\n")
             file.write("%s\n" % command)
 
         # Create files for stdout/stderr.
-        stdout = open(prefix + "pdb2gmx.out", "w")
-        stderr = open(prefix + "pdb2gmx.err", "w")
+        stdout = open(_os.path.join(str(work_dir), "pdb2gmx.out"), "w")
+        stderr = open(_os.path.join(str(work_dir), "pdb2gmx.err"), "w")
 
         # Run pdb2gmx as a subprocess.
         proc = _subprocess.run(
@@ -647,9 +644,9 @@ class AmberProtein(_protocol.Protocol):
         stderr.close()
 
         # Check for the expected output.
-        if _os.path.isfile(prefix + "output.gro") and _os.path.isfile(
-            prefix + "output.top"
-        ):
+        if _os.path.isfile(
+            _os.path.join(str(work_dir), "output.gro")
+        ) and _os.path.isfile(_os.path.join(str(work_dir), "output.top")):
             return ["output.gro", "output.top"]
         else:
             raise _ParameterisationError("pdb2gmx failed!")
@@ -1010,9 +1007,6 @@ class GAFF(_protocol.Protocol):
         if work_dir is None:
             work_dir = _os.getcwd()
 
-        # Create the file prefix.
-        prefix = work_dir + "/"
-
         # Convert SMILES to a molecule.
         if isinstance(molecule, str):
             is_smiles = True
@@ -1092,7 +1086,10 @@ class GAFF(_protocol.Protocol):
         # Write the system to a PDB file.
         try:
             _IO.saveMolecules(
-                prefix + "antechamber", new_mol, "pdb", property_map=self._property_map
+                _os.path.join(str(work_dir), "antechamber"),
+                new_mol,
+                "pdb",
+                property_map=self._property_map,
             )
         except Exception as e:
             msg = "Failed to write system to 'PDB' format."
@@ -1108,14 +1105,14 @@ class GAFF(_protocol.Protocol):
             + "-o antechamber.mol2 -fo mol2 -c %s -s 2 -nc %d"
         ) % (_antechamber_exe, self._version, self._charge_method.lower(), charge)
 
-        with open(prefix + "README.txt", "w") as file:
+        with open(_os.path.join(str(work_dir), "README.txt"), "w") as file:
             # Write the command to file.
             file.write("# Antechamber was run with the following command:\n")
             file.write("%s\n" % command)
 
         # Create files for stdout/stderr.
-        stdout = open(prefix + "antechamber.out", "w")
-        stderr = open(prefix + "antechamber.err", "w")
+        stdout = open(_os.path.join(str(work_dir), "antechamber.out"), "w")
+        stderr = open(_os.path.join(str(work_dir), "antechamber.err"), "w")
 
         # Run Antechamber as a subprocess.
         proc = _subprocess.run(
@@ -1130,20 +1127,20 @@ class GAFF(_protocol.Protocol):
 
         # Antechamber doesn't return sensible error codes, so we need to check that
         # the expected output was generated.
-        if _os.path.isfile(prefix + "antechamber.mol2"):
+        if _os.path.isfile(_os.path.join(str(work_dir), "antechamber.mol2")):
             # Run parmchk to check for missing parameters.
             command = (
                 "%s -s %d -i antechamber.mol2 -f mol2 " + "-o antechamber.frcmod"
             ) % (_parmchk_exe, self._version)
 
-            with open(prefix + "README.txt", "a") as file:
+            with open(_os.path.join(str(work_dir), "README.txt"), "a") as file:
                 # Write the command to file.
                 file.write("\n# ParmChk was run with the following command:\n")
                 file.write("%s\n" % command)
 
             # Create files for stdout/stderr.
-            stdout = open(prefix + "parmchk.out", "w")
-            stderr = open(prefix + "parmchk.err", "w")
+            stdout = open(_os.path.join(str(work_dir), "parmchk.out"), "w")
+            stderr = open(_os.path.join(str(work_dir), "parmchk.err"), "w")
 
             # Run parmchk as a subprocess.
             proc = _subprocess.run(
@@ -1157,7 +1154,7 @@ class GAFF(_protocol.Protocol):
             stderr.close()
 
             # The frcmod file was created.
-            if _os.path.isfile(prefix + "antechamber.frcmod"):
+            if _os.path.isfile(_os.path.join(str(work_dir), "antechamber.frcmod")):
                 # Now call tLEaP using the partially parameterised molecule and the frcmod file.
                 # tLEap will run in the same working directory, using the Mol2 file generated by
                 # Antechamber.
@@ -1169,7 +1166,7 @@ class GAFF(_protocol.Protocol):
                     ff = _find_force_field("gaff2")
 
                 # Write the LEaP input file.
-                with open(prefix + "leap.txt", "w") as file:
+                with open(_os.path.join(str(work_dir), "leap.txt"), "w") as file:
                     file.write("source %s\n" % ff)
                     file.write("mol = loadMol2 antechamber.mol2\n")
                     file.write("loadAmberParams antechamber.frcmod\n")
@@ -1179,14 +1176,14 @@ class GAFF(_protocol.Protocol):
                 # Generate the tLEaP command.
                 command = "%s -f leap.txt" % _tleap_exe
 
-                with open(prefix + "README.txt", "a") as file:
+                with open(_os.path.join(str(work_dir), "README.txt"), "a") as file:
                     # Write the command to file.
                     file.write("\n# tLEaP was run with the following command:\n")
                     file.write("%s\n" % command)
 
                 # Create files for stdout/stderr.
-                stdout = open(prefix + "leap.out", "w")
-                stderr = open(prefix + "leap.err", "w")
+                stdout = open(_os.path.join(str(work_dir), "leap.out"), "w")
+                stderr = open(_os.path.join(str(work_dir), "leap.err"), "w")
 
                 # Run tLEaP as a subprocess.
                 proc = _subprocess.run(
@@ -1201,12 +1198,12 @@ class GAFF(_protocol.Protocol):
 
                 # tLEaP doesn't return sensible error codes, so we need to check that
                 # the expected output was generated.
-                if _os.path.isfile(prefix + "leap.top") and _os.path.isfile(
-                    prefix + "leap.crd"
-                ):
+                if _os.path.isfile(
+                    _os.path.join(str(work_dir), "leap.top")
+                ) and _os.path.isfile(_os.path.join(str(work_dir), "leap.crd")):
                     # Check the output of tLEaP for missing atoms.
                     if self._ensure_compatible:
-                        if _has_missing_atoms(prefix + "leap.out"):
+                        if _has_missing_atoms(_os.path.join(str(work_dir), "leap.out")):
                             raise _ParameterisationError(
                                 "tLEaP added missing atoms. The topology is now "
                                 "inconsistent with the original molecule. Please "
@@ -1217,7 +1214,10 @@ class GAFF(_protocol.Protocol):
                     # Load the parameterised molecule. (This could be a system of molecules.)
                     try:
                         par_mol = _IO.readMolecules(
-                            [prefix + "leap.top", prefix + "leap.crd"]
+                            [
+                                _os.path.join(str(work_dir), "leap.top"),
+                                _os.path.join(str(work_dir), "leap.crd"),
+                            ],
                         )
                         # Extract single molecules.
                         if par_mol.nMolecules() == 1:

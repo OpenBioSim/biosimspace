@@ -208,18 +208,18 @@ class Gromacs(_process.Process):
         self._energy_file = "%s/%s.edr" % (self._work_dir, name)
 
         # The names of the input files.
-        self._gro_file = "%s/%s.gro" % (self._work_dir, name)
-        self._top_file = "%s/%s.top" % (self._work_dir, name)
-        self._ref_file = "%s/%s_ref.gro" % (self._work_dir, name)
+        self._gro_file = _os.path.join(str(self._work_dir), f"{name}.gro")
+        self._top_file = _os.path.join(str(self._work_dir), f"{name}.top")
+        self._ref_file = _os.path.join(str(self._work_dir), f"{name}_ref.gro")
 
         # The name of the trajectory file.
-        self._traj_file = "%s/%s.trr" % (self._work_dir, name)
+        self._traj_file = _os.path.join(str(self._work_dir), f"{name}.trr")
 
         # The name of the output coordinate file.
-        self._crd_file = "%s/%s_out.gro" % (self._work_dir, name)
+        self._crd_file = _os.path.join(str(self._work_dir), f"{name}_out.gro")
 
         # Set the path for the GROMACS configuration file.
-        self._config_file = "%s/%s.mdp" % (self._work_dir, name)
+        self._config_file = _os.path.join(str(self._work_dir), f"{name}.mdp")
 
         # Create the list of input files.
         self._input_files = [self._config_file, self._gro_file, self._top_file]
@@ -314,7 +314,7 @@ class Gromacs(_process.Process):
         )
 
         # Create the binary input file name.
-        self._tpr_file = "%s/%s.tpr" % (self._work_dir, self._name)
+        self._tpr_file = _os.path.join(str(self._work_dir), f"{self._name}.tpr")
         self._input_files.append(self._tpr_file)
 
         # Generate the GROMACS configuration file.
@@ -397,7 +397,9 @@ class Gromacs(_process.Process):
             if auxiliary_files is not None:
                 for file in auxiliary_files:
                     file_name = _os.path.basename(file)
-                    _shutil.copyfile(file, self._work_dir + f"/{file_name}")
+                    _shutil.copyfile(
+                        file, _os.path.join(str(self._work_dir), file_name)
+                    )
             self._input_files.append(self._plumed_config_file)
 
             # Expose the PLUMED specific member functions.
@@ -423,7 +425,9 @@ class Gromacs(_process.Process):
             if auxiliary_files is not None:
                 for file in auxiliary_files:
                     file_name = _os.path.basename(file)
-                    _shutil.copyfile(file, self._work_dir + f"/{file_name}")
+                    _shutil.copyfile(
+                        file, _os.path.join(str(self._work_dir), file_name)
+                    )
             self._input_files.append(self._plumed_config_file)
 
             # Expose the PLUMED specific member functions.
@@ -2122,7 +2126,9 @@ class Gromacs(_process.Process):
                     if len(restrained_atoms) > 0:
                         # Create the file names.
                         include_file = "posre_%04d.itp" % num_restraint
-                        restraint_file = "%s/%s" % (self._work_dir, include_file)
+                        restraint_file = _os.path.join(
+                            str(self._work_dir), include_file
+                        )
 
                         with open(restraint_file, "w") as file:
                             # Write the header.
@@ -2206,7 +2212,9 @@ class Gromacs(_process.Process):
                     if len(atom_idxs) > 0:
                         # Create the file names.
                         include_file = "posre_%04d.itp" % num_restraint
-                        restraint_file = "%s/%s" % (self._work_dir, include_file)
+                        restraint_file = _os.path.join(
+                            str(self._work_dir), include_file
+                        )
 
                         with open(restraint_file, "w") as file:
                             # Write the header.
@@ -2735,11 +2743,12 @@ class Gromacs(_process.Process):
                 return old_system
 
         except:
+            raise
             _warnings.warn(
                 "Failed to extract trajectory frame with trjconv. "
                 "Try running 'getSystem' again."
             )
-            frame = "%s/frame.gro" % self._work_dir
+            frame = _os.path.join(str(self._work_dir), "frame.gro")
             if _os.path.isfile(frame):
                 _os.remove(frame)
             return None
@@ -2759,7 +2768,7 @@ class Gromacs(_process.Process):
         # Check that the current trajectory file is found.
         if not _os.path.isfile(self._traj_file):
             # If not, first check for any trr extension.
-            traj_file = _glob.glob("%s/*.trr" % self._work_dir)
+            traj_file = _glob.glob(_os.path.join(str(self._work_dir), "*.trr"))
 
             # Store the number of trr files.
             num_trr = len(traj_file)
@@ -2769,7 +2778,7 @@ class Gromacs(_process.Process):
                 return traj_file[0]
             else:
                 # Now check for any xtc files.
-                traj_file = _glob.glob("%s/*.xtc" % self._work_dir)
+                traj_file = _glob.glob(_os.path.join(str(self._work_dir), "*.xtc"))
 
                 if len(traj_file) == 1:
                     return traj_file[0]

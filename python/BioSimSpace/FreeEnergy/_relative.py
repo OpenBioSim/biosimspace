@@ -406,7 +406,7 @@ class Relative:
                     )
 
             # Write to the zip file.
-            with _zipfile.ZipFile(cwd + f"/{zipname}", "w") as zip:
+            with _zipfile.Zipfile(_os.join(cwd, zipname), "w") as zip:
                 for file in files:
                     zip.write(file)
 
@@ -2074,15 +2074,15 @@ class Relative:
                     process._system = first_process._system.copy()
                     process._protocol = self._protocol
                     process._work_dir = new_dir
-                    process._std_out_file = new_dir + "/somd.out"
-                    process._std_err_file = new_dir + "/somd.err"
-                    process._rst_file = new_dir + "/somd.rst7"
-                    process._top_file = new_dir + "/somd.prm7"
-                    process._traj_file = new_dir + "/traj000000001.dcd"
-                    process._restart_file = new_dir + "/latest.rst"
-                    process._config_file = new_dir + "/somd.cfg"
-                    process._pert_file = new_dir + "/somd.pert"
-                    process._gradients_file = new_dir + "/gradients.dat"
+                    process._std_out_file = _os.path.join(new_dir, "somd.out")
+                    process._std_err_file = _os.path.join(new_dir, "somd.err")
+                    process._rst_file = _os.path.join(new_dir, "somd.rst7")
+                    process._top_file = _os.path.join(new_dir, "somd.prm7")
+                    process._traj_file = _os.path.join(new_dir, "traj000000001.dcd")
+                    process._restart_file = _os.path.join(new_dir, "latest.rst")
+                    process._config_file = _os.path.join(new_dir, "somd.cfg")
+                    process._pert_file = _os.path.join(new_dir, "somd.pert")
+                    process._gradients_file = _os.path.join(new_dir, "gradients.dat")
                     process._input_files = [
                         process._config_file,
                         process._rst_file,
@@ -2106,10 +2106,10 @@ class Relative:
                     for line in new_config:
                         f.write(line)
 
-                mdp = new_dir + "/gromacs.mdp"
-                gro = new_dir + "/gromacs.gro"
-                top = new_dir + "/gromacs.top"
-                tpr = new_dir + "/gromacs.tpr"
+                mdp = _os.path.join(new_dir, "gromacs.mdp")
+                gro = _os.path.join(new_dir, "gromacs.gro")
+                top = _os.path.join(new_dir, "gromacs.top")
+                tpr = _os.path.join(new_dir, "gromacs.tpr")
 
                 # Use grompp to generate the portable binary run input file.
                 _Process.Gromacs._generate_binary_run_file(
@@ -2129,14 +2129,14 @@ class Relative:
                     process._system = first_process._system.copy()
                     process._protocol = self._protocol
                     process._work_dir = new_dir
-                    process._std_out_file = new_dir + "/gromacs.out"
-                    process._std_err_file = new_dir + "/gromacs.err"
-                    process._gro_file = new_dir + "/gromacs.gro"
-                    process._top_file = new_dir + "/gromacs.top"
-                    process._ref_file = new_dir + "/gromacs_ref.gro"
-                    process._traj_file = new_dir + "/gromacs.trr"
-                    process._config_file = new_dir + "/gromacs.mdp"
-                    process._tpr_file = new_dir + "/gromacs.tpr"
+                    process._std_out_file = _os.path.join(new_dir, "gromacs.out")
+                    process._std_err_file = _os.path.join(new_dir, "gromacs.err")
+                    process._gro_file = _os.path.join(new_dir, "gromacs.gro")
+                    process._top_file = _os.path.join(new_dir, "gromacs.top")
+                    process._ref_file = _os.path.join(new_dir, "gromacs_ref.gro")
+                    process._traj_file = _os.path.join(new_dir, "gromacs.trr")
+                    process._config_file = _os.path.join(new_dir, "gromacs.mdp")
+                    process._tpr_file = _os.path.join(new_dir, "gromacs.tpr")
                     process._input_files = [
                         process._config_file,
                         process._gro_file,
@@ -2165,14 +2165,14 @@ class Relative:
                     process._system = first_process._system.copy()
                     process._protocol = self._protocol
                     process._work_dir = new_dir
-                    process._std_out_file = new_dir + "/amber.out"
-                    process._std_err_file = new_dir + "/amber.err"
-                    process._rst_file = new_dir + "/amber.rst7"
-                    process._top_file = new_dir + "/amber.prm7"
-                    process._ref_file = new_dir + "/amber_ref.rst7"
-                    process._traj_file = new_dir + "/amber.nc"
-                    process._config_file = new_dir + "/amber.cfg"
-                    process._nrg_file = new_dir + "/amber.nrg"
+                    process._std_out_file = _os.path.join(new_dir, "amber.out")
+                    process._std_err_file = _os.path.join(new_dir, "amber.err")
+                    process._rst_file = _os.path.join(new_dir, "amber.rst7")
+                    process._top_file = _os.path.join(new_dir, "amber.prm7")
+                    process._ref_file = _os.path.join(new_dir, "amber_ref.rst7")
+                    process._traj_file = _os.path.join(new_dir, "amber.nc")
+                    process._config_file = _os.path.join(new_dir, "amber.cfg")
+                    process._nrg_file = _os.path.join(new_dir, "amber.nrg")
                     process._input_files = [
                         process._config_file,
                         process._rst_file,

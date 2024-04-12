@@ -174,7 +174,7 @@ class OpenMM(_process.Process):
         self._stdout_dict = _process._MultiDict()
 
         # Store the name of the OpenMM log file.
-        self._log_file = "%s/%s.log" % (self._work_dir, name)
+        self._log_file = _os.path.join(str(self._work_dir), f"{name}.log")
 
         # Initialise the log file separator.
         self._record_separator = None
@@ -184,16 +184,16 @@ class OpenMM(_process.Process):
 
         # The names of the input files. We choose to use AMBER files since they
         # are self-contained, but could equally work with GROMACS files.
-        self._rst_file = "%s/%s.rst7" % (self._work_dir, name)
-        self._top_file = "%s/%s.prm7" % (self._work_dir, name)
-        self._ref_file = "%s/%s_ref.rst7" % (self._work_dir, name)
+        self._rst_file = _os.path.join(str(self._work_dir), f"{name}.rst7")
+        self._top_file = _os.path.join(str(self._work_dir), f"{name}.prm7")
+        self._ref_file = _os.path.join(str(self._work_dir), f"{name}_ref.rst7")
 
         # The name of the trajectory file.
-        self._traj_file = "%s/%s.dcd" % (self._work_dir, name)
+        self._traj_file = _os.path.join(str(self._work_dir), f"{name}.dcd")
 
         # Set the path for the OpenMM Python script. (We use the concept of a
         # config file for consistency with other Process classes.)
-        self._config_file = "%s/%s_script.py" % (self._work_dir, name)
+        self._config_file = _os.path.join(str(self._work_dir), f"{name}_script.py")
 
         # Create the list of input files.
         self._input_files = [self._config_file, self._rst_file, self._top_file]
@@ -772,7 +772,7 @@ class OpenMM(_process.Process):
             )
 
             # Copy the file into the working directory.
-            _shutil.copyfile(path, self._work_dir + f"/{aux_file}")
+            _shutil.copyfile(path, _os.path.join(str(self._work_dir), aux_file))
 
             # The following OpenMM native implementation of the funnel metadynamics protocol
             # is adapted from funnel_maker.py by Dominykas Lukauskis.
@@ -970,9 +970,13 @@ class OpenMM(_process.Process):
 
             # Get the number of steps to date.
             step = 0
-            if _os.path.isfile(f"{self._work_dir}/{self._name}.xml"):
-                if _os.path.isfile(f"{self._work_dir}/{self._name}.log"):
-                    with open(f"{self._work_dir}/{self._name}.log", "r") as f:
+            if _os.path.isfile(_os.path.join(str(self._work_dir), f"{self._name}.xml")):
+                if _os.path.isfile(
+                    _os.path.join(str(self._work_dir), f"{self._name}.log")
+                ):
+                    with open(
+                        _os.path.join(str(self._work_dir), f"{self._name}.log"), "r"
+                    ) as f:
                         lines = f.readlines()
                         last_line = lines[-1].split()
                         try:
@@ -2031,8 +2035,10 @@ class OpenMM(_process.Process):
         self.addToConfig("else:")
         self.addToConfig("    is_restart = False")
 
-        if _os.path.isfile(f"{self._work_dir}/{self._name}.xml"):
-            with open(f"{self._work_dir}/{self._name}.log", "r") as f:
+        if _os.path.isfile(_os.path.join(str(self._work_dir), f"{self._name}.xml")):
+            with open(
+                _os.path.join(str(self._work_dir), f"{self._name}.log"), "r"
+            ) as f:
                 lines = f.readlines()
                 last_line = lines[-1].split()
                 step = int(last_line[0])

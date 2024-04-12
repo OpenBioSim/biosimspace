@@ -227,23 +227,23 @@ class Somd(_process.Process):
                 raise IOError("SOMD executable doesn't exist: '%s'" % exe)
 
         # The names of the input files.
-        self._rst_file = "%s/%s.rst7" % (self._work_dir, name)
-        self._top_file = "%s/%s.prm7" % (self._work_dir, name)
+        self._rst_file = _os.path.join(str(self._work_dir), f"{name}.rst7")
+        self._top_file = _os.path.join(str(self._work_dir), f"{name}.prm7")
 
         # The name of the trajectory file.
-        self._traj_file = "%s/traj000000001.dcd" % self._work_dir
+        self._traj_file = _os.path.join(str(self._work_dir), "traj000000001.dcd")
 
         # The name of the restart file.
-        self._restart_file = "%s/latest.pdb" % self._work_dir
+        self._restart_file = _os.path.join(str(self._work_dir), "latest.pdb")
 
         # Set the path for the SOMD configuration file.
-        self._config_file = "%s/%s.cfg" % (self._work_dir, name)
+        self._config_file = _os.path.join(str(self._work_dir), f"{name}.cfg")
 
         # Set the path for the perturbation file.
-        self._pert_file = "%s/%s.pert" % (self._work_dir, name)
+        self._pert_file = _os.path.join(str(self._work_dir), f"{name}.pert")
 
         # Set the path for the gradient file and create the gradient list.
-        self._gradient_file = "%s/gradients.dat" % self._work_dir
+        self._gradient_file = _os.path.join(str(self._work_dir), "gradients.dat")
         self._gradients = []
 
         # Create the list of input files.
@@ -871,26 +871,26 @@ class Somd(_process.Process):
 
         # Delete any restart and trajectory files in the working directory.
 
-        file = "%s/sim_restart.s3" % self._work_dir
+        file = _os.path.join(str(self._work_dir), "sim_restart.s3")
         if _os.path.isfile(file):
             _os.remove(file)
 
-        file = "%s/SYSTEM.s3" % self._work_dir
+        file = _os.path.join(str(self._work_dir), "SYSTEM.s3")
         if _os.path.isfile(file):
             _os.remove(file)
 
-        files = _glob.glob("%s/traj*.dcd" % self._work_dir)
+        files = _glob.glob(_os.path.join(str(self._work_dir), "traj*.dcd"))
         for file in files:
             if _os.path.isfile(file):
                 _os.remove(file)
 
         # Additional files for free energy simulations.
         if isinstance(self._protocol, _Protocol.FreeEnergy):
-            file = "%s/gradients.dat" % self._work_dir
+            file = _os.path.join(str(self._work_dir), "gradients.dat")
             if _os.path.isfile(file):
                 _os.remove(file)
 
-            file = "%s/simfile.dat" % self._work_dir
+            file = _os.path.join(str(self._work_dir), "simfile.dat")
             if _os.path.isfile(file):
                 _os.remove(file)
 

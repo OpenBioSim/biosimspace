@@ -214,9 +214,6 @@ class OpenForceField(_protocol.Protocol):
         if work_dir is None:
             work_dir = _os.getcwd()
 
-        # Create the file prefix.
-        prefix = work_dir + "/"
-
         # Flag whether the molecule is a SMILES string.
         if isinstance(molecule, str):
             is_smiles = True
@@ -256,7 +253,7 @@ class OpenForceField(_protocol.Protocol):
                 # Write the molecule to SDF format.
                 try:
                     _IO.saveMolecules(
-                        prefix + "molecule",
+                        _os.path.join(str(work_dir), "molecule"),
                         molecule,
                         "sdf",
                         property_map=self._property_map,
@@ -275,7 +272,7 @@ class OpenForceField(_protocol.Protocol):
                 # Write the molecule to a PDB file.
                 try:
                     _IO.saveMolecules(
-                        prefix + "molecule",
+                        _os.path.join(str(work_dir), "molecule"),
                         molecule,
                         "pdb",
                         property_map=self._property_map,
@@ -291,7 +288,7 @@ class OpenForceField(_protocol.Protocol):
                 # Create an RDKit molecule from the PDB file.
                 try:
                     rdmol = _Chem.MolFromPDBFile(
-                        prefix + "molecule.pdb", removeHs=False
+                        _os.path.join(str(work_dir), "molecule.pdb"), removeHs=False
                     )
                 except Exception as e:
                     msg = "RDKit was unable to read the molecular PDB file!"
@@ -303,7 +300,9 @@ class OpenForceField(_protocol.Protocol):
 
                 # Use RDKit to write back to SDF format.
                 try:
-                    writer = _Chem.SDWriter(prefix + "molecule.sdf")
+                    writer = _Chem.SDWriter(
+                        _os.path.join(str(work_dir), "molecule.sdf")
+                    )
                     writer.write(rdmol)
                     writer.close()
                 except Exception as e:
@@ -317,7 +316,9 @@ class OpenForceField(_protocol.Protocol):
             # Create the Open Forcefield Molecule from the intermediate SDF file,
             # as recommended by @j-wags and @mattwthompson.
             try:
-                off_molecule = _OpenFFMolecule.from_file(prefix + "molecule.sdf")
+                off_molecule = _OpenFFMolecule.from_file(
+                    _os.path.join(str(work_dir), "molecule.sdf")
+                )
             except Exception as e:
                 msg = "Unable to create OpenFF Molecule!"
                 if _isVerbose():
@@ -383,8 +384,8 @@ class OpenForceField(_protocol.Protocol):
 
         # Export AMBER format files.
         try:
-            interchange.to_prmtop(prefix + "interchange.prm7")
-            interchange.to_inpcrd(prefix + "interchange.rst7")
+            interchange.to_prmtop(_os.path.join(str(work_dir), "interchange.prmtop"))
+            interchange.to_inpcrd(_os.path.join(str(work_dir), "interchange.inpcrd"))
         except Exception as e:
             msg = "Unable to write Interchange object to AMBER format!"
             if _isVerbose():
@@ -396,7 +397,10 @@ class OpenForceField(_protocol.Protocol):
         # Load the parameterised molecule. (This could be a system of molecules.)
         try:
             par_mol = _IO.readMolecules(
-                [prefix + "interchange.prm7", prefix + "interchange.rst7"]
+                [
+                    _os.path.join(str(work_dir), "interchange.prmtop"),
+                    _os.path.join(str(work_dir), "interchange.inpcrd"),
+                ],
             )
             # Extract single molecules.
             if par_mol.nMolecules() == 1:
