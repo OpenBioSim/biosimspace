@@ -110,13 +110,14 @@ class _PositionRestraintMixin:
         )
 
     def getRestraint(self):
-        """Return the type of restraint..
+        """
+        Return the type of restraint.
 
         Returns
         -------
 
         restraint : str, [int]
-            The type of restraint.
+            The type of restraint, either a keyword or a list of atom indices.
         """
         return self._restraint
 
