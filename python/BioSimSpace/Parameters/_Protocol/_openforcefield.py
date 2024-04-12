@@ -384,8 +384,8 @@ class OpenForceField(_protocol.Protocol):
 
         # Export AMBER format files.
         try:
-            interchange.to_prmtop(_os.path.join(str(work_dir), "interchange.prmtop"))
-            interchange.to_inpcrd(_os.path.join(str(work_dir), "interchange.inpcrd"))
+            interchange.to_prmtop(_os.path.join(str(work_dir), "interchange.prm7"))
+            interchange.to_inpcrd(_os.path.join(str(work_dir), "interchange.rst7"))
         except Exception as e:
             msg = "Unable to write Interchange object to AMBER format!"
             if _isVerbose():
@@ -398,8 +398,8 @@ class OpenForceField(_protocol.Protocol):
         try:
             par_mol = _IO.readMolecules(
                 [
-                    _os.path.join(str(work_dir), "interchange.prmtop"),
-                    _os.path.join(str(work_dir), "interchange.inpcrd"),
+                    _os.path.join(str(work_dir), "interchange.prm7"),
+                    _os.path.join(str(work_dir), "interchange.rst7"),
                 ],
             )
             # Extract single molecules.
