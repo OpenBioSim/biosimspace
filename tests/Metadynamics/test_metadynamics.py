@@ -85,7 +85,7 @@ def test_steering(system):
 
 @pytest.mark.skipif(
     socket.gethostname() != "porridge",
-    reason="Local test requiring PLUMED patched GROMACS.",
+    reason="Local test requiring PLUMED.",
 )
 def test_funnel_metadynamics():
     # Load the protein-ligand system.
