@@ -13,7 +13,7 @@ from tests.conftest import url, has_amber
 restraints = BSS.Protocol._position_restraint_mixin._PositionRestraintMixin.restraints()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def rna_system():
     """An RNA system for re-use."""
     return BSS.IO.readMolecules(
@@ -21,7 +21,7 @@ def rna_system():
     )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def large_protein_system():
     """A large protein system for re-use."""
     return BSS.IO.readMolecules(
