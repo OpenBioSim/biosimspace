@@ -72,12 +72,14 @@ class OpenMM(_process.Process):
         self,
         system,
         protocol,
+        reference_system=None,
         exe=None,
         name="openmm",
         platform="CPU",
         work_dir=None,
         seed=None,
         property_map={},
+        **kwargs,
     ):
         """
         Constructor.
@@ -90,6 +92,11 @@ class OpenMM(_process.Process):
 
         protocol : :class:`Protocol <BioSimSpace.Protocol>`
             The protocol for the OpenMM process.
+
+        reference_system : :class:`System <BioSimSpace._SireWrappers.System>` or None
+            An optional system to use as a source of reference coordinates for position
+            restraints. It is assumed that this system has the same topology as "system".
+            If this is None, then "system" is used as a reference.
 
         exe : str
             The full path to the Python interpreter used to run OpenMM.
@@ -114,12 +121,16 @@ class OpenMM(_process.Process):
             A dictionary that maps system "properties" to their user defined
             values. This allows the user to refer to properties with their
             own naming scheme, e.g. { "charge" : "my-charge" }
+
+        kwargs : dict
+            Additional keyword arguments.
         """
 
         # Call the base class constructor.
         super().__init__(
             system,
             protocol,
+            reference_system=reference_system,
             name=name,
             work_dir=work_dir,
             seed=seed,
@@ -175,6 +186,7 @@ class OpenMM(_process.Process):
         # are self-contained, but could equally work with GROMACS files.
         self._rst_file = "%s/%s.rst7" % (self._work_dir, name)
         self._top_file = "%s/%s.prm7" % (self._work_dir, name)
+        self._ref_file = "%s/%s_ref.rst7" % (self._work_dir, name)
 
         # The name of the trajectory file.
         self._traj_file = "%s/%s.dcd" % (self._work_dir, name)
@@ -185,6 +197,10 @@ class OpenMM(_process.Process):
 
         # Create the list of input files.
         self._input_files = [self._config_file, self._rst_file, self._top_file]
+
+        # Add the reference file if there are position restraints.
+        if self._protocol.getRestraint() is not None:
+            self._input_files.append(self._ref_file)
 
         # Initialise the log file header.
         self._header = None
@@ -232,6 +248,9 @@ class OpenMM(_process.Process):
 
         # Convert the water model topology so that it matches the AMBER naming convention.
         system._set_water_topology("AMBER", property_map=self._property_map)
+        self._reference_system._set_water_topology(
+            "AMBER", property_map=self._property_map
+        )
 
         # Check for perturbable molecules and convert to the chosen end state.
         system = self._checkPerturbable(system)
@@ -248,6 +267,23 @@ class OpenMM(_process.Process):
                 raise IOError(msg) from e
             else:
                 raise IOError(msg) from None
+
+        # Reference coordinate file for position restraints.
+        if self._protocol.getRestraint() is not None:
+            try:
+                file = _os.path.splitext(self._ref_file)[0]
+                _IO.saveMolecules(
+                    file,
+                    self._reference_system,
+                    "rst7",
+                    property_map=self._property_map,
+                )
+            except Exception as e:
+                msg = "Failed to write reference system to 'RST7' format."
+                if _isVerbose():
+                    raise IOError(msg) from e
+                else:
+                    raise IOError(msg) from None
 
         # PRM file (topology).
         try:
@@ -2140,10 +2176,14 @@ class OpenMM(_process.Process):
         if restraint is not None:
             # Search for the atoms to restrain by keyword.
             if isinstance(restraint, str):
-                restrained_atoms = self._system.getRestraintAtoms(restraint)
+                restrained_atoms = self._reference_system.getRestraintAtoms(restraint)
             # Use the user-defined list of indices.
             else:
                 restrained_atoms = restraint
+
+            self.addToConfig(
+                f"ref_prm = parmed.load_file('{self._name}.prm7', '{self._name}_ref.rst7')"
+            )
 
             # Get the force constant in units of kJ_per_mol/nanometer**2
             force_constant = self._protocol.getForceConstant()._sire_unit
@@ -2161,7 +2201,7 @@ class OpenMM(_process.Process):
                 "nonbonded = [f for f in system.getForces() if isinstance(f, NonbondedForce)][0]"
             )
             self.addToConfig("dummy_indices = []")
-            self.addToConfig("positions = prm.positions")
+            self.addToConfig("positions = ref_prm.positions")
             self.addToConfig(f"restrained_atoms = {restrained_atoms}")
             self.addToConfig("for i in restrained_atoms:")
             self.addToConfig("    j = system.addParticle(0)")

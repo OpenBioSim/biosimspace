@@ -76,16 +76,19 @@ class Gromacs(_process.Process):
         self,
         system,
         protocol,
+        reference_system=None,
         exe=None,
         name="gromacs",
         work_dir=None,
         seed=None,
         extra_options={},
         extra_lines=[],
+        extra_args={},
         property_map={},
         ignore_warnings=False,
         show_errors=True,
         checkpoint_file=None,
+        **kwargs,
     ):
         """
         Constructor.
@@ -98,6 +101,11 @@ class Gromacs(_process.Process):
 
         protocol : :class:`Protocol <BioSimSpace.Protocol>`
             The protocol for the GROMACS process.
+
+        reference_system : :class:`System <BioSimSpace._SireWrappers.System>` or None
+            An optional system to use as a source of reference coordinates for position
+            restraints. It is assumed that this system has the same topology as "system".
+            If this is None, then "system" is used as a reference.
 
         exe : str
             The full path to the GROMACS executable.
@@ -118,6 +126,10 @@ class Gromacs(_process.Process):
         extra_lines : [str]
             A list of extra lines to put at the end of the configuration file.
 
+        extra_args : dict
+            A dictionary of extra command-line arguments to pass to the GROMACS
+            executable.
+
         property_map : dict
             A dictionary that maps system "properties" to their user defined
             values. This allows the user to refer to properties with their
@@ -136,17 +148,22 @@ class Gromacs(_process.Process):
            The path to a checkpoint file from a previous run. This can be used
            to continue an existing simulation. Currently we only support the
            use of checkpoint files for Equilibration protocols.
+
+        kwargs : dict
+            Additional keyword arguments.
         """
 
         # Call the base class constructor.
         super().__init__(
             system,
             protocol,
+            reference_system=reference_system,
             name=name,
             work_dir=work_dir,
             seed=seed,
             extra_options=extra_options,
             extra_lines=extra_lines,
+            extra_args=extra_args,
             property_map=property_map,
         )
 
@@ -193,6 +210,7 @@ class Gromacs(_process.Process):
         # The names of the input files.
         self._gro_file = "%s/%s.gro" % (self._work_dir, name)
         self._top_file = "%s/%s.top" % (self._work_dir, name)
+        self._ref_file = "%s/%s_ref.gro" % (self._work_dir, name)
 
         # The name of the trajectory file.
         self._traj_file = "%s/%s.trr" % (self._work_dir, name)
@@ -205,6 +223,10 @@ class Gromacs(_process.Process):
 
         # Create the list of input files.
         self._input_files = [self._config_file, self._gro_file, self._top_file]
+
+        # Add the reference file if there are position restraints.
+        if self._protocol.getRestraint() is not None:
+            self._input_files.append(self._ref_file)
 
         # Initialise the PLUMED interface object.
         self._plumed = None
@@ -223,9 +245,9 @@ class Gromacs(_process.Process):
                     )
 
         # Now set up the working directory for the process.
-        self._setup()
+        self._setup(**kwargs)
 
-    def _setup(self):
+    def _setup(self, **kwargs):
         """Setup the input files and working directory ready for simulation."""
 
         # Create the input files...
@@ -250,17 +272,39 @@ class Gromacs(_process.Process):
                 )
                 raise NotImplementedError(msg)
 
+            # Apply SOMD1 compatibility to the perturbation.
+            if (
+                "somd1_compatibility" in kwargs
+                and kwargs.get("somd1_compatibility") is True
+            ):
+                from ._somd import _somd1_compatibility
+
+                system = _somd1_compatibility(system)
+
         else:
             # Check for perturbable molecules and convert to the chosen end state.
             system = self._checkPerturbable(system)
 
         # Convert the water model topology so that it matches the GROMACS naming convention.
         system._set_water_topology("GROMACS", property_map=self._property_map)
+        self._reference_system._set_water_topology(
+            "GROMACS", property_map=self._property_map
+        )
 
         # GRO87 file.
         file = _os.path.splitext(self._gro_file)[0]
         _IO.saveMolecules(
             file, system, "gro87", match_water=False, property_map=self._property_map
+        )
+
+        # Reference file.
+        file = _os.path.splitext(self._ref_file)[0]
+        _IO.saveMolecules(
+            file,
+            self._reference_system,
+            "gro87",
+            match_water=False,
+            property_map=self._property_map,
         )
 
         # TOP file.
@@ -422,6 +466,10 @@ class Gromacs(_process.Process):
         if isinstance(self._protocol, (_Protocol.Metadynamics, _Protocol.Steering)):
             self.setArg("-plumed", "plumed.dat")
 
+        # Add any extra arguments.
+        for key, value in self._extra_args.items():
+            self.setArg(key, value)
+
     @staticmethod
     def _generate_binary_run_file(
         mdp_file,
@@ -433,6 +481,7 @@ class Gromacs(_process.Process):
         checkpoint_file=None,
         ignore_warnings=False,
         show_errors=True,
+        **kwargs,
     ):
         """
         Use grommp to generate the binary run input file.
@@ -472,6 +521,9 @@ class Gromacs(_process.Process):
         show_errors : bool
             Whether to show warning/error messages when generating the binary
             run file.
+
+        **kwargs : dict
+            Additional keyword arguments.
         """
 
         if not isinstance(mdp_file, str):
@@ -1992,8 +2044,8 @@ class Gromacs(_process.Process):
             property_map["parallel"] = _SireBase.wrap(False)
             property_map["sort"] = _SireBase.wrap(False)
 
-            # Create a copy of the system.
-            system = self._system.copy()
+            # Create a copy of the reference system.
+            system = self._reference_system.copy()
 
             # Convert to the lambda = 0 state if this is a perturbable system and this
             # isn't a free energy protocol.

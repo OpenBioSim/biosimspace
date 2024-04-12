@@ -1888,6 +1888,7 @@ class System(_SireWrapper):
                     string = (
                         "(not water) and (resname "
                         + ",".join(_prot_res)
+                        + ","
                         + ",".join(_nucl_res)
                         + ") and (atomname N,CA,C,O,P,/C5'/,/C3'/,/O3'/,/O5'/)"
                     )
@@ -1943,6 +1944,7 @@ class System(_SireWrapper):
                             string = (
                                 "(not water) and (resname "
                                 + ",".join(_prot_res)
+                                + ","
                                 + ",".join(_nucl_res)
                                 + ") and (atomname N,CA,C,O,P,/C5'/,/C3'/,/O3'/,/O5'/)"
                             )
