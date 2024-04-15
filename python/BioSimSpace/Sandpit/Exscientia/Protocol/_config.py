@@ -1,16 +1,15 @@
+import math as _math
 import warnings as _warnings
 
-import math as _math
 from sire.legacy import Units as _SireUnits
-from ..Units.Time import nanosecond as _nanosecond
 
-from .. import Protocol as _Protocol
-from .. import _gmx_version
-from .._Exceptions import IncompatibleError as _IncompatibleError
+from .. import Protocol as _Protocol, _gmx_version
+from ..Align._alch_ion import _get_protein_com_idx
 from ..Align._squash import _amber_mask_from_indices, _squashed_atom_mapping
 from ..FreeEnergy._restraint import Restraint as _Restraint
 from ..Units.Energy import kj_per_mol as _kj_per_mol
 from ..Units.Length import nanometer as _nanometer
+from .._Exceptions import IncompatibleError as _IncompatibleError
 
 
 class ConfigFactory:
@@ -248,6 +247,13 @@ class ConfigFactory:
             # Restrain the backbone.
             restraint = self.protocol.getRestraint()
 
+            if self.system.getAlchemicalIon():
+                alchem_ion_idx = self.system.getAlchemicalIonIdx()
+                protein_com_idx = _get_protein_com_idx(self.system)
+                alchemical_ion_mask = f"@{alchem_ion_idx} | @{protein_com_idx}"
+            else:
+                alchemical_ion_mask = None
+
             if restraint is not None:
                 # Get the indices of the atoms that are restrained.
                 if type(restraint) is str:
@@ -304,13 +310,22 @@ class ConfigFactory:
                                 "AMBER atom 'restraintmask' exceeds 256 character limit!"
                             )
 
-                    protocol_dict["ntr"] = 1
-                    force_constant = self.protocol.getForceConstant()._sire_unit
-                    force_constant = force_constant.to(
-                        _SireUnits.kcal_per_mol / _SireUnits.angstrom2
-                    )
-                    protocol_dict["restraint_wt"] = force_constant
-                    protocol_dict["restraintmask"] = f'"{restraint_mask}"'
+            else:
+                restraint_mask = None
+
+            if restraint_mask or alchemical_ion_mask:
+                if restraint_mask and alchemical_ion_mask:
+                    restraint_mask = f"{restraint_mask} | {alchemical_ion_mask}"
+                elif alchemical_ion_mask:
+                    restraint_mask = alchemical_ion_mask
+
+                protocol_dict["ntr"] = 1
+                force_constant = self.protocol.getForceConstant()._sire_unit
+                force_constant = force_constant.to(
+                    _SireUnits.kcal_per_mol / _SireUnits.angstrom2
+                )
+                protocol_dict["restraint_wt"] = force_constant
+                protocol_dict["restraintmask"] = f'"{restraint_mask}"'
 
         # Pressure control.
         if not isinstance(self.protocol, _Protocol.Minimisation):
@@ -516,8 +531,11 @@ class ConfigFactory:
 
         # Temperature control.
         if not isinstance(self.protocol, _Protocol.Minimisation):
-            protocol_dict["integrator"] = "md"  # leap-frog dynamics.
-            protocol_dict["tcoupl"] = "v-rescale"
+            if isinstance(self.protocol, _Protocol._FreeEnergyMixin):
+                protocol_dict["integrator"] = "sd"  # langevin dynamics.
+            else:
+                protocol_dict["integrator"] = "md"  # leap-frog dynamics.
+                protocol_dict["tcoupl"] = "v-rescale"
             protocol_dict["tc-grps"] = (
                 "system"  # A single temperature group for the entire system.
             )
@@ -565,34 +583,35 @@ class ConfigFactory:
                 [
                     mol,
                 ] = self.system.getDecoupledMolecules()
-                decouple_dict = mol._sire_object.property("decouple")
-                protocol_dict["couple-moltype"] = mol._sire_object.name().value()
+                if not mol.isPerturbable():
+                    decouple_dict = mol._sire_object.property("decouple")
+                    protocol_dict["couple-moltype"] = mol._sire_object.name().value()
 
-                def tranform(charge, LJ):
-                    if charge and LJ:
-                        return "vdw-q"
-                    elif charge and not LJ:
-                        return "q"
-                    elif not charge and LJ:
-                        return "vdw"
+                    def tranform(charge, LJ):
+                        if charge and LJ:
+                            return "vdw-q"
+                        elif charge and not LJ:
+                            return "q"
+                        elif not charge and LJ:
+                            return "vdw"
+                        else:
+                            return "none"
+
+                    protocol_dict["couple-lambda0"] = tranform(
+                        decouple_dict["charge"][0], decouple_dict["LJ"][0]
+                    )
+                    protocol_dict["couple-lambda1"] = tranform(
+                        decouple_dict["charge"][1], decouple_dict["LJ"][1]
+                    )
+                    if decouple_dict["intramol"].value():
+                        # The intramol is being coupled to the lambda change and thus being annihilated.
+                        protocol_dict["couple-intramol"] = "yes"
                     else:
-                        return "none"
-
-                protocol_dict["couple-lambda0"] = tranform(
-                    decouple_dict["charge"][0], decouple_dict["LJ"][0]
-                )
-                protocol_dict["couple-lambda1"] = tranform(
-                    decouple_dict["charge"][1], decouple_dict["LJ"][1]
-                )
+                        protocol_dict["couple-intramol"] = "no"
                 # Add the soft-core parameters for the ABFE
                 protocol_dict["sc-alpha"] = 0.5
                 protocol_dict["sc-power"] = 1
                 protocol_dict["sc-sigma"] = 0.3
-                if decouple_dict["intramol"].value():
-                    # The intramol is being coupled to the lambda change and thus being annihilated.
-                    protocol_dict["couple-intramol"] = "yes"
-                else:
-                    protocol_dict["couple-intramol"] = "no"
             elif nDecoupledMolecules > 1:
                 raise ValueError(
                     "Gromacs cannot handle more than one decoupled molecule."

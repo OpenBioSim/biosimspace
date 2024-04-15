@@ -321,10 +321,7 @@ class Amber(_Config):
                     )
 
         # Temperature control.
-        if not isinstance(
-            self._protocol,
-            (_Protocol.Metadynamics, _Protocol.Steering, _Protocol.Minimisation),
-        ):
+        if not isinstance(self._protocol, _Protocol.Minimisation):
             # Langevin dynamics.
             protocol_dict["ntt"] = 3
             # Collision frequency (1 / ps).

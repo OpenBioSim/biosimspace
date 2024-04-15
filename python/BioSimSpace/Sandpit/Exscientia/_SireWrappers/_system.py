@@ -88,12 +88,20 @@ class System(_SireWrapper):
             sire_object = _SireSystem.System("BioSimSpace_System.")
             super().__init__(sire_object)
             self.addMolecules(_Molecule(system))
+            if "fileformat" in system.propertyKeys():
+                self._sire_object.setProperty(
+                    "fileformat", system.property("fileformat")
+                )
 
         # A BioSimSpace Molecule object.
         elif isinstance(system, _Molecule):
             sire_object = _SireSystem.System("BioSimSpace_System.")
             super().__init__(sire_object)
             self.addMolecules(system)
+            if "fileformat" in system._sire_object.propertyKeys():
+                self._sire_object.setProperty(
+                    "fileformat", system._sire_object.property("fileformat")
+                )
 
         # A BioSimSpace Molecules object.
         elif isinstance(system, _Molecules):

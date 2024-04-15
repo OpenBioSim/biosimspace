@@ -281,11 +281,11 @@ class Process:
             self._work_dir = _Utils.WorkDir(work_dir)
 
         # Files for redirection of stdout and stderr.
-        self._stdout_file = "%s/%s.out" % (self._work_dir, name)
-        self._stderr_file = "%s/%s.err" % (self._work_dir, name)
+        self._stdout_file = _os.path.join(str(self._work_dir), f"{name}.out")
+        self._stderr_file = _os.path.join(str(self._work_dir), f"{name}.err")
 
         # Files for metadynamics simulation with PLUMED.
-        self._plumed_config_file = "%s/plumed.dat" % self._work_dir
+        self._plumed_config_file = _os.path.join(str(self._work_dir), "plumed.dat")
         self._plumed_config = None
 
         # Initialise the configuration file string list.
@@ -349,13 +349,13 @@ class Process:
         self._stderr = []
 
         # Clean up any existing offset files.
-        offset_files = _glob.glob("%s/*.offset" % self._work_dir)
+        offset_files = _glob.glob(_os.path.join(str(self._work_dir), "*.offset"))
 
         # Remove any HILLS or COLVAR files from the list. These will be dealt
         # with by the PLUMED interface.
         try:
-            offset_files.remove("%s/COLVAR.offset" % self._work_dir)
-            offset_files.remove("%s/HILLS.offset" % self._work_dir)
+            offset_files.remove(_os.path.join(str(self._work_dir), "COLVAR.offset"))
+            offset_files.remove(_os.path.join(str(self._work_dir), "HILLS.offset"))
         except:
             pass
 
@@ -1240,7 +1240,7 @@ class Process:
         zipname = "%s.zip" % name
 
         # Glob all of the output files.
-        output = _glob.glob("%s/*" % self._work_dir)
+        output = _glob.glob(_os.path.join(str(self._work_dir), "*"))
 
         with _zipfile.ZipFile(zipname, "w") as zip:
             # Loop over all of the file outputs.

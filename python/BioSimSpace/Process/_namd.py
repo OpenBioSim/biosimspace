@@ -148,17 +148,17 @@ class Namd(_process.Process):
         self._stdout_title = None
 
         # The names of the input files.
-        self._psf_file = "%s/%s.psf" % (self._work_dir, name)
-        self._top_file = "%s/%s.pdb" % (self._work_dir, name)
-        self._param_file = "%s/%s.params" % (self._work_dir, name)
+        self._psf_file = _os.path.join(str(self._work_dir), f"{name}.psf")
+        self._top_file = _os.path.join(str(self._work_dir), f"{name}.pdb")
+        self._param_file = _os.path.join(str(self._work_dir), f"{name}.params")
         self._velocity_file = None
         self._restraint_file = None
 
         # The name of the trajectory file.
-        self._traj_file = "%s/%s_out.dcd" % (self._work_dir, name)
+        self._traj_file = _os.path.join(str(self._work_dir), f"{name}_out.dcd")
 
         # Set the path for the NAMD configuration file.
-        self._config_file = "%s/%s.cfg" % (self._work_dir, name)
+        self._config_file = _os.path.join(str(self._work_dir), f"{name}.cfg")
 
         # Create the list of input files.
         self._input_files = [
@@ -443,9 +443,8 @@ class Namd(_process.Process):
                     p = _SireIO.PDB2(restrained._sire_object, {prop: "restrained"})
 
                     # File name for the restraint file.
-                    self._restraint_file = "%s/%s.restrained" % (
-                        self._work_dir,
-                        self._name,
+                    self._restraint_file = _os.path.join(
+                        str(self._work_dir), f"{self._name}.restrained"
                     )
 
                     # Write the PDB file.
@@ -733,13 +732,19 @@ class Namd(_process.Process):
         has_coor = False
 
         # First check for final configuration.
-        if _os.path.isfile("%s/%s_out.coor" % (self._work_dir, self._name)):
-            coor_file = "%s/%s_out.coor" % (self._work_dir, self._name)
+        if _os.path.isfile(
+            _os.path.join(str(self._work_dir), f"{self._name}_out.coor")
+        ):
+            coor_file = _os.path.join(str(self._work_dir), f"{self._name}_out.coor")
             has_coor = True
 
         # Otherwise check for a restart file.
-        elif _os.path.isfile("%s/%s_out.restart.coor" % (self._work_dir, self._name)):
-            coor_file = "%s/%s_out.restart.coor" % (self._work_dir, self._name)
+        elif _os.path.isfile(
+            _os.path.join(str(self._work_dir), f"{self._name}_out.restart.coor")
+        ):
+            coor_file = _os.path.join(
+                str(self._work_dir), f"{self._name}_out.restart.coor"
+            )
             has_coor = True
 
         # Try to find an XSC file.
@@ -747,13 +752,17 @@ class Namd(_process.Process):
         has_xsc = False
 
         # First check for final XSC file.
-        if _os.path.isfile("%s/%s_out.xsc" % (self._work_dir, self._name)):
-            xsc_file = "%s/%s_out.xsc" % (self._work_dir, self._name)
+        if _os.path.isfile(_os.path.join(str(self._work_dir), f"{self._name}_out.xsc")):
+            xsc_file = _os.path.join(str(self._work_dir), f"{self._name}_out.xsc")
             has_xsc = True
 
         # Otherwise check for a restart XSC file.
-        elif _os.path.isfile("%s/%s_out.restart.xsc" % (self._work_dir, self._name)):
-            xsc_file = "%s/%s_out.restart.xsc" % (self._work_dir, self._name)
+        elif _os.path.isfile(
+            _os.path.join(str(self._work_dir), f"{self._name}_out.restart.xsc")
+        ):
+            xsc_file = _os.path.join(
+                str(self._work_dir), f"{self._name}_out.restart.xsc"
+            )
             has_xsc = True
 
         # We found a coordinate file.

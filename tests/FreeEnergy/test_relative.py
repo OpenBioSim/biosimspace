@@ -10,17 +10,6 @@ from tests.conftest import url, has_alchemlyb, has_gromacs
 
 
 @pytest.fixture(scope="module")
-def perturbable_system():
-    """Re-use the same perturbable system for each test."""
-    return BSS.IO.readPerturbableSystem(
-        f"{url}/perturbable_system0.prm7",
-        f"{url}/perturbable_system0.rst7",
-        f"{url}/perturbable_system1.prm7",
-        f"{url}/perturbable_system1.rst7",
-    )
-
-
-@pytest.fixture(scope="module")
 def fep_output():
     """Path to a temporary directory containing FEP output."""
 

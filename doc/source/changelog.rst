@@ -9,6 +9,19 @@ company supporting open-source development of fostering academic/industrial coll
 within the biomolecular simulation community. Our software is hosted via the `OpenBioSim`
 `GitHub <https://github.com/OpenBioSim/biosimspace>`__ organisation.
 
+`2023.5.1 <https://github.com/openbiosim/biosimspace/compare/2023.5.0...2023.5.1>`_ - Mar 20 2024
+-------------------------------------------------------------------------------------------------
+
+* Fixed path to user links file in the :func:`generateNetwork <BioSimSpace.Align.generateNetwork>` function (`#233 <https://github.com/OpenBioSim/biosimspace/pull/233>`__).
+* Fixed redirection of stderr (`#233 <https://github.com/OpenBioSim/biosimspace/pull/233>`__).
+* Switched to using ``AtomCoordMatcher`` to map parameterised molecules back to their original topology. This resolves issues where atoms moved between residues following parameterisation (`#235 <https://github.com/OpenBioSim/biosimspace/pull/235>`__).
+* Make the GROMACS ``_generate_binary_run_file`` function static so that it can be used when initialising free energy simulations in setup-only mode (`#237 <https://github.com/OpenBioSim/biosimspace/pull/237>`__).
+* Improve error handling and message when attempting to extract an all dummy atom selection (`#251 <https://github.com/OpenBioSim/biosimspace/pull/251>`__).
+* Don't set SOMD specific end-state properties when decoupling a molecule (`#253 <https://github.com/OpenBioSim/biosimspace/pull/253>`__).
+* Only convert to a end-state system when not running a free energy protocol with GROMACS so that hybrid topology isn't lost when using position restraints (`#257 <https://github.com/OpenBioSim/biosimspace/pull/257>`__).
+* Exclude standard free ions from the AMBER position restraint mask (`#260 <https://github.com/OpenBioSim/biosimspace/pull/260>`__).
+* Update the ``BioSimSpace.Types._GeneralUnit.__pow__`` operator to support fractional exponents (`#260 <https://github.com/OpenBioSim/biosimspace/pull/260>`__).
+
 `2023.5.0 <https://github.com/openbiosim/biosimspace/compare/2023.4.1...2023.5.0>`_ - Dec 16 2023
 -------------------------------------------------------------------------------------------------
 
