@@ -4,12 +4,11 @@
 Development process
 ===================
 
-:mod:`BioSimSpace` uses a ``main``, ``devel`` and ``future`` development process,
+:mod:`BioSimSpace` uses a ``main`` and ``devel`` development process,
 using feature branches for all code development.
 
 * ``main`` - this always contains the latest official release.
 * ``devel`` - this always contains the latest development release, which will become the next official release.
-* ``future`` - this contains pull requests that have been accepted, but which are targetted for a future release (i.e. not the next official release)
 
 Code should be developed on a fork or in a feature branch called ``feature_{feature}``.
 When your feature is ready, please submit a pull request against ``devel``. This
@@ -27,29 +26,8 @@ tests, examples and/or tutorial instructions.
   the tutorials or writing a detailed description for the website.
 
 Assuming the CI completes successfully, then one of the release team will
-conduct a code review. The outcome of the review will be one of the following;
-
-1. This feature is ready, and should be part of the next official release. The pull request
-   will be accepted into ``devel``. This will trigger our CI/CD process, building the new dev
-   package and uploading it to `anaconda.org <https://anaconda.org/openbiosim/biosimspace>`__
-   for everyone to use.
-
-2. This feature is good, but it is not yet ready to be part of the next offical release. This
-   could be because the feature is part of a series, and all of the series need to be finished
-   before release. Or because we are in a feature freeze period. Or because you want more time
-   for people to explore and play with the feature before it is officially released (and would
-   then need to be supported, and backwards compatibility maintained). If this is the case (or
-   it is your request) then the pull request will be redirected into the ``future`` branch.
-   Once it (and features that depend on it) are ready, you can then issue a pull request for
-   all of the features at once into ``devel``. It will be noted that each of the individual
-   parts have already been code reviewed, so the process to accept the combination
-   into ``devel`` should be more straightforward.
-
-3. This feature is good, but more work is needed before it can be accepted. This could be
-   because some of the unit tests haven't passed, or the latest version of ``devel`` hasn't
-   been merged. Or there may be changes that are requested that would make the code easier
-   to maintain or to preserve backwards compatibility. If this is the case, then we
-   will engage in conversation with you and will work together to rectify any issues.
+conduct a code review, with the code being merged into ``devel`` if it is
+approved.
 
 Bug fixes or issue fixes are developed on fix branches, called ``fix_{number}`` (again in
 either the main repository or forks). If no `issue thread <https://github.com/OpenBioSim/biosimspace/issues>`__
