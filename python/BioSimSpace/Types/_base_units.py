@@ -1,7 +1,7 @@
 ######################################################################
 # BioSimSpace: Making biomolecular simulation a breeze!
 #
-# Copyright: 2017-2023
+# Copyright: 2017-2024
 #
 # Authors: Lester Hedges <lester.hedges@gmail.com>
 #
@@ -24,6 +24,8 @@
 
 __all__ = ["_base_units", "_base_dimensions", "_sire_units_locals"]
 
+import sys as _sys
+
 from ._angle import *
 from ._area import *
 from ._charge import *
@@ -33,13 +35,17 @@ from ._pressure import *
 from ._temperature import *
 from ._time import *
 from ._volume import *
-
-import sys as _sys
+from ._type import Type as _Type
 
 _namespace = _sys.modules[__name__]
 
 # Create the list of base unit types.
 _base_units = [getattr(_namespace, var) for var in dir() if var[0] != "_"]
+# Filter out any non-Type objects. (This can happen when BioSimSpace is
+# wrapped by other tools, e.g. Maize.)
+_base_units = [
+    unit for unit in _base_units if isinstance(unit, type) and unit.__base__ == _Type
+]
 
 _base_dimensions = {}
 for unit in _base_units:

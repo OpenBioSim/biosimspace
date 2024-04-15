@@ -5,11 +5,6 @@ import BioSimSpace as BSS
 from tests.conftest import url, has_amber
 
 
-@pytest.fixture(scope="session")
-def system():
-    return BSS.IO.readMolecules(["tests/input/ala.top", "tests/input/ala.crd"])
-
-
 @pytest.mark.skipif(has_amber is False, reason="Requires AMBER to be installed.")
 def test_makeCompatibleWith():
     # Load the original PDB file. In this representation the system contains

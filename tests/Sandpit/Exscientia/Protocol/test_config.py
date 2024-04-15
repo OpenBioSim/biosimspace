@@ -18,6 +18,7 @@ from BioSimSpace.Sandpit.Exscientia.Units.Angle import radian, degree
 from BioSimSpace.Sandpit.Exscientia.Units.Energy import kcal_per_mol
 from BioSimSpace.Sandpit.Exscientia.Units.Temperature import kelvin
 from BioSimSpace.Sandpit.Exscientia.FreeEnergy import Restraint
+from BioSimSpace.Sandpit.Exscientia._SireWrappers import Molecule
 from BioSimSpace.Sandpit.Exscientia._Utils import _try_import, _have_imported
 
 
@@ -108,6 +109,16 @@ class TestGromacsRBFE:
         config = ConfigFactory(system, protocol(tau_t=BSS.Types.Time(2, "picosecond")))
         res = config.generateGromacsConfig()
         expected_res = {"tau-t = 2.00000"}
+        assert expected_res.issubset(res)
+
+    @pytest.mark.parametrize("protocol", [Production, FreeEnergy])
+    def test_integrator(self, system, protocol):
+        config = ConfigFactory(system, protocol(tau_t=BSS.Types.Time(2, "picosecond")))
+        res = config.generateGromacsConfig()
+        if isinstance(protocol(), BSS.Protocol._FreeEnergyMixin):
+            expected_res = {"integrator = sd"}
+        else:
+            expected_res = {"integrator = md", "tcoupl = v-rescale"}
         assert expected_res.issubset(res)
 
     @pytest.mark.skipif(
@@ -300,6 +311,50 @@ class TestGromacsABFE:
             assert "couple-lambda0 = vdw-q" in mdp_text
             assert "couple-lambda1 = none" in mdp_text
             assert "couple-intramol = yes" in mdp_text
+
+    @pytest.mark.skipif(
+        has_gromacs is False, reason="Requires GROMACS to be installed."
+    )
+    def test_decouple_perturbable(self, system):
+        m, protocol = system
+        mol = decouple(m)
+        sire_mol = mol._sire_object
+        c = sire_mol.cursor()
+        for key in [
+            "charge",
+            "LJ",
+            "bond",
+            "angle",
+            "dihedral",
+            "improper",
+            "forcefield",
+            "intrascale",
+            "mass",
+            "element",
+            "atomtype",
+            "coordinates",
+            "velocity",
+            "ambertype",
+        ]:
+            if f"{key}1" not in c and key in c:
+                c[f"{key}0"] = c[key]
+                c[f"{key}1"] = c[key]
+
+        c["is_perturbable"] = True
+        sire_mol = c.commit()
+        mol = Molecule(sire_mol)
+
+        freenrg = BSS.FreeEnergy.AlchemicalFreeEnergy(
+            mol.toSystem(),
+            protocol,
+            engine="GROMACS",
+        )
+        with open(f"{freenrg._work_dir}/lambda_6/gromacs.mdp", "r") as f:
+            mdp_text = f.read()
+            assert "couple-moltype" not in mdp_text
+            assert "couple-lambda0" not in mdp_text
+            assert "couple-lambda1" not in mdp_text
+            assert "couple-intramol" not in mdp_text
 
     @pytest.mark.skipif(
         has_gromacs is False, reason="Requires GROMACS to be installed."

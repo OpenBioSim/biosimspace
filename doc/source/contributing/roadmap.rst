@@ -76,8 +76,6 @@ You can keep up with what we are working on in several ways;
 * Keep an eye on the various ``feature_X`` branches as they appear in the repository. Feel free to initiate
   a conversation on GitHub with the developer who is working on that branch if you want to learn more, or
   want to make suggestions or offer a helping hand.
-* Clone and build your own copy of the ``future`` branch. This is the bleeding edge, and things may change and break.
-  But it is the earliest way to use the future version of :mod:`BioSimSpace`.
 
 Wishlists / suggestions
 =======================
