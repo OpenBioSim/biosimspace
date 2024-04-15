@@ -9,7 +9,7 @@ company supporting open-source development of fostering academic/industrial coll
 within the biomolecular simulation community. Our software is hosted via the `OpenBioSim`
 `GitHub <https://github.com/OpenBioSim/biosimspace>`__ organisation.
 
-`2024.1.0 <https://github.com/openbiosim/biosimspace/compare/2023.5.1...2024.1.0>`_ - Ap4 15 2024
+`2024.1.0 <https://github.com/openbiosim/biosimspace/compare/2023.5.1...2024.1.0>`_ - Apr 15 2024
 -------------------------------------------------------------------------------------------------
 
 * Switch to using Langevin integrator for GROMACS free energy simulations (`#264 <https://github.com/OpenBioSim/biosimspace/pull/264>`__).
