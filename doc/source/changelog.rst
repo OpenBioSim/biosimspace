@@ -9,6 +9,20 @@ company supporting open-source development of fostering academic/industrial coll
 within the biomolecular simulation community. Our software is hosted via the `OpenBioSim`
 `GitHub <https://github.com/OpenBioSim/biosimspace>`__ organisation.
 
+`2024.1.0 <https://github.com/openbiosim/biosimspace/compare/2023.5.1...2024.1.0>`_ - Ap4 15 2024
+-------------------------------------------------------------------------------------------------
+
+* Switch to using Langevin integrator for GROMACS free energy simulations (`#264 <https://github.com/OpenBioSim/biosimspace/pull/264>`__).
+* Add support for clearing and disabling the IO file cache (`#266 <https://github.com/OpenBioSim/biosimspace/pull/266>`__).
+* Add support for using ``openff-nagl`` to generate partial charges (`#267 <https://github.com/OpenBioSim/biosimspace/pull/267>`__).
+* Fixed non-reproducible search for backbone restraint atom indices (`#270 <https://github.com/OpenBioSim/biosimspace/pull/270>`__).
+* Add support for AMBER as an alchemical free-energy simulation engine (`#272 <https://github.com/OpenBioSim/biosimspace/pull/272>`__).
+* Switch to using ``os.path.join`` to generate directory file names (`#276 <https://github.com/OpenBioSim/biosimspace/pull/276>`__).
+* Make sure the ``fileformat`` property is preserved when creating single molecule systems (`#276 <https://github.com/OpenBioSim/biosimspace/pull/276>`__).
+* Add a ``getRestraintType`` method to the base protocol that returns ``None`` (`#276 <https://github.com/OpenBioSim/biosimspace/pull/276>`__).
+* Add missing ``themostat_time_constant`` kwarg to the :class:`Metadynamics <BioSimSpace.Protocol.Metdynamics>` protocol (`#276 <https://github.com/OpenBioSim/biosimspace/pull/276>`__).
+
+
 `2023.5.1 <https://github.com/openbiosim/biosimspace/compare/2023.5.0...2023.5.1>`_ - Mar 20 2024
 -------------------------------------------------------------------------------------------------
 
