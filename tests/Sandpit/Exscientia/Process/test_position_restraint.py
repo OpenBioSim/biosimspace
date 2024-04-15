@@ -236,8 +236,8 @@ def test_gromacs_alchemical_ion(
 
 
 @pytest.mark.skipif(
-    has_amber is False or has_openff is False,
-    reason="Requires AMBER and openff to be installed",
+    has_amber is False or has_gromacs is False or has_openff is False,
+    reason="Requires AMBER, GROMACS and OpenFF to be installed",
 )
 @pytest.mark.parametrize(
     ("restraint", "target"),
