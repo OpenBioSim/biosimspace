@@ -54,6 +54,7 @@ def test_getAlchemicalIonIdx(alchemical_ion_system):
     assert index == 680
 
 
+@pytest.mark.skipif(has_gromacs is False, reason="Requires GROMACS to be installed.")
 def test_get_protein_com_idx(alchemical_ion_system):
     index = _get_protein_com_idx(alchemical_ion_system)
     assert index == 8
