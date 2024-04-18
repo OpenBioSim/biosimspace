@@ -2898,10 +2898,18 @@ class Gromacs(_process.Process):
                 f"{self.workDir()}/{self._name}.xvg",
                 T=self._protocol.getTemperature() / _Units.Temperature.kelvin,
             )
-            if "u_nk" in energy:
-                energy["u_nk"].to_parquet(path=f"{self.workDir()}/{u_nk}", index=True)
-            if "dHdl" in energy:
-                energy["dHdl"].to_parquet(path=f"{self.workDir()}/{dHdl}", index=True)
+            with _warnings.catch_warnings():
+                _warnings.filterwarnings(
+                    "ignore", message="The DataFrame has column names of mixed type."
+                )
+                if "u_nk" in energy:
+                    energy["u_nk"].to_parquet(
+                        path=f"{self.workDir()}/{u_nk}", index=True
+                    )
+                if "dHdl" in energy:
+                    energy["dHdl"].to_parquet(
+                        path=f"{self.workDir()}/{dHdl}", index=True
+                    )
 
 
 def _is_minimisation(config):
