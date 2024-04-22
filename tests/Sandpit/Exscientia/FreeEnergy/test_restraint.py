@@ -1,18 +1,18 @@
-import pytest
-
 import numpy as np
-
-from sire.legacy.Units import angstrom3 as _Sire_angstrom3
-from sire.legacy.Units import k_boltz as _k_boltz
-from sire.legacy.Units import meter3 as _Sire_meter3
-from sire.legacy.Units import mole as _Sire_mole
+import pytest
+from sire.legacy.Units import (
+    angstrom3 as _Sire_angstrom3,
+    k_boltz as _k_boltz,
+    meter3 as _Sire_meter3,
+    mole as _Sire_mole,
+)
 
 import BioSimSpace.Sandpit.Exscientia as BSS
 from BioSimSpace.Sandpit.Exscientia.Align import decouple
 from BioSimSpace.Sandpit.Exscientia.FreeEnergy import Restraint
-from BioSimSpace.Sandpit.Exscientia.Units.Length import angstrom
-from BioSimSpace.Sandpit.Exscientia.Units.Angle import radian, degree
+from BioSimSpace.Sandpit.Exscientia.Units.Angle import degree, radian
 from BioSimSpace.Sandpit.Exscientia.Units.Energy import kcal_per_mol
+from BioSimSpace.Sandpit.Exscientia.Units.Length import angstrom
 from BioSimSpace.Sandpit.Exscientia.Units.Temperature import kelvin
 
 # Store the tutorial URL.
@@ -73,6 +73,29 @@ def boresch_restraint_component():
     }
 
     return system, restraint_dict
+
+
+@pytest.mark.parametrize(
+    ("protocol", "posres"),
+    [
+        (BSS.Protocol.FreeEnergy, "heavy"),
+        (BSS.Protocol.FreeEnergy, None),
+    ],
+)
+def test_top_write(
+    boresch_restraint_component, protocol, posres, tmp_path, boresch_restraint
+):
+    system, restraint_dict = boresch_restraint_component
+    bss_protocol = protocol(restraint=posres)
+    BSS.Process.Gromacs(
+        system,
+        bss_protocol,
+        work_dir=str(tmp_path),
+        restraint=boresch_restraint,
+        exe="/Users/zwu/mambaforge/envs/BSS/bin.SSE2/gmx",
+    )
+    with open(str(tmp_path / "gromacs.top"), "r") as f:
+        assert "intermolecular_interactions" in f.read()
 
 
 @pytest.fixture(scope="session")

@@ -399,19 +399,21 @@ class Gromacs(_process.Process):
                 match_waters=False,
                 property_map=self._property_map,
             )
+            self._apply_ABFE_restraint()
 
-            # Write the restraint to the topology file
-            if self._restraint:
-                with open(topol_file, "a") as f:
-                    f.write("\n")
-                    f.write(
-                        self._restraint.toString(
-                            engine="GROMACS",
-                            perturbation_type=self._protocol.getPerturbationType(),
-                            restraint_lambda="restraint"
-                            in self._protocol.getLambda(type="series"),
-                        )
+    def _apply_ABFE_restraint(self):
+        # Write the restraint to the topology file
+        if self._restraint:
+            with open(self._top_file, "a") as f:
+                f.write("\n")
+                f.write(
+                    self._restraint.toString(
+                        engine="GROMACS",
+                        perturbation_type=self._protocol.getPerturbationType(),
+                        restraint_lambda="restraint"
+                        in self._protocol.getLambda(type="series"),
                     )
+                )
 
     def _generate_config(self):
         """Generate GROMACS configuration file strings."""
@@ -488,6 +490,7 @@ class Gromacs(_process.Process):
                 if isinstance(self._protocol, _Protocol._FreeEnergyMixin)
                 else None
             )
+            self._apply_ABFE_restraint()
             self.addToConfig(
                 config.generateGromacsConfig(
                     extra_options={**config_options, **self._extra_options},
