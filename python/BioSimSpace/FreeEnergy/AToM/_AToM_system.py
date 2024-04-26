@@ -127,7 +127,7 @@ class makeSystem:
         self.setLigand1RigidCore(ligand1_rigid_core)
         self.setLigand2RigidCore(ligand2_rigid_core)
         self._setDisplacement(displacement)
-        if isinstance(self.mol1, _Molecule):
+        if isinstance(mol1, _Molecule):
             self._makeSystemFromThree()
         # These will be updated if/when needed
         self.protein_index = protein_index
@@ -355,7 +355,7 @@ class makeSystem:
         elif isinstance(displacement, list):
             if len(displacement) != 3:
                 raise ValueError("displacement must have length 3")
-            if all(isinstance(x, float) for x in displacement):
+            if all(isinstance(x, (float, int)) for x in displacement):
                 self.displacement = _Vector(*displacement)
             elif all(isinstance(x, _Length) for x in displacement):
                 self.displacement = _Vector([x.value() for x in displacement])
@@ -527,7 +527,7 @@ class makeSystem:
 
         initial_normal_vector = (non_protein_coords - com).toVector().normalise()
 
-        out_of_protein = com.toVector() + displacement.value() * initial_normal_vector
+        out_of_protein = com.toVector() + (displacement.value() * initial_normal_vector)
         return out_of_protein
 
     def get_prot_com_atoms(self):
@@ -657,6 +657,13 @@ class makeSystem:
         Make the data dictionary for the AToM system
         """
         self._findAtomIndices()
+        if self._is_pre_prepared:
+            if not isinstance(self.displacement, _Vector):
+                raise ValueError(
+                    "Displacement must be a vector or list if a pre-prepared system is given"
+                )
+            else:
+                self.data["displacement"] = self.displacement
         self.data["protein_index"] = self.protein_index
         self.data["ligand1_index"] = self.ligand1_index
         self.data["ligand2_index"] = self.ligand2_index
