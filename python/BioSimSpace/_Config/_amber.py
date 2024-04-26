@@ -31,7 +31,9 @@ import warnings as _warnings
 
 from sire.legacy import Units as _SireUnits
 
+from ..Align._squash import _amber_mask_from_indices, _squashed_atom_mapping
 from .. import Protocol as _Protocol
+from ..Protocol._free_energy_mixin import _FreeEnergyMixin
 from ..Protocol._position_restraint_mixin import _PositionRestraintMixin
 
 from ._config import Config as _Config
@@ -63,7 +65,13 @@ class Amber(_Config):
         super().__init__(system, protocol, property_map=property_map)
 
     def createConfig(
-        self, version=None, is_pmemd=False, extra_options={}, extra_lines=[]
+        self,
+        version=None,
+        is_pmemd=False,
+        is_pmemd_cuda=False,
+        explicit_dummies=False,
+        extra_options={},
+        extra_lines=[],
     ):
         """
         Create the list of configuration strings.
@@ -73,6 +81,12 @@ class Amber(_Config):
 
         is_pmemd : bool
             Whether the configuration is for a simulation using PMEMD.
+
+        is_pmemd_cuda : bool
+            Whether the configuration is for a simulation using PMEMD with CUDA.
+
+        explicit_dummies : bool
+            Whether to keep the dummy atoms explicit at the endstates or remove them.
 
         extra_options : dict
             A dictionary containing extra options. Overrides the defaults generated
@@ -96,6 +110,12 @@ class Amber(_Config):
         if not isinstance(is_pmemd, bool):
             raise TypeError("'is_pmemd' must be of type 'bool'.")
 
+        if not isinstance(is_pmemd_cuda, bool):
+            raise TypeError("'is_pmemd_cuda' must be of type 'bool'.")
+
+        if not isinstance(explicit_dummies, bool):
+            raise TypeError("'explicit_dummies' must be of type 'bool'.")
+
         if not isinstance(extra_options, dict):
             raise TypeError("'extra_options' must be of type 'dict'.")
         else:
@@ -108,6 +128,14 @@ class Amber(_Config):
         else:
             if not all(isinstance(line, str) for line in extra_lines):
                 raise TypeError("Lines in 'extra_lines' must be of type 'str'.")
+
+        # Vaccum simulation.
+        if not self.hasBox(self._system, self._property_map) or not self.hasWater(
+            self._system
+        ):
+            is_vacuum = True
+        else:
+            is_vacuum = False
 
         # Initialise the protocol lines.
         protocol_lines = []
@@ -134,6 +162,9 @@ class Amber(_Config):
             # Only read coordinates from file.
             protocol_dict["ntx"] = 1
 
+        # Initialise a null timestep.
+        timestep = None
+
         # Minimisation.
         if isinstance(self._protocol, _Protocol.Minimisation):
             # Work out the number of steepest descent cycles.
@@ -156,8 +187,15 @@ class Amber(_Config):
             # Report energies every 100 steps.
             protocol_dict["ntpr"] = 100
         else:
-            # Define the timestep
+            # Get the time step.
             timestep = self._protocol.getTimeStep().picoseconds().value()
+            # For free-energy calculations, we can only use a 1fs time step in
+            # vacuum.
+            if isinstance(self._protocol, _FreeEnergyMixin):
+                if is_vacuum and not is_pmemd_cuda and timestep > 0.001:
+                    raise ValueError(
+                        "AMBER free-energy calculations in vacuum using pmemd must use a 1fs time step."
+                    )
             # Set the integration time step.
             protocol_dict["dt"] = f"{timestep:.3f}"
             # Number of integration steps.
@@ -171,12 +209,14 @@ class Amber(_Config):
             protocol_dict["ntf"] = 2
 
         # Periodic boundary conditions.
-        if not self.hasBox() or not self.hasWater():
+        if is_vacuum and not (
+            is_pmemd_cuda and isinstance(self._protocol, _FreeEnergyMixin)
+        ):
             # No periodic box.
             protocol_dict["ntb"] = 0
             # Non-bonded cut-off.
             protocol_dict["cut"] = "999."
-            if is_pmemd:
+            if is_pmemd_cuda:
                 # Use vacuum generalised Born model.
                 protocol_dict["igb"] = "6"
         else:
@@ -196,6 +236,19 @@ class Amber(_Config):
                     atom_idxs = self._system.getRestraintAtoms(restraint)
                 else:
                     atom_idxs = restraint
+
+                # Convert to a squashed representation, if needed
+                if isinstance(self._protocol, _FreeEnergyMixin):
+                    atom_mapping0 = _squashed_atom_mapping(
+                        self.system, is_lambda1=False
+                    )
+                    atom_mapping1 = _squashed_atom_mapping(
+                        self._system, is_lambda1=True
+                    )
+                    atom_idxs = sorted(
+                        {atom_mapping0[x] for x in atom_idxs if x in atom_mapping0}
+                        | {atom_mapping1[x] for x in atom_idxs if x in atom_mapping1}
+                    )
 
                 # Don't add restraints if there are no atoms to restrain.
                 if len(atom_idxs) > 0:
@@ -224,9 +277,9 @@ class Amber(_Config):
                                     ]
                                 restraint_mask = "@" + ",".join(restraint_atom_names)
                             elif restraint == "heavy":
-                                restraint_mask = "!:WAT & !@H="
+                                restraint_mask = "!:WAT & !@%NA,CL & !@H="
                             elif restraint == "all":
-                                restraint_mask = "!:WAT"
+                                restraint_mask = "!:WAT & !@%NA,CL"
 
                         # We can't do anything about a custom restraint, since we don't
                         # know anything about the atoms.
@@ -247,13 +300,15 @@ class Amber(_Config):
         if not isinstance(self._protocol, _Protocol.Minimisation):
             if self._protocol.getPressure() is not None:
                 # Don't use barostat for vacuum simulations.
-                if self.hasBox() and self.hasWater():
+                if self.hasBox(self._system, self._property_map) and self.hasWater(
+                    self._system
+                ):
                     # Isotropic pressure scaling.
                     protocol_dict["ntp"] = 1
                     # Pressure in bar.
-                    protocol_dict[
-                        "pres0"
-                    ] = f"{self._protocol.getPressure().bar().value():.5f}"
+                    protocol_dict["pres0"] = (
+                        f"{self._protocol.getPressure().bar().value():.5f}"
+                    )
                     if isinstance(self._protocol, _Protocol.Equilibration):
                         # Berendsen barostat.
                         protocol_dict["barostat"] = 1
@@ -266,10 +321,7 @@ class Amber(_Config):
                     )
 
         # Temperature control.
-        if not isinstance(
-            self._protocol,
-            (_Protocol.Metadynamics, _Protocol.Steering, _Protocol.Minimisation),
-        ):
+        if not isinstance(self._protocol, _Protocol.Minimisation):
             # Langevin dynamics.
             protocol_dict["ntt"] = 3
             # Collision frequency (1 / ps).
@@ -302,6 +354,45 @@ class Amber(_Config):
                     protocol_dict["tempi"] = f"{temp:.2f}"
                 # Final temperature.
                 protocol_dict["temp0"] = f"{temp:.2f}"
+
+        # Free energies.
+        if isinstance(self._protocol, _FreeEnergyMixin):
+            # Free energy mode.
+            protocol_dict["icfe"] = 1
+            # Use softcore potentials.
+            protocol_dict["ifsc"] = 1
+            # Remove SHAKE constraints.
+            protocol_dict["ntf"] = 1
+
+            # Get the list of lambda values.
+            lambda_values = [f"{x:.5f}" for x in self._protocol.getLambdaValues()]
+
+            # Number of states in the MBAR calculation. (Number of lambda values.)
+            protocol_dict["mbar_states"] = len(lambda_values)
+
+            # Lambda values for the MBAR calculation.
+            protocol_dict["mbar_lambda"] = ", ".join(lambda_values)
+
+            # Current lambda value.
+            protocol_dict["clambda"] = "{:.5f}".format(self._protocol.getLambda())
+
+            if isinstance(self._protocol, _Protocol.Production):
+                # Calculate MBAR energies.
+                protocol_dict["ifmbar"] = 1
+                # Output dVdl
+                protocol_dict["logdvdl"] = 1
+
+            # Atom masks.
+            protocol_dict = {
+                **protocol_dict,
+                **self._generate_amber_fep_masks(
+                    self._system,
+                    is_vacuum,
+                    is_pmemd_cuda,
+                    timestep,
+                    explicit_dummies=explicit_dummies,
+                ),
+            }
 
         # Put everything together in a line-by-line format.
         total_dict = {**protocol_dict, **extra_options}
@@ -389,3 +480,83 @@ class Amber(_Config):
                     restraint_mask += f",{idx+1}"
 
         return restraint_mask
+
+    def _generate_amber_fep_masks(
+        self, system, is_vacuum, is_pmemd_cuda, timestep, explicit_dummies=False
+    ):
+        """
+        Internal helper function which generates timasks and scmasks based
+        on the system.
+
+        Parameters
+        ----------
+
+        system : :class:`System <BioSimSpace._SireWrappers.System>`
+            The molecular system.
+
+        is_vacuum : bool
+            Whether this is a vacuum simulation.
+
+        is_pmemd_cuda : bool
+            Whether this is a CUDA simulation.
+
+        timestep : float
+            The timestep of the simulation in femtoseconds.
+
+        explicit_dummies : bool
+            Whether to keep the dummy atoms explicit at the endstates or remove them.
+
+        Returns
+        -------
+
+        option_dict : dict
+            A dictionary of AMBER-compatible options.
+        """
+        # Get the merged to squashed atom mapping of the whole system for both endpoints.
+        kwargs = dict(environment=False, explicit_dummies=explicit_dummies)
+        mcs_mapping0 = _squashed_atom_mapping(
+            self._system, is_lambda1=False, common=True, dummies=False, **kwargs
+        )
+        mcs_mapping1 = _squashed_atom_mapping(
+            self._system, is_lambda1=True, common=True, dummies=False, **kwargs
+        )
+        dummy_mapping0 = _squashed_atom_mapping(
+            self._system, is_lambda1=False, common=False, dummies=True, **kwargs
+        )
+        dummy_mapping1 = _squashed_atom_mapping(
+            self._system, is_lambda1=True, common=False, dummies=True, **kwargs
+        )
+
+        # Generate the TI and dummy masks.
+        mcs0_indices, mcs1_indices, dummy0_indices, dummy1_indices = [], [], [], []
+        for i in range(self._system.nAtoms()):
+            if i in dummy_mapping0:
+                dummy0_indices.append(dummy_mapping0[i])
+            if i in dummy_mapping1:
+                dummy1_indices.append(dummy_mapping1[i])
+            if i in mcs_mapping0:
+                mcs0_indices.append(mcs_mapping0[i])
+            if i in mcs_mapping1:
+                mcs1_indices.append(mcs_mapping1[i])
+        ti0_indices = mcs0_indices + dummy0_indices
+        ti1_indices = mcs1_indices + dummy1_indices
+
+        # SHAKE should be used for timestep >= 2 fs.
+        if timestep is not None and timestep >= 0.002:
+            no_shake_mask = ""
+        else:
+            no_shake_mask = _amber_mask_from_indices(ti0_indices + ti1_indices)
+
+        # Create an option dict with amber masks generated from the above indices.
+        option_dict = {
+            "timask1": f'"{_amber_mask_from_indices(ti0_indices)}"',
+            "timask2": f'"{_amber_mask_from_indices(ti1_indices)}"',
+            "scmask1": f'"{_amber_mask_from_indices(dummy0_indices)}"',
+            "scmask2": f'"{_amber_mask_from_indices(dummy1_indices)}"',
+            "tishake": 0 if is_pmemd_cuda else 1,
+            "noshakemask": f'"{no_shake_mask}"',
+            "gti_add_sc": 1,
+            "gti_bat_sc": 1,
+        }
+
+        return option_dict

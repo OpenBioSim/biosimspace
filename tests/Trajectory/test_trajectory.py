@@ -14,12 +14,6 @@ from tests.conftest import url, has_mdanalysis, has_mdtraj
 
 
 @pytest.fixture(scope="session")
-def system():
-    """A system object with the same topology as the trajectories."""
-    return BSS.IO.readMolecules(["tests/input/ala.top", "tests/input/ala.crd"])
-
-
-@pytest.fixture(scope="session")
 def traj_sire(system):
     """A trajectory object using the Sire backend."""
     return BSS.Trajectory.Trajectory(

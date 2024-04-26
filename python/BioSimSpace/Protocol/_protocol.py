@@ -40,6 +40,23 @@ class Protocol:
         # Flag that the protocol hasn't been customised.
         self._is_customised = False
 
+    def getRestraint(self):
+        """
+        Return the type of restraint.
+
+        Returns
+        -------
+
+        restraint : str, [int]
+            The type of restraint, either a keyword or a list of atom indices.
+        """
+        from ._position_restraint_mixin import _PositionRestraintMixin
+
+        if isinstance(self, _PositionRestraintMixin):
+            return self._restraint
+        else:
+            return None
+
     def _setCustomised(self, is_customised):
         """
         Internal function to flag whether a protocol has been customised.

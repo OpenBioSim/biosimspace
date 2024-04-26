@@ -843,7 +843,9 @@ class ProcessRunner:
         # Loop over each process.
         for process in processes:
             # Create the new working directory name.
-            new_dir = "%s/%s" % (self._work_dir, _os.path.basename(process._work_dir))
+            new_dir = _os.path.join(
+                self._work_dir, _os.path.basename(process._work_dir)
+            )
 
             # Create a new process object using the nested directory.
             if process._package_name == "SOMD":

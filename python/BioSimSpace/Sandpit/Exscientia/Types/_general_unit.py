@@ -38,16 +38,16 @@ class GeneralUnit(_Type):
     """A general unit type."""
 
     _dimension_chars = [
-        "A",  # Angle
-        "C",  # Charge
-        "L",  # Length
         "M",  # Mass
-        "Q",  # Quantity
+        "L",  # Length
+        "T",  # Time
+        "C",  # Charge
         "t",  # Temperature
-        "T",  # Tme
+        "Q",  # Quantity
+        "A",  # Angle
     ]
 
-    def __new__(cls, *args):
+    def __new__(cls, *args, no_cast=False):
         """
         Constructor.
 
@@ -65,6 +65,9 @@ class GeneralUnit(_Type):
 
         string : str
             A string representation of the unit type.
+
+        no_cast: bool
+            Whether to disable casting to a specific type.
         """
 
         # This operator may be called when unpickling an object. Catch empty
@@ -96,7 +99,7 @@ class GeneralUnit(_Type):
             if isinstance(_args[0], _GeneralUnit):
                 general_unit = _args[0]
 
-            # The user has passed a string representation of the temperature.
+            # The user has passed a string representation of the type.
             elif isinstance(_args[0], str):
                 # Extract the string.
                 string = _args[0]
@@ -128,15 +131,7 @@ class GeneralUnit(_Type):
         general_unit = value * general_unit
 
         # Store the dimension mask.
-        dimensions = (
-            general_unit.ANGLE(),
-            general_unit.CHARGE(),
-            general_unit.LENGTH(),
-            general_unit.MASS(),
-            general_unit.QUANTITY(),
-            general_unit.TEMPERATURE(),
-            general_unit.TIME(),
-        )
+        dimensions = tuple(general_unit.dimensions())
 
         # This is a dimensionless quantity, return the value as a float.
         if all(x == 0 for x in dimensions):
@@ -144,13 +139,13 @@ class GeneralUnit(_Type):
 
         # Check to see if the dimensions correspond to a supported type.
         # If so, return an object of that type.
-        if dimensions in _base_dimensions:
+        if not no_cast and dimensions in _base_dimensions:
             return _base_dimensions[dimensions](general_unit)
         # Otherwise, call __init__()
         else:
             return super(GeneralUnit, cls).__new__(cls)
 
-    def __init__(self, *args):
+    def __init__(self, *args, no_cast=False):
         """
         Constructor.
 
@@ -168,6 +163,9 @@ class GeneralUnit(_Type):
 
         string : str
             A string representation of the unit type.
+
+        no_cast: bool
+            Whether to disable casting to a specific type.
         """
 
         value = 1
@@ -194,7 +192,7 @@ class GeneralUnit(_Type):
             if isinstance(_args[0], _GeneralUnit):
                 general_unit = _args[0]
 
-            # The user has passed a string representation of the temperature.
+            # The user has passed a string representation of the type.
             elif isinstance(_args[0], str):
                 # Extract the string.
                 string = _args[0]
@@ -222,15 +220,7 @@ class GeneralUnit(_Type):
         self._value = self._sire_unit.value()
 
         # Store the dimension mask.
-        self._dimensions = (
-            general_unit.ANGLE(),
-            general_unit.CHARGE(),
-            general_unit.LENGTH(),
-            general_unit.MASS(),
-            general_unit.QUANTITY(),
-            general_unit.TEMPERATURE(),
-            general_unit.TIME(),
-        )
+        self._dimensions = tuple(general_unit.dimensions())
 
         # Create the unit string.
         self._unit = ""
@@ -271,11 +261,21 @@ class GeneralUnit(_Type):
             temp = self._from_string(other)
             return self + temp
 
+        # Addition of a zero-valued integer or float.
+        elif isinstance(other, (int, float)) and other == 0:
+            return self
+
         else:
             raise TypeError(
                 "unsupported operand type(s) for +: '%s' and '%s'"
                 % (self.__class__.__qualname__, other.__class__.__qualname__)
             )
+
+    def __radd__(self, other):
+        """Addition operator."""
+
+        # Addition is commutative: a+b = b+a
+        return self.__add__(other)
 
     def __sub__(self, other):
         """Subtraction operator."""
@@ -285,16 +285,26 @@ class GeneralUnit(_Type):
             temp = self._sire_unit - other._to_sire_unit()
             return GeneralUnit(temp)
 
-        # Addition of a string.
+        # Subtraction of a string.
         elif isinstance(other, str):
             temp = self._from_string(other)
             return self - temp
+
+        # Subtraction of a zero-valued integer or float.
+        elif isinstance(other, (int, float)) and other == 0:
+            return self
 
         else:
             raise TypeError(
                 "unsupported operand type(s) for -: '%s' and '%s'"
                 % (self.__class__.__qualname__, other.__class__.__qualname__)
             )
+
+    def __rsub__(self, other):
+        """Subtraction operator."""
+
+        # Subtraction is not commutative: a-b != b-a
+        return -self.__sub__(other)
 
     def __mul__(self, other):
         """Multiplication operator."""
@@ -312,16 +322,8 @@ class GeneralUnit(_Type):
             # Multipy the Sire unit objects.
             temp = self._sire_unit * other._to_sire_unit()
 
-            # Create the dimension mask.
-            dimensions = (
-                temp.ANGLE(),
-                temp.CHARGE(),
-                temp.LENGTH(),
-                temp.MASS(),
-                temp.QUANTITY(),
-                temp.TEMPERATURE(),
-                temp.TIME(),
-            )
+            # Get the dimension mask.
+            dimensions = temp.dimensions()
 
             # Return as an existing type if the dimensions match.
             try:
@@ -432,7 +434,7 @@ class GeneralUnit(_Type):
     def __pow__(self, other):
         """Power operator."""
 
-        if type(other) is not int:
+        if not isinstance(other, (int, float)):
             raise TypeError(
                 "unsupported operand type(s) for ^: '%s' and '%s'"
                 % (self.__class__.__qualname__, other.__class__.__qualname__)
@@ -441,15 +443,29 @@ class GeneralUnit(_Type):
         if other == 0:
             return GeneralUnit(self._sire_unit / self._sire_unit)
 
-        # Multiply the Sire GeneralUnit 'other' times.
-        temp = self._sire_unit
-        for x in range(0, abs(other) - 1):
-            temp = temp * self._sire_unit
+        # Convert to float.
+        other = float(other)
 
-        if other > 0:
-            return GeneralUnit(temp)
-        else:
-            return GeneralUnit(1 / temp)
+        # Get the existing unit dimensions.
+        dims = self.dimensions()
+
+        # Compute the new dimensions, rounding floats to 16 decimal places.
+        new_dims = [round(dim * other, 16) for dim in dims]
+
+        # Make sure the new dimensions are integers.
+        if not all(dim.is_integer() for dim in new_dims):
+            raise ValueError(
+                "The exponent must be a factor of all the unit dimensions."
+            )
+
+        # Convert to integers.
+        new_dims = [int(dim) for dim in new_dims]
+
+        # Compute the new value.
+        value = self.value() ** other
+
+        # Return a new GeneralUnit object.
+        return GeneralUnit(_GeneralUnit(value, new_dims))
 
     def __lt__(self, other):
         """Less than operator."""
@@ -606,29 +622,17 @@ class GeneralUnit(_Type):
         """
         return self._dimensions
 
-    def angle(self):
+    def mass(self):
         """
-        Return the power of this general unit in the 'angle' dimension.
+        Return the power of this general unit in the 'mass' dimension.
 
         Returns
         -------
 
-        angle : int
-            The power of the general unit in the 'angle' dimension.
+        mass : int
+            The power of the general unit in the 'mass' dimension.
         """
         return self._dimensions[0]
-
-    def charge(self):
-        """
-        Return the power of this general unit in the 'charge' dimension.
-
-        Returns
-        -------
-
-        charge : int
-            The power of the general unit in the 'charge' dimension.
-        """
-        return self._dimensions[1]
 
     def length(self):
         """
@@ -640,31 +644,31 @@ class GeneralUnit(_Type):
         length : int
             The power of the general unit in the 'length' dimension.
         """
+        return self._dimensions[1]
+
+    def time(self):
+        """
+        Return the power of this general unit in the 'time' dimension.
+
+        Returns
+        -------
+
+        time : int
+            The power of the general unit in the 'time' dimension.
+        """
         return self._dimensions[2]
 
-    def mass(self):
+    def charge(self):
         """
-        Return the power of this general unit in the 'mass' dimension.
+        Return the power of this general unit in the 'charge' dimension.
 
         Returns
         -------
 
-        mass : int
-            The power of the general unit in the 'mass' dimension.
+        charge : int
+            The power of the general unit in the 'charge' dimension.
         """
         return self._dimensions[3]
-
-    def quantity(self):
-        """
-        Return the power of this general unit in the 'quantity' dimension.
-
-        Returns
-        -------
-
-        quantity : int
-            The power of the general unit in the 'quantity' dimension.
-        """
-        return self._dimensions[4]
 
     def temperature(self):
         """
@@ -676,17 +680,29 @@ class GeneralUnit(_Type):
         temperature : int
             The power of the general unit in the 'temperature' dimension.
         """
-        return self._dimensions[5]
+        return self._dimensions[4]
 
-    def time(self):
+    def quantity(self):
         """
-        Return the power of this general unit in the 'time' dimension.
+        Return the power of this general unit in the 'quantity' dimension.
 
         Returns
         -------
 
-        time : int
-            The power of the general unit in the 'time' dimension.
+        quantity : int
+            The power of the general unit in the 'quantity' dimension.
+        """
+        return self._dimensions[5]
+
+    def angle(self):
+        """
+        Return the power of this general unit in the 'angle' dimension.
+
+        Returns
+        -------
+
+        angle : int
+            The power of the general unit in the 'angle' dimension.
         """
         return self._dimensions[6]
 

@@ -291,7 +291,15 @@ class TestBSS_analysis:
         assert restr_dict["permanent_distance_restraint"][
             "r0"
         ].value() == pytest.approx(8.9019, abs=1e-4)
-        assert restr_dict["permanent_distance_restraint"]["kr"].unit() == "M Q-1 T-2"
+        assert restr_dict["permanent_distance_restraint"]["kr"].dimensions() == (
+            1,
+            0,
+            -2,
+            0,
+            0,
+            -1,
+            0,
+        )
         assert restr_dict["permanent_distance_restraint"]["kr"].value() == 40.0
         assert restr_dict["permanent_distance_restraint"]["r_fb"].unit() == "ANGSTROM"
         assert restr_dict["permanent_distance_restraint"][

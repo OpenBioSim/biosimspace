@@ -9,12 +9,6 @@ from tests.conftest import url, has_amber, has_openff
 
 
 @pytest.fixture(scope="session")
-def system():
-    """Re-use the same molecuar system for each test."""
-    return BSS.IO.readMolecules(["tests/input/ala.top", "tests/input/ala.crd"])
-
-
-@pytest.fixture(scope="session")
 def rna_system():
     """An RNA system for re-use."""
     return BSS.IO.readMolecules(

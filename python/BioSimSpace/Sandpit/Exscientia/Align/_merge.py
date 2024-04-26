@@ -1574,6 +1574,12 @@ def _removeDummies(molecule, is_lambda1):
         is_lambda1=is_lambda1, generate_intrascale=True
     )
 
+    # Remove the parameters property, if it exists.
+    if "parameters" in molecule._sire_object.propertyKeys():
+        molecule._sire_object = (
+            molecule._sire_object.edit().removeProperty("parameters").commit()
+        )
+
     # Set the coordinates to those at lambda = 0
     molecule._sire_object = (
         molecule._sire_object.edit().setProperty("coordinates", coordinates).commit()

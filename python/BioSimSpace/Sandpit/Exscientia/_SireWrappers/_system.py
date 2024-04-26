@@ -88,12 +88,20 @@ class System(_SireWrapper):
             sire_object = _SireSystem.System("BioSimSpace_System.")
             super().__init__(sire_object)
             self.addMolecules(_Molecule(system))
+            if "fileformat" in system.propertyKeys():
+                self._sire_object.setProperty(
+                    "fileformat", system.property("fileformat")
+                )
 
         # A BioSimSpace Molecule object.
         elif isinstance(system, _Molecule):
             sire_object = _SireSystem.System("BioSimSpace_System.")
             super().__init__(sire_object)
             self.addMolecules(system)
+            if "fileformat" in system._sire_object.propertyKeys():
+                self._sire_object.setProperty(
+                    "fileformat", system._sire_object.property("fileformat")
+                )
 
         # A BioSimSpace Molecules object.
         elif isinstance(system, _Molecules):
@@ -554,12 +562,17 @@ class System(_SireWrapper):
         molecules : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`, \
                     :class:`Molecules <BioSimSpace._SireWrappers.Molecules>`, \
                     [:class:`Molecule <BioSimSpace._SireWrappers.Molecule>`], \
-                    :class:`System <BioSimSpace._SireWrappers.System>`
-            A Molecule, Molecules object, a list of Molecule objects, or a System containing molecules.
+                    :class:`System <BioSimSpace._SireWrappers.System>`, \
+                    :class:`SearchResult <BioSimSpace._SireWrappers.SearchResult>`
+            A Molecule, Molecules object, a list of Molecule objects, a System,
+            or a SearchResult containing molecules.
         """
 
-        # Whether the molecules are in a Sire container.
-        is_sire_container = False
+        from ._search_result import SearchResult as _SearchResult
+        from sire.legacy.Mol import SelectorMol as _SelectorMol
+
+        # Whether this is a selector mol object.
+        is_selector_mol = False
 
         # Convert tuple to a list.
         if isinstance(molecules, tuple):
@@ -582,6 +595,17 @@ class System(_SireWrapper):
             isinstance(x, _Molecule) for x in molecules
         ):
             molecules = _Molecules(molecules)
+
+        # A SearchResult object.
+        elif isinstance(molecules, _SearchResult):
+            if isinstance(molecules._sire_object, _SelectorMol):
+                is_selector_mol = True
+                pass
+            else:
+                raise ValueError(
+                    "Invalid 'SearchResult' object. Can only add a molecule "
+                    "search, i.e. a wrapped 'sire.legacy.Mol.SelectorMol'."
+                )
 
         # Invalid argument.
         else:
@@ -619,7 +643,11 @@ class System(_SireWrapper):
                 )
 
             # Add the molecules to the system.
-            self._sire_object.add(molecules._sire_object, _SireMol.MGName("all"))
+            if is_selector_mol:
+                for mol in molecules:
+                    self._sire_object.add(mol._sire_object, _SireMol.MGName("all"))
+            else:
+                self._sire_object.add(molecules._sire_object, _SireMol.MGName("all"))
 
             # Reset the index mappings.
             self._reset_mappings()
@@ -1868,6 +1896,7 @@ class System(_SireWrapper):
                     string = (
                         "(not water) and (resname "
                         + ",".join(_prot_res)
+                        + ","
                         + ",".join(_nucl_res)
                         + ") and (atomname N,CA,C,O,P,/C5'/,/C3'/,/O3'/,/O5'/)"
                     )
@@ -1923,6 +1952,7 @@ class System(_SireWrapper):
                             string = (
                                 "(not water) and (resname "
                                 + ",".join(_prot_res)
+                                + ","
                                 + ",".join(_nucl_res)
                                 + ") and (atomname N,CA,C,O,P,/C5'/,/C3'/,/O3'/,/O5'/)"
                             )

@@ -72,9 +72,8 @@ class Volume(_Type):
     # Null type unit for avoiding issue printing configargparse help.
     _default_unit = "ANGSTROM3"
 
-    # The dimension mask:
-    #     Angle, Charge, Length, Mass, Quantity, Temperature, Time
-    _dimensions = (0, 0, 3, 0, 0, 0, 0)
+    # The dimension mask.
+    _dimensions = tuple(list(_supported_units.values())[0].dimensions())
 
     def __init__(self, *args):
         """
@@ -287,7 +286,8 @@ class Volume(_Type):
                 "Supported units are: '%s'" % list(self._supported_units.keys())
             )
 
-    def _validate_unit(self, unit):
+    @classmethod
+    def _validate_unit(cls, unit):
         """Validate that the unit are supported."""
 
         # Strip whitespace and convert to upper case.
@@ -317,13 +317,13 @@ class Volume(_Type):
             unit = unit[0:index] + unit[index + 1 :] + "3"
 
         # Check that the unit is supported.
-        if unit in self._supported_units:
+        if unit in cls._supported_units:
             return unit
-        elif unit in self._abbreviations:
-            return self._abbreviations[unit]
+        elif unit in cls._abbreviations:
+            return cls._abbreviations[unit]
         else:
             raise ValueError(
-                "Supported units are: '%s'" % list(self._supported_units.keys())
+                "Supported units are: '%s'" % list(cls._supported_units.keys())
             )
 
     @staticmethod

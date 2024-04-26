@@ -44,7 +44,6 @@ import warnings as _warnings
 from sire.legacy import Base as _SireBase
 from sire.legacy import IO as _SireIO
 from sire.legacy import Mol as _SireMol
-import pandas as pd
 
 from .._Utils import _assert_imported, _have_imported, _try_import
 
@@ -236,8 +235,12 @@ class Amber(_process.Process):
         )
 
         # Create the reference file
-        if self._ref_system is not None and self._protocol.getRestraint() is not None:
-            self._write_system(self._ref_system, ref_file=self._ref_file)
+        if self._ref_system is not None:
+            if (
+                self._system.getAlchemicalIon()
+                or self._protocol.getRestraint() is not None
+            ):
+                self._write_system(self._ref_system, ref_file=self._ref_file)
         else:
             _shutil.copy(self._rst_file, self._ref_file)
 
@@ -543,7 +546,10 @@ class Amber(_process.Process):
         if not isinstance(self._protocol, _Protocol.Custom):
             # Append a reference file if this a restrained simulation.
             if isinstance(self._protocol, _Protocol._PositionRestraintMixin):
-                if self._protocol.getRestraint() is not None:
+                if (
+                    self._protocol.getRestraint() is not None
+                    or self._system.getAlchemicalIon()
+                ):
                     self.setArg("-ref", "%s_ref.rst7" % self._name)
 
             # Append a trajectory file if this anything other than a minimisation.
@@ -805,23 +811,51 @@ class Amber(_process.Process):
             # Create a copy of the existing system object.
             old_system = self._system.copy()
 
-            # Update the coordinates and velocities and return a mapping between
-            # the molecule indices in the two systems.
-            sire_system, mapping = _SireIO.updateCoordinatesAndVelocities(
-                old_system._sire_object,
-                new_system._sire_object,
-                self._mapping,
-                is_lambda1,
-                self._property_map,
-                self._property_map,
-            )
+            if isinstance(self._protocol, _Protocol._FreeEnergyMixin):
+                # Udpate the coordinates and velocities and return a mapping between
+                # the molecule indices in the two systems.
+                mapping = {
+                    _SireMol.MolIdx(x): _SireMol.MolIdx(x)
+                    for x in range(0, self._squashed_system.nMolecules())
+                }
+                (
+                    self._squashed_system._sire_object,
+                    _,
+                ) = _SireIO.updateCoordinatesAndVelocities(
+                    self._squashed_system._sire_object,
+                    new_system._sire_object,
+                    mapping,
+                    is_lambda1,
+                    self._property_map,
+                    self._property_map,
+                )
 
-            # Update the underlying Sire object.
-            old_system._sire_object = sire_system
+                # Update the unsquashed system based on the updated squashed system.
+                old_system = _unsquash(
+                    old_system,
+                    self._squashed_system,
+                    self._mapping,
+                    explicit_dummies=self._explicit_dummies,
+                )
 
-            # Store the mapping between the MolIdx in both systems so we don't
-            # need to recompute it next time.
-            self._mapping = mapping
+            else:
+                # Update the coordinates and velocities and return a mapping between
+                # the molecule indices in the two systems.
+                sire_system, mapping = _SireIO.updateCoordinatesAndVelocities(
+                    old_system._sire_object,
+                    new_system._sire_object,
+                    self._mapping,
+                    is_lambda1,
+                    self._property_map,
+                    self._property_map,
+                )
+
+                # Update the underlying Sire object.
+                old_system._sire_object = sire_system
+
+                # Store the mapping between the MolIdx in both systems so we don't
+                # need to recompute it next time.
+                self._mapping = mapping
 
             # Update the box information in the original system.
             if "space" in new_system._sire_object.propertyKeys():

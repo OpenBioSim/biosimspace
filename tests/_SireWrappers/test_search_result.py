@@ -7,12 +7,6 @@ url = BSS.tutorialUrl()
 
 
 @pytest.fixture(scope="session")
-def system():
-    """Re-use the same molecuar system for each test."""
-    return BSS.IO.readMolecules(["tests/input/ala.top", "tests/input/ala.crd"])
-
-
-@pytest.fixture(scope="session")
 def molecule(system):
     """Re-use the same molecule for each test."""
     return system[0]
