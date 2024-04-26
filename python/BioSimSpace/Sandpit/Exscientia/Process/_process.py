@@ -911,16 +911,6 @@ class Process:
 
         # The process isn't running.
         if not self.isRunning():
-            try:
-                self.saveMetric()
-            except Exception:
-                exception_info = traceback.format_exc()
-                with open(f"{self.workDir()}/{self._name}.err", "a+") as f:
-                    f.write("Exception Information during saveMetric():\n")
-                    f.write("======================\n")
-                    f.write(exception_info)
-                    f.write("\n\n")
-
             return
 
         if max_time is not None:
@@ -1650,12 +1640,25 @@ class Process:
         """Generate the dictionary of command-line arguments."""
         self.clearArgs()
 
+    def _saveMetric(self, filename, u_nk, dHdl):
+        """The abstract function to save the metric and free energy data. Need to be
+        defined for each MD engine."""
+        pass
+
     def saveMetric(
         self, filename="metric.parquet", u_nk="u_nk.parquet", dHdl="dHdl.parquet"
     ):
         """The abstract function to save the metric and free energy data. Need to be
         defined for each MD engine."""
-        pass
+        try:
+            self._saveMetric(filename, u_nk, dHdl)
+        except Exception:
+            exception_info = traceback.format_exc()
+            with open(f"{self.workDir()}/{self._name}.err", "a+") as f:
+                f.write("Exception Information during saveMetric():\n")
+                f.write("======================\n")
+                f.write(exception_info)
+                f.write("\n\n")
 
     def _convert_datadict_keys(self, datadict_keys):
         """This function is a helper function for saveMetric that converts a

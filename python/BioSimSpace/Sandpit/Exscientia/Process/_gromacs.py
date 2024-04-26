@@ -2861,7 +2861,7 @@ class Gromacs(_process.Process):
         else:
             return self._traj_file
 
-    def saveMetric(
+    def _saveMetric(
         self, filename="metric.parquet", u_nk="u_nk.parquet", dHdl="dHdl.parquet"
     ):
         """

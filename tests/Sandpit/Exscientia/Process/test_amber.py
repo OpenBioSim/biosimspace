@@ -407,7 +407,7 @@ class TestsaveMetric:
             alchemical_system,
             BSS.Protocol.FreeEnergy(temperature=298 * BSS.Units.Temperature.kelvin),
         )
-        process.wait()
+        process.saveMetric()
         with open(process.workDir() + "/amber.err", "r") as f:
             text = f.read()
             assert "Exception Information" in text

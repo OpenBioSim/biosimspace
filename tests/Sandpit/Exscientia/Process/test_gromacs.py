@@ -383,10 +383,18 @@ class TestGetRecord:
             perturbable_system,
             BSS.Protocol.FreeEnergy(temperature=298 * BSS.Units.Temperature.kelvin),
         )
-        process.wait()
+        process.saveMetric()
         with open(process.workDir() + "/gromacs.err", "r") as f:
             text = f.read()
             assert "Exception Information" in text
+
+
+def test_error_saveMetric(perturbable_system):
+    protocol = BSS.Protocol.FreeEnergy()
+    process = BSS.Process.Gromacs(perturbable_system, protocol)
+    process.saveMetric()
+    with open(f"{process.workDir()}/{process._name}.err", "r") as f:
+        assert "Exception Information during saveMetric():" in f.read()
 
 
 @pytest.mark.skipif(
