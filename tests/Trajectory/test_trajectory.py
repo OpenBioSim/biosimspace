@@ -161,3 +161,24 @@ def test_rmsd(traj_sire, traj_mdtraj, traj_mdanalysis):
     for v0, v1, v2 in zip(rmsd0, rmsd1, rmsd2):
         assert v0.value() == pytest.approx(v1.value(), abs=1e-2)
         assert v0.value() == pytest.approx(v2.value(), abs=1e-2)
+
+
+@pytest.mark.skipif(has_mdtraj is False, reason="Requires mdtraj to be installed.")
+def test_getFrame(system):
+    """Regression test to make sure the getFrame function works."""
+
+    # Just load the trajectory directly.
+    frame = BSS.Trajectory.getFrame(
+        "tests/input/ala.trr", topology="tests/input/ala.gro", index=5
+    )
+
+    assert frame.nAtoms() == system.nAtoms()
+
+    # Load using the system as a reference.
+    frame = BSS.Trajectory.getFrame(
+        "tests/input/ala.trr", "tests/input/ala.gro", system=system, index=5
+    )
+
+    assert frame.nMolecules() == system.nMolecules()
+    assert frame.nResidues() == system.nResidues()
+    assert frame.nAtoms() == system.nAtoms()
