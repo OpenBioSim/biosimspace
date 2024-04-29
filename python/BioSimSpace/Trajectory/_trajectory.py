@@ -219,9 +219,7 @@ def getFrame(trajectory, topology, index, system=None, property_map={}):
                 if "space" in new_system.propertyKeys():
                     box = new_system.property("space")
                     if box.isPeriodic():
-                        sire_system.setProperty(
-                            self._property_map.get("space", "space"), box
-                        )
+                        sire_system.setProperty(property_map.get("space", "space"), box)
 
                 new_system = _System(sire_system)
 
@@ -276,9 +274,7 @@ def getFrame(trajectory, topology, index, system=None, property_map={}):
                 if "space" in new_system.propertyKeys():
                     box = new_system.property("space")
                     if box.isPeriodic():
-                        sire_system.setProperty(
-                            self._property_map.get("space", "space"), box
-                        )
+                        sire_system.setProperty(property_map.get("space", "space"), box)
 
                 new_system = _System(sire_system)
             except Exception as e:
