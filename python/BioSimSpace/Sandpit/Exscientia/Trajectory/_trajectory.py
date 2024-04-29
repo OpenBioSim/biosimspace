@@ -284,11 +284,6 @@ def getFrame(trajectory, topology, index, system=None, property_map={}):
                 else:
                     raise IOError(msg) from None
 
-            else:
-                raise IOError(
-                    "The trajectory frame is incompatible with the passed system!"
-                )
-
     # Load the frame directly to create a new System object.
     else:
         try:
