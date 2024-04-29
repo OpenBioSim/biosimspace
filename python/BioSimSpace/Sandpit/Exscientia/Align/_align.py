@@ -1757,17 +1757,20 @@ def perResidueRmsdAlign(
 
     absolute_residue_mapping = {}
 
-    # invert the mapping
-    # NOTE: This is not ideal as we have no way of detecting whether the mapping
-    # was inverted before or not. This could lead to incorrect mappings.
-    mapping = {v: k for k, v in mapping.items()}
     for res in molecule1.getResidues():
 
         # Get the mapping for the current residue using its atom indices
         # i.e. {0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5}
-        _logger.debug(f"Residue {res.index()}")
-        _logger.debug(f"Residue atoms: {res.getAtoms()}")
-        residue_mapping = {a.index(): mapping[a.index()] for a in res.getAtoms()}
+        # _logger.debug(f"Residue {res.index()}")
+        # _logger.debug(f"Residue atoms: {res.getAtoms()}")
+
+        for atom in res.getAtoms():
+            # try to get the mapping for the atom
+            value = mapping.get(atom.index())
+            if value is not None:
+                residue_mapping = {atom.index(): value}
+
+        # residue_mapping = {a.index(): mapping[a.index()] for a in res.getAtoms()}
 
         # update the absolute mapping dictionary to contain the mapping for each residue
         # i.e. {0: {0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5}...}
@@ -1786,9 +1789,7 @@ def perResidueRmsdAlign(
     # Align each residue from molecule0 to molecule1 individually
     mol0_updated_residue_coords = []
     for i, res in enumerate(mol0_residues):
-        _logger.debug(
-            f"Aligning residue {res.index()} to reference residue {mol1_residues[i].index()}"
-        )
+        # _logger.debug(f"Aligning residue {res.index()} to reference residue {mol1_residues[i].index()}")
         res0 = res.extract()
         res1 = mol1_residues[i].extract()
 
@@ -1809,14 +1810,14 @@ def perResidueRmsdAlign(
         # Perform the alignment, res0 to res1.
         # Convert the mapping to AtomIdx key:value pairs.
         sire_mapping = _to_sire_mapping(mapping)
-        _logger.debug(f"Residue coordinates before alignment: {res0.coords()}")
+        # _logger.debug(f"Residue coordinates before alignment: {res0.coords()}")
         try:
             res0 = (
                 res0.move()
                 .align(res1, _SireMol.AtomResultMatcher(sire_mapping))
                 .molecule()
             )
-            _logger.debug(f"Residue coordinates after alignment: {res0.coords()}")
+            # _logger.debug(f"Residue coordinates after alignment: {res0.coords()}")
             mol0_updated_residue_coords.append(res0.property("coordinates"))
 
         except Exception as e:
