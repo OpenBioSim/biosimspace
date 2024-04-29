@@ -1731,6 +1731,7 @@ class _Production(_Process.OpenMM):
 
         # Write the OpenMM import statements.
         self._add_config_imports()
+        self.addToConfig("import pandas as pd")
         self._add_config_monkey_patches()
 
         # Add standard openMM config
@@ -1897,13 +1898,18 @@ class _Production(_Process.OpenMM):
         run_time = steps * timestep
 
         # Work out the number of cycles in 100 picosecond intervals.
-        cycles = _math.ceil(run_time / 100)
+        cycles = _math.ceil(run_time / (report_interval * timestep))
 
         # Work out the number of steps per cycle.
         steps_per_cycle = int(steps / cycles)
-
         # Now run the simulation.
-        self.addToConfig("\n# Run the simulation in 100 picosecond cycles.")
-        self.addToConfig(f"for x in range(0, {cycles}):")
-        self.addToConfig(f"    simulation.step({steps_per_cycle})")
-        self.addToConfig(f"    simulation.saveState('{self._name}.xml')")
+        self.addToConfig(
+            util.createLoopWithReporting(
+                self._name, cycles, steps_per_cycle, report_interval, timestep, step
+            )
+        )
+        # Now run the simulation.
+        # self.addToConfig("\n# Run the simulation in 100 picosecond cycles.")
+        # self.addToConfig(f"for x in range(0, {cycles}):")
+        # self.addToConfig(f"    simulation.step({steps_per_cycle})")
+        # self.addToConfig(f"    simulation.saveState('{self._name}.xml')")

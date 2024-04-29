@@ -21,6 +21,7 @@
 __all__ = ["_AToMUtils"]
 from .. import Protocol as _Protocol
 from ..Types import Vector as _Vector
+import math as _math
 
 
 class _AToMUtils:
@@ -94,6 +95,7 @@ class _AToMUtils:
             self.uh = self.protocol.getUh()[index].value()
             self.w0 = self.protocol.getW0()[index].value()
             self.direction = self.protocol.getDirections()[index]
+            self.master_lambda = self.protocol._get_lambda_values()[index]
         elif isinstance(
             self.protocol, (_Protocol.AToMEquilibration, _Protocol.AToMAnnealing)
         ):
@@ -103,6 +105,27 @@ class _AToMUtils:
             self.uh = self.protocol.getUh().value()
             self.w0 = self.protocol.getW0().value()
             self.direction = self.protocol.getDirection()
+
+    def _dump_atm_constants_to_dict(self):
+        """Internal function to write all ATM window-dependent constants to a dictionary (string)
+        to be used in sampling for analysis."""
+        output = ""
+        output += "atm_constants = {\n"
+        output += "    'Lambda1': {},\n".format(self.protocol.getLambda1())
+        output += "    'Lambda2': {},\n".format(self.protocol.getLambda2())
+        output += "    'Alpha': {},\n".format(
+            [i.value() for i in self.protocol.getAlpha()]
+        )
+        output += "    'Uh': {},\n".format([i.value() for i in self.protocol.getUh()])
+        output += "    'W0': {},\n".format([i.value() for i in self.protocol.getW0()])
+        output += "    'Direction': {}\n".format(self.protocol.getDirections())
+        output += "}\n"
+
+        output += "for key in atm_constants.keys():\n"
+        output += "    if key in ['Alpha','Uh','W0']:\n"
+        output += "        atm_constants[key] = [i for i in atm_constants[key] * kilocalories_per_mole]\n"
+
+        return output
 
     def findDisplacement(self):
         d = self.data["displacement"]
@@ -255,6 +278,8 @@ class _AToMUtils:
         output += "#Parameters for ATM force in  original units\n"
         output += "lig1_atoms = {}\n".format(self.lig1_atoms)
         output += "lig2_atoms = {}\n".format(self.lig2_atoms)
+        if isinstance(self.protocol, _Protocol.AToMProduction):
+            output += "master_lambda = {}\n".format(self.master_lambda)
         output += "lambda1 = {}\n".format(self.lambda1)
         output += "lambda2 = {}\n".format(self.lambda2)
         output += "alpha = {} * kilocalories_per_mole\n".format(self.alpha)
@@ -264,6 +289,9 @@ class _AToMUtils:
         output += "sc_Umax = {} * kilocalories_per_mole\n".format(self.SCUmax)
         output += "sc_U0 = {} * kilocalories_per_mole\n".format(self.SCU0)
         output += "sc_a = {}\n".format(self.SCa)
+
+        if isinstance(self.protocol, _Protocol.AToMProduction):
+            output += self._dump_atm_constants_to_dict()
 
         output += "\n\n #Define ATM force\n"
         output += """atm_force = ATMForce(
@@ -426,4 +454,64 @@ class _AToMUtils:
         output += "    for key in values_start.keys():\n"
         output += "        simulation.context.setParameter(key, simulation.context.getParameter(key) + increments[key])\n"
         output += "simulation.saveState('openmm.xml')"
+        return output
+
+    def createLoopWithReporting(
+        self, name, cycles, steps_per_cycle, report_interval, timestep, steps=0
+    ):
+        """Creates the loop in which simulations are run, stopping each cycle
+        to report the potential energies required for MBAR analysis.
+
+        Parameters
+        ----------
+        cycles : int
+            Number of cycles to run the simulation for.
+        steps_per_cycle : int
+            Number of steps to run the simulation for in each cycle.
+        report_interval : int (in ps)
+            Interval at which to report the potential energies.
+        timestep : float (in ps)
+            Timestep used in the simulation.
+        steps : int
+            Total number of steps that have been performed so far (Default 0).
+        """
+        output = ""
+        output += "# Create the dictionary which will hold the energies\n"
+        output += f"master_lambda_list = {self.protocol._get_lambda_values()}\n"
+        output += "energies = {}\n"
+        output += "energies['time'] = []\n"
+        output += "energies['fep-lambda'] = []\n"
+        output += "for i in master_lambda_list:\n"
+        output += "    energies[i] = []\n"
+        output += f"\n# Run the simulation in cycles, with each cycle having {report_interval} steps.\n"
+        output += f"steps_so_far = {steps}\n"
+        output += "# Timestep in ps\n"
+        output += f"timestep = {timestep}\n"
+        # TODO: REMEMBER TO RESET VALUES BACK TO THE ORIGINAL VALUES AFTER EACH CYCLE
+        output += f"for x in range(0, {cycles}):\n"
+        output += f"    simulation.step({steps_per_cycle})\n"
+        output += f"    steps_so_far += {steps_per_cycle}\n"
+        output += "    time = steps_so_far * timestep\n"
+        output += "    energies['time'].append(time)\n"
+        output += "    energies['fep-lambda'].append(master_lambda)\n"
+        output += "    #now loop over all simulate lambda values, set the values in the context, and calculate potential energy\n"
+        output += "    for ind, lam in enumerate(master_lambda_list):\n"
+        output += "        for key in atm_constants.keys():\n"
+        output += "            simulation.context.setParameter(key, atm_constants[key][ind])\n"
+        output += "        state = simulation.context.getState(getEnergy=True)\n"
+        output += "        energies[lam].append(state.getPotentialEnergy().value_in_unit(kilocalories_per_mole))\n"
+        output += (
+            "    #Now reset lambda-dependent values back to their original state\n"
+        )
+        output += "    simulation.context.setParameter('Lambda1',lambda1)\n"
+        output += "    simulation.context.setParameter('Lambda2',lambda2)\n"
+        output += "    simulation.context.setParameter('Alpha',alpha)\n"
+        output += "    simulation.context.setParameter('Uh',uh)\n"
+        output += "    simulation.context.setParameter('W0',w0)\n"
+        output += "    simulation.context.setParameter('Direction',direction)\n"
+        output += f"    simulation.saveState('{name}.xml')\n"
+        output += "#now convert the dictionary to a pandas dataframe, with both time and fep-lambda as index columns\n"
+        output += "df = pd.DataFrame(energies)\n"
+        output += "df.set_index(['time', 'fep-lambda'], inplace=True)\n"
+        output += "df.to_csv(f'energies_{master_lambda}.csv')\n"
         return output
