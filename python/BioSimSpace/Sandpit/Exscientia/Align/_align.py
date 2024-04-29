@@ -1339,9 +1339,9 @@ def roiMatch(
                 )
 
         res0_idx = [a.index() for a in molecule0_roi]
-        _logger.debug(f"res0 indices: {res0_idx}")
+        # _logger.debug(f"res0 indices: {res0_idx}")
         res1_idx = [a.index() for a in molecule1_roi]
-        _logger.debug(f"res1 indices: {res1_idx}")
+        # _logger.debug(f"res1 indices: {res1_idx}")
 
         # Append the ROI indices to the list
         roi_idx.append([res0_idx, res1_idx])
@@ -1350,10 +1350,10 @@ def roiMatch(
         res0_extracted = molecule0.extract(res0_idx)
         res1_extracted = molecule1.extract(res1_idx)
 
-        for a in res0_extracted.getAtoms():
-            _logger.debug(f"res0 atom: {a}")
-        for b in res1_extracted.getAtoms():
-            _logger.debug(f"res1 atom: {b}")
+        # for a in res0_extracted.getAtoms():
+        # _logger.debug(f"res0 atom: {a}")
+        # for b in res1_extracted.getAtoms():
+        # _logger.debug(f"res1 atom: {b}")
 
         # If force_backbone_match is enabled,
         # we are going to use the backbone atoms as a prematch
@@ -1367,8 +1367,8 @@ def roiMatch(
                 molecule1_roi.toMolecule()
             )
 
-            _logger.debug(f"Backbone res0 indices: {backbone_res0_idx}")
-            _logger.debug(f"Backbone res1 indices: {backbone_res1_idx}")
+            # _logger.debug(f"Backbone res0 indices: {backbone_res0_idx}")
+            # _logger.debug(f"Backbone res1 indices: {backbone_res1_idx}")
 
             relative_backbone_mapping = matchAtoms(
                 backbone_res0_atoms, backbone_res1_atoms, scoring_function="rmsd"
@@ -1563,14 +1563,14 @@ def roiMatch(
     }
 
     # Print the matched atoms in the ROI
-    for idx0, idx1 in mapping.items():
-        _logger.debug(
-            f"{res0_extracted.getAtoms()[idx0]} <--> {res1_extracted.getAtoms()[idx1]}"
-        )
+    # for idx0, idx1 in mapping.items():
+    #     _logger.debug(
+    #         f"{res0_extracted.getAtoms()[idx0]} <--> {res1_extracted.getAtoms()[idx1]}"
+    #     )
 
-    _logger.debug(f"Full matched atoms: {combined_dict}")
-    for idx0, idx1 in mapping.items():
-        _logger.debug(f"{molecule0.getAtoms()[idx0]} <--> {molecule1.getAtoms()[idx1]}")
+    # _logger.debug(f"Full matched atoms: {combined_dict}")
+    # for idx0, idx1 in mapping.items():
+    #     _logger.debug(f"{molecule0.getAtoms()[idx0]} <--> {molecule1.getAtoms()[idx1]}")
 
     # TODO: Change the return type of roi_idx to a dictionary of lists
     return combined_dict, roi_idx
