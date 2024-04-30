@@ -1109,6 +1109,10 @@ def _split_molecules(frame, pdb, reference, work_dir, property_map={}):
     # Store the formats associated with the reference system.
     formats = reference.fileFormat()
 
+    # Convert NoneType to empty list.
+    if formats is None:
+        formats = []
+
     # Write the frame coordinates/velocities to file.
     coord_file = work_dir + f"/{str(_uuid.uuid4())}.coords"
     top_file = work_dir + f"/{str(_uuid.uuid4())}.top"
