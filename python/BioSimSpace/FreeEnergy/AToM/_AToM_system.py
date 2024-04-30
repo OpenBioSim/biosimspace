@@ -527,7 +527,7 @@ class makeSystem:
 
         initial_normal_vector = (non_protein_coords - com).toVector().normalise()
 
-        out_of_protein = com.toVector() + (displacement.value() * initial_normal_vector)
+        out_of_protein = displacement.value() * initial_normal_vector
         return out_of_protein
 
     def get_prot_com_atoms(self):
