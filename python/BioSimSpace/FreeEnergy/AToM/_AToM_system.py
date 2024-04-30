@@ -1036,7 +1036,7 @@ class Minimise(_Process.OpenMM):
         exe=None,
         platform="CPU",
         seed=None,
-        work_dir="minimise",
+        work_dir=None,
         property_map={},
     ):
         # Validate the protocol.
@@ -1184,9 +1184,9 @@ class Equilibrate(_Process.OpenMM):
         system,
         protocol,
         exe=None,
-        platform="CPU",
+        platform="CUDA",
         seed=None,
-        work_dir="equilibrate",
+        work_dir=None,
         property_map={},
     ):
         # Validate the protocol.
@@ -1431,7 +1431,7 @@ class Anneal(_Process.OpenMM):
         exe=None,
         platform="CUDA",
         seed=None,
-        work_dir="anneal",
+        work_dir=None,
         property_map={},
     ):
         # Validate the protocol.
@@ -1673,7 +1673,7 @@ class _Production(_Process.OpenMM):
         exe=None,
         platform="CUDA",
         seed=None,
-        work_dir="anneal",
+        work_dir=None,
         property_map={},
     ):
         # Validate the protocol.
