@@ -3084,9 +3084,11 @@ class AToMProduction(_AToM):
                 if type(a) is int:
                     a = float(a)
 
-                if isinstance(a, float):
+                elif isinstance(a, float):
                     # Use default units.
                     a *= _Units.Energy.kcal_per_mol
+                    print("HERE")
+                    print(a)
 
                 else:
                     if isinstance(a, str):
@@ -3108,7 +3110,7 @@ class AToMProduction(_AToM):
                             "'alpha' has invalid dimensions! "
                             f"Expected dimensions are 'L2 M Q-1 T-2', found '{a.unit()}'"
                         )
-                alpha.append(a)
+                alpha_fin.append(a)
             self._alpha = alpha_fin
         elif alpha is None:
             self._alpha = [0.00 * _Units.Energy.kcal_per_mol] * self._num_lambda
@@ -3171,6 +3173,7 @@ class AToMProduction(_AToM):
                             f"Expected dimensions are 'L2 M Q-1 T-2', found '{u.unit()}'"
                         )
                 uh_fin.append(u)
+            self._uh = uh_fin
         elif uh is None:
             self._uh = [0.00 * _Units.Energy.kcal_per_mol] * self._num_lambda
         else:
@@ -3232,6 +3235,7 @@ class AToMProduction(_AToM):
                             f"Expected dimensions are 'L2 M Q-1 T-2', found '{w.unit()}'"
                         )
                 W0_fin.append(w)
+            self._W0 = W0_fin
         elif W0 is None:
             self._W0 = [0.00 * _Units.Energy.kcal_per_mol] * self._num_lambda
         else:
