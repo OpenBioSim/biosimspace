@@ -16,11 +16,15 @@ jobs:
       max-parallel: 9
       fail-fast: false
       matrix:
-        python-version: ["3.9", "3.10", "3.11"]
+        python-version: ["3.10", "3.11", "3.12"]
         platform:
           - { name: "windows", os: "windows-latest", shell: "pwsh" }
           - { name: "linux", os: "ubuntu-latest", shell: "bash -l {0}" }
           - { name: "macos", os: "macos-latest", shell: "bash -l {0}" }
+        exclude:
+          - platform:
+              { name: "macos", os: "macos-latest", shell: "bash -l {0}" }
+            python-version: "3.12"  # MacOS can't run 3.12 yet...
     environment:
       name: biosimspace-build
     defaults:
@@ -30,7 +34,7 @@ jobs:
       SIRE_DONT_PHONEHOME: 1
       SIRE_SILENT_PHONEHOME: 1
     steps:
-      - uses: conda-incubator/setup-miniconda@v2
+      - uses: conda-incubator/setup-miniconda@v3
         with:
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
@@ -43,7 +47,7 @@ jobs:
         run: git clone -b main https://github.com/openbiosim/biosimspace
 #
       - name: Setup Conda
-        run: mamba install -y -c conda-forge boa anaconda-client packaging=21 pip-requirements-parser
+        run: mamba install -y -c conda-forge boa anaconda-client packaging pip-requirements-parser
 #
       - name: Update Conda recipe
         run: python ${{ github.workspace }}/biosimspace/actions/update_recipe.py

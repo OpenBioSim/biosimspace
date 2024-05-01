@@ -19,23 +19,6 @@ from tests.conftest import url, has_amber, has_gromacs, has_openff
 restraints = BSS.Protocol._position_restraint_mixin._PositionRestraintMixin.restraints()
 
 
-@pytest.fixture(scope="session")
-def system():
-    """Re-use the same molecuar system for each test."""
-    return BSS.IO.readMolecules(["tests/input/ala.top", "tests/input/ala.crd"])
-
-
-@pytest.fixture(scope="session")
-def perturbable_system():
-    """Re-use the same perturbable system for each test."""
-    return BSS.IO.readPerturbableSystem(
-        f"{url}/complex_vac0.prm7.bz2",
-        f"{url}/complex_vac0.rst7.bz2",
-        f"{url}/complex_vac1.prm7.bz2",
-        f"{url}/complex_vac1.rst7.bz2",
-    )
-
-
 @pytest.mark.skipif(has_gromacs is False, reason="Requires GROMACS to be installed.")
 @pytest.mark.parametrize("restraint", restraints)
 def test_minimise(system, restraint):

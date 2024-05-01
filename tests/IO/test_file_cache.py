@@ -15,7 +15,7 @@ def test_file_cache():
     """
 
     # Clear the file cache.
-    BSS.IO._file_cache._cache = BSS.IO._file_cache._FixedSizeOrderedDict()
+    BSS.IO.clearCache()
 
     # Load the molecular system.
     s = BSS.IO.readMolecules(["tests/input/ala.crd", "tests/input/ala.top"])
@@ -82,6 +82,21 @@ def test_file_cache():
     # Make sure the number of atoms in the cache was decremented.
     assert BSS.IO._file_cache._cache._num_atoms == total_atoms - num_atoms
 
+    # Clear the file cache.
+    BSS.IO.clearCache()
+
+    # The cache should now be empty.
+    assert len(BSS.IO._file_cache._cache) == 0
+
+    # Disable the cache.
+    BSS.IO.disableCache()
+
+    # Write to PDB and GroTop format. The PDB from the cache should not be reused.
+    BSS.IO.saveMolecules(f"{tmp_path}/tmp5", s, ["pdb", "grotop"])
+
+    # The cache should still be empty.
+    assert len(BSS.IO._file_cache._cache) == 0
+
 
 @pytest.mark.skipif(
     has_amber is False or has_openff is False,
@@ -93,8 +108,11 @@ def test_file_cache_mol_nums():
     contain different MolNUms.
     """
 
+    # Enable the cache.
+    BSS.IO.enableCache()
+
     # Clear the file cache.
-    BSS.IO._file_cache._cache = BSS.IO._file_cache._FixedSizeOrderedDict()
+    BSS.IO.clearCache()
 
     # Create an initial system.
     system = BSS.Parameters.openff_unconstrained_2_0_0("CO").getMolecule().toSystem()

@@ -1,7 +1,7 @@
 ######################################################################
 # BioSimSpace: Making biomolecular simulation a breeze!
 #
-# Copyright: 2017-2023
+# Copyright: 2017-2024
 #
 # Authors: Lester Hedges <lester.hedges@gmail.com>
 #
@@ -145,7 +145,9 @@ class Gromacs(_Config):
         protocol_dict["pbc"] = "xyz"
         # Use Verlet pair lists.
         protocol_dict["cutoff-scheme"] = "Verlet"
-        if self.hasBox() and self.hasWater():
+        if self.hasBox(self._system, self._property_map) and self.hasWater(
+            self._system
+        ):
             # Use a grid to search for neighbours.
             protocol_dict["ns-type"] = "grid"
             # Rebuild neighbour list every 20 steps.
@@ -186,7 +188,9 @@ class Gromacs(_Config):
         if not isinstance(self._protocol, _Protocol.Minimisation):
             if self._protocol.getPressure() is not None:
                 # Don't use barostat for vacuum simulations.
-                if self.hasBox() and self.hasWater():
+                if self.hasBox(self._system, self._property_map) and self.hasWater(
+                    self._system
+                ):
                     # Barostat type.
                     if version and version >= 2021:
                         protocol_dict["pcoupl"] = "c-rescale"
@@ -195,9 +199,9 @@ class Gromacs(_Config):
                     # 1ps time constant for pressure coupling.
                     protocol_dict["tau-p"] = 1
                     # Pressure in bar.
-                    protocol_dict[
-                        "ref-p"
-                    ] = f"{self._protocol.getPressure().bar().value():.5f}"
+                    protocol_dict["ref-p"] = (
+                        f"{self._protocol.getPressure().bar().value():.5f}"
+                    )
                     # Compressibility of water.
                     protocol_dict["compressibility"] = "4.5e-5"
                 else:
@@ -207,10 +211,14 @@ class Gromacs(_Config):
 
         # Temperature control.
         if not isinstance(self._protocol, _Protocol.Minimisation):
-            # Leap-frog molecular dynamics.
-            protocol_dict["integrator"] = "md"
-            # Temperature coupling using velocity rescaling with a stochastic term.
-            protocol_dict["tcoupl"] = "v-rescale"
+            if isinstance(self._protocol, _FreeEnergyMixin):
+                # Langevin dynamics.
+                protocol_dict["integrator"] = "sd"
+            else:
+                # Leap-frog molecular dynamics.
+                protocol_dict["integrator"] = "md"
+                # Temperature coupling using velocity rescaling with a stochastic term.
+                protocol_dict["tcoupl"] = "v-rescale"
             # A single temperature group for the entire system.
             protocol_dict["tc-grps"] = "system"
             # Thermostat coupling frequency (ps).

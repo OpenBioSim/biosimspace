@@ -1,7 +1,7 @@
 ######################################################################
 # BioSimSpace: Making biomolecular simulation a breeze!
 #
-# Copyright: 2017-2023
+# Copyright: 2017-2024
 #
 # Authors: Lester Hedges <lester.hedges@gmail.com>
 #
@@ -63,11 +63,13 @@ class Namd(_process.Process):
         self,
         system,
         protocol,
+        reference_system=None,
         exe=None,
         name="namd",
         work_dir=None,
         seed=None,
         property_map={},
+        **kwargs,
     ):
         """
         Constructor.
@@ -80,6 +82,11 @@ class Namd(_process.Process):
 
         protocol : :class:`Protocol <BioSimSpace.Protocol>`
             The protocol for the NAMD process.
+
+        reference_system : :class:`System <BioSimSpace._SireWrappers.System>` or None
+            An optional system to use as a source of reference coordinates for position
+            restraints. It is assumed that this system has the same topology as "system".
+            If this is None, then "system" is used as a reference.
 
         exe : str
             The full path to the NAMD executable.
@@ -97,12 +104,16 @@ class Namd(_process.Process):
             A dictionary that maps system "properties" to their user defined
             values. This allows the user to refer to properties with their
             own naming scheme, e.g. { "charge" : "my-charge" }
+
+        kwargs : dict
+            Additional keyword arguments.
         """
 
         # Call the base class constructor.
         super().__init__(
             system,
             protocol,
+            reference_system=reference_system,
             name=name,
             work_dir=work_dir,
             seed=seed,
@@ -137,17 +148,17 @@ class Namd(_process.Process):
         self._stdout_title = None
 
         # The names of the input files.
-        self._psf_file = "%s/%s.psf" % (self._work_dir, name)
-        self._top_file = "%s/%s.pdb" % (self._work_dir, name)
-        self._param_file = "%s/%s.params" % (self._work_dir, name)
+        self._psf_file = _os.path.join(str(self._work_dir), f"{name}.psf")
+        self._top_file = _os.path.join(str(self._work_dir), f"{name}.pdb")
+        self._param_file = _os.path.join(str(self._work_dir), f"{name}.params")
         self._velocity_file = None
         self._restraint_file = None
 
         # The name of the trajectory file.
-        self._traj_file = "%s/%s_out.dcd" % (self._work_dir, name)
+        self._traj_file = _os.path.join(str(self._work_dir), f"{name}_out.dcd")
 
         # Set the path for the NAMD configuration file.
-        self._config_file = "%s/%s.cfg" % (self._work_dir, name)
+        self._config_file = _os.path.join(str(self._work_dir), f"{name}.cfg")
 
         # Create the list of input files.
         self._input_files = [
@@ -421,7 +432,9 @@ class Namd(_process.Process):
             restraint = self._protocol.getRestraint()
             if restraint is not None:
                 # Create a restrained system.
-                restrained = self._createRestrainedSystem(self._system, restraint)
+                restrained = self._createRestrainedSystem(
+                    self._reference_system, restraint
+                )
 
                 # Create a PDB object, mapping the "occupancy" property to "restrained".
                 prop = self._property_map.get("occupancy", "occupancy")
@@ -430,9 +443,8 @@ class Namd(_process.Process):
                     p = _SireIO.PDB2(restrained._sire_object, {prop: "restrained"})
 
                     # File name for the restraint file.
-                    self._restraint_file = "%s/%s.restrained" % (
-                        self._work_dir,
-                        self._name,
+                    self._restraint_file = _os.path.join(
+                        str(self._work_dir), f"{self._name}.restrained"
                     )
 
                     # Write the PDB file.
@@ -720,13 +732,19 @@ class Namd(_process.Process):
         has_coor = False
 
         # First check for final configuration.
-        if _os.path.isfile("%s/%s_out.coor" % (self._work_dir, self._name)):
-            coor_file = "%s/%s_out.coor" % (self._work_dir, self._name)
+        if _os.path.isfile(
+            _os.path.join(str(self._work_dir), f"{self._name}_out.coor")
+        ):
+            coor_file = _os.path.join(str(self._work_dir), f"{self._name}_out.coor")
             has_coor = True
 
         # Otherwise check for a restart file.
-        elif _os.path.isfile("%s/%s_out.restart.coor" % (self._work_dir, self._name)):
-            coor_file = "%s/%s_out.restart.coor" % (self._work_dir, self._name)
+        elif _os.path.isfile(
+            _os.path.join(str(self._work_dir), f"{self._name}_out.restart.coor")
+        ):
+            coor_file = _os.path.join(
+                str(self._work_dir), f"{self._name}_out.restart.coor"
+            )
             has_coor = True
 
         # Try to find an XSC file.
@@ -734,13 +752,17 @@ class Namd(_process.Process):
         has_xsc = False
 
         # First check for final XSC file.
-        if _os.path.isfile("%s/%s_out.xsc" % (self._work_dir, self._name)):
-            xsc_file = "%s/%s_out.xsc" % (self._work_dir, self._name)
+        if _os.path.isfile(_os.path.join(str(self._work_dir), f"{self._name}_out.xsc")):
+            xsc_file = _os.path.join(str(self._work_dir), f"{self._name}_out.xsc")
             has_xsc = True
 
         # Otherwise check for a restart XSC file.
-        elif _os.path.isfile("%s/%s_out.restart.xsc" % (self._work_dir, self._name)):
-            xsc_file = "%s/%s_out.restart.xsc" % (self._work_dir, self._name)
+        elif _os.path.isfile(
+            _os.path.join(str(self._work_dir), f"{self._name}_out.restart.xsc")
+        ):
+            xsc_file = _os.path.join(
+                str(self._work_dir), f"{self._name}_out.restart.xsc"
+            )
             has_xsc = True
 
         # We found a coordinate file.
@@ -761,9 +783,7 @@ class Namd(_process.Process):
                     is_lambda1 = False
 
                 # Load the restart file.
-                new_system = _System(
-                    _SireIO.MoleculeParser.read(files, self._property_map)
-                )
+                new_system = _IO.readMolecules(files, property_map=self._property_map)
 
                 # Create a copy of the existing system object.
                 old_system = self._system.copy()

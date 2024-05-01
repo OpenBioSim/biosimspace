@@ -2145,9 +2145,9 @@ class RestraintSearch:
                 }
                 # If this is the first pair, add it as the permanent distance restraint.
                 if i == 0:
-                    restraint_dict[
-                        "permanent_distance_restraint"
-                    ] = individual_restraint_dict
+                    restraint_dict["permanent_distance_restraint"] = (
+                        individual_restraint_dict
+                    )
                 else:
                     restraint_dict["distance_restraints"].append(
                         individual_restraint_dict

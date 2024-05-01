@@ -8,8 +8,8 @@ from tests.conftest import url, has_namd
 restraints = BSS.Protocol._position_restraint_mixin._PositionRestraintMixin.restraints()
 
 
-@pytest.fixture(scope="session")
-def system():
+@pytest.fixture(scope="module")
+def namd_system():
     """Re-use the same molecuar system for each test."""
     return BSS.IO.readMolecules(
         [
@@ -22,19 +22,19 @@ def system():
 
 @pytest.mark.skipif(has_namd is False, reason="Requires NAMD to be installed.")
 @pytest.mark.parametrize("restraint", restraints)
-def test_minimise(system, restraint):
+def test_minimise(namd_system, restraint):
     """Test a minimisation protocol."""
 
     # Create a short minimisation protocol.
     protocol = BSS.Protocol.Minimisation(steps=100, restraint=restraint)
 
     # Run the process, check that it finished without error, and returns a system.
-    run_process(system, protocol)
+    run_process(namd_system, protocol)
 
 
 @pytest.mark.skipif(has_namd is False, reason="Requires NAMD to be installed.")
 @pytest.mark.parametrize("restraint", restraints)
-def test_equilibrate(system, restraint):
+def test_equilibrate(namd_system, restraint):
     """Test an equilibration protocol."""
 
     # Create a short equilibration protocol.
@@ -43,11 +43,11 @@ def test_equilibrate(system, restraint):
     )
 
     # Run the process, check that it finished without error, and returns a system.
-    run_process(system, protocol)
+    run_process(namd_system, protocol)
 
 
 @pytest.mark.skipif(has_namd is False, reason="Requires NAMD to be installed.")
-def test_heat(system):
+def test_heat(namd_system):
     """Test a heating protocol."""
 
     # Create a short heating protocol.
@@ -58,11 +58,11 @@ def test_heat(system):
     )
 
     # Run the process, check that it finished without error, and returns a system.
-    run_process(system, protocol)
+    run_process(namd_system, protocol)
 
 
 @pytest.mark.skipif(has_namd is False, reason="Requires NAMD to be installed.")
-def test_cool(system):
+def test_cool(namd_system):
     """Test a cooling protocol."""
 
     # Create a short heating protocol.
@@ -73,12 +73,12 @@ def test_cool(system):
     )
 
     # Run the process, check that it finished without error, and returns a system.
-    run_process(system, protocol)
+    run_process(namd_system, protocol)
 
 
 @pytest.mark.skipif(has_namd is False, reason="Requires NAMD to be installed.")
 @pytest.mark.parametrize("restraint", restraints)
-def test_production(system, restraint):
+def test_production(namd_system, restraint):
     """Test a production protocol."""
 
     # Create a short production protocol.
@@ -87,14 +87,14 @@ def test_production(system, restraint):
     )
 
     # Run the process, check that it finished without error, and returns a system.
-    run_process(system, protocol)
+    run_process(namd_system, protocol)
 
 
-def run_process(system, protocol):
+def run_process(namd_system, protocol):
     """Helper function to run various simulation protocols."""
 
     # Initialise the NAMD process.
-    process = BSS.Process.Namd(system, protocol, name="test")
+    process = BSS.Process.Namd(namd_system, protocol, name="test")
 
     # Start the NAMD simulation.
     process.start()

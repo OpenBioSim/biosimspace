@@ -1,7 +1,7 @@
 ######################################################################
 # BioSimSpace: Making biomolecular simulation a breeze!
 #
-# Copyright: 2017-2023
+# Copyright: 2017-2024
 #
 # Authors: Lester Hedges <lester.hedges@gmail.com>
 #
@@ -24,7 +24,7 @@
 __author__ = "Lester Hedges"
 __email__ = "lester.hedges@gmail.com"
 
-__all__ = ["check_cache", "update_cache"]
+__all__ = ["clearCache", "disableCache", "enableCache"]
 
 import collections as _collections
 import hashlib as _hashlib
@@ -80,8 +80,43 @@ class _FixedSizeOrderedDict(_collections.OrderedDict):
 # to the same format, allowing us to re-use the existing file.
 _cache = _FixedSizeOrderedDict()
 
+# Whether to use the cache.
+_use_cache = True
 
-def check_cache(
+
+def clearCache():
+    """
+    Clear the file cache.
+    """
+    global _cache
+    _cache = _FixedSizeOrderedDict()
+
+
+def disableCache():
+    """
+    Disable the file cache.
+    """
+    global _use_cache
+    _use_cache = False
+
+
+def enableCache():
+    """
+    Enable the file cache.
+    """
+    global _use_cache
+    _use_cache = True
+
+
+def _cache_active():
+    """
+    Internal helper function to check whether the cache is active.
+    """
+    global _use_cache
+    return _use_cache
+
+
+def _check_cache(
     system,
     format,
     filebase,
@@ -157,6 +192,8 @@ def check_cache(
     if not isinstance(skip_water, bool):
         raise TypeError("'skip_water' must be of type 'bool'.")
 
+    global _cache
+
     # Create the key.
     key = (
         system._sire_object.uid().toString(),
@@ -221,7 +258,7 @@ def check_cache(
         return ext
 
 
-def update_cache(
+def _update_cache(
     system,
     format,
     path,
@@ -283,6 +320,8 @@ def update_cache(
 
     if not isinstance(skip_water, bool):
         raise TypeError("'skip_water' must be of type 'bool'.")
+
+    global _cache
 
     # Convert to an absolute path.
     path = _os.path.abspath(path)

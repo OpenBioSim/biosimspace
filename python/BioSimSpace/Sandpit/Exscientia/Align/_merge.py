@@ -1,7 +1,7 @@
 ######################################################################
 # BioSimSpace: Making biomolecular simulation a breeze!
 #
-# Copyright: 2017-2023
+# Copyright: 2017-2024
 #
 # Authors: Lester Hedges <lester.hedges@gmail.com>
 #
@@ -1560,6 +1560,12 @@ def _removeDummies(molecule, is_lambda1):
     molecule = molecule.copy()._toRegularMolecule(
         is_lambda1=is_lambda1, generate_intrascale=True
     )
+
+    # Remove the parameters property, if it exists.
+    if "parameters" in molecule._sire_object.propertyKeys():
+        molecule._sire_object = (
+            molecule._sire_object.edit().removeProperty("parameters").commit()
+        )
 
     # Set the coordinates to those at lambda = 0
     molecule._sire_object = (

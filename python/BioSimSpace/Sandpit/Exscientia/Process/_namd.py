@@ -1,7 +1,7 @@
 ######################################################################
 # BioSimSpace: Making biomolecular simulation a breeze!
 #
-# Copyright: 2017-2023
+# Copyright: 2017-2024
 #
 # Authors: Lester Hedges <lester.hedges@gmail.com>
 #
@@ -759,9 +759,7 @@ class Namd(_process.Process):
                     is_lambda1 = False
 
                 # Load the restart file.
-                new_system = _System(
-                    _SireIO.MoleculeParser.read(files, self._property_map)
-                )
+                new_system = _IO.readMolecules(files, property_map=self._property_map)
 
                 # Create a copy of the existing system object.
                 old_system = self._system.copy()

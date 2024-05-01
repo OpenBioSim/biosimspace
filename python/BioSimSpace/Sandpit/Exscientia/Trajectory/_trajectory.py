@@ -1,7 +1,7 @@
 ######################################################################
 # BioSimSpace: Making biomolecular simulation a breeze!
 #
-# Copyright: 2017-2023
+# Copyright: 2017-2024
 #
 # Authors: Lester Hedges <lester.hedges@gmail.com>
 #
@@ -157,7 +157,7 @@ def getFrame(trajectory, topology, index, system=None, property_map={}):
     errors = []
     is_sire = False
     is_mdanalysis = False
-    pdb_file = work_dir + f"/{str(_uuid.uuid4())}.pdb"
+    pdb_file = _os.path.join(str(work_dir), f"{str(_uuid.uuid4())}.pdb")
     try:
         frame = _sire_load(
             [trajectory, topology],
@@ -169,7 +169,7 @@ def getFrame(trajectory, topology, index, system=None, property_map={}):
     except Exception as e:
         errors.append(f"Sire: {str(e)}")
         try:
-            frame_file = work_dir + f"/{str(_uuid.uuid4())}.rst7"
+            frame_file = _os.path.join(str(work_dir), f"{str(_uuid.uuid4())}.rst7")
             frame = _mdtraj.load_frame(trajectory, index, top=topology)
             frame.save(frame_file, force_overwrite=True)
             frame.save(pdb_file, force_overwrite=True)
@@ -178,7 +178,7 @@ def getFrame(trajectory, topology, index, system=None, property_map={}):
             errors.append(f"MDTraj: {str(e)}")
             # Try to load the frame with MDAnalysis.
             try:
-                frame_file = work_dir + f"/{str(_uuid.uuid4())}.gro"
+                frame_file = _os.path.join(str(work_dir), f"{str(_uuid.uuid4())}.gro")
                 universe = _mdanalysis.Universe(topology, trajectory)
                 universe.trajectory.trajectory[index]
                 with _warnings.catch_warnings():
@@ -615,7 +615,9 @@ class Trajectory:
             # If this is a PRM7 file, copy to PARM7.
             if extension == ".prm7":
                 # Set the path to the temporary topology file.
-                top_file = self._work_dir + f"/{str(_uuid.uuid4())}.parm7"
+                top_file = _os.path.join(
+                    str(self._work_dir), f"{str(_uuid.uuid4())}.parm7"
+                )
 
                 # Copy the topology to a file with the correct extension.
                 _shutil.copyfile(self._top_file, top_file)
@@ -761,16 +763,20 @@ class Trajectory:
 
             # Write the current frame to file.
 
-            pdb_file = self._work_dir + f"/{str(_uuid.uuid4())}.pdb"
+            pdb_file = _os.path.join(str(self._work_dir), f"{str(_uuid.uuid4())}.pdb")
 
             if self._backend == "SIRE":
                 frame = self._trajectory[x]
             elif self._backend == "MDTRAJ":
-                frame_file = self._work_dir + f"/{str(_uuid.uuid4())}.rst7"
+                frame_file = _os.path.join(
+                    str(self._work_dir), f"{str(_uuid.uuid4())}.rst7"
+                )
                 self._trajectory[x].save(frame_file, force_overwrite=True)
                 self._trajectory[x].save(pdb_file, force_overwrite=True)
             elif self._backend == "MDANALYSIS":
-                frame_file = self._work_dir + f"/{str(_uuid.uuid4())}.gro"
+                frame_file = _os.path.join(
+                    str(self._work_dir), f"{str(_uuid.uuid4())}.gro"
+                )
                 self._trajectory.trajectory[x]
                 with _warnings.catch_warnings():
                     _warnings.simplefilter("ignore")
@@ -1114,8 +1120,8 @@ def _split_molecules(frame, pdb, reference, work_dir, property_map={}):
         formats = []
 
     # Write the frame coordinates/velocities to file.
-    coord_file = work_dir + f"/{str(_uuid.uuid4())}.coords"
-    top_file = work_dir + f"/{str(_uuid.uuid4())}.top"
+    coord_file = _os.path.join(str(work_dir), f"{str(_uuid.uuid4())}.coords")
+    top_file = _os.path.join(str(work_dir), f"{str(_uuid.uuid4())}.top")
     frame.writeToFile(coord_file)
 
     # Whether we've parsed as a PDB file.

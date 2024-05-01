@@ -1,7 +1,7 @@
 ######################################################################
 # BioSimSpace: Making biomolecular simulation a breeze!
 #
-# Copyright: 2017-2023
+# Copyright: 2017-2024
 #
 # Authors: Lester Hedges <lester.hedges@gmail.com>
 #
@@ -70,11 +70,13 @@ class Process:
         self,
         system,
         protocol,
+        reference_system=None,
         name=None,
         work_dir=None,
         seed=None,
         extra_options={},
         extra_lines=[],
+        extra_args={},
         property_map={},
     ):
         """
@@ -88,6 +90,11 @@ class Process:
 
         protocol : :class:`Protocol <BioSimSpace.Protocol>`
             The protocol for the process.
+
+        reference_system : :class:`System <BioSimSpace._SireWrappers.System>` or None
+            An optional system to use as a source of reference coordinates for position
+            restraints. It is assumed that this system has the same topology as "system".
+            If this is None, then "system" is used as a reference.
 
         name : str
             The name of the process.
@@ -108,6 +115,9 @@ class Process:
 
         extra_lines : [str]
             A list of extra lines to put at the end of the configuration file.
+
+        extra_args : dict
+            A dictionary containing extra command-line arguments.
 
         property_map : dict
             A dictionary that maps system "properties" to their user defined
@@ -137,6 +147,27 @@ class Process:
         if not isinstance(protocol, _Protocol):
             raise TypeError("'protocol' must be of type 'BioSimSpace.Protocol'")
 
+        # Check that the reference system is valid.
+        if reference_system is not None:
+            if not isinstance(reference_system, _System):
+                raise TypeError(
+                    "'reference_system' must be of type 'BioSimSpace._SireWrappers.System'"
+                )
+
+            # Make sure that the reference system contains the same number
+            # of molecules, residues, and atoms as the system.
+            if (
+                not reference_system.nMolecules() == system.nMolecules()
+                or not reference_system.nResidues() == system.nResidues()
+                or not reference_system.nAtoms() == system.nAtoms()
+            ):
+                raise _IncompatibleError(
+                    "'refence_system' must have the same topology as 'system'"
+                )
+            self._reference_system = reference_system
+        else:
+            self._reference_system = system.copy()
+
         # Check that the working directory is valid.
         if work_dir is not None and not isinstance(work_dir, (str, _Utils.WorkDir)):
             raise TypeError(
@@ -161,6 +192,14 @@ class Process:
         else:
             if not all(isinstance(line, str) for line in extra_lines):
                 raise TypeError("Lines in 'extra_lines' must be of type 'str'.")
+
+        # Check the extra arguments.
+        if not isinstance(extra_args, dict):
+            raise TypeError("'extra_args' must be of type 'dict'.")
+        else:
+            keys = extra_args.keys()
+            if not all(isinstance(k, str) for k in keys):
+                raise TypeError("Keys of 'extra_args' must be of type 'str'.")
 
         # Check that the map is valid.
         if not isinstance(property_map, dict):
@@ -217,9 +256,10 @@ class Process:
             self._is_seeded = True
             self.setSeed(seed)
 
-        # Set the extra options and lines.
+        # Set the extra options, lines, and args.
         self._extra_options = extra_options
         self._extra_lines = extra_lines
+        self._extra_args = extra_args
 
         # Set the map.
         self._property_map = property_map.copy()
@@ -241,11 +281,11 @@ class Process:
             self._work_dir = _Utils.WorkDir(work_dir)
 
         # Files for redirection of stdout and stderr.
-        self._stdout_file = "%s/%s.out" % (self._work_dir, name)
-        self._stderr_file = "%s/%s.err" % (self._work_dir, name)
+        self._stdout_file = _os.path.join(str(self._work_dir), f"{name}.out")
+        self._stderr_file = _os.path.join(str(self._work_dir), f"{name}.err")
 
         # Files for metadynamics simulation with PLUMED.
-        self._plumed_config_file = "%s/plumed.dat" % self._work_dir
+        self._plumed_config_file = _os.path.join(str(self._work_dir), "plumed.dat")
         self._plumed_config = None
 
         # Initialise the configuration file string list.
@@ -309,13 +349,13 @@ class Process:
         self._stderr = []
 
         # Clean up any existing offset files.
-        offset_files = _glob.glob("%s/*.offset" % self._work_dir)
+        offset_files = _glob.glob(_os.path.join(str(self._work_dir), "*.offset"))
 
         # Remove any HILLS or COLVAR files from the list. These will be dealt
         # with by the PLUMED interface.
         try:
-            offset_files.remove("%s/COLVAR.offset" % self._work_dir)
-            offset_files.remove("%s/HILLS.offset" % self._work_dir)
+            offset_files.remove(_os.path.join(str(self._work_dir), "COLVAR.offset"))
+            offset_files.remove(_os.path.join(str(self._work_dir), "HILLS.offset"))
         except:
             pass
 
@@ -1200,7 +1240,7 @@ class Process:
         zipname = "%s.zip" % name
 
         # Glob all of the output files.
-        output = _glob.glob("%s/*" % self._work_dir)
+        output = _glob.glob(_os.path.join(str(self._work_dir), "*"))
 
         with _zipfile.ZipFile(zipname, "w") as zip:
             # Loop over all of the file outputs.
@@ -1433,6 +1473,10 @@ class Process:
             raise TypeError(
                 "'args' must be of type 'dict' or 'collections.OrderedDict'"
             )
+
+        # Add extra arguments.
+        if self._extra_args:
+            self.addArgs(self._extra_args)
 
     def setArg(self, arg, value):
         """

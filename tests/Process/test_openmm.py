@@ -8,12 +8,6 @@ from tests.conftest import url, has_amber, has_gromacs, has_openff
 restraints = BSS.Protocol._position_restraint_mixin._PositionRestraintMixin.restraints()
 
 
-@pytest.fixture(scope="session")
-def system():
-    """Re-use the same molecuar system for each test."""
-    return BSS.IO.readMolecules(["tests/input/ala.top", "tests/input/ala.crd"])
-
-
 @pytest.mark.parametrize("restraint", restraints)
 def test_minimise(system, restraint):
     """Test a minimisation protocol."""

@@ -63,35 +63,35 @@ Conda package
 The easiest way to install BioSimSpace is using our `conda channel <https://anaconda.org/openbiosim/repo>`__.
 BioSimSpace is built using dependencies from `conda-forge <https://conda-forge.org/>`__,
 so please ensure that the channel takes strict priority. We recommend using
-`Mambaforge <https://github.com/conda-forge/miniforge#mambaforge>`__.
+`Miniforge <https://github.com/conda-forge/miniforge>`__.
 
 To create a new environment:
 
 .. code-block:: bash
 
-    mamba create -n openbiosim -c conda-forge -c openbiosim biosimspace
-    mamba activate openbiosim
+    conda create -n openbiosim -c conda-forge -c openbiosim biosimspace
+    conda activate openbiosim
 
 To install the latest development version you can use:
 
 .. code-block:: bash
 
-    mamba create -n openbiosim-dev -c conda-forge -c openbiosim/label/dev biosimspace
-    mamba activate openbiosim-dev
+    conda create -n openbiosim-dev -c conda-forge -c openbiosim/label/dev biosimspace
+    conda activate openbiosim-dev
 
 When updating the development version it is generally advised to update `Sire <https://github.com/openbiosim/sire>`_
 at the same time:
 
 .. code-block:: bash
 
-    mamba update -c conda-forge -c openbiosim/label/dev biosimspace sire
+    conda update -c conda-forge -c openbiosim/label/dev biosimspace sire
 
 Unless you add the required channels to your Conda configuration, then you'll
 need to add them when updating, e.g., for the development package:
 
 .. code-block:: bash
 
-    mamba update -c conda-forge -c openbiosim/label/dev biosimspace
+    conda update -c conda-forge -c openbiosim/label/dev biosimspace
 
 Installing from source
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -146,8 +146,8 @@ latest development code into that.
 
 .. code-block:: bash
 
-   mamba create -n openbiosim-dev -c conda-forge -c openbiosim/label/dev biosimspace --only-deps
-   mamba activate openbiosim-dev
+   conda create -n openbiosim-dev -c conda-forge -c openbiosim/label/dev biosimspace --only-deps
+   conda activate openbiosim-dev
    git clone https://github.com/openbiosim/biosimspace
    cd biosimspace/python
    BSS_SKIP_DEPENDENCIES=1 python setup.py develop

@@ -1,7 +1,7 @@
 ######################################################################
 # BioSimSpace: Making biomolecular simulation a breeze!
 #
-# Copyright: 2017-2023
+# Copyright: 2017-2024
 #
 # Authors: Lester Hedges <lester.hedges@gmail.com>
 #
@@ -117,8 +117,8 @@ class Plumed:
         self._work_dir = work_dir
 
         # Set the location of the HILLS and COLVAR files.
-        self._hills_file = "%s/HILLS" % self._work_dir
-        self._colvar_file = "%s/COLVAR" % self._work_dir
+        self._hills_file = _os.path.join(str(self._work_dir), "HILLS")
+        self._colvar_file = _os.path.join(str(self._work_dir), "COLVAR")
 
         # The number of collective variables and total number of components.
         self._num_colvar = 0
@@ -250,11 +250,11 @@ class Plumed:
 
         # Always remove pygtail offset files.
         try:
-            _os.remove("%s/COLVAR.offset" % self._work_dir)
+            _os.remove(_os.path.join(str(self._work_dir), "COLVAR.offset"))
         except:
             pass
         try:
-            _os.remove("%s/HILLS.offset" % self._work_dir)
+            _os.remove(_os.path.join(str(self._work_dir), "HILLS.offset"))
         except:
             pass
 
@@ -627,7 +627,9 @@ class Plumed:
                 colvar_string += " TYPE=%s" % colvar.getAlignmentType().upper()
 
                 # Write the reference PDB file.
-                with open("%s/reference.pdb" % self._work_dir, "w") as file:
+                with open(
+                    _os.path.join(str(self._work_dir), "reference.pdb"), "w"
+                ) as file:
                     for line in colvar.getReferencePDB():
                         file.write(line + "\n")
 
@@ -870,7 +872,9 @@ class Plumed:
             metad_string += (
                 " GRID_WFILE=GRID GRID_WSTRIDE=%s" % protocol.getHillFrequency()
             )
-            if is_restart and _os.path.isfile(f"{self._work_dir}/GRID"):
+            if is_restart and _os.path.isfile(
+                _os.path.join(str(self._work_dir), "GRID")
+            ):
                 metad_string += " GRID_RFILE=GRID"
             metad_string += " CALC_RCT"
 
@@ -940,7 +944,7 @@ class Plumed:
 
         # Always remove pygtail offset files.
         try:
-            _os.remove("%s/COLVAR.offset" % self._work_dir)
+            _os.remove(_os.path.join(str(self._work_dir), "COLVAR.offset"))
         except:
             pass
 
@@ -1225,7 +1229,8 @@ class Plumed:
 
                 # Write the reference PDB file.
                 with open(
-                    "%s/reference_%i.pdb" % (self._work_dir, num_rmsd), "w"
+                    _os.path.join(str(self._work_dir), "reference_%i.pdb" % num_rmsd),
+                    "w",
                 ) as file:
                     for line in colvar.getReferencePDB():
                         file.write(line + "\n")
@@ -1449,8 +1454,8 @@ class Plumed:
             raise ValueError("'kt' must have value > 0")
 
         # Delete any existing FES directotry and create a new one.
-        _shutil.rmtree(f"{self._work_dir}/fes", ignore_errors=True)
-        _os.makedirs(f"{self._work_dir}/fes")
+        _shutil.rmtree(_os.path.join(str(self._work_dir), "fes"), ignore_errors=True)
+        _os.makedirs(_os.path.join(str(self._work_dir), "fes"))
 
         # Create the command string.
         command = "%s sum_hills --hills ../HILLS --mintozero" % self._exe
@@ -1466,7 +1471,7 @@ class Plumed:
         free_energies = []
 
         # Move to the working directory.
-        with _Utils.cd(self._work_dir + "/fes"):
+        with _Utils.cd(_os.path.join(str(self._work_dir), "fes")):
             # Run the sum_hills command as a background process.
             proc = _subprocess.run(
                 _Utils.command_split(command),
@@ -1556,7 +1561,7 @@ class Plumed:
                 _os.remove(fes)
 
         # Remove the FES output directory.
-        _shutil.rmtree(f"{self._work_dir}/fes", ignore_errors=True)
+        _shutil.rmtree(_os.path.join(str(self._work_dir), "fes"), ignore_errors=True)
 
         return tuple(free_energies)
 
