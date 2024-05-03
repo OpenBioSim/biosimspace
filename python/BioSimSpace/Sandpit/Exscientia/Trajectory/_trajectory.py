@@ -153,8 +153,13 @@ def getFrame(trajectory, topology, index, system=None, property_map={}):
         # Update the water topology to match topology/trajectory.
         system = _update_water_topology(system, topology, trajectory, property_map)
 
+        # Copy the system.
+        renumbered_system = system.copy()
+
         # Make sure the constituents of the system are numbered in ascending order.
-        system._sire_object = _SireIO.renumberConstituents(system._sire_object)
+        renumbered_system._sire_object = _SireIO.renumberConstituents(
+            system._sire_object
+        )
 
     # Try to load the frame with Sire.
     errors = []
@@ -266,7 +271,7 @@ def getFrame(trajectory, topology, index, system=None, property_map={}):
             # coordinates of all of the atoms in the reference. As such, we
             # will need to split the system into molecules.
             new_system = _split_molecules(
-                frame, pdb, system, str(work_dir), property_map
+                frame, pdb, renumbered_system, str(work_dir), property_map
             )
             try:
                 sire_system, _ = _SireIO.updateCoordinatesAndVelocities(
@@ -468,8 +473,11 @@ class Trajectory:
                     self._system, self._top_file, self._traj_file, self._property_map
                 )
 
+            # Copy the system.
+            self._renumbered_system = self._system.copy()
+
             # Make sure the constituents of the system are numbered in ascending order.
-            self._system._sire_object = _SireIO.renumberConstituents(
+            self._renumbered_system._sire_object = _SireIO.renumberConstituents(
                 self._system._sire_object
             )
 
@@ -848,7 +856,7 @@ class Trajectory:
                     new_system = _split_molecules(
                         frame,
                         pdb,
-                        self._system,
+                        self._renumbered_system,
                         str(self._work_dir),
                         self._property_map,
                     )
