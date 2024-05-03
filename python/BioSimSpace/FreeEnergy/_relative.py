@@ -123,7 +123,7 @@ class Relative:
     """Class for configuring and running relative free-energy perturbation simulations."""
 
     # Create a list of supported molecular dynamics engines. (For running simulations.)
-    _engines = ["GROMACS", "SOMD"]
+    _engines = ["AMBER", "GROMACS", "SOMD"]
 
     # Create a list of supported molecular dynamics engines. (For analysis.)
     _engines_analysis = ["AMBER", "GROMACS", "SOMD", "SOMD2"]
@@ -135,11 +135,8 @@ class Relative:
         work_dir=None,
         engine=None,
         setup_only=False,
-        ignore_warnings=False,
-        show_errors=True,
-        extra_options={},
-        extra_lines=[],
         property_map={},
+        **kwargs,
     ):
         """
         Constructor.
@@ -157,6 +154,9 @@ class Relative:
                    :class:`Protocol.FreeEnergyProduction <BioSimSpace.Protocol.FreeEnergyProduction>`
             The simulation protocol.
 
+        reference_system : :class:`System <BioSimSpace._SireWrappers.System>`
+            A reference system to use for position restraints.
+
         work_dir : str
             The working directory for the free-energy perturbation
             simulation.
@@ -173,27 +173,14 @@ class Relative:
             can be useful when you don't intend to use BioSimSpace to run
             the simulation. Note that a 'work_dir' must also be specified.
 
-        ignore_warnings : bool
-            Whether to ignore warnings when generating the binary run file.
-            This option is specific to GROMACS and will be ignored when a
-            different molecular dynamics engine is chosen.
-
-        show_errors : bool
-            Whether to show warning/error messages when generating the binary
-            run file. This option is specific to GROMACS and will be ignored
-            when a different molecular dynamics engine is chosen.
-
-        extra_options : dict
-            A dictionary containing extra options. Overrides the defaults generated
-            by the protocol.
-
-        extra_lines : [str]
-            A list of extra lines to put at the end of the configuration file.
-
         property_map : dict
             A dictionary that maps system "properties" to their user defined
             values. This allows the user to refer to properties with their
             own naming scheme, e.g. { "charge" : "my-charge" }
+
+        kwargs : dict
+            Additional keyword arguments to pass to the underlying Process
+            objects.
         """
 
         # Validate the input.
@@ -203,7 +190,7 @@ class Relative:
                 "'system' must be of type 'BioSimSpace._SireWrappers.System'"
             )
         else:
-            # Store a copy of solvated system.
+            # Store a copy of the system.
             self._system = system.copy()
 
         # Validate the user specified molecular dynamics engine.
@@ -221,19 +208,12 @@ class Relative:
                     "Supported engines are: %r." % ", ".join(self._engines)
                 )
 
-            # Make sure GROMACS is installed if GROMACS engine is selected.
-            if engine == "GROMACS":
-                if _gmx_exe is None:
-                    raise _MissingSoftwareError(
-                        "Cannot use GROMACS engine as GROMACS is not installed!"
-                    )
-
-                # The system must have a perturbable molecule.
-                if system.nPerturbableMolecules() == 0:
-                    raise ValueError(
-                        "The system must contain a perturbable molecule! "
-                        "Use the 'BioSimSpace.Align' package to map and merge molecules."
-                    )
+            # The system must have a perturbable molecule.
+            if system.nPerturbableMolecules() == 0:
+                raise ValueError(
+                    "The system must contain a perturbable molecule! "
+                    "Use the 'BioSimSpace.Align' package to map and merge molecules."
+                )
 
         else:
             # Use SOMD as a default.
@@ -292,35 +272,15 @@ class Relative:
         # Create the working directory.
         self._work_dir = _Utils.WorkDir(work_dir)
 
-        if not isinstance(ignore_warnings, bool):
-            raise ValueError("'ignore_warnings' must be of type 'bool.")
-        self._ignore_warnings = ignore_warnings
-
-        if not isinstance(show_errors, bool):
-            raise ValueError("'show_errors' must be of type 'bool.")
-        self._show_errors = show_errors
-
-        # Check the extra options.
-        if not isinstance(extra_options, dict):
-            raise TypeError("'extra_options' must be of type 'dict'.")
-        else:
-            keys = extra_options.keys()
-            if not all(isinstance(k, str) for k in keys):
-                raise TypeError("Keys of 'extra_options' must be of type 'str'.")
-        self._extra_options = extra_options
-
-        # Check the extra lines.
-        if not isinstance(extra_lines, list):
-            raise TypeError("'extra_lines' must be of type 'list'.")
-        else:
-            if not all(isinstance(line, str) for line in extra_lines):
-                raise TypeError("Lines in 'extra_lines' must be of type 'str'.")
-        self._extra_lines = extra_lines
-
         # Check that the map is valid.
         if not isinstance(property_map, dict):
             raise TypeError("'property_map' must be of type 'dict'")
         self._property_map = property_map
+
+        # Validate the kwargs.
+        if not isinstance(kwargs, dict):
+            raise TypeError("'kwargs' must be of type 'dict'.")
+        self._kwargs = kwargs
 
         # Create fake instance methods for 'analyse', 'checkOverlap',
         # and 'difference'. These pass instance data through to the
@@ -446,7 +406,7 @@ class Relative:
                     )
 
             # Write to the zip file.
-            with _zipfile.ZipFile(cwd + f"/{zipname}", "w") as zip:
+            with _zipfile.Zipfile(_os.join(cwd, zipname), "w") as zip:
                 for file in files:
                     zip.write(file)
 
@@ -2004,7 +1964,7 @@ class Relative:
         processes = []
 
         # Convert to an appropriate water topology.
-        if self._engine == "SOMD":
+        if self._engine in ["AMBER", "SOMD"]:
             system._set_water_topology("AMBER", property_map=self._property_map)
         elif self._engine == "GROMACS":
             system._set_water_topology("GROMACS", property_map=self._property_map)
@@ -2039,9 +1999,8 @@ class Relative:
                 self._protocol,
                 platform=platform,
                 work_dir=first_dir,
-                extra_options=self._extra_options,
-                extra_lines=self._extra_lines,
                 property_map=self._property_map,
+                **self._kwargs,
             )
             if self._setup_only:
                 del first_process
@@ -2054,13 +2013,24 @@ class Relative:
                 system,
                 self._protocol,
                 work_dir=first_dir,
-                ignore_warnings=self._ignore_warnings,
-                show_errors=self._show_errors,
-                extra_options=self._extra_options,
-                extra_lines=self._extra_lines,
                 property_map=self._property_map,
+                **self._kwargs,
             )
             if not self._setup_only:
+                processes.append(first_process)
+
+        # AMBER.
+        elif self._engine == "AMBER":
+            first_process = _Process.Amber(
+                system,
+                self._protocol,
+                work_dir=first_dir,
+                property_map=self._property_map,
+                **self._kwargs,
+            )
+            if self._setup_only:
+                del first_process
+            else:
                 processes.append(first_process)
 
         # Loop over the rest of the lambda values.
@@ -2104,15 +2074,15 @@ class Relative:
                     process._system = first_process._system.copy()
                     process._protocol = self._protocol
                     process._work_dir = new_dir
-                    process._std_out_file = new_dir + "/somd.out"
-                    process._std_err_file = new_dir + "/somd.err"
-                    process._rst_file = new_dir + "/somd.rst7"
-                    process._top_file = new_dir + "/somd.prm7"
-                    process._traj_file = new_dir + "/traj000000001.dcd"
-                    process._restart_file = new_dir + "/latest.rst"
-                    process._config_file = new_dir + "/somd.cfg"
-                    process._pert_file = new_dir + "/somd.pert"
-                    process._gradients_file = new_dir + "/gradients.dat"
+                    process._std_out_file = _os.path.join(new_dir, "somd.out")
+                    process._std_err_file = _os.path.join(new_dir, "somd.err")
+                    process._rst_file = _os.path.join(new_dir, "somd.rst7")
+                    process._top_file = _os.path.join(new_dir, "somd.prm7")
+                    process._traj_file = _os.path.join(new_dir, "traj000000001.dcd")
+                    process._restart_file = _os.path.join(new_dir, "latest.rst")
+                    process._config_file = _os.path.join(new_dir, "somd.cfg")
+                    process._pert_file = _os.path.join(new_dir, "somd.pert")
+                    process._gradients_file = _os.path.join(new_dir, "gradients.dat")
                     process._input_files = [
                         process._config_file,
                         process._rst_file,
@@ -2136,10 +2106,10 @@ class Relative:
                     for line in new_config:
                         f.write(line)
 
-                mdp = new_dir + "/gromacs.mdp"
-                gro = new_dir + "/gromacs.gro"
-                top = new_dir + "/gromacs.top"
-                tpr = new_dir + "/gromacs.tpr"
+                mdp = _os.path.join(new_dir, "gromacs.mdp")
+                gro = _os.path.join(new_dir, "gromacs.gro")
+                top = _os.path.join(new_dir, "gromacs.top")
+                tpr = _os.path.join(new_dir, "gromacs.tpr")
 
                 # Use grompp to generate the portable binary run input file.
                 _Process.Gromacs._generate_binary_run_file(
@@ -2149,8 +2119,7 @@ class Relative:
                     gro,
                     tpr,
                     first_process._exe,
-                    ignore_warnings=self._ignore_warnings,
-                    show_errors=self._show_errors,
+                    **self._kwargs,
                 )
 
                 # Create a copy of the process and update the working
@@ -2160,13 +2129,14 @@ class Relative:
                     process._system = first_process._system.copy()
                     process._protocol = self._protocol
                     process._work_dir = new_dir
-                    process._std_out_file = new_dir + "/gromacs.out"
-                    process._std_err_file = new_dir + "/gromacs.err"
-                    process._gro_file = new_dir + "/gromacs.gro"
-                    process._top_file = new_dir + "/gromacs.top"
-                    process._traj_file = new_dir + "/gromacs.trr"
-                    process._config_file = new_dir + "/gromacs.mdp"
-                    process._tpr_file = new_dir + "/gromacs.tpr"
+                    process._std_out_file = _os.path.join(new_dir, "gromacs.out")
+                    process._std_err_file = _os.path.join(new_dir, "gromacs.err")
+                    process._gro_file = _os.path.join(new_dir, "gromacs.gro")
+                    process._top_file = _os.path.join(new_dir, "gromacs.top")
+                    process._ref_file = _os.path.join(new_dir, "gromacs_ref.gro")
+                    process._traj_file = _os.path.join(new_dir, "gromacs.trr")
+                    process._config_file = _os.path.join(new_dir, "gromacs.mdp")
+                    process._tpr_file = _os.path.join(new_dir, "gromacs.tpr")
                     process._input_files = [
                         process._config_file,
                         process._gro_file,
@@ -2175,28 +2145,45 @@ class Relative:
                     ]
                     processes.append(process)
 
+            # AMBER.
+            elif self._engine == "AMBER":
+                new_config = []
+                with open(new_dir + "/amber.cfg", "r") as f:
+                    for line in f:
+                        if "clambda" in line:
+                            new_config.append("   clambda=%s,\n" % lam)
+                        else:
+                            new_config.append(line)
+                with open(new_dir + "/amber.cfg", "w") as f:
+                    for line in new_config:
+                        f.write(line)
+
+                # Create a copy of the process and update the working
+                # directory.
+                if not self._setup_only:
+                    process = _copy.copy(first_process)
+                    process._system = first_process._system.copy()
+                    process._protocol = self._protocol
+                    process._work_dir = new_dir
+                    process._std_out_file = _os.path.join(new_dir, "amber.out")
+                    process._std_err_file = _os.path.join(new_dir, "amber.err")
+                    process._rst_file = _os.path.join(new_dir, "amber.rst7")
+                    process._top_file = _os.path.join(new_dir, "amber.prm7")
+                    process._ref_file = _os.path.join(new_dir, "amber_ref.rst7")
+                    process._traj_file = _os.path.join(new_dir, "amber.nc")
+                    process._config_file = _os.path.join(new_dir, "amber.cfg")
+                    process._nrg_file = _os.path.join(new_dir, "amber.nrg")
+                    process._input_files = [
+                        process._config_file,
+                        process._rst_file,
+                        process._top_file,
+                    ]
+                    processes.append(process)
+
         if not self._setup_only:
             # Initialise the process runner. All processes have already been nested
             # inside the working directory so no need to re-nest.
             self._runner = _Process.ProcessRunner(processes)
-
-    def _update_run_args(self, args):
-        """
-        Internal function to update run arguments for all subprocesses.
-
-        Parameters
-        ----------
-
-        args : dict, collections.OrderedDict
-            A dictionary which contains the new command-line arguments
-            for the process executable.
-        """
-
-        if not isinstance(args, dict):
-            raise TypeError("'args' must be of type 'dict'")
-
-        for process in self._runner.processes():
-            process.setArgs(args)
 
 
 def getData(name="data", file_link=False, work_dir=None):

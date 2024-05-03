@@ -1,7 +1,7 @@
 ######################################################################
 # BioSimSpace: Making biomolecular simulation a breeze!
 #
-# Copyright: 2017-2023
+# Copyright: 2017-2024
 #
 # Authors: Lester Hedges <lester.hedges@gmail.com>
 #
@@ -28,6 +28,9 @@ Functions
 .. autosummary::
     :toctree: generated/
 
+    clearCache
+    disableCache
+    enableCache
     fileFormats
     formatInfo
     readMolecules
@@ -38,3 +41,4 @@ Functions
 """
 
 from ._io import *
+from ._file_cache import *

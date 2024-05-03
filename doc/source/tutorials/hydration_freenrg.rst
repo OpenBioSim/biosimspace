@@ -167,6 +167,20 @@ Let's examine the directory for the :math:`{\lambda=0}` window of the free leg:
    gromacs.err  gromacs.mdp  gromacs.out.mdp  gromacs.tpr
    gromacs.gro  gromacs.out  gromacs.top
 
+Similarly, we can also set up the same simulations using AMBER:
+
+.. code-block:: python
+
+   free_amber = BSS.FreeEnergy.Relative(solvated, protocol, engine="amber", work_dir="freenrg_amber/free")
+   vac_amber = BSS.FreeEnergy.Relative(merged.toSystem(), protocol, engine="amber", work_dir="freenrg_amber/vacuum")
+
+Let's examine the directory for the :math:`{\lambda=0}` window of the free leg:
+
+.. code-block:: bash
+
+   $ ls freenrg_amber/free/lambda_0.0000
+   amber.cfg  amber.err  amber.out  amber.prm7  amber_ref.rst7  amber.rst7
+
 There you go! This tutorial has shown you how BioSimSpace can be used to easily set
 up everything that is needed for complex alchemical free energy simulations. Please
 visit the :data:`API documentation <BioSimSpace.FreeEnergy>` for further information.

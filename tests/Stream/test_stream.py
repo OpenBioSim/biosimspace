@@ -4,11 +4,6 @@ import pytest
 import BioSimSpace as BSS
 
 
-@pytest.fixture
-def system(scope="session"):
-    return BSS.IO.readMolecules(["tests/input/ala.top", "tests/input/ala.crd"])
-
-
 @pytest.fixture(autouse=True)
 def run_around_tests():
     yield

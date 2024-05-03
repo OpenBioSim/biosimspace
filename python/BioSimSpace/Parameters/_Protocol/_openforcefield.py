@@ -73,15 +73,37 @@ else:
 
 _openff = _try_import("openff")
 
+# Initialise the NAGL support flag.
+_has_nagl = False
+
 if _have_imported(_openff):
     from openff.interchange import Interchange as _Interchange
     from openff.toolkit.topology import Molecule as _OpenFFMolecule
-    from openff.toolkit.topology import Topology as _OpenFFTopology
     from openff.toolkit.typing.engines.smirnoff import ForceField as _Forcefield
+
+    try:
+        from openff.toolkit.utils.nagl_wrapper import (
+            NAGLToolkitWrapper as _NAGLToolkitWrapper,
+        )
+
+        _has_nagl = _NAGLToolkitWrapper.is_available()
+        from openff.nagl_models import get_models_by_type as _get_models_by_type
+
+        _models = _get_models_by_type("am1bcc")
+        try:
+            # Find the most recent AM1-BCC release candidate.
+            _nagl = _NAGLToolkitWrapper()
+            _nagl_model = sorted(
+                [str(model) for model in _models if "rc" in str(model)], reverse=True
+            )[0]
+        except:
+            _has_nagl = False
+        del _models
+    except:
+        _has_nagl = False
 else:
     _Interchange = _openff
     _OpenFFMolecule = _openff
-    _OpenFFTopology = _openff
     _Forcefield = _openff
 
 # Reset stderr.
@@ -105,7 +127,9 @@ from . import _protocol
 class OpenForceField(_protocol.Protocol):
     """A class for handling protocols for Open Force Field models."""
 
-    def __init__(self, forcefield, ensure_compatible=True, property_map={}):
+    def __init__(
+        self, forcefield, ensure_compatible=True, use_nagl=True, property_map={}
+    ):
         """
         Constructor.
 
@@ -123,6 +147,11 @@ class OpenForceField(_protocol.Protocol):
             original molecule, e.g. the original atom and residue names will be
             kept.
 
+        use_nagl : bool
+            Whether to use NAGL to compute AM1-BCC charges. If False, the default
+            is to use AmberTools via antechamber and sqm. (This option is only
+            used if NAGL is available.)
+
         property_map : dict
             A dictionary that maps system "properties" to their user defined
             values. This allows the user to refer to properties with their
@@ -135,6 +164,12 @@ class OpenForceField(_protocol.Protocol):
             ensure_compatible=ensure_compatible,
             property_map=property_map,
         )
+
+        if not isinstance(use_nagl, bool):
+            raise TypeError("'use_nagl' must be of type 'bool'")
+
+        # Set the NAGL flag.
+        self._use_nagl = use_nagl
 
         # Set the compatibility flags.
         self._tleap = False
@@ -179,9 +214,6 @@ class OpenForceField(_protocol.Protocol):
         if work_dir is None:
             work_dir = _os.getcwd()
 
-        # Create the file prefix.
-        prefix = work_dir + "/"
-
         # Flag whether the molecule is a SMILES string.
         if isinstance(molecule, str):
             is_smiles = True
@@ -221,7 +253,7 @@ class OpenForceField(_protocol.Protocol):
                 # Write the molecule to SDF format.
                 try:
                     _IO.saveMolecules(
-                        prefix + "molecule",
+                        _os.path.join(str(work_dir), "molecule"),
                         molecule,
                         "sdf",
                         property_map=self._property_map,
@@ -240,7 +272,7 @@ class OpenForceField(_protocol.Protocol):
                 # Write the molecule to a PDB file.
                 try:
                     _IO.saveMolecules(
-                        prefix + "molecule",
+                        _os.path.join(str(work_dir), "molecule"),
                         molecule,
                         "pdb",
                         property_map=self._property_map,
@@ -256,7 +288,7 @@ class OpenForceField(_protocol.Protocol):
                 # Create an RDKit molecule from the PDB file.
                 try:
                     rdmol = _Chem.MolFromPDBFile(
-                        prefix + "molecule.pdb", removeHs=False
+                        _os.path.join(str(work_dir), "molecule.pdb"), removeHs=False
                     )
                 except Exception as e:
                     msg = "RDKit was unable to read the molecular PDB file!"
@@ -268,7 +300,9 @@ class OpenForceField(_protocol.Protocol):
 
                 # Use RDKit to write back to SDF format.
                 try:
-                    writer = _Chem.SDWriter(prefix + "molecule.sdf")
+                    writer = _Chem.SDWriter(
+                        _os.path.join(str(work_dir), "molecule.sdf")
+                    )
                     writer.write(rdmol)
                     writer.close()
                 except Exception as e:
@@ -282,7 +316,9 @@ class OpenForceField(_protocol.Protocol):
             # Create the Open Forcefield Molecule from the intermediate SDF file,
             # as recommended by @j-wags and @mattwthompson.
             try:
-                off_molecule = _OpenFFMolecule.from_file(prefix + "molecule.sdf")
+                off_molecule = _OpenFFMolecule.from_file(
+                    _os.path.join(str(work_dir), "molecule.sdf")
+                )
             except Exception as e:
                 msg = "Unable to create OpenFF Molecule!"
                 if _isVerbose():
@@ -290,6 +326,23 @@ class OpenForceField(_protocol.Protocol):
                     raise _ThirdPartyError(msg) from e
                 else:
                     raise _ThirdPartyError(msg) from None
+
+        # Apply AM1-BCC charges using NAGL.
+        if _has_nagl and self._use_nagl:
+            try:
+                _nagl.assign_partial_charges(
+                    off_molecule, partial_charge_method=_nagl_model
+                )
+            except Exception as e:
+                msg = "Failed to assign AM1-BCC charges using NAGL."
+                if _isVerbose():
+                    msg += ": " + getattr(e, "message", repr(e))
+                    raise _ThirdPartyError(msg) from e
+                else:
+                    raise _ThirdPartyError(msg) from None
+            charge_from_molecules = [off_molecule]
+        else:
+            charge_from_molecules = None
 
         # Extract the molecular topology.
         try:
@@ -317,7 +370,9 @@ class OpenForceField(_protocol.Protocol):
         # Create an Interchange object.
         try:
             interchange = _Interchange.from_smirnoff(
-                force_field=forcefield, topology=off_topology
+                force_field=forcefield,
+                topology=off_topology,
+                charge_from_molecules=charge_from_molecules,
             )
         except Exception as e:
             msg = "Unable to create OpenFF Interchange object!"
@@ -329,8 +384,8 @@ class OpenForceField(_protocol.Protocol):
 
         # Export AMBER format files.
         try:
-            interchange.to_prmtop(prefix + "interchange.prm7")
-            interchange.to_inpcrd(prefix + "interchange.rst7")
+            interchange.to_prmtop(_os.path.join(str(work_dir), "interchange.prm7"))
+            interchange.to_inpcrd(_os.path.join(str(work_dir), "interchange.rst7"))
         except Exception as e:
             msg = "Unable to write Interchange object to AMBER format!"
             if _isVerbose():
@@ -342,7 +397,10 @@ class OpenForceField(_protocol.Protocol):
         # Load the parameterised molecule. (This could be a system of molecules.)
         try:
             par_mol = _IO.readMolecules(
-                [prefix + "interchange.prm7", prefix + "interchange.rst7"]
+                [
+                    _os.path.join(str(work_dir), "interchange.prm7"),
+                    _os.path.join(str(work_dir), "interchange.rst7"),
+                ],
             )
             # Extract single molecules.
             if par_mol.nMolecules() == 1:
