@@ -153,6 +153,9 @@ def getFrame(trajectory, topology, index, system=None, property_map={}):
         # Update the water topology to match topology/trajectory.
         system = _update_water_topology(system, topology, trajectory, property_map)
 
+        # Make sure the constituents of the system are numbered in ascending order.
+        system._sire_object = _SireIO.renumberConstituents(system._sire_object)
+
     # Try to load the frame with Sire.
     errors = []
     is_sire = False
@@ -464,6 +467,11 @@ class Trajectory:
                 self._system = _update_water_topology(
                     self._system, self._top_file, self._traj_file, self._property_map
                 )
+
+            # Make sure the constituents of the system are numbered in ascending order.
+            self._system._sire_object = _SireIO.renumberConstituents(
+                self._system._sire_object
+            )
 
         if not isinstance(backend, str):
             raise TypeError("'backend' must be of type 'str'")
