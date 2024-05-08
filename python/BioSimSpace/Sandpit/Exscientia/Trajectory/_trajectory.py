@@ -153,6 +153,14 @@ def getFrame(trajectory, topology, index, system=None, property_map={}):
         # Update the water topology to match topology/trajectory.
         system = _update_water_topology(system, topology, trajectory, property_map)
 
+        # Copy the system.
+        renumbered_system = system.copy()
+
+        # Make sure the constituents of the system are numbered in ascending order.
+        renumbered_system._sire_object = _SireIO.renumberConstituents(
+            system._sire_object
+        )
+
     # Try to load the frame with Sire.
     errors = []
     is_sire = False
@@ -219,9 +227,7 @@ def getFrame(trajectory, topology, index, system=None, property_map={}):
                 if "space" in new_system.propertyKeys():
                     box = new_system.property("space")
                     if box.isPeriodic():
-                        sire_system.setProperty(
-                            self._property_map.get("space", "space"), box
-                        )
+                        sire_system.setProperty(property_map.get("space", "space"), box)
 
                 new_system = _System(sire_system)
 
@@ -265,7 +271,7 @@ def getFrame(trajectory, topology, index, system=None, property_map={}):
             # coordinates of all of the atoms in the reference. As such, we
             # will need to split the system into molecules.
             new_system = _split_molecules(
-                frame, pdb, system, str(work_dir), property_map
+                frame, pdb, renumbered_system, str(work_dir), property_map
             )
             try:
                 sire_system, _ = _SireIO.updateCoordinatesAndVelocities(
@@ -276,9 +282,7 @@ def getFrame(trajectory, topology, index, system=None, property_map={}):
                 if "space" in new_system.propertyKeys():
                     box = new_system.property("space")
                     if box.isPeriodic():
-                        sire_system.setProperty(
-                            self._property_map.get("space", "space"), box
-                        )
+                        sire_system.setProperty(property_map.get("space", "space"), box)
 
                 new_system = _System(sire_system)
             except Exception as e:
@@ -287,11 +291,6 @@ def getFrame(trajectory, topology, index, system=None, property_map={}):
                     raise IOError(msg) from e
                 else:
                     raise IOError(msg) from None
-
-            else:
-                raise IOError(
-                    "The trajectory frame is incompatible with the passed system!"
-                )
 
     # Load the frame directly to create a new System object.
     else:
@@ -473,6 +472,14 @@ class Trajectory:
                 self._system = _update_water_topology(
                     self._system, self._top_file, self._traj_file, self._property_map
                 )
+
+            # Copy the system.
+            self._renumbered_system = self._system.copy()
+
+            # Make sure the constituents of the system are numbered in ascending order.
+            self._renumbered_system._sire_object = _SireIO.renumberConstituents(
+                self._system._sire_object
+            )
 
         if not isinstance(backend, str):
             raise TypeError("'backend' must be of type 'str'")
@@ -849,7 +856,7 @@ class Trajectory:
                     new_system = _split_molecules(
                         frame,
                         pdb,
-                        self._system,
+                        self._renumbered_system,
                         str(self._work_dir),
                         self._property_map,
                     )
