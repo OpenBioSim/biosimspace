@@ -1732,8 +1732,10 @@ class _Production(_Process.OpenMM):
         # Write the OpenMM import statements.
         self._add_config_imports()
         self.addToConfig("import pandas as pd")
+        self.addToConfig("import numpy as np")
         self._add_config_monkey_patches()
-
+        self.addToConfig("\n")
+        self.addToConfig(util.createSoftcorePertE())
         # Add standard openMM config
         self.addToConfig("from glob import glob")
         self.addToConfig("import math")
@@ -1902,9 +1904,11 @@ class _Production(_Process.OpenMM):
 
         # Work out the number of steps per cycle.
         steps_per_cycle = int(steps / cycles)
+
+        self.addToConfig(f"\ntemperature = {temperature}")
         # Now run the simulation.
         self.addToConfig(
-            util.createLoopWithReporting(
+            util.createSoftcorePertELoop(
                 self._name, cycles, steps_per_cycle, report_interval, timestep, step
             )
         )

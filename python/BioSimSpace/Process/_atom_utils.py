@@ -22,6 +22,7 @@ __all__ = ["_AToMUtils"]
 from .. import Protocol as _Protocol
 from ..Types import Vector as _Vector
 import math as _math
+import warnings as _warnings
 
 
 class _AToMUtils:
@@ -143,9 +144,22 @@ class _AToMUtils:
         self.findDisplacement()
         d = [round(x, 3) for x in self.displacement]
         output = ""
-        output += "displacement = {}\n".format(self.displacement)
+        output += "displacement = {}\n".format(d)
         output += "#BioSimSpace output is in angstrom, divide by 10 to convert to the expected units of nm\n"
         output += "displacement = [i/10.0 for i in displacement]\n"
+        return output
+
+    def createSoftcorePertE(self):
+        """Create the softcorePertE function for the Gallachio lab analysis"""
+        output = ""
+        output += "def softCorePertE(u, umax, ub, a):\n"
+        output += "    usc = u\n"
+        output += "    if u > ub:\n"
+        output += "        gu = (u-ub)/(a*(umax-ub))\n"
+        output += "        zeta = 1. + 2.*gu*(gu + 1.)\n"
+        output += "        zetap = np.power( zeta, a)\n"
+        output += "        usc = (umax-ub)*(zetap - 1.)/(zetap + 1.) + ub\n"
+        output += "    return usc\n"
         return output
 
     def createAlignmentForce(self):
@@ -279,7 +293,7 @@ class _AToMUtils:
         output += "lig1_atoms = {}\n".format(self.lig1_atoms)
         output += "lig2_atoms = {}\n".format(self.lig2_atoms)
         if isinstance(self.protocol, _Protocol.AToMProduction):
-            output += "master_lambda = {}\n".format(self.master_lambda)
+            output += "window_index = {}\n".format(index)
         output += "lambda1 = {}\n".format(self.lambda1)
         output += "lambda2 = {}\n".format(self.lambda2)
         output += "alpha = {} * kilocalories_per_mole\n".format(self.alpha)
@@ -475,6 +489,9 @@ class _AToMUtils:
         steps : int
             Total number of steps that have been performed so far (Default 0).
         """
+        _warnings.warn(
+            "MBAR analysis functionality is not fully implemented and WILL NOT WORK"
+        )
         output = ""
         output += "# Create the dictionary which will hold the energies\n"
         output += f"master_lambda_list = {self.protocol._get_lambda_values()}\n"
@@ -497,7 +514,7 @@ class _AToMUtils:
         output += "    #now loop over all simulate lambda values, set the values in the context, and calculate potential energy\n"
         output += "    for ind, lam in enumerate(master_lambda_list):\n"
         output += "        for key in atm_constants.keys():\n"
-        output += "            simulation.context.setParameter(key, atm_constants[key][ind])\n"
+        output += "            simulation.context.setParameter(key, atm_constants[key][ind].value_in_unit(kilojoules_per_mole))\n"
         output += "        state = simulation.context.getState(getEnergy=True)\n"
         output += "        energies[lam].append(state.getPotentialEnergy().value_in_unit(kilocalories_per_mole))\n"
         output += (
@@ -514,4 +531,69 @@ class _AToMUtils:
         output += "df = pd.DataFrame(energies)\n"
         output += "df.set_index(['time', 'fep-lambda'], inplace=True)\n"
         output += "df.to_csv(f'energies_{master_lambda}.csv')\n"
+        return output
+
+    def createSoftcorePertELoop(
+        self, name, cycles, steps_per_cycle, report_interval, timestep, steps=0
+    ):
+        """Recreation of Gallachio lab analysis - currently uses {cycles} to define sampling frequency"""
+        output = ""
+        output += f"\n# Run the simulation in cycles, with each cycle having {report_interval} steps.\n"
+        output += f"steps_so_far = {steps}\n"
+        output += "# Timestep in ps\n"
+        output += f"timestep = {timestep}\n"
+        output += "\n"
+        output += "#Create dictionary for storing results in the same manner as the Gallachio lab code\n"
+        output += "result = {}\n"
+        output += "result['window'] = []\n"
+        output += "result['temperature'] = []\n"
+        output += "result['direction'] = []\n"
+        output += "result['lambda1'] = []\n"
+        output += "result['lambda2'] = []\n"
+        output += "result['alpha'] = []\n"
+        output += "result['uh'] = []\n"
+        output += "result['w0'] = []\n"
+        output += "result['pot_en'] = []\n"
+        output += "result['pert_en'] = []\n"
+        output += "result['metad_offset'] = []\n"
+        output += f"for x in range(0, {cycles}):\n"
+        output += f"    simulation.step({steps_per_cycle})\n"
+        output += (
+            "    state = simulation.context.getState(getEnergy = True, groups = -1)\n"
+        )
+        output += "    pot_energy = state.getPotentialEnergy()\n"
+        output += "    (u1, u0, alchemicalEBias) = atm_force.getPerturbationEnergy(simulation.context)\n"
+        output += "    umcore = simulation.context.getParameter(atm_force.Umax())* kilojoules_per_mole\n"
+        output += "    ubcore = simulation.context.getParameter(atm_force.Ubcore())* kilojoules_per_mole\n"
+        output += "    acore = simulation.context.getParameter(atm_force.Acore())\n"
+        output += "    uoffset = 0.0 * kilojoules_per_mole\n"
+        output += (
+            "    direction = simulation.context.getParameter(atm_force.Direction())\n"
+        )
+        output += "    if direction > 0:\n"
+        output += (
+            "        pert_e = softCorePertE(u1-(u0+uoffset), umcore, ubcore, acore)\n"
+        )
+        output += "    else:\n"
+        output += (
+            "        pert_e = softCorePertE(u0-(u1+uoffset), umcore, ubcore, acore)\n"
+        )
+        output += "    result['window'].append(window_index)\n"
+        output += "    result['temperature'].append(temperature)\n"
+        output += "    result['direction'].append(direction)\n"
+        output += "    result['lambda1'].append(lambda1)\n"
+        output += "    result['lambda2'].append(lambda2)\n"
+        output += "    result['alpha'].append(alpha)\n"
+        output += "    result['uh'].append(uh)\n"
+        output += "    result['w0'].append(w0)\n"
+        output += "    result['pot_en'].append(pot_energy)\n"
+        output += "    result['pert_en'].append(pert_e)\n"
+        output += "    result['metad_offset'].append(0.0)\n"
+        output += "    #save the state of the simulation\n"
+        output += f"    simulation.saveState('{name}.xml')\n"
+
+        output += "#now convert the dictionary to a pandas dataframe\n"
+        output += "df = pd.DataFrame(result)\n"
+        output += "df.set_index('window', inplace= True)\n"
+        output += f"df.to_csv('{name}.csv')\n"
         return output
