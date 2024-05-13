@@ -3293,17 +3293,27 @@ def _has_dummy(mol, idxs, is_lambda1=False):
         Whether a dummy atom is present.
     """
 
-    # Set the element property associated with the end state.
+    # Set the element and ambertype property associated with the end state.
+    # We need to check by ambertype too since this molecule may have been
+    # created via sire.morph.create_from_pertfile, in which case the element
+    # property will have been set to the end state with the largest mass, i.e.
+    # may no longer by a dummy.
     if is_lambda1:
-        prop = "element1"
+        element_prop = "element1"
+        ambertype_prop = "ambertype1"
     else:
-        prop = "element0"
+        element_prop = "element0"
+        ambertype_prop = "ambertype0"
 
-    dummy = _SireMol.Element(0)
+    element_dummy = _SireMol.Element(0)
+    ambertype_dummy = "du"
 
     # Check whether an of the atoms is a dummy.
     for idx in idxs:
-        if mol.atom(idx).property(prop) == dummy:
+        if (
+            mol.atom(idx).property(element_prop) == element_dummy
+            or mol.atom(idx).property(ambertype_prop) == ambertype_dummy
+        ):
             return True
 
     return False
@@ -3332,21 +3342,37 @@ def _is_dummy(mol, idxs, is_lambda1=False):
         Whether each atom is a dummy.
     """
 
-    # Set the element property associated with the end state.
+    # Set the element and ambertype property associated with the end state.
+    # We need to check by ambertype too since this molecule may have been
+    # created via sire.morph.create_from_pertfile, in which case the element
+    # property will have been set to the end state with the largest mass, i.e.
+    # may no longer by a dummy.
     if is_lambda1:
-        prop = "element1"
+        element_prop = "element1"
+        ambertype_prop = "ambertype1"
     else:
-        prop = "element0"
+        element_prop = "element0"
+        ambertype_prop = "ambertype0"
 
-    # Store a dummy element.
-    dummy = _SireMol.Element(0)
+    if is_lambda1:
+        element_prop = "element1"
+        ambertype_prop = "ambertype1"
+    else:
+        element_prop = "element0"
+        ambertype_prop = "ambertype0"
+
+    element_dummy = _SireMol.Element(0)
+    ambertype_dummy = "du"
 
     # Initialise a list to store the state of each atom.
     is_dummy = []
 
     # Check whether each of the atoms is a dummy.
     for idx in idxs:
-        is_dummy.append(mol.atom(idx).property(prop) == dummy)
+        is_dummy.append(
+            mol.atom(idx).property(element_prop) == element_dummy
+            or mol.atom(idx).property(ambertype_prop) == ambertype_dummy
+        )
 
     return is_dummy
 
