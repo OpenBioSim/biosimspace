@@ -1083,12 +1083,23 @@ class GAFF(_protocol.Protocol):
                     )
                     raise _ParameterisationError(msg)
 
-        # Write the system to a PDB file.
+        # If the molecule was loaded from an SDF file, then use this as the
+        # intermediate format.
+        fileformat_prop = self._property_map.get("fileformat", "fileformat")
+        if (
+            new_mol._sire_object.hasProperty(fileformat_prop)
+            and "SDF" in new_mol._sire_object.property("fileformat").value()
+        ):
+            format = "sdf"
+        else:
+            format = "pdb"
+
+        # Write the system to file.
         try:
             _IO.saveMolecules(
                 _os.path.join(str(work_dir), "antechamber"),
                 new_mol,
-                "pdb",
+                format,
                 property_map=self._property_map,
             )
         except Exception as e:
@@ -1101,9 +1112,16 @@ class GAFF(_protocol.Protocol):
 
         # Generate the Antechamber command.
         command = (
-            "%s -at %d -i antechamber.pdb -fi pdb "
+            "%s -at %d -i antechamber.%s -fi %s "
             + "-o antechamber.mol2 -fo mol2 -c %s -s 2 -nc %d"
-        ) % (_antechamber_exe, self._version, self._charge_method.lower(), charge)
+        ) % (
+            _antechamber_exe,
+            self._version,
+            format,
+            format,
+            self._charge_method.lower(),
+            charge,
+        )
 
         with open(_os.path.join(str(work_dir), "README.txt"), "w") as file:
             # Write the command to file.
