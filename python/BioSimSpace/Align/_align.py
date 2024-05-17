@@ -1061,42 +1061,6 @@ def matchAtoms(
             return mappings[0:matches]
 
 
-# NOTE: This function is currently experimental and has not gone through
-# rigorous validation. Proceed with caution.
-def _get_backbone(molecule):
-    """
-    Extract the backbone atoms from a molecule.
-    Backbone atoms are defined as N, CA, C atoms in a residue.
-    This function is not intended to be applied to ligands.
-
-    Parameters
-    ----------
-
-    molecule0 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
-        The molecule from which to extract the backbone atoms.
-
-    Returns
-    -------
-
-    atom_idx : dict
-        A dictionary of the absolute and relative indices of the backbone atoms.
-
-    relative_backbone_atoms : list
-        A list of the extracted backbone atoms.
-    """
-    absolute_backbone_atom_indices = []
-    for atom in molecule.getAtoms():
-        if atom.name() in ["N", "CA", "C"]:
-            absolute_backbone_atom_indices.append(atom.index())
-
-    relative_backbone_atoms = molecule.extract(absolute_backbone_atom_indices)
-    relative_backbone_atom_indices = [
-        atom.index() for atom in relative_backbone_atoms.getAtoms()
-    ]
-    atom_idx = dict(zip(absolute_backbone_atom_indices, relative_backbone_atom_indices))
-    return atom_idx, relative_backbone_atoms
-
-
 def _kartograf_map(molecule0, molecule1, kartograf_kwargs):
     """
     A wrapper function for kartograf mapping algorithm.
@@ -1203,11 +1167,6 @@ def roiMatch(
 
     roi : list
         A list of regions/residues of interest in the molecule/protein.
-
-    force_backbone_match : bool
-        If set to True, will force the backbone atoms to be matched which
-        is useful for ensuring a more stable match between the two molecules.
-        This is set to False by default.
 
     ring_matches_ring_only : bool
         Whether ring bonds can only match ring bonds.
@@ -1348,76 +1307,21 @@ def roiMatch(
         # for b in res1_extracted.getAtoms():
         # _logger.debug(f"res1 atom: {b}")
 
-        # If force_backbone_match is enabled,
-        # we are going to use the backbone atoms as a prematch
-        if force_backbone_match:
-            _logger.debug("Forcing backbone match")
-
-            backbone_res0_idx, backbone_res0_atoms = _get_backbone(
-                molecule0_roi.toMolecule()
+        if use_kartograf:
+            _logger.debug("Using kartograf to map the ROI.")
+            kartograf_mapping = _kartograf_map(
+                res0_extracted, res1_extracted, kartograf_kwargs
             )
-            backbone_res1_idx, backbone_res1_atoms = _get_backbone(
-                molecule1_roi.toMolecule()
-            )
-
-            # _logger.debug(f"Backbone res0 indices: {backbone_res0_idx}")
-            # _logger.debug(f"Backbone res1 indices: {backbone_res1_idx}")
-
-            relative_backbone_mapping = matchAtoms(
-                backbone_res0_atoms, backbone_res1_atoms, scoring_function="rmsd"
-            )
-
-            # Translate the relative mapping to the absolute indices.
-            # The lookup table contains the relative indices of the atoms
-            # that have been mapped from one residue to the other, for example
-            # [0, 2, 4, 5]. We can use these as positional indices to get the
-            # absolute indices of the atoms from the original residue. i.e.
-            # if the original residue had atom indices such as:
-            # [100, 101, 102, 103, 104, 105], we can use the lookup table to
-            # get [100, 102, 104, 105]. Doing the same for the other residue
-            # will give us an absolute mapping between the two residues.
-            res0_lookup_table = list(relative_backbone_mapping.keys())
-            absolute_backbone_mapped_atoms_res0 = [
-                list(backbone_res0_idx.keys())[i] for i in res0_lookup_table
-            ]
-
-            res1_lookup_table = list(relative_backbone_mapping.values())
-            absolute_backbone_mapped_atoms_res1 = [
-                list(backbone_res1_idx.keys())[i] for i in res1_lookup_table
-            ]
-
-            absolute_backbone_mapping = dict(
-                zip(
-                    absolute_backbone_mapped_atoms_res0,
-                    absolute_backbone_mapped_atoms_res1,
-                )
-            )
-            _logger.debug(f"Absolute backbone mapping: {absolute_backbone_mapping}")
-
+            mapping = kartograf_mapping.componentA_to_componentB
+        else:
+            _logger.debug("Using rdKit MCS to map the ROI.")
             mapping = matchAtoms(
                 res0_extracted,
                 res1_extracted,
-                prematch=absolute_backbone_mapping,
                 complete_rings_only=complete_rings_only,
-                scoring_function="RMSD",
                 ring_matches_ring_only=ring_matches_ring_only,
+                atomCompare=atomCompare,
             )
-        else:
-            if use_kartograf:
-                _logger.debug("Using kartograf to map the ROI.")
-                kartograf_mapping = _kartograf_map(
-                    res0_extracted, res1_extracted, kartograf_kwargs
-                )
-                mapping = kartograf_mapping.componentA_to_componentB
-            else:
-                _logger.debug("Using rdKit MCS to map the ROI.")
-                mapping = matchAtoms(
-                    res0_extracted,
-                    res1_extracted,
-                    complete_rings_only=complete_rings_only,
-                    ring_matches_ring_only=ring_matches_ring_only,
-                    atomCompare=atomCompare,
-                )
 
         _logger.debug(f"Mapping: {mapping}")
 
@@ -1998,6 +1902,7 @@ def flexAlign(
     # Return the aligned molecule.
     return _Molecule(molecule0)
 
+
 def roiAlign(
     molecule0,
     molecule1,
@@ -2122,8 +2027,6 @@ def roiAlign(
         molecule0 = _Molecule(mol0)
 
     return molecule0
-
-
 
 
 def roiFlexAlign(
