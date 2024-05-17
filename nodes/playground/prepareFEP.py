@@ -258,6 +258,9 @@ merged = BSS.Align.merge(
 # Create a composite system
 system1.removeMolecules(lig1)
 system1.addMolecules(merged)
+# Make sure the box vectors are in reduced form.
+system1.reduceBoxVectors()
+system1.rotateBoxVectors()
 
 
 # In[ ]:
@@ -273,7 +276,11 @@ BSS.IO.saveMolecules(
     "merged_at_lam0.pdb",
     merged,
     "PDB",
-    {"coordinates": "coordinates0", "bond": "bond0", "element": "element0"},
+    property_map={
+        "coordinates": "coordinates0",
+        "bond": "bond0",
+        "element": "element0",
+    },
 )
 if is_somd2:
     BSS.Stream.save(system1, root)
