@@ -30,9 +30,8 @@ __all__ = [
     "viewMapping",
     "rmsdAlign",
     "roiMatch",
-    "perResidueRmsdAlign",
     "flexAlign",
-    "roiFlexAlign",
+    "roiAlign",
     "merge",
 ]
 
@@ -1581,169 +1580,6 @@ def rmsdAlign(molecule0, molecule1, mapping=None, property_map0={}, property_map
     return _Molecule(mol0)
 
 
-def perResidueRmsdAlign(
-    molecule0, molecule1, mapping=None, property_map0={}, property_map1={}
-):
-    """
-    Align atoms in molecule0 to those in molecule1 using the mapping
-    between matched atom indices. The molecule is aligned using rigid-body
-    translation and rotations, with a root mean squared displacement (RMSD)
-    fit to find the optimal translation vector (as opposed to merely taking
-    the difference of centroids). This function is specifically designed to
-    be used for aligning protein residues.
-
-    Parameters
-    ----------
-
-    molecule0 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
-        The molecule to align.
-
-    molecule1 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
-        The reference molecule.
-
-    mapping : dict
-        A dictionary mapping atoms in molecule0 to those in molecule1.
-
-    property_map0 : dict
-        A dictionary that maps "properties" in molecule0 to their user
-        defined values. This allows the user to refer to properties
-        with their own naming scheme, e.g. { "charge" : "my-charge" }
-
-    property_map1 : dict
-        A dictionary that maps "properties" in molecule1 to their user
-        defined values.
-
-    Returns
-    -------
-
-    molecule : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
-        The aligned molecule.
-
-    Examples
-    --------
-
-    Align molecule0 to molecule1 based on a precomputed mapping.
-
-    >>> import BioSimSpace as BSS
-    >>> molecule0 = BSS.Align.perResideRmsdAlign(molecule0, molecule1, mapping)
-
-    """
-
-    if not isinstance(molecule0, _Molecule):
-        raise TypeError(
-            "'molecule0' must be of type 'BioSimSpace._SireWrappers.Molecule'"
-        )
-
-    if not isinstance(molecule1, _Molecule):
-        raise TypeError(
-            "'molecule1' must be of type 'BioSimSpace._SireWrappers.Molecule'"
-        )
-
-    if not isinstance(property_map0, dict):
-        raise TypeError("'property_map0' must be of type 'dict'")
-
-    if not isinstance(property_map1, dict):
-        raise TypeError("'property_map1' must be of type 'dict'")
-
-    # The user has passed an atom mapping.
-    if mapping is not None:
-        if not isinstance(mapping, dict):
-            raise TypeError("'mapping' must be of type 'dict'.")
-        else:
-            _validate_mapping(molecule0, molecule1, mapping, "mapping")
-
-    absolute_residue_mapping = {}
-
-    for res in molecule1.getResidues():
-
-        # Get the mapping for the current residue using its atom indices
-        # i.e. {0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5}
-        # _logger.debug(f"Residue {res.index()}")
-        # _logger.debug(f"Residue atoms: {res.getAtoms()}")
-
-        for atom in res.getAtoms():
-            # try to get the mapping for the atom
-            value = mapping.get(atom.index())
-            if value is not None:
-                residue_mapping = {atom.index(): value}
-
-        # residue_mapping = {a.index(): mapping[a.index()] for a in res.getAtoms()}
-
-        # update the absolute mapping dictionary to contain the mapping for each residue
-        # i.e. {0: {0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5}...}
-        absolute_residue_mapping[res.index()] = residue_mapping
-
-    # Extract the Sire molecule from each BioSimSpace molecule.
-    mol0 = molecule0._getSireObject()
-    mol1 = molecule1._getSireObject()
-
-    mol0_residues = mol0.residues()
-    mol1_residues = mol1.residues()
-
-    # Update the mapping to contain the residue indices
-    # i.e. {100: 103, 101: 102, 102: 105} -> {10: {100: 103, 101: 102, 102: 105}}
-
-    # Align each residue from molecule0 to molecule1 individually
-    mol0_updated_residue_coords = []
-    for i, res in enumerate(mol0_residues):
-        # _logger.debug(f"Aligning residue {res.index()} to reference residue {mol1_residues[i].index()}")
-        res0 = res.extract()
-        res1 = mol1_residues[i].extract()
-
-        # Get the mapping for the current residue
-        residue_mapping = absolute_residue_mapping[i]
-
-        # We will now offset the mapping with the first atom index of the residue
-        # ie. {100: 103, 101: 102, 102: 105} -> {0: 3, 1: 2, 2: 5}
-        relative_keys = list(residue_mapping.keys())
-        relative_key = relative_keys[0]
-        relative_values = list(residue_mapping.values())
-        relative_value = relative_values[0]
-
-        relative_residue_mapping = {
-            k - relative_key: v - relative_value for k, v in residue_mapping.items()
-        }
-
-        # Perform the alignment, res0 to res1.
-        # Convert the mapping to AtomIdx key:value pairs.
-        sire_mapping = _to_sire_mapping(mapping)
-        # _logger.debug(f"Residue coordinates before alignment: {res0.coords()}")
-        try:
-            res0 = (
-                res0.move()
-                .align(res1, _SireMol.AtomResultMatcher(sire_mapping))
-                .molecule()
-            )
-            # _logger.debug(f"Residue coordinates after alignment: {res0.coords()}")
-            mol0_updated_residue_coords.append(res0.property("coordinates"))
-
-        except Exception as e:
-            msg = f"Failed to align residues based on mapping: {mapping}"
-            if "Could not calculate the single value decomposition" in str(e):
-                msg += ". Try minimising your molecular coordinates prior to alignment."
-            if _isVerbose():
-                raise _AlignmentError(msg) from e
-            else:
-                raise _AlignmentError(msg) from None
-
-    # Retrieve the atoms coordiantes from the updated residues
-    mol0_updated_coords = []
-    for res in mol0_updated_residue_coords:
-        for atom_coord in res:
-            mol0_updated_coords.append(atom_coord)
-
-    # Create a cursor for updating the coordinates property
-    cursor = mol0.cursor()
-    for i, atom in enumerate(cursor.atoms()):
-        atom["coordinates"] = mol0_updated_coords[i]
-
-    # Commit the update back to the original molecule
-    mol0 = cursor.commit()
-
-    # Return the aligned molecule.
-    return _Molecule(mol0)
-
-
 def flexAlign(
     molecule0,
     molecule1,
@@ -1908,6 +1744,7 @@ def roiAlign(
     molecule1,
     roi=None,
     mapping=None,
+    align_function="rmsd",
     fkcombu_exe=None,
     property_map0={},
     property_map1={},
@@ -1928,134 +1765,23 @@ def roiAlign(
     mapping : dict
         A dictionary mapping atoms in molecule0 to those in molecule1.
 
-    property_map0 : dict
-        A dictionary that maps "properties" in molecule0 to their user
-        defined values. This allows the user to refer to properties
-        with their own naming scheme, e.g. { "charge" : "my-charge" }
-
-    property_map1 : dict
-        A dictionary that maps "properties" in molecule1 to their user
-        defined values.
-
-    Returns
-    -------
-
-    molecule : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
-        The aligned molecule.
-
-    Examples
-    --------
-
-    Align molecule0 to molecule1 based on a precomputed mapping.
-
-    >>> import BioSimSpace as BSS
-    >>> molecule0 = BSS.Align.flexAlign(molecule0, molecule1, mapping)
-
-    Align molecule0 to molecule1. Since no mapping is passed one will be
-    autogenerated using :class:`matchAtoms <BioSimSpace.Align.matchAtoms>`
-    with default options.
-
-    >>> import BioSimSpace as BSS
-    >>> molecule0 = BSS.Align.flexAlign(molecule0, molecule1)
-    """
-
-    if not isinstance(molecule0, _Molecule):
-        raise TypeError(
-            "'molecule0' must be of type 'BioSimSpace._SireWrappers.Molecule'"
-        )
-
-    if not isinstance(molecule1, _Molecule):
-        raise TypeError(
-            "'molecule1' must be of type 'BioSimSpace._SireWrappers.Molecule'"
-        )
-    if roi is None:
-        raise ValueError("No region of interest (ROI) has been provided.")
-    else:
-        if not isinstance(roi, list):
-            raise TypeError("'roi' must be of type 'list'.")
-
-    # The user has passed an atom mapping.
-    if mapping is not None:
-        if not isinstance(mapping, dict):
-            raise TypeError("'mapping' must be of type 'dict'.")
-        else:
-            _validate_mapping(molecule0, molecule1, mapping, "mapping")
-
-    for roi_idx in roi:
-        res0 = molecule0.getResidues()[roi_idx]
-        res1 = molecule1.getResidues()[roi_idx]
-
-        if res0.name() == res1.name() and res0.nAtoms() == res1.nAtoms():
-            res0_atoms = [a.name() for a in res0.getAtoms()]
-            res1_atoms = [a.name() for a in res0.getAtoms()]
-            if res0_atoms == res1_atoms:
-                _logger.warning(
-                    f"Residue {roi_idx} in molecule0 and molecule1 have identical atomtypes."
-                )
-
-        res0_idx = [a.index() for a in res0.getAtoms()]
-        res1_idx = [a.index() for a in res1.getAtoms()]
-
-        # Extract the residues of interest from the molecules
-        res0_extracted = molecule0.extract(res0_idx)
-        res1_extracted = molecule1.extract(res1_idx)
-
-        res0_aligned = rmsdAlign(molecule0=res0_extracted, molecule1=res1_extracted)
-
-        # Now update molecule0 with the aligned residue coordinates
-        mol0 = molecule0._getSireObject()
-        res0_aligned_coords = res0_aligned._getSireObject().property("coordinates")
-
-        # A list to store the updated coordinates for molecule0
-        mol0_coords = []
-        for i, res in enumerate(mol0.residues()):
-            if i == roi_idx:
-                mol0_coords.append(res0_aligned_coords)
-            else:
-                mol0_coords.append(res.property("coordinates"))
-        # Flatten the list
-        mol0_coords = [item for sublist in mol0_coords for item in sublist]
-
-        # Create a cursor for updating the coordinates property
-        c = mol0.cursor()
-        for i, atom in enumerate(c.atoms()):
-            atom["coordinates"] = mol0_coords[i]
-        mol0 = c.commit()
-
-        # Convert the Sire molecule back to a BioSimSpace molecule so we can
-        # loop over it again if needed
-        molecule0 = _Molecule(mol0)
-
-    return molecule0
-
-
-def roiFlexAlign(
-    molecule0,
-    molecule1,
-    roi=None,
-    mapping=None,
-    fkcombu_exe=None,
-    property_map0={},
-    property_map1={},
-):
-    """
-    Flexibly align residue of interest (ROI) in molecule0 to that in molecule1
-    using BioSimSpace.Align.flexAlign().
-
-    Parameters
-    ----------
-
-    molecule0 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
-        The molecule to align.
-
-    molecule1 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
-        The reference molecule.
-
-    mapping : dict
-        A dictionary mapping atoms in molecule0 to those in molecule1.
+    roi : list
+        A list of residue indices that define the region of interest (ROI) in
+        the molecule.
+    .
+    align_function : str
+        The alignment function used to align atoms. Available options are:
+            - "rmsd"
+                Align atoms in molecule0 to those in molecule1 using the mapping
+                between matched atom indices.
+                Uses :class:`rmsdAlign <BioSimSpace.Align.rmsdAlign>` to align the atoms in the ROI.
+            - "rmsd_flex_align"
+                Flexibly align roi from molecule0 to molecule1 based on the mapping.
+                Uses :class:`flexAlign <BioSimSpace.Align.flexAlign>` to align the atoms in the ROI.
 
     fkcombu_exe : str
-        Path to the fkcombu executable. If None is passed, then BioSimSpace
+        Path to the fkcombu executable. Will only be used if aligning with
+        "rmsd_flex_align" function. If None is passed, then BioSimSpace
         will attempt to find fkcombu by searching your PATH.
 
     property_map0 : dict
@@ -2079,14 +1805,7 @@ def roiFlexAlign(
     Align molecule0 to molecule1 based on a precomputed mapping.
 
     >>> import BioSimSpace as BSS
-    >>> molecule0 = BSS.Align.flexAlign(molecule0, molecule1, mapping)
-
-    Align molecule0 to molecule1. Since no mapping is passed one will be
-    autogenerated using :class:`matchAtoms <BioSimSpace.Align.matchAtoms>`
-    with default options.
-
-    >>> import BioSimSpace as BSS
-    >>> molecule0 = BSS.Align.flexAlign(molecule0, molecule1)
+    >>> molecule0 = BSS.Align.roiAlign(molecule0, molecule1, mapping, roi=[12])
     """
 
     if not isinstance(molecule0, _Molecule):
@@ -2111,6 +1830,11 @@ def roiFlexAlign(
         else:
             _validate_mapping(molecule0, molecule1, mapping, "mapping")
 
+    if align_function not in ["rmsd", "rmsd_flex_align"]:
+        raise ValueError(
+            "Invalid alignment function. Available options are: 'rmsd', 'rmsd_flex_align'"
+        )
+
     for roi_idx in roi:
         res0 = molecule0.getResidues()[roi_idx]
         res1 = molecule1.getResidues()[roi_idx]
@@ -2130,7 +1854,15 @@ def roiFlexAlign(
         res0_extracted = molecule0.extract(res0_idx)
         res1_extracted = molecule1.extract(res1_idx)
 
-        res0_aligned = flexAlign(molecule0=res0_extracted, molecule1=res1_extracted)
+        if align_function == "rmsd":
+            res0_aligned = rmsdAlign(molecule0=res0_extracted, molecule1=res1_extracted)
+
+        elif align_function == "rmsd_flex_align":
+            res0_aligned = flexAlign(
+                molecule0=res0_extracted,
+                molecule1=res1_extracted,
+                fkcombu_exe=fkcombu_exe,
+            )
 
         # Now update molecule0 with the aligned residue coordinates
         mol0 = molecule0._getSireObject()
@@ -2143,6 +1875,7 @@ def roiFlexAlign(
                 mol0_coords.append(res0_aligned_coords)
             else:
                 mol0_coords.append(res.property("coordinates"))
+
         # Flatten the list
         mol0_coords = [item for sublist in mol0_coords for item in sublist]
 
