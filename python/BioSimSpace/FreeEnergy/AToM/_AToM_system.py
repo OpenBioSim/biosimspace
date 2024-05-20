@@ -87,7 +87,7 @@ class makeSystem:
             If a float is given, BioSimSpace will attempt to find the ideal vector along which to displace the ligand by the given magnitude.
             If a list is given, the vector will be used directly.
             Lengths should always be given in angstroms.
-        protein_index : int
+        protein_index : int, list of int
             The index of the protein in the system (only needed if passing in a pre-prepared system).
         ligand1_index : int
             The index of the bound ligand in the system (only needed if passing in a pre-prepared system).
@@ -157,10 +157,15 @@ class makeSystem:
         protein_index : int
             The index of the protein in the system.
         """
-        if not isinstance(protein_index, int):
-            raise TypeError("protein_index must be an int")
-        else:
+        if isinstance(protein_index, list):
+            # check that all elements are ints
+            if not all(isinstance(x, int) for x in protein_index):
+                raise TypeError("protein_index must be a list of ints or a single int")
             self.protein_index = protein_index
+        elif isinstance(protein_index, int):
+            self.protein_index = [protein_index]
+        else:
+            raise TypeError("protein_index must be an int or a list of ints")
 
     def getLigand1Index(self):
         """
@@ -302,11 +307,12 @@ class makeSystem:
         dict
             A dictionary containing information on the AToM system
         """
-        if self.system[self.protein_index].isWater():
-            print(
-                f"The molecule at index {self.protein_index} appears to be a water molecule."
-                " This should be a protein."
-            )
+        for p in self.protein_index:
+            if self.system[p].isWater():
+                print(
+                    f"The molecule at index {self.protein_index} appears to be a water molecule."
+                    " This should be a protein."
+                )
         if self.system[self.ligand1_index].isWater():
             print(
                 f"The molecule at index {self.ligand1_index} appears to be a water molecule."
@@ -317,7 +323,7 @@ class makeSystem:
                 f"The molecule at index {self.ligand2_index} appears to be a water molecule."
                 " This should be the free ligand."
             )
-        self.mol1_atomcount = self.system[self.protein_index].nAtoms()
+        self.mol1_atomcount = sum(self.system[i].nAtoms() for i in self.protein_index)
         self.ligand1_atomcount = self.system[self.ligand1_index].nAtoms()
         self.ligand2_atomcount = self.system[self.ligand2_index].nAtoms()
 
@@ -407,8 +413,8 @@ class makeSystem:
         dict
             A dictionary containing the indices of the protein and ligand atoms in the system
         """
-        protein_atom_start = self.system[self.protein_index].getAtoms()[0]
-        protein_atom_end = self.system[self.protein_index].getAtoms()[-1]
+        protein_atom_start = self.system[self.protein_index[0]].getAtoms()[0]
+        protein_atom_end = self.system[self.protein_index[-1]].getAtoms()[-1]
         self.first_protein_atom_index = self.system.getIndex(protein_atom_start)
         self.last_protein_atom_index = self.system.getIndex(protein_atom_end)
 
@@ -557,14 +563,24 @@ class makeSystem:
         else:
             # Find com of the protein
             if self._is_pre_prepared:
-                protein = self.system[self.protein_index]
+                temp_system = self.system._sire_object
+                protein = temp_system[self.protein_index[0]]
+                for i in self.protein_index[1:]:
+                    protein += temp_system[i]
+                com = protein.coordinates()
+                self._mol1_com_atoms = [
+                    a.index().value()
+                    for a in protein[f"atoms within 11 angstrom of {com}"]
+                ]
+                del temp_system
+                del protein
             else:
                 protein = self.mol1
-            com = protein._sire_object.coordinates()
-            self._mol1_com_atoms = [
-                a.index().value()
-                for a in protein._sire_object[f"atoms within 11 angstrom of {com}"]
-            ]
+                com = protein._sire_object.coordinates()
+                self._mol1_com_atoms = [
+                    a.index().value()
+                    for a in protein._sire_object[f"atoms within 11 angstrom of {com}"]
+                ]
 
     def get_lig1_com_atoms(self):
         """

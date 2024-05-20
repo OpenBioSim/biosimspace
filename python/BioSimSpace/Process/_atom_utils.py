@@ -583,11 +583,13 @@ class _AToMUtils:
         output += "    result['direction'].append(direction)\n"
         output += "    result['lambda1'].append(lambda1)\n"
         output += "    result['lambda2'].append(lambda2)\n"
-        output += "    result['alpha'].append(alpha)\n"
-        output += "    result['uh'].append(uh)\n"
-        output += "    result['w0'].append(w0)\n"
-        output += "    result['pot_en'].append(pot_energy)\n"
-        output += "    result['pert_en'].append(pert_e)\n"
+        output += (
+            "    result['alpha'].append(alpha.value_in_unit(kilocalories_per_mole))\n"
+        )
+        output += "    result['uh'].append(uh.value_in_unit(kilocalories_per_mole))\n"
+        output += "    result['w0'].append(w0.value_in_unit(kilocalories_per_mole))\n"
+        output += "    result['pot_en'].append(pot_energy.value_in_unit(kilocalories_per_mole))\n"
+        output += "    result['pert_en'].append(pert_e.value_in_unit(kilocalories_per_mole))\n"
         output += "    result['metad_offset'].append(0.0)\n"
         output += "    #save the state of the simulation\n"
         output += f"    simulation.saveState('{name}.xml')\n"
