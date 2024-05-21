@@ -693,6 +693,32 @@ def merge(
                     .molecule()
                 )
 
+    # Set the LJ sigma paramater to the value of the opposite end state for any
+    # dummy atoms.
+    for atom in edit_mol.atoms():
+        # Lambda = 0 is a dummy atom.
+        if atom.property("ambertype0") == "du":
+            lj0 = edit_mol.atom(atom.index()).property("LJ0")
+            lj1 = edit_mol.atom(atom.index()).property("LJ1")
+
+            # Set the sigma parameter at lambda = 0.
+            edit_mol = (
+                edit_mol.atom(atom.index())
+                .setProperty("LJ0", _SireMM.LJParameter(lj1.sigma(), lj0.epsilon()))
+                .molecule()
+            )
+        # Lambda = 1 is a dummy atom.
+        if atom.property("ambertype1") == "du":
+            lj0 = edit_mol.atom(atom.index()).property("LJ0")
+            lj1 = edit_mol.atom(atom.index()).property("LJ1")
+
+            # Set the sigma parameter at lambda = 1.
+            edit_mol = (
+                edit_mol.atom(atom.index())
+                .setProperty("LJ1", _SireMM.LJParameter(lj0.sigma(), lj1.epsilon()))
+                .molecule()
+            )
+
     # We now need to merge "bond", "angle", "dihedral", and "improper" parameters.
     # To do so, we extract the properties from molecule1, then add the additional
     # properties from molecule0, making sure to update the atom indices, and bond
