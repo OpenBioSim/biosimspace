@@ -27,17 +27,18 @@ test:
     - SIRE_SILENT_PHONEHOME
   requires:
     - pytest <8
-    - black 23      # [linux and x86_64 and py==311]
-    - pytest-black  # [linux and x86_64 and py==311]
+    - black 24      # [linux and x86_64 and py==312]
+    - pytest-black  # [linux and x86_64 and py==312]
     - ambertools    # [linux and x86_64]
     - gromacs       # [linux and x86_64]
+    - requests
   imports:
     - BioSimSpace
   source_files:
-    - python/BioSimSpace # [linux and x86_64 and py==311]
+    - python/BioSimSpace # [linux and x86_64 and py==312]
     - tests
   commands:
-    - pytest -vvv --color=yes --black python/BioSimSpace # [linux and x86_64 and py==311]
+    - pytest -vvv --color=yes --black python/BioSimSpace # [linux and x86_64 and py==312]
     - pytest -vvv --color=yes --import-mode=importlib tests
 
 about:

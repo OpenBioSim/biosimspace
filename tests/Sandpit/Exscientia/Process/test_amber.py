@@ -5,11 +5,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
-import shutil
 
 import BioSimSpace.Sandpit.Exscientia as BSS
-
-from tests.Sandpit.Exscientia.conftest import url, has_amber, has_pyarrow
+from tests.Sandpit.Exscientia.conftest import has_amber, has_pyarrow
 from tests.conftest import root_fp
 
 

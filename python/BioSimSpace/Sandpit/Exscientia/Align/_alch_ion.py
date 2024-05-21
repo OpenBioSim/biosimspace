@@ -1,6 +1,6 @@
 import warnings
 
-from .._SireWrappers import Molecule as _Molecule
+from .._SireWrappers import Molecule as _Molecule, System as _System
 
 
 def _mark_alchemical_ion(molecule):
@@ -50,3 +50,23 @@ def _mark_alchemical_ion(molecule):
     mol._sire_object = mol_edit.commit()
 
     return mol
+
+
+def _get_protein_com_idx(system: _System) -> int:
+    """return the index of the atom that is closest to the center of
+    mass of the biggest molecule in the system.
+
+    Args:
+        system: The input system.
+
+    Returns:
+        atom_index
+    """
+    biggest_mol_idx = max(range(system.nMolecules()), key=lambda x: system[x].nAtoms())
+
+    atom_offset = 0
+    for i, mol in enumerate(system):
+        if biggest_mol_idx == i:
+            return atom_offset + mol.getCOMIdx()
+        else:
+            atom_offset += mol.nAtoms()

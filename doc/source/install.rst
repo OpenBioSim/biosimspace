@@ -46,27 +46,25 @@ The easiest way to install :mod:`BioSimSpace` is in a new
 `conda environment <https://anaconda.org>`__.
 
 You can use any conda environment or installation. We recommend using
-`mambaforge <https://github.com/conda-forge/miniforge#mambaforge>`__,
-as this is pre-configured to use `conda-forge <https://conda-forge.org>`__,
-and bundles `mamba <https://mamba.readthedocs.io/en/latest/>`__, which
-is a fast drop-in replacement for `conda <https://conda.io>`__.
+`Miniforge <https://github.com/conda-forge/miniforge>`__,
+as this is pre-configured to use `conda-forge <https://conda-forge.org>`__.
 
-.. _Install_Mambaforge:
-Either... Install a new copy of ``mambaforge``
+.. _Install_Miniforge:
+Either... Install a new copy of ``Miniforge``
 ----------------------------------------------
 
 To install a new copy of
-`mambaforge <https://github.com/conda-forge/miniforge#mambaforge>`__,
-first download a ``Mambaforge`` from
-`this page <https://github.com/conda-forge/miniforge#mambaforge>`__ that
+`Miniforge <https://github.com/conda-forge/miniforge>`__,
+first download a ``Miniforge`` from
+`this page <https://github.com/conda-forge/miniforge>`__ that
 matches your operating system and processor.
 
-Install ``Mambaforge`` following the
+Install ``Miniforge`` following the
 `instructions here <https://github.com/conda-forge/miniforge#install>`__.
 
-Once installed, you should be able to run the ``mamba`` command to
-install other packages (e.g. ``mamba -h`` will print out help on
-how to use the ``mamba`` command).
+Once installed, you should be able to run the ``conda`` command to
+install other packages (e.g. ``conda -h`` will print out help on
+how to use the ``conda`` command).
 
 Or... Use an existing anaconda/miniconda install
 ------------------------------------------------
@@ -80,21 +78,7 @@ the full path to your anaconda or miniconda installation.
 
 You should now be able to run the ``conda`` command to install other
 packages (e.g. ``conda -h`` will print out help on how to use the
-``conda`` command). We highly recommend that you use ``mamba`` as a
-drop-in replacement for ``conda``, so first install ``mamba``.
-
-.. code-block:: bash
-
-   $ conda install -c conda-forge mamba
-
-This should install mamba. If this fails, then your anaconda or miniconda
-environment is likely quite full, or else it is outdated. We recommend
-going back and following `the instructions <_Install_Mambaforge>`
-to install a new copy of ``mambaforge``.
-
-If this works, then you should now be able to run the ``mamba`` command
-to install other packages (e.g. ``mamba -h`` will print out help
-on how to use the ``mamba`` command).
+``conda`` command).
 
 And then... Install BioSimSpace into a new environment
 ------------------------------------------------------
@@ -107,7 +91,7 @@ by creating a Python 3.9 environment that we will call ``openbiosim``.
 
 .. code-block:: bash
 
-   $ mamba create -n openbiosim "python<3.10"
+   $ conda create -n openbiosim "python<3.10"
 
 .. note::
 
@@ -118,27 +102,27 @@ We can now install :mod:`BioSimSpace` into that environment by typing
 
 .. code-block:: bash
 
-   $ mamba install -n openbiosim -c openbiosim biosimspace
+   $ conda install -n openbiosim -c openbiosim biosimspace
 
 .. note::
 
-   The option ``-n openbiosim`` tells ``mamba`` to install :mod:`BioSimSpace`
+   The option ``-n openbiosim`` tells ``conda`` to install :mod:`BioSimSpace`
    into the ``openbiosim`` environment. The option ``-c openbiosim``
-   tells ``mamba`` to install :mod:`BioSimSpace` from the ``openbiosim``
+   tells ``conda`` to install :mod:`BioSimSpace` from the ``openbiosim``
    conda channel.
 
 If you want the latest development release, then install by typing
 
 .. code-block:: bash
 
-   $ mamba install -n openbiosim -c "openbiosim/label/dev" biosimspace
+   $ conda install -n openbiosim -c "openbiosim/label/dev" biosimspace
 
 To install the latest development version you can use:
 
 .. code-block:: bash
 
-    mamba create -n openbiosim-dev -c conda-forge -c openbiosim/label/dev biosimspace
-    mamba activate openbiosim-dev
+    conda create -n openbiosim-dev -c conda-forge -c openbiosim/label/dev biosimspace
+    conda activate openbiosim-dev
 
 To run :mod:`BioSimSpace`, you must now activate the ``openbiosim`` environment.
 You can do this by typing
@@ -268,8 +252,8 @@ latest development code into that.
 
 .. code-block:: bash
 
-   mamba create -n openbiosim-dev -c conda-forge -c openbiosim/label/dev biosimspace --only-deps
-   mamba activate openbiosim-dev
+   conda create -n openbiosim-dev -c conda-forge -c openbiosim/label/dev biosimspace --only-deps
+   conda activate openbiosim-dev
    git clone https://github.com/openbiosim/biosimspace
    cd biosimspace/python
    BSS_SKIP_DEPENDENCIES=1 python setup.py develop

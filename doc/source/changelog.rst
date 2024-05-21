@@ -9,6 +9,33 @@ company supporting open-source development of fostering academic/industrial coll
 within the biomolecular simulation community. Our software is hosted via the `OpenBioSim`
 `GitHub <https://github.com/OpenBioSim/biosimspace>`__ organisation.
 
+`2024.1.0 <https://github.com/openbiosim/biosimspace/compare/2023.5.1...2024.1.0>`_ - Apr 15 2024
+-------------------------------------------------------------------------------------------------
+
+* Switch to using Langevin integrator for GROMACS free energy simulations (`#264 <https://github.com/OpenBioSim/biosimspace/pull/264>`__).
+* Add support for clearing and disabling the IO file cache (`#266 <https://github.com/OpenBioSim/biosimspace/pull/266>`__).
+* Add support for using ``openff-nagl`` to generate partial charges (`#267 <https://github.com/OpenBioSim/biosimspace/pull/267>`__).
+* Fixed non-reproducible search for backbone restraint atom indices (`#270 <https://github.com/OpenBioSim/biosimspace/pull/270>`__).
+* Add support for AMBER as an alchemical free-energy simulation engine (`#272 <https://github.com/OpenBioSim/biosimspace/pull/272>`__).
+* Switch to using ``os.path.join`` to generate directory file names (`#276 <https://github.com/OpenBioSim/biosimspace/pull/276>`__).
+* Make sure the ``fileformat`` property is preserved when creating single molecule systems (`#276 <https://github.com/OpenBioSim/biosimspace/pull/276>`__).
+* Add a ``getRestraintType`` method to the base protocol that returns ``None`` (`#276 <https://github.com/OpenBioSim/biosimspace/pull/276>`__).
+* Add missing ``themostat_time_constant`` kwarg to the :class:`Metadynamics <BioSimSpace.Protocol.Metdynamics>` protocol (`#276 <https://github.com/OpenBioSim/biosimspace/pull/276>`__).
+
+
+`2023.5.1 <https://github.com/openbiosim/biosimspace/compare/2023.5.0...2023.5.1>`_ - Mar 20 2024
+-------------------------------------------------------------------------------------------------
+
+* Fixed path to user links file in the :func:`generateNetwork <BioSimSpace.Align.generateNetwork>` function (`#233 <https://github.com/OpenBioSim/biosimspace/pull/233>`__).
+* Fixed redirection of stderr (`#233 <https://github.com/OpenBioSim/biosimspace/pull/233>`__).
+* Switched to using ``AtomCoordMatcher`` to map parameterised molecules back to their original topology. This resolves issues where atoms moved between residues following parameterisation (`#235 <https://github.com/OpenBioSim/biosimspace/pull/235>`__).
+* Make the GROMACS ``_generate_binary_run_file`` function static so that it can be used when initialising free energy simulations in setup-only mode (`#237 <https://github.com/OpenBioSim/biosimspace/pull/237>`__).
+* Improve error handling and message when attempting to extract an all dummy atom selection (`#251 <https://github.com/OpenBioSim/biosimspace/pull/251>`__).
+* Don't set SOMD specific end-state properties when decoupling a molecule (`#253 <https://github.com/OpenBioSim/biosimspace/pull/253>`__).
+* Only convert to a end-state system when not running a free energy protocol with GROMACS so that hybrid topology isn't lost when using position restraints (`#257 <https://github.com/OpenBioSim/biosimspace/pull/257>`__).
+* Exclude standard free ions from the AMBER position restraint mask (`#260 <https://github.com/OpenBioSim/biosimspace/pull/260>`__).
+* Update the ``BioSimSpace.Types._GeneralUnit.__pow__`` operator to support fractional exponents (`#260 <https://github.com/OpenBioSim/biosimspace/pull/260>`__).
+
 `2023.5.0 <https://github.com/openbiosim/biosimspace/compare/2023.4.1...2023.5.0>`_ - Dec 16 2023
 -------------------------------------------------------------------------------------------------
 

@@ -110,13 +110,14 @@ class _PositionRestraintMixin:
         )
 
     def getRestraint(self):
-        """Return the type of restraint..
+        """
+        Return the type of restraint.
 
         Returns
         -------
 
         restraint : str, [int]
-            The type of restraint.
+            The type of restraint, either a keyword or a list of atom indices.
         """
         return self._restraint
 
@@ -214,7 +215,7 @@ class _PositionRestraintMixin:
                 )
 
             # Validate the dimensions.
-            if force_constant.dimensions() != (0, 0, 0, 1, -1, 0, -2):
+            if force_constant.dimensions() != (1, 0, -2, 0, 0, -1, 0):
                 raise ValueError(
                     "'force_constant' has invalid dimensions! "
                     f"Expected dimensions are 'M Q-1 T-2', found '{force_constant.unit()}'"

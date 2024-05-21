@@ -6,12 +6,6 @@ import BioSimSpace as BSS
 # using strings of unit-based types.
 
 
-@pytest.fixture(scope="session")
-def system():
-    """Re-use the same molecuar system for each test."""
-    return BSS.IO.readMolecules(["tests/input/ala.top", "tests/input/ala.crd"])
-
-
 def test_equilibration():
     # Instantiate from types.
     p0 = BSS.Protocol.Equilibration(

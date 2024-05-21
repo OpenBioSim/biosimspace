@@ -10,17 +10,6 @@ from tests.conftest import url, has_alchemlyb, has_gromacs
 
 
 @pytest.fixture(scope="module")
-def perturbable_system():
-    """Re-use the same perturbable system for each test."""
-    return BSS.IO.readPerturbableSystem(
-        f"{url}/perturbable_system0.prm7",
-        f"{url}/perturbable_system0.rst7",
-        f"{url}/perturbable_system1.prm7",
-        f"{url}/perturbable_system1.rst7",
-    )
-
-
-@pytest.fixture(scope="module")
 def fep_output():
     """Path to a temporary directory containing FEP output."""
 
@@ -54,8 +43,9 @@ def expected_results():
     """A dictionary of expected FEP results."""
 
     return {
-        "somd": {"mbar": -6.3519, "ti": -6.3209},
+        "amber": {"mbar": -12.5939, "ti": -13.6850},
         "gromacs": {"mbar": -6.0238, "ti": -8.4158},
+        "somd": {"mbar": -6.3519, "ti": -6.3209},
     }
 
 
@@ -73,7 +63,7 @@ def test_setup_gromacs(perturbable_system):
 @pytest.mark.skipif(
     has_alchemlyb is False, reason="Requires alchemlyb to be installed."
 )
-@pytest.mark.parametrize("engine", ["somd", "gromacs"])
+@pytest.mark.parametrize("engine", ["amber", "gromacs", "somd"])
 @pytest.mark.parametrize("estimator", ["mbar", "ti"])
 def test_analysis(fep_output, engine, estimator, expected_results):
     """Test that the free energy analysis works as expected."""

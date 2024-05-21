@@ -28,9 +28,6 @@ __all__ = ["Gromacs"]
 
 import glob as _glob
 import os as _os
-import warnings as _warnings
-
-import pandas as pd
 
 from .._Utils import _try_import
 
@@ -261,8 +258,12 @@ class Gromacs(_process.Process):
         )
 
         # Create the reference file
-        if self._ref_system is not None and self._protocol.getRestraint() is not None:
-            self._write_system(self._ref_system, ref_file=self._ref_file)
+        if self._ref_system is not None:
+            if (
+                self._system.getAlchemicalIon()
+                or self._protocol.getRestraint() is not None
+            ):
+                self._write_system(self._ref_system, ref_file=self._ref_file)
         else:
             _shutil.copy(self._gro_file, self._ref_file)
 
@@ -407,6 +408,8 @@ class Gromacs(_process.Process):
                         self._restraint.toString(
                             engine="GROMACS",
                             perturbation_type=self._protocol.getPerturbationType(),
+                            restraint_lambda="restraint"
+                            in self._protocol.getLambda(type="series"),
                         )
                     )
 
@@ -2078,7 +2081,7 @@ class Gromacs(_process.Process):
         # Get the restraint type.
         restraint = self._protocol.getRestraint()
 
-        if restraint is not None:
+        if restraint is not None or self._system.getAlchemicalIon():
             # Get the force constant in units of kJ_per_mol/nanometer**2
             force_constant = self._protocol.getForceConstant()._sire_unit
             force_constant = force_constant.to(
@@ -2099,8 +2102,10 @@ class Gromacs(_process.Process):
             # Create a copy of the system.
             system = self._system.copy()
 
-            # Convert to the lambda = 0 state if this is a perturbable system.
-            system = self._checkPerturbable(system)
+            # Convert to the lambda = 0 state if this is a perturbable system and this
+            # isn't a free energy protocol.
+            if not isinstance(self._protocol, _Protocol._FreeEnergyMixin):
+                system = self._checkPerturbable(system)
 
             # Convert the water model topology so that it matches the GROMACS naming convention.
             system._set_water_topology("GROMACS")
@@ -2138,8 +2143,15 @@ class Gromacs(_process.Process):
                 moltypes_sys_idx[mol_type].append(idx)
                 sys_idx_moltypes[idx] = mol_type
 
+            if self._system.getAlchemicalIon():
+                biggest_mol_idx = max(
+                    range(system.nMolecules()), key=lambda x: system[x].nAtoms()
+                )
+            else:
+                biggest_mol_idx = -1
+
             # A keyword restraint.
-            if isinstance(restraint, str):
+            if isinstance(restraint, str) or self._system.getAlchemicalIon():
                 # The number of restraint files.
                 num_restraint = 1
 
@@ -2156,12 +2168,36 @@ class Gromacs(_process.Process):
                     for idx, mol_idx in enumerate(mol_idxs):
                         # Get the indices of any restrained atoms in this molecule,
                         # making sure that indices are relative to the molecule.
-                        atom_idxs = self._system.getRestraintAtoms(
-                            restraint,
-                            mol_index=mol_idx,
-                            is_absolute=False,
-                            allow_zero_matches=True,
-                        )
+                        if restraint is not None:
+                            atom_idxs = self._system.getRestraintAtoms(
+                                restraint,
+                                mol_index=mol_idx,
+                                is_absolute=False,
+                                allow_zero_matches=True,
+                            )
+                        else:
+                            atom_idxs = []
+
+                        if self._system.getMolecule(mol_idx).isAlchemicalIon():
+                            alch_ion = self._system.getMolecule(mol_idx).getAtoms()
+                            alch_idx = alch_ion[0].index()
+                            if alch_idx != 0 or len(alch_ion) != 1:
+                                # The alchemical ions should only contain 1 atom
+                                # and the relative index should thus be 0.
+                                raise ValueError(
+                                    f"{self._system.getMolecule(mol_idx)} is marked as an alchemical ion but has more than 1 atom."
+                                )
+                            else:
+                                atom_idxs.append(alch_idx)
+
+                        if mol_idx == biggest_mol_idx:
+                            # Only triggered when there is alchemical ion present.
+                            # The biggest_mol_idx is -1 when there is no alchemical ion.
+                            protein_com_idx = self._system.getMolecule(
+                                mol_idx
+                            ).getCOMIdx()
+                            if protein_com_idx not in atom_idxs:
+                                atom_idxs.append(protein_com_idx)
 
                         # Store the atom index if it hasn't already been recorded.
                         for atom_idx in atom_idxs:

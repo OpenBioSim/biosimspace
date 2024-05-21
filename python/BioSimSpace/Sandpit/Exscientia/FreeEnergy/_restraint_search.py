@@ -641,7 +641,7 @@ class RestraintSearch:
 
         if force_constant:
             dim = force_constant.dimensions()
-            if dim != (0, 0, 0, 1, -1, 0, -2):
+            if dim != (1, 0, -2, 0, 0, -1, 0):
                 raise ValueError(
                     "force_constant must be of type "
                     "'BioSimSpace.Types.Energy'/'BioSimSpace.Types.Length^2'"
@@ -2145,9 +2145,9 @@ class RestraintSearch:
                 }
                 # If this is the first pair, add it as the permanent distance restraint.
                 if i == 0:
-                    restraint_dict[
-                        "permanent_distance_restraint"
-                    ] = individual_restraint_dict
+                    restraint_dict["permanent_distance_restraint"] = (
+                        individual_restraint_dict
+                    )
                 else:
                     restraint_dict["distance_restraints"].append(
                         individual_restraint_dict

@@ -11,7 +11,7 @@ from tests.conftest import has_gromacs
 
 
 @pytest.fixture(scope="module")
-def system():
+def kigaki_system():
     return BSS.IO.readMolecules(
         BSS.IO.expand(
             BSS.tutorialUrl(), ["kigaki_xtal_water.gro", "kigaki_xtal_water.top"]
@@ -25,7 +25,7 @@ def system():
     [partial(BSS.Solvent.solvate, "tip3p"), BSS.Solvent.tip3p],
 )
 @pytest.mark.skipif(not has_gromacs, reason="Requires GROMACS to be installed")
-def test_crystal_water(system, match_water, function):
+def test_crystal_water(kigaki_system, match_water, function):
     """
     Test that user defined crystal waters can be preserved during
     solvation and on write to GroTop format.
@@ -35,13 +35,13 @@ def test_crystal_water(system, match_water, function):
     if match_water:
         num_matches = 0
     else:
-        num_matches = len(system.search("resname COF").molecules())
+        num_matches = len(kigaki_system.search("resname COF").molecules())
 
     # Create the box parameters.
     box, angles = BSS.Box.cubic(5.5 * BSS.Units.Length.nanometer)
 
     # Create the solvated system.
-    solvated = function(system, box, angles, match_water=match_water)
+    solvated = function(kigaki_system, box, angles, match_water=match_water)
 
     # Search for the crystal waters in the solvated system.
     try:
