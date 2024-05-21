@@ -56,8 +56,6 @@ with _warnings.catch_warnings():
     if _have_imported(_rdkit):
         from rdkit import Chem as _Chem
         from rdkit.Chem import rdFMCS as _rdFMCS
-
-        # No idea why, but RD_logger cannot be imported from rdkit, only RDLogger can
         from rdkit import RDLogger as _RDLogger
 
         # Disable RDKit warnings.
@@ -601,7 +599,7 @@ def generateNetwork(
                 rdmols.append(rdmol)
 
         except Exception as e:
-            msg = "Unable to load molecule into RDKit!"
+            msg = "RDKit was unable to load molecule!"
             if _isVerbose():
                 msg += ": " + getattr(e, "message", repr(e))
                 raise _AlignmentError(msg) from e
@@ -1124,10 +1122,10 @@ def _kartograf_map(molecule0, molecule1, kartograf_kwargs):
     # build Kartograf Atom Mapper
     mapper = KartografAtomMapper(**kartograf_kwargs)
 
-    # get mapping
+    # get the mapping
     kartograf_mapping = next(mapper.suggest_mappings(mol0, a_mol1))
 
-    # score mapping
+    # score the mapping
     rmsd_scorer = _MappingRMSDScorer()
     score = rmsd_scorer(mapping=kartograf_mapping)
     _logger.debug(f"RMSD score: {score:.2f}")
@@ -1141,7 +1139,6 @@ def roiMatch(
     molecule0,
     molecule1,
     roi,
-    force_backbone_match=False,
     ring_matches_ring_only=True,
     complete_rings_only=True,
     atomCompare=_rdFMCS.AtomCompare.CompareAny,
@@ -1181,13 +1178,8 @@ def roiMatch(
     Returns
     -------
 
-    mapping : dict
+    full_mapping : dict
         A dictionary of the mapping between the two molecules.
-
-    roi_idx : list
-        A list of the indices of the atoms in the ROI. This can be multiple
-        nested lists if the ROI is defined as a list of residues.
-    TODO: change the return type of roi_idx to a dictionary of lists
 
     Notes
     -----
@@ -1217,18 +1209,18 @@ def roiMatch(
     with a region of interest defined as a list of residues.
 
     >>> import BioSimSpace as BSS
-    >>> mapping, roi_idx = BSS.Align.roiMatch(molecule0, molecule1, roi=[12])
+    >>> mapping = BSS.Align.roiMatch(molecule0, molecule1, roi=[12])
 
-    Find the mapping between two molecules with multiple regions of interest
+    Find the mapping between two molecules with multiple regions of interest.
 
     >>> import BioSimSpace as BSS
-    >>> mapping, roi_idx = BSS.Align.roiMatch(molecule0, molecule1, roi=[12, 13, 14])
+    >>> mapping = BSS.Align.roiMatch(molecule0, molecule1, roi=[12, 13, 14])
 
     Find the best maximum common substructure mapping between two molecules,
-    while forcing the backbone atoms to be matched.
+    using kartograf as the MCS algorithm.
 
     >>> import BioSimSpace as BSS
-    >>> mapping, roi_idx = BSS.Align.roiMatch(molecule0, molecule1, roi=[12], force_backbone_match=True)
+    >>> mapping = BSS.Align.roiMatch(molecule0, molecule1, roi=[12], use_kartograf=True)
     """
 
     # Validate input
@@ -1244,8 +1236,6 @@ def roiMatch(
 
     if roi is None:
         raise ValueError("residue of interest list is not provided.")
-
-    roi_idx = []
 
     _logger.debug(f"Number of mol A atoms: {molecule0.nAtoms()}")
     _logger.debug(f"Number of mol B atoms: {molecule1.nAtoms()}")
@@ -1293,9 +1283,6 @@ def roiMatch(
         # _logger.debug(f"res0 indices: {res0_idx}")
         res1_idx = [a.index() for a in molecule1_roi]
         # _logger.debug(f"res1 indices: {res1_idx}")
-
-        # Append the ROI indices to the list
-        roi_idx.append([res0_idx, res1_idx])
 
         # Extract the residues of interest from the molecules
         res0_extracted = molecule0.extract(res0_idx)
@@ -1452,24 +1439,13 @@ def roiMatch(
     _logger.debug(f"After ROI region mapping: {after_roi_mapping}")
 
     # Combine the dictionaries to get the full mapping
-    combined_dict = {
+    full_mapping = {
         **pre_roi_mapping,
         **absolute_roi_mapping,
         **after_roi_mapping,
     }
 
-    # Print the matched atoms in the ROI
-    # for idx0, idx1 in mapping.items():
-    #     _logger.debug(
-    #         f"{res0_extracted.getAtoms()[idx0]} <--> {res1_extracted.getAtoms()[idx1]}"
-    #     )
-
-    # _logger.debug(f"Full matched atoms: {combined_dict}")
-    # for idx0, idx1 in mapping.items():
-    #     _logger.debug(f"{molecule0.getAtoms()[idx0]} <--> {molecule1.getAtoms()[idx1]}")
-
-    # TODO: Change the return type of roi_idx to a dictionary of lists
-    return combined_dict, roi_idx
+    return full_mapping
 
 
 def rmsdAlign(molecule0, molecule1, mapping=None, property_map0={}, property_map1={}):
@@ -1899,7 +1875,7 @@ def merge(
     allow_ring_breaking=False,
     allow_ring_size_change=False,
     force=False,
-    roi_list=None,
+    roi=None,
     property_map0={},
     property_map1={},
 ):
@@ -1936,7 +1912,7 @@ def merge(
         takes precedence over 'allow_ring_breaking' and
         'allow_ring_size_change'.
 
-       roi_list : list
+       roi : list
            The region of interest to merge. Consist of two lists of atom indices.
 
     property_map0 : dict
@@ -1996,11 +1972,11 @@ def merge(
     if not isinstance(force, bool):
         raise TypeError("'force' must be of type 'bool'")
 
-    if roi_list is not None:
-        if not isinstance(roi_list, list):
-            raise TypeError("'roi_list' must be of type 'list'.")
-        else:
-            _validate_roi(molecule0, molecule1, roi_list)
+    if roi is not None:
+        if not isinstance(roi, list):
+            raise TypeError("'roi' must be of type 'list'.")
+        # else:
+        #     _validate_roi(molecule0, molecule1, roi)
 
     # The user has passed an atom mapping.
     if mapping is not None:
@@ -2031,7 +2007,7 @@ def merge(
         allow_ring_breaking=allow_ring_breaking,
         allow_ring_size_change=allow_ring_size_change,
         force=force,
-        roi_list=roi_list,
+        roi=roi,
         property_map0=property_map0,
         property_map1=property_map1,
     )
@@ -2680,37 +2656,37 @@ def _validate_mapping(molecule0, molecule1, mapping, name):
             )
 
 
-def _validate_roi(molecule0, molecule1, roi_list):
-    """Internal function to validate that a mapping contains key:value pairs
-    of the correct type.
+# def _validate_roi(molecule0, molecule1, roi):
+#     """Internal function to validate that a mapping contains key:value pairs
+#     of the correct type.
 
-    Parameters
-    ----------
+#     Parameters
+#     ----------
 
-    molecule0 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
-        The molecule of interest.
+#     molecule0 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
+#         The molecule of interest.
 
-    molecule1 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
-        The reference molecule.
+#     molecule1 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
+#         The reference molecule.
 
-    roi_list : list
-        The region of interest to merge.
-    """
-    for roi in roi_list:
-        if len(roi) != 2:
-            raise ValueError("The length of roi list must be 2.")
-        if not isinstance(roi[0], list) or not isinstance(roi[1], list):
-            raise ValueError("The element of roi must be of type list")
-        for mol_idx, ele in enumerate(roi):
-            for atom_idx in ele:
-                if type(atom_idx) is not int:
-                    raise ValueError(
-                        f"The element of roi[{mol_idx}] should be of type int"
-                    )
-                if atom_idx >= [molecule0, molecule1][mol_idx].nAtoms():
-                    raise IndexError(
-                        f"The element of roi[{mol_idx}] should within range of number of atoms"
-                    )
+#     roi : list
+#         The region of interest to merge.
+#     """
+#     for roi_res in roi:
+#         if len(roi_res) != 2:
+#             raise ValueError("The length of roi list must be 2.")
+#         if not isinstance(roi[0], list) or not isinstance(roi[1], list):
+#             raise ValueError("The element of roi must be of type list")
+#         for mol_idx, ele in enumerate(roi):
+#             for atom_idx in ele:
+#                 if type(atom_idx) is not int:
+#                     raise ValueError(
+#                         f"The element of roi[{mol_idx}] should be of type int"
+#                     )
+#                 if atom_idx >= [molecule0, molecule1][mol_idx].nAtoms():
+#                     raise IndexError(
+#                         f"The element of roi[{mol_idx}] should within range of number of atoms"
+#                     )
 
 
 def _to_sire_mapping(mapping):
