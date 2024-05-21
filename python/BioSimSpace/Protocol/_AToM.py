@@ -277,10 +277,10 @@ class _AToM(_Protocol, _PositionRestraintMixin):
                 )
 
             # Validate the dimensions.
-            if pos_rest_width.dimensions() != (0, 0, 1, 0, 0, 0, 0):
+            if pos_rest_width.dimensions() != (0, 1, 0, 0, 0, 0, 0):
                 raise ValueError(
                     "'pos_rest_width' has invalid dimensions! "
-                    f"Expected dimensions are 'L', found '{pos_rest_width.unit()}'"
+                    f"Expected dimensions of Length, found '{pos_rest_width.unit()}'"
                 )
         self._pos_rest_width = pos_rest_width
 
@@ -327,10 +327,10 @@ class _AToM(_Protocol, _PositionRestraintMixin):
                 )
 
             # Validate the dimensions.
-            if align_kf_sep.dimensions() != (0, 0, 0, 1, -1, 0, -2):
+            if align_kf_sep.dimensions() != (1, 0, -2, 0, 0, -1, 0):
                 raise ValueError(
                     "'align_kf_sep' has invalid dimensions! "
-                    f"Expected dimensions are 'M Q-1 T-2', found '{align_kf_sep.unit()}'"
+                    f"Expected dimensions of energy density/area (e.g. kcal/molA^2), found '{align_kf_sep.unit()}'"
                 )
         self._align_kf_sep = align_kf_sep
 
@@ -380,10 +380,10 @@ class _AToM(_Protocol, _PositionRestraintMixin):
                 )
 
             # Validate the dimensions.
-            if align_k_theta.dimensions() != (0, 0, 2, 1, -1, 0, -2):
+            if align_k_theta.dimensions() != (1, 2, -2, 0, 0, -1, 0):
                 raise ValueError(
                     "'align_k_theta' has invalid dimensions! "
-                    f"Expected dimensions are 'L2 M Q-1 T-2', found '{align_k_theta.unit()}'"
+                    f"Expected dimensions of energy density (e.g. kcal/mol), found '{align_k_theta.unit()}'"
                 )
         self._align_k_theta = align_k_theta
 
@@ -430,10 +430,10 @@ class _AToM(_Protocol, _PositionRestraintMixin):
                 )
 
             # Validate the dimensions.
-            if align_k_psi.dimensions() != (0, 0, 2, 1, -1, 0, -2):
+            if align_k_psi.dimensions() != (1, 2, -2, 0, 0, -1, 0):
                 raise ValueError(
-                    "'align_k_theta' has invalid dimensions! "
-                    f"Expected dimensions are 'L2 M Q-1 T-2', found '{align_k_psi.unit()}'"
+                    "'align_k_psi' has invalid dimensions! "
+                    f"Expected dimensions of energy density (e.g. kcal/mol), found '{align_k_psi.unit()}'"
                 )
         self._align_k_psi = align_k_psi
 
@@ -480,10 +480,10 @@ class _AToM(_Protocol, _PositionRestraintMixin):
                 )
 
             # Validate the dimensions.
-            if SC_umax.dimensions() != (0, 0, 2, 1, -1, 0, -2):
+            if SC_umax.dimensions() != (1, 2, -2, 0, 0, -1, 0):
                 raise ValueError(
                     "'align_k_theta' has invalid dimensions! "
-                    f"Expected dimensions are 'L2 M Q-1 T-2', found '{SC_umax.unit()}'"
+                    f"Expected dimensions of energy density (e.g. kcal/mol), found '{SC_umax.unit()}'"
                 )
         self._SC_umax = SC_umax
 
@@ -530,10 +530,10 @@ class _AToM(_Protocol, _PositionRestraintMixin):
                 )
 
             # Validate the dimensions.
-            if SC_u0.dimensions() != (0, 0, 2, 1, -1, 0, -2):
+            if SC_u0.dimensions() != (1, 2, -2, 0, 0, -1, 0):
                 raise ValueError(
                     "'align_k_theta' has invalid dimensions! "
-                    f"Expected dimensions are 'L2 M Q-1 T-2', found '{SC_u0.unit()}'"
+                    f"Expected dimensions of energy density (e.g. kcal/mol), found '{SC_u0.unit()}'"
                 )
         self._SC_u0 = SC_u0
 
@@ -607,10 +607,10 @@ class _AToM(_Protocol, _PositionRestraintMixin):
                 )
 
             # Validate the dimensions.
-            if cm_kf.dimensions() != (0, 0, 0, 1, -1, 0, -2):
+            if cm_kf.dimensions() != (1, 0, -2, 0, 0, -1, 0):
                 raise ValueError(
                     "'align_k_theta' has invalid dimensions! "
-                    f"Expected dimensions are 'M Q-1 T-2', found '{cm_kf.unit()}'"
+                    f"Expected dimensions of energy density/area (e.g. kcal/molA^2), found '{cm_kf.unit()}'"
                 )
         self._cm_kf = cm_kf
 
@@ -657,10 +657,10 @@ class _AToM(_Protocol, _PositionRestraintMixin):
                 )
 
             # Validate the dimensions.
-            if cm_tol.dimensions() != (0, 0, 1, 0, 0, 0, 0):
+            if cm_tol.dimensions() != (0, 1, 0, 0, 0, 0, 0):
                 raise ValueError(
                     "'align_k_theta' has invalid dimensions! "
-                    f"Expected dimensions are 'L', found '{cm_tol.unit()}'"
+                    f"Expected dimensions of Length, found '{cm_tol.unit()}'"
                 )
         self._cm_tol = cm_tol
 
@@ -1471,10 +1471,10 @@ class AToMEquilibration(_AToM):
                 )
 
             # Validate the dimensions.
-            if alpha.dimensions() != (0, 0, 2, 1, -1, 0, -2):
+            if alpha.dimensions() != (1, 2, -2, 0, 0, -1, 0):
                 raise ValueError(
                     "'align_k_theta' has invalid dimensions! "
-                    f"Expected dimensions are 'L2 M Q-1 T-2', found '{alpha.unit()}'"
+                    f"Expected dimensions of energy density (e.g. kcal/mol), found '{alpha.unit()}'"
                 )
         self._alpha = alpha
 
@@ -1521,10 +1521,10 @@ class AToMEquilibration(_AToM):
                 )
 
             # Validate the dimensions.
-            if uh.dimensions() != (0, 0, 2, 1, -1, 0, -2):
+            if uh.dimensions() != (1, 2, -2, 0, 0, -1, 0):
                 raise ValueError(
                     "'align_k_theta' has invalid dimensions! "
-                    f"Expected dimensions are 'L2 M Q-1 T-2', found '{uh.unit()}'"
+                    f"Expected dimensions of energy density (e.g. kcal/mol), found '{uh.unit()}'"
                 )
         self._uh = uh
 
@@ -1571,10 +1571,10 @@ class AToMEquilibration(_AToM):
                 )
 
             # Validate the dimensions.
-            if W0.dimensions() != (0, 0, 2, 1, -1, 0, -2):
+            if W0.dimensions() != (1, 2, -2, 0, 0, -1, 0):
                 raise ValueError(
                     "'align_k_theta' has invalid dimensions! "
-                    f"Expected dimensions are 'L2 M Q-1 T-2', found '{W0.unit()}'"
+                    f"Expected dimensions of energy density (e.g. kcal/mol), found '{W0.unit()}'"
                 )
         self._W0 = W0
 
@@ -2190,10 +2190,10 @@ class AToMAnnealing(_AToM):
                 )
 
             # Validate the dimensions.
-            if alpha.dimensions() != (0, 0, 2, 1, -1, 0, -2):
+            if alpha.dimensions() != (1, 2, -2, 0, 0, -1, 0):
                 raise ValueError(
                     "'align_k_theta' has invalid dimensions! "
-                    f"Expected dimensions are 'L2 M Q-1 T-2', found '{alpha.unit()}'"
+                    f"Expected dimensions of energy density (e.g. kcal/mol), found '{alpha.unit()}'"
                 )
         self._alpha = alpha
 
@@ -2240,10 +2240,10 @@ class AToMAnnealing(_AToM):
                 )
 
             # Validate the dimensions.
-            if uh.dimensions() != (0, 0, 2, 1, -1, 0, -2):
+            if uh.dimensions() != (1, 2, -2, 0, 0, -1, 0):
                 raise ValueError(
                     "'align_k_theta' has invalid dimensions! "
-                    f"Expected dimensions are 'L2 M Q-1 T-2', found '{uh.unit()}'"
+                    f"Expected dimensions of energy density (e.g. kcal/mol), found '{uh.unit()}'"
                 )
         self._uh = uh
 
@@ -2290,10 +2290,10 @@ class AToMAnnealing(_AToM):
                 )
 
             # Validate the dimensions.
-            if W0.dimensions() != (0, 0, 2, 1, -1, 0, -2):
+            if W0.dimensions() != (1, 2, -2, 0, 0, -1, 0):
                 raise ValueError(
                     "'align_k_theta' has invalid dimensions! "
-                    f"Expected dimensions are 'L2 M Q-1 T-2', found '{W0.unit()}'"
+                    f"Expected dimensions of energy density (e.g. kcal/mol), found '{W0.unit()}'"
                 )
         self._W0 = W0
 
@@ -3105,10 +3105,10 @@ class AToMProduction(_AToM):
                         )
 
                     # Validate the dimensions.
-                    if a.dimensions() != (0, 0, 2, 1, -1, 0, -2):
+                    if a.dimensions() != (1, 2, -2, 0, 0, -1, 0):
                         raise ValueError(
                             "'alpha' has invalid dimensions! "
-                            f"Expected dimensions are 'L2 M Q-1 T-2', found '{a.unit()}'"
+                            f"Expected dimensions of energy density (e.g. kcal/mol), found '{a.unit()}'"
                         )
                 alpha_fin.append(a)
             self._alpha = alpha_fin
@@ -3167,10 +3167,10 @@ class AToMProduction(_AToM):
                         )
 
                     # Validate the dimensions.
-                    if u.dimensions() != (0, 0, 2, 1, -1, 0, -2):
+                    if u.dimensions() != (1, 2, -2, 0, 0, -1, 0):
                         raise ValueError(
                             "'alpha' has invalid dimensions! "
-                            f"Expected dimensions are 'L2 M Q-1 T-2', found '{u.unit()}'"
+                            f"Expected dimensions of energy density (e.g. kcal/mol), found '{u.unit()}'"
                         )
                 uh_fin.append(u)
             self._uh = uh_fin
@@ -3229,10 +3229,10 @@ class AToMProduction(_AToM):
                         )
 
                     # Validate the dimensions.
-                    if w.dimensions() != (0, 0, 2, 1, -1, 0, -2):
+                    if w.dimensions() != (1, 2, -2, 0, 0, -1, 0):
                         raise ValueError(
                             "'alpha' has invalid dimensions! "
-                            f"Expected dimensions are 'L2 M Q-1 T-2', found '{w.unit()}'"
+                            f"Expected dimensions of energy density (e.g. kcal/mol), found '{w.unit()}'"
                         )
                 W0_fin.append(w)
             self._W0 = W0_fin
