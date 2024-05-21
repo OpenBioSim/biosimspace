@@ -1728,14 +1728,6 @@ def roiAlign(
         res0 = molecule0.getResidues()[roi_idx]
         res1 = molecule1.getResidues()[roi_idx]
 
-        if res0.name() == res1.name() and res0.nAtoms() == res1.nAtoms():
-            res0_atoms = [a.name() for a in res0.getAtoms()]
-            res1_atoms = [a.name() for a in res0.getAtoms()]
-            if res0_atoms == res1_atoms:
-                _warnings.warn(
-                    f"Residue {roi_idx} in molecule0 and molecule1 have identical atomtypes."
-                )
-
         res0_idx = [a.index() for a in res0.getAtoms()]
         res1_idx = [a.index() for a in res1.getAtoms()]
 
