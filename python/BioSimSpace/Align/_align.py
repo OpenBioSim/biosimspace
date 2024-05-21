@@ -907,8 +907,8 @@ def matchAtoms(
     try:
         # Convert the molecules to RDKit format.
         mols = [
-            _Convert.toRDKit(molecule0, property_map=property_map0),
-            _Convert.toRDKit(molecule1, property_map=property_map1),
+            _Convert.toRDKit(mol0, property_map=property_map0),
+            _Convert.toRDKit(mol1, property_map=property_map1),
         ]
 
         # Generate the MCS match.
@@ -1106,8 +1106,6 @@ def _kartograf_map(molecule0, molecule1, kartograf_kwargs):
     return kartograf_mapping
 
 
-# NOTE: This function is currently experimental and has not gone through
-# rigorous validation. Proceed with caution.
 def roiMatch(
     molecule0,
     molecule1,
@@ -1123,7 +1121,7 @@ def roiMatch(
     The ROI is defined as a list of residues in the molecule/protein.
     The function will attempt to match the ROI in the two molecules and
     return the mapping between the two molecules. Multiple ROIs can be
-    defined by providing a list of residues.
+    provided.
 
     Parameters
     ----------
@@ -1135,7 +1133,8 @@ def roiMatch(
         The reference molecule.
 
     roi : list
-        A list of regions/residues of interest in the molecule/protein.
+        The region of interest to merge.
+        Consists of a list of ROI residue indices.
 
     ring_matches_ring_only : bool
         Whether ring bonds can only match ring bonds.
@@ -1163,9 +1162,10 @@ def roiMatch(
     The function will attempt to match the atoms in the ROI based on the
     maximum common substructure (MCS) algorithm. First, the ROI is extracted
     from the two molecules and then the atoms in the ROI are matched using
-    BioSimSpace.Align.matchAtoms function. The function will return the
-    mapping between the two molecules. This "relative" mapping will then be
-    used to map the atoms in the ROI to the "absolute" indices in the molecule.
+    a mapping function such as BioSimSpace.Align.matchAtoms for example.
+    The function will return the mapping between the two molecules.
+    This "relative" mapping will then be used to map the atoms in the ROI to
+    the "absolute" indices in the molecule.
     So for example the relative mapping could be {0: 3, 1: 2, 2: 5} and
     the absolute mapping could be {100: 103, 101: 102, 102: 105}. This way we
     can bypass the need to map the entire molecule and only focus on the ROI,
@@ -1638,7 +1638,6 @@ def roiAlign(
     molecule0,
     molecule1,
     roi=None,
-    mapping=None,
     align_function="rmsd",
     fkcombu_exe=None,
     property_map0={},
@@ -1657,12 +1656,9 @@ def roiAlign(
     molecule1 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
         The reference molecule.
 
-    mapping : dict
-        A dictionary mapping atoms in molecule0 to those in molecule1.
-
     roi : list
-        A list of residue indices that define the region of interest (ROI) in
-        the molecule.
+        The region of interest to merge.
+        Consists of a list of ROI residue indices.
     .
     align_function : str
         The alignment function used to align atoms. Available options are:
@@ -1697,10 +1693,15 @@ def roiAlign(
     Examples
     --------
 
-    Align molecule0 to molecule1 based on a precomputed mapping.
+    Align residue of interest from molecule0 to molecule1.
 
     >>> import BioSimSpace as BSS
-    >>> molecule0 = BSS.Align.roiAlign(molecule0, molecule1, mapping, roi=[12])
+    >>> molecule0 = BSS.Align.roiAlign(molecule0, molecule1, roi=[12])
+
+    Align multiple residues of interest from molecule0 to molecule1.
+
+    >>> import BioSimSpace as BSS
+    >>> molecule0 = BSS.Align.roiAlign(molecule0, molecule1, roi=[12,13])
     """
 
     if not isinstance(molecule0, _Molecule):
@@ -1717,13 +1718,6 @@ def roiAlign(
     else:
         if not isinstance(roi, list):
             raise TypeError("'roi' must be of type 'list'.")
-
-    # The user has passed an atom mapping.
-    if mapping is not None:
-        if not isinstance(mapping, dict):
-            raise TypeError("'mapping' must be of type 'dict'.")
-        else:
-            _validate_mapping(molecule0, molecule1, mapping, "mapping")
 
     if align_function not in ["rmsd", "rmsd_flex_align"]:
         raise ValueError(
@@ -1831,8 +1825,9 @@ def merge(
         takes precedence over 'allow_ring_breaking' and
         'allow_ring_size_change'.
 
-       roi : list
-           The region of interest to merge. Consist of two lists of atom indices.
+    roi : list
+        The region of interest to merge.
+        Consists of a list of ROI residue indices.
 
     property_map0 : dict
         A dictionary that maps "properties" in molecule0 to their user
@@ -1856,6 +1851,12 @@ def merge(
 
     >>> import BioSimSpace as BSS
     >>> merged = BSS.Align.merge(molecule0, molecule1, mapping)
+
+    Merge molecule0 and molecule1 based on a precomputed mapping and a region
+    of interest.
+
+    >>> import BioSimSpace as BSS
+    >>> merged = BSS.Align.merge(molecule0, molecule1, mapping, roi=[12])
 
     Merge molecule0 with molecule1. Since no mapping is passed one will be
     autogenerated using :class:`matchAtoms <BioSimSpace.Align.matchAtoms>`
