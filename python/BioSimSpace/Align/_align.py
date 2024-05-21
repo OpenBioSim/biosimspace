@@ -40,8 +40,6 @@ import os as _os
 import subprocess as _subprocess
 import sys as _sys
 
-# This logger is temporary.
-from loguru import logger as _logger
 
 from .._Utils import _try_import, _have_imported, _assert_imported
 
@@ -718,7 +716,6 @@ def generateNetwork(
 def matchAtoms(
     molecule0,
     molecule1,
-    engine="SOMD",
     scoring_function="rmsd_align",
     matches=1,
     return_scores=False,
@@ -727,8 +724,6 @@ def matchAtoms(
     atomCompare=_rdFMCS.AtomCompare.CompareAny,
     complete_rings_only=True,
     ring_matches_ring_only=True,
-    prune_perturbed_constraints=None,
-    prune_crossing_constraints=None,
     max_scoring_matches=1000,
     property_map0={},
     property_map1={},
@@ -749,10 +744,6 @@ def matchAtoms(
 
     molecule1 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
         The reference molecule.
-
-    engine : str
-        The engine with which the simulations will be run. This is used for
-        setting some reasonable defaults for the other settings.
 
     scoring_function : str
         The scoring function used to match atoms. Available options are:
@@ -784,16 +775,6 @@ def matchAtoms(
         Whether to only match complete rings during the MCS search. This
         option is only relevant to MCS performed using RDKit and will be
         ignored when falling back on Sire.
-
-    prune_perturbed_constraints : bool
-        Whether to remove hydrogen atoms that are perturbed to heavy atoms
-        from the mapping. This is True for AMBER by default and False for
-        all other engines.
-
-    prune_crossing_constraints : bool
-        Whether to remove atoms from the mapping such that there are no
-        constraints between dummy and non-dummy atoms. This is True for
-        AMBER by default and False for all other engines.
 
     max_scoring_matches : int
         The maximum number of matching MCS substructures to consider when
@@ -913,13 +894,6 @@ def matchAtoms(
 
     if not isinstance(property_map1, dict):
         raise TypeError("'property_map1' must be of type 'dict'")
-
-    # Set some defaults.
-    is_amber = engine.upper() == "AMBER"
-    if prune_perturbed_constraints is None:
-        prune_perturbed_constraints = is_amber
-    if prune_crossing_constraints is None:
-        prune_crossing_constraints = is_amber
 
     # Extract the Sire molecule from each BioSimSpace molecule.
     mol0 = molecule0._getSireObject()
@@ -1083,7 +1057,6 @@ def _kartograf_map(molecule0, molecule1, kartograf_kwargs):
     """
     # try to import kartograf
     try:
-        import rdkit.Chem as _Chem
         from kartograf.atom_aligner import align_mol_shape as _align_mol_shape
         from kartograf.atom_mapping_scorer import (
             MappingRMSDScorer as _MappingRMSDScorer,
@@ -1094,7 +1067,7 @@ def _kartograf_map(molecule0, molecule1, kartograf_kwargs):
         )
     except ImportError:
         raise ImportError(
-            "Kartograf is not installed. Please install kartograf to use this function."
+            "Unable to import Kartograf. Make sure Kartograf is installed properly to use this function."
         )
 
     # Validate input
@@ -1128,7 +1101,7 @@ def _kartograf_map(molecule0, molecule1, kartograf_kwargs):
     # score the mapping
     rmsd_scorer = _MappingRMSDScorer()
     score = rmsd_scorer(mapping=kartograf_mapping)
-    _logger.debug(f"RMSD score: {score:.2f}")
+    print(f"RMSD score: {score:.2f}")
 
     return kartograf_mapping
 
@@ -1217,7 +1190,7 @@ def roiMatch(
     >>> mapping = BSS.Align.roiMatch(molecule0, molecule1, roi=[12, 13, 14])
 
     Find the best maximum common substructure mapping between two molecules,
-    using kartograf as the MCS algorithm.
+    using Kartograf as the MCS algorithm.
 
     >>> import BioSimSpace as BSS
     >>> mapping = BSS.Align.roiMatch(molecule0, molecule1, roi=[12], use_kartograf=True)
@@ -1237,9 +1210,6 @@ def roiMatch(
     if roi is None:
         raise ValueError("residue of interest list is not provided.")
 
-    _logger.debug(f"Number of mol A atoms: {molecule0.nAtoms()}")
-    _logger.debug(f"Number of mol B atoms: {molecule1.nAtoms()}")
-
     # Get the atoms before the ROI.
     # This is being done so that when we map the atoms in ROI, we can append
     # the ROI mapping to this pre-ROI mapping which will then be used as
@@ -1255,15 +1225,8 @@ def roiMatch(
 
     # Loop over the residues of interest
     for i, res_idx in enumerate(roi):
-        _logger.debug(f"Starting match for ROI id: {res_idx}")
-
         molecule0_roi = molecule0.getResidues()[res_idx]
-        _logger.debug("Molecule0 ROI:")
-        _logger.debug(molecule0_roi)
-
         molecule1_roi = molecule1.getResidues()[res_idx]
-        _logger.debug("Molecule1 ROI:")
-        _logger.debug(molecule1_roi)
 
         # Warn if matching between the same residues, in a case where we are
         # transforming from one enantiomer to another, the atomtypes will
@@ -1275,32 +1238,23 @@ def roiMatch(
             molecule0_atoms = [a.name() for a in molecule0_roi.getAtoms()]
             molecule1_atoms = [a.name() for a in molecule1_roi.getAtoms()]
             if molecule0_atoms == molecule1_atoms:
-                _logger.warning(
-                    f"Residue {res_idx} in molecule0 and molecule1 have identical atomtypes."
+                _warnings.warn(
+                    f"Residue {res_idx} between molecule0 and molecule1 have identical atomtypes."
                 )
 
         res0_idx = [a.index() for a in molecule0_roi]
-        # _logger.debug(f"res0 indices: {res0_idx}")
         res1_idx = [a.index() for a in molecule1_roi]
-        # _logger.debug(f"res1 indices: {res1_idx}")
 
         # Extract the residues of interest from the molecules
         res0_extracted = molecule0.extract(res0_idx)
         res1_extracted = molecule1.extract(res1_idx)
 
-        # for a in res0_extracted.getAtoms():
-        # _logger.debug(f"res0 atom: {a}")
-        # for b in res1_extracted.getAtoms():
-        # _logger.debug(f"res1 atom: {b}")
-
         if use_kartograf:
-            _logger.debug("Using kartograf to map the ROI.")
             kartograf_mapping = _kartograf_map(
                 res0_extracted, res1_extracted, kartograf_kwargs
             )
             mapping = kartograf_mapping.componentA_to_componentB
         else:
-            _logger.debug("Using rdKit MCS to map the ROI.")
             mapping = matchAtoms(
                 res0_extracted,
                 res1_extracted,
@@ -1309,41 +1263,12 @@ def roiMatch(
                 atomCompare=atomCompare,
             )
 
-        _logger.debug(f"Mapping: {mapping}")
+        # Look up the absolute atom indices in the molecule
+        res0_lookup_table = list(mapping.keys())
+        absolute_mapped_atoms_res0 = [res0_idx[i] for i in res0_lookup_table]
 
-        # Check how many atoms got mapped from one residue to the other
-        _logger.debug(
-            f"Mapped {len(mapping.keys())} out of {len(res0_idx)} atoms for molecule0"
-        )
-        _logger.debug(
-            f"Mapped {len(mapping.values())} out of {len(res1_idx)} atoms for molecule1"
-        )
-
-        # If the number of mapped atoms is not the same as the number of atoms
-        # in the ROI we need to use that molecule as the reference
-        # for the lookup table.
-        # NOTE: We don't really need the conditional statement here that checks
-        # if all of the atoms in the ROI have been mapped, because
-        # we are going to translate atoms relative indices to absolute ones
-        # and that case would be captured by the lookup table.
-        if len(mapping.keys()) != len(res0_idx):
-            _logger.debug("Some atoms for molecule0 in the ROI have not been mapped.")
-            _logger.debug("Using molecule0 as the reference for the lookup table.")
-            residue_lookup_table = list(mapping.keys())
-            absolute_mapped_atoms_res0 = [res0_idx[i] for i in residue_lookup_table]
-
-        # i.e this bit is unnecessary
-        else:
-            absolute_mapped_atoms_res0 = res0_idx
-
-        if len(mapping.values()) != len(res1_idx):
-            _logger.debug("Some atoms for molecule1 in the ROI have not been mapped.")
-            _logger.debug("Using molecule1 as the reference for the lookup table.")
-            residue_lookup_table = list(mapping.values())
-            absolute_mapped_atoms_res1 = [res1_idx[i] for i in residue_lookup_table]
-
-        else:
-            absolute_mapped_atoms_res1 = res1_idx
+        res1_lookup_table = list(mapping.values())
+        absolute_mapped_atoms_res1 = [res1_idx[i] for i in res1_lookup_table]
 
         absolute_roi_mapping = dict(
             zip(absolute_mapped_atoms_res0, absolute_mapped_atoms_res1)
@@ -1352,10 +1277,11 @@ def roiMatch(
         # Check that pre_roi_atom_indices are not part of molecule ROI indices
         # NOTE: This could be a costly operation, if pre_roi_atom_indices is
         # large.
-        if any(i in pre_roi_atom_idx_molecule0 for i in res0_idx) or any(
-            i in pre_roi_atom_idx_molecule1 for i in res1_idx
-        ):
-            raise ValueError("Found atoms in pre ROI region that are part of the ROI.")
+
+        # if any(i in pre_roi_atom_idx_molecule0 for i in res0_idx) or any(
+        #     i in pre_roi_atom_idx_molecule1 for i in res1_idx
+        # ):
+        #     raise ValueError("Found atoms in pre ROI region that are part of the ROI.")
 
         # Now we have to think about what to do with the atom indices
         # after the mapping as these are not going to be the same
@@ -1374,9 +1300,6 @@ def roiMatch(
             # If we were at residue 10 and the next residue of interest is 12,
             # we would need to map the atoms between residues 10 and 12.
             if roi[i + 1] - roi[i] == 1:
-                _logger.debug(
-                    "Next ROI is adjacent to the current ROI, no need to map atoms between the two."
-                )
                 after_roi_atom_idx_molecule0 = []
                 after_roi_atom_idx_molecule1 = []
             else:
@@ -1400,6 +1323,7 @@ def roiMatch(
                     after_roi_atom_idx_molecule1,
                 )
             )
+
             # Append the mappings to the pre_roi_mapping, which will then be
             # used as the pre_roi_mapping for the next ROI in the list.
             pre_roi_mapping = {
@@ -1427,16 +1351,11 @@ def roiMatch(
     )
 
     # Check that after_roi_atom_indices are not part of absolute_roi_mapping
-    if any(i in after_roi_atom_idx_molecule0 for i in res0_idx):
-        raise ValueError("Found atoms in after ROI region that are part of the ROI")
+    # if any(i in after_roi_atom_idx_molecule0 for i in res0_idx):
+    #     raise ValueError("Found atoms in after ROI region that are part of the ROI")
 
-    if any(i in after_roi_atom_idx_molecule1 for i in res1_idx):
-        raise ValueError("Found atoms in after ROI region that are part of the ROI")
-
-    # Print all 3 dictionaries
-    _logger.debug(f"Pre ROI region mapping: {pre_roi_mapping}")
-    _logger.debug(f"Absolute ROI mapping: {absolute_roi_mapping}")
-    _logger.debug(f"After ROI region mapping: {after_roi_mapping}")
+    # if any(i in after_roi_atom_idx_molecule1 for i in res1_idx):
+    #     raise ValueError("Found atoms in after ROI region that are part of the ROI")
 
     # Combine the dictionaries to get the full mapping
     full_mapping = {
@@ -1819,7 +1738,7 @@ def roiAlign(
             res0_atoms = [a.name() for a in res0.getAtoms()]
             res1_atoms = [a.name() for a in res0.getAtoms()]
             if res0_atoms == res1_atoms:
-                _logger.warning(
+                _warnings.warn(
                     f"Residue {roi_idx} in molecule0 and molecule1 have identical atomtypes."
                 )
 
@@ -1975,8 +1894,6 @@ def merge(
     if roi is not None:
         if not isinstance(roi, list):
             raise TypeError("'roi' must be of type 'list'.")
-        # else:
-        #     _validate_roi(molecule0, molecule1, roi)
 
     # The user has passed an atom mapping.
     if mapping is not None:
@@ -2654,39 +2571,6 @@ def _validate_mapping(molecule0, molecule1, mapping, name):
                 "The molecules contain %d and %d atoms."
                 % (name, idx0, idx1, molecule0.nAtoms(), molecule1.nAtoms())
             )
-
-
-# def _validate_roi(molecule0, molecule1, roi):
-#     """Internal function to validate that a mapping contains key:value pairs
-#     of the correct type.
-
-#     Parameters
-#     ----------
-
-#     molecule0 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
-#         The molecule of interest.
-
-#     molecule1 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
-#         The reference molecule.
-
-#     roi : list
-#         The region of interest to merge.
-#     """
-#     for roi_res in roi:
-#         if len(roi_res) != 2:
-#             raise ValueError("The length of roi list must be 2.")
-#         if not isinstance(roi[0], list) or not isinstance(roi[1], list):
-#             raise ValueError("The element of roi must be of type list")
-#         for mol_idx, ele in enumerate(roi):
-#             for atom_idx in ele:
-#                 if type(atom_idx) is not int:
-#                     raise ValueError(
-#                         f"The element of roi[{mol_idx}] should be of type int"
-#                     )
-#                 if atom_idx >= [molecule0, molecule1][mol_idx].nAtoms():
-#                     raise IndexError(
-#                         f"The element of roi[{mol_idx}] should within range of number of atoms"
-#                     )
 
 
 def _to_sire_mapping(mapping):

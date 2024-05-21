@@ -32,9 +32,6 @@ from sire.legacy import MM as _SireMM
 from sire.legacy import Mol as _SireMol
 from sire.legacy import Units as _SireUnits
 
-# This logger is temporary.
-from loguru import logger as _logger
-
 from .._Exceptions import IncompatibleError as _IncompatibleError
 from .._SireWrappers import Molecule as _Molecule
 
@@ -160,13 +157,9 @@ def merge(
     # Get the atom indices from the mapping.
     idx0 = mapping.keys()
     idx1 = mapping.values()
-    _logger.debug(f"Mapping: {mapping}")
-    _logger.debug(f"idx0: {idx0}")
-    _logger.debug(f"idx1: {idx1}")
 
     # Create the reverse mapping: molecule1 --> molecule0
     inv_mapping = {v: k for k, v in mapping.items()}
-    _logger.debug(f"Inverse mapping: {inv_mapping}")
 
     # Generate the mappings from each molecule to the merged molecule
     mol0_merged_mapping = {}
@@ -209,7 +202,6 @@ def merge(
         if atom.index() not in idx0:
             atoms0.append(atom)
             atoms0_idx.append(atom.index())
-    _logger.debug(f"Unique atoms in molecule0: {atoms0_idx}")
 
     # molecule1
     for atom in molecule1.atoms():
@@ -217,7 +209,6 @@ def merge(
             atoms1.append(atom)
             atoms1_idx.append(atom.index())
 
-    _logger.debug(f"Unique atoms in molecule1: {atoms1_idx}")
 
     # Create a new molecule to hold the merged molecule.
     molecule = _SireMol.Molecule("Merged_Molecule")
