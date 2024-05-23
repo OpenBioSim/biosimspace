@@ -1129,6 +1129,10 @@ def _to_pert_file(
 
         # 1) Atoms.
 
+        # Store a null LJParameter object for dummy atoms. SOMD requires that
+        # both sigma and epsilon are set to zero for dummy atoms.
+        dummy_lj = _SireMM.LJParameter()
+
         def atom_sorting_criteria(atom):
             LJ0 = atom.property("LJ0")
             LJ1 = atom.property("LJ1")
@@ -1155,6 +1159,13 @@ def _to_pert_file(
                     # Get the initial/final Lennard-Jones properties.
                     LJ0 = atom.property("LJ0")
                     LJ1 = atom.property("LJ1")
+
+                    # Dummy atom at lambda = 0.
+                    if _is_dummy(mol, atom.index(), is_lambda1=False):
+                        LJ0 = dummy_lj
+                    # Dummy atom at lambda = 1.
+                    if _is_dummy(mol, atom.index(), is_lambda1=True):
+                        LJ1 = dummy_lj
 
                     # Atom data.
                     file.write("        name           %s\n" % atom.name().value())
@@ -1198,6 +1209,13 @@ def _to_pert_file(
                     # Get the initial/final Lennard-Jones properties.
                     LJ0 = atom.property("LJ0")
                     LJ1 = atom.property("LJ1")
+
+                    # Dummy atom at lambda = 0.
+                    if _is_dummy(mol, idx, is_lambda1=False):
+                        LJ0 = dummy_lj
+                    # Dummy atom at lambda = 1.
+                    if _is_dummy(mol, idx, is_lambda1=True):
+                        LJ1 = dummy_lj
 
                     # Atom data.
                     file.write("        name           %s\n" % atom.name().value())
@@ -1252,11 +1270,11 @@ def _to_pert_file(
 
                 # Set LJ/charge based on requested perturbed term.
                 if perturbation_type == "discharge_soft":
-                    if atom.property("element0") == _SireMol.Element(
-                        "X"
-                    ) or atom.property("element1") == _SireMol.Element("X"):
+                    if _is_dummy(mol, idx, is_lambda1=False) or _is_dummy(
+                        mol, idx, is_lambda1=True
+                    ):
                         # If perturbing TO dummy:
-                        if atom.property("element1") == _SireMol.Element("X"):
+                        if is_dummy(mol, idx, is_lambda1=True):
                             atom_type1 = atom_type0
 
                             # In this step, only remove charges from soft-core perturbations.
@@ -1270,7 +1288,7 @@ def _to_pert_file(
 
                         # If perturbing FROM dummy:
                         else:
-                            # All terms have already been perturbed in "5_grow_soft".
+                            # All terms have already been perturbed in "grow_soft".
                             atom_type1 = atom_type0
                             LJ0_value = LJ1_value = (
                                 LJ0.sigma().value(),
@@ -1290,11 +1308,11 @@ def _to_pert_file(
                         charge0_value = charge1_value = atom.property("charge0").value()
 
                 elif perturbation_type == "vanish_soft":
-                    if atom.property("element0") == _SireMol.Element(
-                        "X"
-                    ) or atom.property("element1") == _SireMol.Element("X"):
+                    if _is_dummy(mol, idx, is_lambda1=False) or _is_dummy(
+                        mol, idx, is_lambda1=True
+                    ):
                         # If perturbing TO dummy:
-                        if atom.property("element1") == _SireMol.Element("X"):
+                        if _is_dummy(mol, idx, is_lambda1=True):
                             # allow atom types to change.
                             atom_type0 = atom_type0
                             atom_type1 = atom_type1
@@ -1308,7 +1326,7 @@ def _to_pert_file(
 
                         # If perturbing FROM dummy:
                         else:
-                            # All terms have already been perturbed in "5_grow_soft".
+                            # All terms have already been perturbed in "grow_soft".
                             atom_type1 = atom_type0
                             LJ0_value = LJ1_value = (
                                 LJ0.sigma().value(),
@@ -1328,11 +1346,11 @@ def _to_pert_file(
                         charge0_value = charge1_value = atom.property("charge0").value()
 
                 elif perturbation_type == "flip":
-                    if atom.property("element0") == _SireMol.Element(
-                        "X"
-                    ) or atom.property("element1") == _SireMol.Element("X"):
+                    if _is_dummy(mol, idx, is_lambda1=False) or _is_dummy(
+                        mol, idx, is_lambda1=True
+                    ):
                         # If perturbing TO dummy:
-                        if atom.property("element1") == _SireMol.Element("X"):
+                        if _is_dummy(mol, idx, is_lambda1=True):
                             # atom types have already been changed.
                             atom_type0 = atom_type1
 
@@ -1342,7 +1360,7 @@ def _to_pert_file(
 
                         # If perturbing FROM dummy:
                         else:
-                            # All terms have already been perturbed in "5_grow_soft".
+                            # All terms have already been perturbed in "grow_soft".
                             atom_type1 = atom_type0
                             LJ0_value = LJ1_value = (
                                 LJ0.sigma().value(),
@@ -1362,11 +1380,11 @@ def _to_pert_file(
                         charge1_value = atom.property("charge1").value()
 
                 elif perturbation_type == "grow_soft":
-                    if atom.property("element0") == _SireMol.Element(
-                        "X"
-                    ) or atom.property("element1") == _SireMol.Element("X"):
+                    if _is_dummy(mol, idx, is_lambda1=False) or _is_dummy(
+                        mol, idx, is_lambda1=True
+                    ):
                         # If perturbing TO dummy:
-                        if atom.property("element1") == _SireMol.Element("X"):
+                        if _is_dummy(mol, idx, is_lambda1=True):
                             # atom types have already been changed.
                             atom_type0 = atom_type1
 
@@ -1398,11 +1416,11 @@ def _to_pert_file(
                         charge0_value = charge1_value = atom.property("charge1").value()
 
                 elif perturbation_type == "charge_soft":
-                    if atom.property("element0") == _SireMol.Element(
-                        "X"
-                    ) or atom.property("element1") == _SireMol.Element("X"):
+                    if _is_dummy(mol, idx, is_lambda1=False) or _is_dummy(
+                        mol, idx, is_lambda1=True
+                    ):
                         # If perturbing TO dummy:
-                        if atom.property("element1") == _SireMol.Element("X"):
+                        if _is_dummy(mol, idx, is_lambda1=True):
                             # atom types have already been changed.
                             atom_type0 = atom_type1
 
@@ -2985,6 +3003,7 @@ def _has_dummy(mol, idxs, is_lambda1=False):
 def _is_dummy(mol, idxs, is_lambda1=False):
     """
     Internal function to return whether each atom is a dummy.
+    If a single index is pased, then a single boolean is returned.
 
     Parameters
     ----------
@@ -3030,6 +3049,10 @@ def _is_dummy(mol, idxs, is_lambda1=False):
     # Initialise a list to store the state of each atom.
     is_dummy = []
 
+    # Convert single index to list.
+    if not isinstance(idxs, list):
+        idxs = [idxs]
+
     # Check whether each of the atoms is a dummy.
     for idx in idxs:
         is_dummy.append(
@@ -3037,7 +3060,10 @@ def _is_dummy(mol, idxs, is_lambda1=False):
             or mol.atom(idx).property(ambertype_prop) == ambertype_dummy
         )
 
-    return is_dummy
+    if len(is_dummy) == 1:
+        return is_dummy[0]
+    else:
+        return is_dummy
 
 
 def _random_suffix(basename, size=4, chars=_string.ascii_uppercase + _string.digits):
