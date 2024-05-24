@@ -944,6 +944,8 @@ class relativeATM:
                         new_config.append(f"w0 = {new_w0} * kilocalories_per_mole\n")
                     elif line.startswith("direction"):
                         new_config.append(f"direction = {new_direction}\n")
+                    elif line.startswith("window_index"):
+                        new_config.append(f"window_index = {index}\n")
                     else:
                         new_config.append(line)
             with open(new_dir + "/openmm_script.py", "w") as f:
