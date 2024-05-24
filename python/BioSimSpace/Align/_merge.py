@@ -693,11 +693,14 @@ def merge(
                     .molecule()
                 )
 
+    # Store a dummy element.
+    dummy = _SireMol.Element(0)
+
     # Set the LJ sigma paramater to the value of the opposite end state for any
     # dummy atoms.
     for atom in edit_mol.atoms():
         # Lambda = 0 is a dummy atom.
-        if atom.property("ambertype0") == "du":
+        if atom.property("element0") == dummy:
             lj0 = edit_mol.atom(atom.index()).property("LJ0")
             lj1 = edit_mol.atom(atom.index()).property("LJ1")
 
@@ -708,7 +711,7 @@ def merge(
                 .molecule()
             )
         # Lambda = 1 is a dummy atom.
-        if atom.property("ambertype1") == "du":
+        if atom.property("element1") == dummy:
             lj0 = edit_mol.atom(atom.index()).property("LJ0")
             lj1 = edit_mol.atom(atom.index()).property("LJ1")
 

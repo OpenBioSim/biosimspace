@@ -2989,11 +2989,13 @@ def _has_dummy(mol, idxs, is_lambda1=False):
     element_dummy = _SireMol.Element(0)
     ambertype_dummy = "du"
 
+    # Check that the molecule has the ambertype property.
+    has_ambertype = mol.hasProperty(ambertype_prop)
+
     # Check whether an of the atoms is a dummy.
     for idx in idxs:
-        if (
-            mol.atom(idx).property(element_prop) == element_dummy
-            or mol.atom(idx).property(ambertype_prop) == ambertype_dummy
+        if mol.atom(idx).property(element_prop) == element_dummy or (
+            has_ambertype and mol.atom(idx).property(ambertype_prop) == ambertype_dummy
         ):
             return True
 
@@ -3046,6 +3048,9 @@ def _is_dummy(mol, idxs, is_lambda1=False):
     element_dummy = _SireMol.Element(0)
     ambertype_dummy = "du"
 
+    # Check that the molecule has the ambertype property.
+    has_ambertype = mol.hasProperty(ambertype_prop)
+
     # Initialise a list to store the state of each atom.
     is_dummy = []
 
@@ -3057,7 +3062,10 @@ def _is_dummy(mol, idxs, is_lambda1=False):
     for idx in idxs:
         is_dummy.append(
             mol.atom(idx).property(element_prop) == element_dummy
-            or mol.atom(idx).property(ambertype_prop) == ambertype_dummy
+            or (
+                has_ambertype
+                and mol.atom(idx).property(ambertype_prop) == ambertype_dummy
+            )
         )
 
     if len(is_dummy) == 1:
