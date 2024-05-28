@@ -415,7 +415,6 @@ class makeSystem:
         dict
             A dictionary containing the indices of the protein and ligand atoms in the system
         """
-        print(f"CURRENT INDEX: {self.protein_index}")
         protein_atom_start = self.system[self.protein_index[0]].getAtoms()[0]
         protein_atom_end = self.system[self.protein_index[-1]].getAtoms()[-1]
         self.first_protein_atom_index = self.system.getIndex(protein_atom_start)
