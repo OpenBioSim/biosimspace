@@ -128,11 +128,13 @@ class makeSystem:
         self.setLigand2RigidCore(ligand2_rigid_core)
         self._setDisplacement(displacement)
         if isinstance(mol1, _Molecule):
+            print("Making from three")
             self._makeSystemFromThree()
-        # These will be updated if/when needed
-        self.protein_index = protein_index
-        self.ligand1_index = ligand1_index
-        self.ligand2_index = ligand2_index
+        else:
+            # These will be updated if/when needed
+            self._setProteinIndex(protein_index)
+            self._setLigand1Index(ligand1_index)
+            self._setLigand2Index(ligand2_index)
         self._set_mol1_com_atoms(prot_com_atoms)
         self._set_lig1_com_atoms(lig1_com_atoms)
         self._set_lig2_com_atoms(lig2_com_atoms)
@@ -400,9 +402,9 @@ class makeSystem:
             self.data["displacement"] = [vec.x(), vec.y(), vec.z()]
 
         self.system = (self.mol1 + self.ligand1 + self.ligand2).toSystem()
-        self.protein_index = self.system.getIndex(self.mol1)
-        self.ligand1_index = self.system.getIndex(self.ligand1)
-        self.ligand2_index = self.system.getIndex(self.ligand2)
+        self._setProteinIndex(self.system.getIndex(self.mol1))
+        self._setLigand1Index(self.system.getIndex(self.ligand1))
+        self._setLigand2Index(self.system.getIndex(self.ligand2))
 
     def _findAtomIndices(self):
         """
@@ -413,6 +415,7 @@ class makeSystem:
         dict
             A dictionary containing the indices of the protein and ligand atoms in the system
         """
+        print(f"CURRENT INDEX: {self.protein_index}")
         protein_atom_start = self.system[self.protein_index[0]].getAtoms()[0]
         protein_atom_end = self.system[self.protein_index[-1]].getAtoms()[-1]
         self.first_protein_atom_index = self.system.getIndex(protein_atom_start)
