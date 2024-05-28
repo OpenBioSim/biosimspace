@@ -2945,49 +2945,54 @@ class Amber(_process.Process):
         is Free Energy protocol, the dHdl and the u_nk data will be saved in the
         same parquet format as well.
         """
+        if filename is not None:
+            self._init_stdout_dict()
+            if isinstance(self._protocol, _Protocol.Minimisation):
+                datadict_keys = [
+                    ("Time (ps)", None, "getStep"),
+                    (
+                        "PotentialEnergy (kJ/mol)",
+                        _Units.Energy.kj_per_mol,
+                        "getTotalEnergy",
+                    ),
+                ]
+            else:
+                datadict_keys = [
+                    ("Time (ps)", _Units.Time.picosecond, "getTime"),
+                    (
+                        "PotentialEnergy (kJ/mol)",
+                        _Units.Energy.kj_per_mol,
+                        "getPotentialEnergy",
+                    ),
+                    ("Volume (nm^3)", _Units.Volume.nanometer3, "getVolume"),
+                    ("Pressure (bar)", _Units.Pressure.bar, "getPressure"),
+                    (
+                        "Temperature (kelvin)",
+                        _Units.Temperature.kelvin,
+                        "getTemperature",
+                    ),
+                ]
+            # # Disable this now
+            df = self._convert_datadict_keys(datadict_keys)
+            df.to_parquet(path=f"{self.workDir()}/{filename}", index=True)
+        if u_nk is not None or dHdl is not None:
+            _assert_imported(_alchemlyb)
 
-        _assert_imported(_alchemlyb)
-
-        self._init_stdout_dict()
-        datadict = dict()
-        if isinstance(self._protocol, _Protocol.Minimisation):
-            datadict_keys = [
-                ("Time (ps)", None, "getStep"),
-                (
-                    "PotentialEnergy (kJ/mol)",
-                    _Units.Energy.kj_per_mol,
-                    "getTotalEnergy",
-                ),
-            ]
-        else:
-            datadict_keys = [
-                ("Time (ps)", _Units.Time.picosecond, "getTime"),
-                (
-                    "PotentialEnergy (kJ/mol)",
-                    _Units.Energy.kj_per_mol,
-                    "getPotentialEnergy",
-                ),
-                ("Volume (nm^3)", _Units.Volume.nanometer3, "getVolume"),
-                ("Pressure (bar)", _Units.Pressure.bar, "getPressure"),
-                ("Temperature (kelvin)", _Units.Temperature.kelvin, "getTemperature"),
-            ]
-        # # Disable this now
-        df = self._convert_datadict_keys(datadict_keys)
-        df.to_parquet(path=f"{self.workDir()}/{filename}", index=True)
-        if isinstance(self._protocol, _Protocol.FreeEnergy):
-            energy = _extract(
-                f"{self.workDir()}/{self._name}.out",
-                T=self._protocol.getTemperature() / _Units.Temperature.kelvin,
-            )
-            with _warnings.catch_warnings():
-                _warnings.filterwarnings(
-                    "ignore", message="The DataFrame has column names of mixed type."
+            if isinstance(self._protocol, _Protocol.FreeEnergy):
+                energy = _extract(
+                    f"{self.workDir()}/{self._name}.out",
+                    T=self._protocol.getTemperature() / _Units.Temperature.kelvin,
                 )
-                if "u_nk" in energy and energy["u_nk"] is not None:
-                    energy["u_nk"].to_parquet(
-                        path=f"{self.workDir()}/{u_nk}", index=True
+                with _warnings.catch_warnings():
+                    _warnings.filterwarnings(
+                        "ignore",
+                        message="The DataFrame has column names of mixed type.",
                     )
-                if "dHdl" in energy and energy["dHdl"] is not None:
-                    energy["dHdl"].to_parquet(
-                        path=f"{self.workDir()}/{dHdl}", index=True
-                    )
+                    if "u_nk" in energy and energy["u_nk"] is not None:
+                        energy["u_nk"].to_parquet(
+                            path=f"{self.workDir()}/{u_nk}", index=True
+                        )
+                    if "dHdl" in energy and energy["dHdl"] is not None:
+                        energy["dHdl"].to_parquet(
+                            path=f"{self.workDir()}/{dHdl}", index=True
+                        )

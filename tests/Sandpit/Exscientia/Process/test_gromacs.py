@@ -388,6 +388,47 @@ class TestGetRecord:
             text = f.read()
             assert "Exception Information" in text
 
+    @staticmethod
+    @pytest.mark.parametrize(
+        ("filename", "u_nk", "dHdl"),
+        [
+            ("metric.parquet", None, None),
+            (None, "u_nk.parquet", None),
+            (None, None, "dHdl.parquet"),
+        ],
+    )
+    def test_selective(perturbable_system, filename, u_nk, dHdl):
+        from alchemtest.gmx import load_ABFE
+
+        protocol = BSS.Protocol.FreeEnergy(
+            runtime=BSS.Types.Time(60, "picosecond"),
+            timestep=BSS.Types.Time(4, "femtosecond"),
+            report_interval=200,
+        )
+        process = BSS.Process.Gromacs(perturbable_system, protocol)
+        shutil.copyfile(
+            f"{root_fp}/Sandpit/Exscientia/output/gromacs.edr",
+            process.workDir() + "/gromacs.edr",
+        )
+        shutil.copyfile(
+            load_ABFE().data["ligand"][0],
+            process.workDir() + "/gromacs.xvg",
+        )
+
+        process.saveMetric(filename, u_nk, dHdl)
+        if filename is not None:
+            assert (Path(process.workDir()) / filename).exists()
+        else:
+            assert not (Path(process.workDir()) / "metric.parquet").exists()
+        if u_nk is not None:
+            assert (Path(process.workDir()) / u_nk).exists()
+        else:
+            assert not (Path(process.workDir()) / "u_nk.parquet").exists()
+        if dHdl is not None:
+            assert (Path(process.workDir()) / dHdl).exists()
+        else:
+            assert not (Path(process.workDir()) / "dHdl.parquet").exists()
+
 
 def test_error_saveMetric(perturbable_system):
     protocol = BSS.Protocol.FreeEnergy()

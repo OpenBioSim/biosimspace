@@ -433,3 +433,37 @@ class TestsaveMetric:
         process = BSS.Process.Amber(system, BSS.Protocol.Production())
         with pytest.warns(match="Simulation didn't produce any output."):
             process.saveMetric()
+
+    @staticmethod
+    @pytest.mark.parametrize(
+        ("filename", "u_nk", "dHdl"),
+        [
+            ("metric.parquet", None, None),
+            (None, "u_nk.parquet", None),
+            (None, None, "dHdl.parquet"),
+        ],
+    )
+    def test_selective(alchemical_system, filename, u_nk, dHdl):
+        # Create a process using any system and the protocol.
+        process = BSS.Process.Amber(
+            alchemical_system,
+            BSS.Protocol.FreeEnergy(temperature=298 * BSS.Units.Temperature.kelvin),
+        )
+        shutil.copyfile(
+            f"{root_fp}/Sandpit/Exscientia/output/amber_fep.out",
+            process.workDir() + "/amber.out",
+        )
+        process.saveMetric(filename, u_nk, dHdl)
+        if filename is not None:
+            assert (Path(process.workDir()) / filename).exists()
+        else:
+            assert not (Path(process.workDir()) / "metric.parquet").exists()
+        if u_nk is not None:
+            assert (Path(process.workDir()) / u_nk).exists()
+        else:
+            assert not (Path(process.workDir()) / "u_nk.parquet").exists()
+        if dHdl is not None:
+            # The file doesn't contain dHdl information
+            pass
+        else:
+            assert not (Path(process.workDir()) / "dHdl.parquet").exists()

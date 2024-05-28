@@ -54,7 +54,8 @@ from .._Utils import _assert_imported, _have_imported, _try_import
 _alchemlyb = _try_import("alchemlyb")
 
 if _have_imported(_alchemlyb):
-    from alchemlyb.parsing.gmx import extract as _extract
+    from alchemlyb.parsing.gmx import extract_u_nk as _extract_u_nk
+    from alchemlyb.parsing.gmx import extract_dHdl as _extract_dHdl
 
 from .. import _gmx_exe
 from .. import _isVerbose
@@ -2870,49 +2871,56 @@ class Gromacs(_process.Process):
         is Free Energy protocol, the dHdl and the u_nk data will be saved in the
         same parquet format as well.
         """
-
-        _assert_imported(_alchemlyb)
-
-        self._update_energy_dict(initialise=True)
-        datadict_keys = [
-            ("Time (ps)", _Units.Time.picosecond, "getTime"),
-            (
-                "PotentialEnergy (kJ/mol)",
-                _Units.Energy.kj_per_mol,
-                "getPotentialEnergy",
-            ),
-        ]
-        if not isinstance(self._protocol, _Protocol.Minimisation):
-            datadict_keys.extend(
-                [
-                    ("Volume (nm^3)", _Units.Volume.nanometer3, "getVolume"),
-                    ("Pressure (bar)", _Units.Pressure.bar, "getPressure"),
-                    (
-                        "Temperature (kelvin)",
-                        _Units.Temperature.kelvin,
-                        "getTemperature",
-                    ),
-                ]
-            )
-        df = self._convert_datadict_keys(datadict_keys)
-        df.to_parquet(path=f"{self.workDir()}/{filename}", index=True)
-        if isinstance(self._protocol, _Protocol.FreeEnergy):
-            energy = _extract(
-                f"{self.workDir()}/{self._name}.xvg",
-                T=self._protocol.getTemperature() / _Units.Temperature.kelvin,
-            )
-            with _warnings.catch_warnings():
-                _warnings.filterwarnings(
-                    "ignore", message="The DataFrame has column names of mixed type."
+        if filename is not None:
+            self._update_energy_dict(initialise=True)
+            datadict_keys = [
+                ("Time (ps)", _Units.Time.picosecond, "getTime"),
+                (
+                    "PotentialEnergy (kJ/mol)",
+                    _Units.Energy.kj_per_mol,
+                    "getPotentialEnergy",
+                ),
+            ]
+            if not isinstance(self._protocol, _Protocol.Minimisation):
+                datadict_keys.extend(
+                    [
+                        ("Volume (nm^3)", _Units.Volume.nanometer3, "getVolume"),
+                        ("Pressure (bar)", _Units.Pressure.bar, "getPressure"),
+                        (
+                            "Temperature (kelvin)",
+                            _Units.Temperature.kelvin,
+                            "getTemperature",
+                        ),
+                    ]
                 )
-                if "u_nk" in energy:
-                    energy["u_nk"].to_parquet(
-                        path=f"{self.workDir()}/{u_nk}", index=True
+            df = self._convert_datadict_keys(datadict_keys)
+            df.to_parquet(path=f"{self.workDir()}/{filename}", index=True)
+        if u_nk is not None:
+            _assert_imported(_alchemlyb)
+            if isinstance(self._protocol, _Protocol.FreeEnergy):
+                energy = _extract_u_nk(
+                    f"{self.workDir()}/{self._name}.xvg",
+                    T=self._protocol.getTemperature() / _Units.Temperature.kelvin,
+                )
+                with _warnings.catch_warnings():
+                    _warnings.filterwarnings(
+                        "ignore",
+                        message="The DataFrame has column names of mixed type.",
                     )
-                if "dHdl" in energy:
-                    energy["dHdl"].to_parquet(
-                        path=f"{self.workDir()}/{dHdl}", index=True
+                    energy.to_parquet(path=f"{self.workDir()}/{u_nk}", index=True)
+        if dHdl is not None:
+            _assert_imported(_alchemlyb)
+            if isinstance(self._protocol, _Protocol.FreeEnergy):
+                energy = _extract_dHdl(
+                    f"{self.workDir()}/{self._name}.xvg",
+                    T=self._protocol.getTemperature() / _Units.Temperature.kelvin,
+                )
+                with _warnings.catch_warnings():
+                    _warnings.filterwarnings(
+                        "ignore",
+                        message="The DataFrame has column names of mixed type.",
                     )
+                    energy.to_parquet(path=f"{self.workDir()}/{dHdl}", index=True)
 
 
 def _is_minimisation(config):
