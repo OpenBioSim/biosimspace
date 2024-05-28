@@ -7,6 +7,7 @@ from ._position_restraint_mixin import _PositionRestraintMixin
 from .. import Units as _Units
 import math as _math
 import numpy as _np
+import warnings as _warnings
 
 __all__ = ["AToMMinimisation", "AToMEquilibration", "AToMAnnealing", "AToMProduction"]
 
@@ -201,7 +202,7 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         if isinstance(core_alignment, bool):
             self._core_alignment = core_alignment
         else:
-            print("Non-boolean core alignment flag. Defaulting to True!")
+            _warnings.warn("Non-boolean core alignment flag. Defaulting to True!")
             self._core_alignment = True
 
     def getCMCMRestraint(self):
@@ -229,7 +230,7 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         if isinstance(CMCM_restraint, bool):
             self._CMCM_restraint = CMCM_restraint
         else:
-            print("Non-boolean CMCM restraint flag. Defaulting to True!")
+            _warnings.warn("Non-boolean CMCM restraint flag. Defaulting to True!")
             self._CMCM_restraint = True
 
     def getPosRestWidth(self):
@@ -1280,7 +1281,7 @@ class AToMEquilibration(_AToM):
             raise TypeError("'report_interval' must be of type 'int'")
 
         if report_interval <= 0:
-            print("'report_interval' must be positive. Using default (100).")
+            _warnings.warn("'report_interval' must be positive. Using default (100).")
             report_interval = 100
 
         self._report_interval = report_interval
@@ -1315,7 +1316,7 @@ class AToMEquilibration(_AToM):
             raise TypeError("'restart_interval' must be of type 'int'")
 
         if restart_interval <= 0:
-            print("'restart_interval' must be positive. Using default (500).")
+            _warnings.warn("'restart_interval' must be positive. Using default (500).")
             restart_interval = 500
 
         self._restart_interval = restart_interval
@@ -2025,7 +2026,7 @@ class AToMAnnealing(_AToM):
             raise TypeError("'report_interval' must be of type 'int'")
 
         if report_interval <= 0:
-            print("'report_interval' must be positive. Using default (100).")
+            _warnings.warn("'report_interval' must be positive. Using default (100).")
             report_interval = 100
 
         self._report_interval = report_interval
@@ -2060,7 +2061,7 @@ class AToMAnnealing(_AToM):
             raise TypeError("'restart_interval' must be of type 'int'")
 
         if restart_interval <= 0:
-            print("'restart_interval' must be positive. Using default (500).")
+            _warnings.warn("'restart_interval' must be positive. Using default (500).")
             restart_interval = 500
 
         self._restart_interval = restart_interval
@@ -2826,7 +2827,7 @@ class AToMProduction(_AToM):
             raise TypeError("'report_interval' must be of type 'int'")
 
         if report_interval <= 0:
-            print("'report_interval' must be positive. Using default (100).")
+            _warnings.warn("'report_interval' must be positive. Using default (100).")
             report_interval = 100
 
         self._report_interval = report_interval
@@ -2861,7 +2862,7 @@ class AToMProduction(_AToM):
             raise TypeError("'restart_interval' must be of type 'int'")
 
         if restart_interval <= 0:
-            print("'restart_interval' must be positive. Using default (500).")
+            _warnings.warn("'restart_interval' must be positive. Using default (500).")
             restart_interval = 500
 
         self._restart_interval = restart_interval
@@ -2891,7 +2892,7 @@ class AToMProduction(_AToM):
         if isinstance(restart, bool):
             self._restart = restart
         else:
-            print("Non-boolean restart flag. Defaulting to False!")
+            _warnings.warn("Non-boolean restart flag. Defaulting to False!")
             self._restart = False
 
     def getNumLambda(self):
@@ -2918,8 +2919,7 @@ class AToMProduction(_AToM):
         """
         if isinstance(num_lambda, int) and num_lambda > 0:
             if num_lambda % 2 != 0:
-                # Swap this print statement with a warning
-                print(
+                _warnings.warn(
                     "Warning: The AToM protocol is optimised for an even number of lambda values. Unknown behaviour may occur if using an odd number of lambda values."
                 )
             self._num_lambda = num_lambda
@@ -3087,8 +3087,6 @@ class AToMProduction(_AToM):
                 elif isinstance(a, float):
                     # Use default units.
                     a *= _Units.Energy.kcal_per_mol
-                    print("HERE")
-                    print(a)
 
                 else:
                     if isinstance(a, str):
