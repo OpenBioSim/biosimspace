@@ -272,7 +272,6 @@ def analyse(work_dir, inflection_indices=None):
         ln_q[sid] = lnq
         sid += 1
 
-    print(ln_q)
     f_i, d_i, weights = _estimate_f_i(ln_q, n_samples_first_half)
     ddg = f_i[-1] - f_i[0]
     ddg1 = ddg / dataframes[0]["beta"].values[0]
