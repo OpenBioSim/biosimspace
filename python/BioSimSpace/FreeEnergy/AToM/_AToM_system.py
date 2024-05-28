@@ -3,7 +3,7 @@
 #
 # Copyright: 2017-2023
 #
-# Authors: Lester Hedges <lester.hedges@gmail.com>
+# Authors: Lester Hedges <lester.hedges@gmail.com>, Matthew Burman <matthew@openbiosim.org>
 #
 # BioSimSpace is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

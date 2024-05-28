@@ -19,3 +19,4 @@
 # along with BioSimSpace. If not, see <http://www.gnu.org/licenses/>.
 #####################################################################
 from ._AToM_system import *
+from ._analysis import *
