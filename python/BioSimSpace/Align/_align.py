@@ -1274,18 +1274,6 @@ def roiMatch(
             zip(absolute_mapped_atoms_res0, absolute_mapped_atoms_res1)
         )
 
-        # Check that pre_roi_atom_indices are not part of molecule ROI indices
-        # NOTE: This could be a costly operation, if pre_roi_atom_indices is
-        # large.
-
-        # if any(i in pre_roi_atom_idx_molecule0 for i in res0_idx) or any(
-        #     i in pre_roi_atom_idx_molecule1 for i in res1_idx
-        # ):
-        #     raise ValueError("Found atoms in pre ROI region that are part of the ROI.")
-
-        # Now we have to think about what to do with the atom indices
-        # after the mapping as these are not going to be the same
-        # between the two molecules.
         # If we are at the last residue of interest, we don't need to worry
         # too much about the after ROI region as this region will be all of the
         # molecule atoms after the last residue of interest.
@@ -1349,13 +1337,6 @@ def roiMatch(
             after_roi_atom_idx_molecule1,
         )
     )
-
-    # Check that after_roi_atom_indices are not part of absolute_roi_mapping
-    # if any(i in after_roi_atom_idx_molecule0 for i in res0_idx):
-    #     raise ValueError("Found atoms in after ROI region that are part of the ROI")
-
-    # if any(i in after_roi_atom_idx_molecule1 for i in res1_idx):
-    #     raise ValueError("Found atoms in after ROI region that are part of the ROI")
 
     # Combine the dictionaries to get the full mapping
     full_mapping = {
