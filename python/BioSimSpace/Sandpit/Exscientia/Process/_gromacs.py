@@ -845,7 +845,6 @@ class Gromacs(_process.Process):
         system : :class:`System <BioSimSpace._SireWrappers.System>`
             The latest molecular system.
         """
-
         # Wait for the process to finish.
         if block is True:
             self.wait()
@@ -860,6 +859,10 @@ class Gromacs(_process.Process):
         if block is True and not self.isError():
             return self._getFinalFrame()
         else:
+            raise ValueError(
+                "getSystem should not use `trjconv` to get the frame in production settings."
+                "Trigger an exception here to show the traceback when that happens."
+            )
             # Minimisation trajectories have a single frame, i.e. the final state.
             if isinstance(self._protocol, _Protocol.Minimisation):
                 time = 0 * _Units.Time.nanosecond
@@ -2400,22 +2403,27 @@ class Gromacs(_process.Process):
         U-B, Proper-Dih.. Note that this order is absolute and will not be
         changed by the input to `gmx energy`.
         """
-        sections = text.split("---")
+        # Get rid of all the nasty message from argo
+        content = text.split("End your selection with an empty line or a zero.")[1]
+        sections = content.split("---")
         # Remove the empty sections
-        sections = [section for section in sections if section]
+        sections = [section for section in sections if section.strip()]
         # Concatenate the lines
-        section = sections[1].replace("\n", "")
+        section = sections[0].replace("\n", "")
         terms = section.split()
         # Remove the possible '-' from the separation line
         terms = [term for term in terms if term != "-"]
         # Check if the index order is correct
-        indexes = [int(term) for term in terms[::2]]
+        try:
+            indexes = [int(term) for term in terms[::2]]
+        except ValueError:
+            raise ValueError("Cannot parse the terms: {}".format("\n".join(terms)))
         energy_names = terms[1::2]
         length_nomatch = len(indexes) != len(energy_names)
         # -1 as the index is 1-based.
         index_nomatch = (_np.arange(len(indexes)) != _np.array(indexes) - 1).any()
         if length_nomatch or index_nomatch:
-            raise ValueError(f"Cannot parse the energy terms in the {edr_file} file.")
+            raise ValueError(f"Cannot parse the energy terms in the {text} file.")
         else:
             return energy_names
 
