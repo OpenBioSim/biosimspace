@@ -693,32 +693,31 @@ def merge(
                     .molecule()
                 )
 
-    # Store a dummy element.
-    dummy = _SireMol.Element(0)
+    # Create a null LJParameter.
+    null_lj = _SireMM.LJParameter()
 
-    # Set the LJ sigma paramater to the value of the opposite end state for any
-    # dummy atoms.
+    # Atoms with zero LJ sigma values need to have their sigma values set to the
+    # value from the other end state.
     for atom in edit_mol.atoms():
-        # Lambda = 0 is a dummy atom.
-        if atom.property("element0") == dummy:
-            lj0 = edit_mol.atom(atom.index()).property("LJ0")
-            lj1 = edit_mol.atom(atom.index()).property("LJ1")
+        # Get the end state LJ sigma values.
+        lj0 = atom.property("LJ0")
+        lj1 = atom.property("LJ1")
 
-            # Set the sigma parameter at lambda = 0.
+        # Lambda = 0 state has a zero sigma value.
+        if lj0.sigma() == null_lj.sigma():
+            # Use the sigma value from the lambda = 1 state.
             edit_mol = (
                 edit_mol.atom(atom.index())
-                .setProperty("LJ0", _SireMM.LJParameter(lj1.sigma(), lj0.epsilon()))
+                .set_property("LJ0", _SireMM.LJParameter(lj1.sigma(), lj0.epsilon()))
                 .molecule()
             )
-        # Lambda = 1 is a dummy atom.
-        if atom.property("element1") == dummy:
-            lj0 = edit_mol.atom(atom.index()).property("LJ0")
-            lj1 = edit_mol.atom(atom.index()).property("LJ1")
 
-            # Set the sigma parameter at lambda = 1.
+        # Lambda = 1 state has a zero sigma value.
+        if lj1.sigma() == null_lj.sigma():
+            # Use the sigma value from the lambda = 0 state.
             edit_mol = (
                 edit_mol.atom(atom.index())
-                .setProperty("LJ1", _SireMM.LJParameter(lj0.sigma(), lj1.epsilon()))
+                .set_property("LJ1", _SireMM.LJParameter(lj0.sigma(), lj1.epsilon()))
                 .molecule()
             )
 
