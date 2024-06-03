@@ -27,9 +27,7 @@ import numpy
 import scipy.optimize
 import scipy.special
 import pathlib
-import pandas as pd
 import functools
-import pymbar.timeseries
 
 
 def _compute_weights(ln_z, ln_q, factor):
