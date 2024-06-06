@@ -470,3 +470,100 @@ def test_hydrogen_mass_repartitioning():
         assert mass0 == masses1[idx]
     for idx, mass1 in dummy_masses1:
         assert mass1 == masses0[idx]
+
+
+@pytest.fixture
+def proteins(request):
+    p0 = BSS.IO.readMolecules(["ala_ser_size_5_capped.pdb"])[0]
+    p1 = BSS.IO.readMolecules(["ala_wt_size_5_capped.pdb"])[0]
+    return p0, p1
+
+
+@pytest.fixture(
+    params=[
+        {
+            0: 0,
+            1: 1,
+            2: 2,
+            3: 3,
+            4: 4,
+            5: 5,
+            6: 6,
+            7: 7,
+            8: 8,
+            9: 9,
+            10: 10,
+            11: 11,
+            12: 12,
+            13: 13,
+            14: 14,
+            15: 15,
+            16: 16,
+            17: 17,
+            18: 18,
+            19: 19,
+            20: 20,
+            21: 23,
+            22: 21,
+            23: 22,
+            25: 24,
+            26: 25,
+            27: 26,
+            28: 27,
+            29: 28,
+            30: 29,
+            31: 30,
+            32: 31,
+            33: 32,
+            34: 33,
+            35: 34,
+            36: 35,
+            37: 36,
+            38: 37,
+            39: 38,
+            40: 39,
+            41: 40,
+            42: 41,
+        }
+    ]
+)
+def protein_mapping(request):
+    return request.param
+
+
+def test_roi_match(proteins, protein_mapping):
+    p0, p1 = proteins
+    mapping = BSS.Align.roiMatch(p0, p1, roi=[2])
+    assert mapping == protein_mapping
+
+
+def test_roi_align(proteins, protein_mapping):
+    # p0 has been translated by 10 A in each direction.
+    p0, p1 = proteins
+
+    aligned_p0 = BSS.Align.roiAlign(p0, p1, roi=[2])
+
+    # Extract sire objects for the ROI and compare their coordinates
+    aligned_roi = aligned_p0.extract(
+        [a.index() for a in aligned_p0.getResidues()[2].getAtoms()]
+    )
+    aligned_roi_coords = aligned_roi._sire_object.coordinates()
+
+    p1_roi = p1.extract([a.index() for a in p1.getResidues()[2].getAtoms()])
+    p1_roi_coords = p1_roi._sire_object.coordinates()
+
+    for i, coord in enumerate(aligned_roi_coords):
+        # assume that the coordinates are the same if they are within 0.5 A
+        assert coord.value() == pytest.approx(p1_roi_coords[i].value(), abs=0.5)
+
+
+def test_roi_merge(proteins, protein_mapping):
+    p0, p1 = proteins
+
+    p0 = BSS.Parameters.ff14SB(p0).getMolecule()
+    p1 = BSS.Parameters.ff14SB(p1).getMolecule()
+
+    aligned_p0 = BSS.Align.roiAlign(p0, p1, roi=[2])
+    merged = BSS.Align.merge(aligned_p0, p1, protein_mapping)
+    merged_system = merged.toSystem()
+    assert merged_system.nPerturbableMolecules() == 1
