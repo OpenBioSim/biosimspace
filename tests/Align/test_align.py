@@ -602,7 +602,7 @@ def test_roi_match(protein_inputs):
     proteins, protein_mapping, roi = protein_inputs
     p0 = BSS.IO.readMolecules([f"{proteins}_mut_peptide.pdb"])[0]
     p1 = BSS.IO.readMolecules([f"{proteins}_wt_peptide.pdb"])[0]
-    mapping = BSS.Align.roiMatch(p0, p1, roi=roi)
+    mapping = BSS.Align.matchAtoms(p0, p1, roi=roi)
     assert mapping == protein_mapping
 
 
@@ -612,7 +612,29 @@ def test_roi_align(protein_inputs):
     p0 = BSS.IO.readMolecules([f"{proteins}_mut_peptide.pdb"])[0]
     p1 = BSS.IO.readMolecules([f"{proteins}_wt_peptide.pdb"])[0]
 
-    aligned_p0 = BSS.Align.roiAlign(p0, p1, roi=roi)
+    aligned_p0 = BSS.Align.rmsdAlign(p0, p1, roi=roi)
+    for res in roi:
+        # Extract sire objects for the ROI and compare their coordinates
+        aligned_roi = aligned_p0.extract(
+            [a.index() for a in aligned_p0.getResidues()[res].getAtoms()]
+        )
+        aligned_roi_coords = aligned_roi._sire_object.coordinates()
+
+        p1_roi = p1.extract([a.index() for a in p1.getResidues()[res].getAtoms()])
+        p1_roi_coords = p1_roi._sire_object.coordinates()
+
+        for i, coord in enumerate(aligned_roi_coords):
+            # assume that the test passes if the coordinates are within 0.5 A
+            assert coord.value() == pytest.approx(p1_roi_coords[i].value(), abs=0.5)
+
+
+def test_roi_flex_align(protein_inputs):
+    # p0 has been translated by 10 A in each direction.
+    proteins, protein_mapping, roi = protein_inputs
+    p0 = BSS.IO.readMolecules([f"{proteins}_mut_peptide.pdb"])[0]
+    p1 = BSS.IO.readMolecules([f"{proteins}_wt_peptide.pdb"])[0]
+
+    aligned_p0 = BSS.Align.flexAlign(p0, p1, roi=roi)
     for res in roi:
         # Extract sire objects for the ROI and compare their coordinates
         aligned_roi = aligned_p0.extract(
@@ -636,7 +658,7 @@ def test_roi_merge(protein_inputs):
     p0 = BSS.Parameters.ff14SB(p0).getMolecule()
     p1 = BSS.Parameters.ff14SB(p1).getMolecule()
 
-    aligned_p0 = BSS.Align.roiAlign(p0, p1, roi=roi)
+    aligned_p0 = BSS.Align.rmsdAlign(p0, p1, roi=roi)
     merged = BSS.Align.merge(aligned_p0, p1, protein_mapping)
     merged_system = merged.toSystem()
     assert merged_system.nPerturbableMolecules() == 1

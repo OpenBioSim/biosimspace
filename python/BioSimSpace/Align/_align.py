@@ -29,9 +29,7 @@ __all__ = [
     "matchAtoms",
     "viewMapping",
     "rmsdAlign",
-    "roiMatch",
     "flexAlign",
-    "roiAlign",
     "merge",
 ]
 
@@ -721,10 +719,9 @@ def matchAtoms(
     return_scores=False,
     prematch={},
     timeout=5 * _Units.Time.second,
-    atomCompare=_rdFMCS.AtomCompare.CompareAny,
     complete_rings_only=True,
-    ring_matches_ring_only=True,
     max_scoring_matches=1000,
+    roi=None,
     property_map0={},
     property_map1={},
 ):
@@ -734,7 +731,7 @@ def matchAtoms(
     When requesting more than one match, the mappings will be sorted using
     a scoring function and returned in order of best to worst score. (Note
     that, depending on the scoring function the "best" score may have the
-    lowest value.).
+    lowest value).
 
     Parameters
     ----------
@@ -782,6 +779,10 @@ def matchAtoms(
         matchAtoms function to be taking an excessive amount of time. This
         option is only relevant to MCS performed using RDKit and will be
         ignored when falling back on Sire.
+
+    roi : list
+    The region of interest to match.
+    Consists of a list of ROI residue indices.
 
     property_map0 : dict
         A dictionary that maps "properties" in molecule0 to their user
@@ -831,8 +832,56 @@ def matchAtoms(
 
     >>> import BioSimSpace as BSS
     >>> mapping = BSS.Align.matchAtoms(molecule0, molecule1, prematch={0 : 10, 3 : 7})
+
+    Find the best maximum common substructure mapping between two molecules
+    with a region of interest defined as a list of residues.
+
+    >>> import BioSimSpace as BSS
+    >>> mapping = BSS.Align.matchAtoms(molecule0, molecule1, roi=[12])
+
+    Find the mapping between two molecules with multiple regions of interest.
+
+    >>> import BioSimSpace as BSS
+    >>> mapping = BSS.Align.matchAtoms(molecule0, molecule1, roi=[12, 13, 14])
     """
 
+    if roi is None:
+        return _matchAtoms(
+            molecule0=molecule0,
+            molecule1=molecule1,
+            scoring_function=scoring_function,
+            matches=matches,
+            return_scores=return_scores,
+            prematch=prematch,
+            timeout=timeout,
+            complete_rings_only=complete_rings_only,
+            max_scoring_matches=max_scoring_matches,
+            property_map0=property_map0,
+            property_map1=property_map1,
+        )
+    else:
+        return _roiMatch(
+            molecule0=molecule0,
+            molecule1=molecule1,
+            roi=roi,
+            use_kartograf=False,
+            kartograf_kwargs={},
+        )
+
+
+def _matchAtoms(
+    molecule0,
+    molecule1,
+    scoring_function,
+    matches,
+    return_scores,
+    prematch,
+    timeout,
+    complete_rings_only,
+    max_scoring_matches,
+    property_map0,
+    property_map1,
+):
     # A list of supported scoring functions.
     scoring_functions = ["RMSD", "RMSDALIGN", "RMSDFLEXALIGN"]
 
@@ -914,10 +963,10 @@ def matchAtoms(
         # Generate the MCS match.
         mcs = _rdFMCS.FindMCS(
             mols,
-            atomCompare=atomCompare,
+            atomCompare=_rdFMCS.AtomCompare.CompareAny,
             bondCompare=_rdFMCS.BondCompare.CompareAny,
             completeRingsOnly=complete_rings_only,
-            ringMatchesRingOnly=ring_matches_ring_only,
+            ringMatchesRingOnly=True,
             matchChiralTag=False,
             matchValences=False,
             maximizeBonds=False,
@@ -1106,15 +1155,12 @@ def _kartograf_map(molecule0, molecule1, kartograf_kwargs):
     return kartograf_mapping
 
 
-def roiMatch(
+def _roiMatch(
     molecule0,
     molecule1,
     roi,
-    ring_matches_ring_only=True,
-    complete_rings_only=True,
-    atomCompare=_rdFMCS.AtomCompare.CompareAny,
-    use_kartograf=False,
-    kartograf_kwargs={},
+    use_kartograf,
+    kartograf_kwargs,
 ):
     """
     Matching of two molecules based on a region of interest (ROI).
@@ -1133,12 +1179,8 @@ def roiMatch(
         The reference molecule.
 
     roi : list
-        The region of interest to merge.
+        The region of interest to match.
         Consists of a list of ROI residue indices.
-
-    ring_matches_ring_only : bool
-        Whether ring bonds can only match ring bonds.
-        This is set to True by default.
 
     use_kartograf : bool
         If set to True, will use the kartograf algorithm to match the
@@ -1182,18 +1224,18 @@ def roiMatch(
     with a region of interest defined as a list of residues.
 
     >>> import BioSimSpace as BSS
-    >>> mapping = BSS.Align.roiMatch(molecule0, molecule1, roi=[12])
+    >>> mapping = BSS.Align._align._roiMatch(molecule0, molecule1, roi=[12])
 
     Find the mapping between two molecules with multiple regions of interest.
 
     >>> import BioSimSpace as BSS
-    >>> mapping = BSS.Align.roiMatch(molecule0, molecule1, roi=[12, 13, 14])
+    >>> mapping = BSS.Align._align._roiMatch(molecule0, molecule1, roi=[12, 13, 14])
 
     Find the best maximum common substructure mapping between two molecules,
     using Kartograf as the MCS algorithm.
 
     >>> import BioSimSpace as BSS
-    >>> mapping = BSS.Align.roiMatch(molecule0, molecule1, roi=[12], use_kartograf=True)
+    >>> mapping = BSS.Align._align._roiMatch(molecule0, molecule1, roi=[12], use_kartograf=True)
     """
 
     # Validate input
@@ -1207,8 +1249,8 @@ def roiMatch(
             "'molecule1' must be of type 'BioSimSpace._SireWrappers.Molecule'"
         )
 
-    if roi is None:
-        raise ValueError("residue of interest list is not provided.")
+    if roi is type(list):
+        raise TypeError("'roi' must be of type 'list'")
 
     # Get the atoms before the ROI.
     # This is being done so that when we map the atoms in ROI, we can append
@@ -1258,9 +1300,6 @@ def roiMatch(
             mapping = matchAtoms(
                 res0_extracted,
                 res1_extracted,
-                complete_rings_only=complete_rings_only,
-                ring_matches_ring_only=ring_matches_ring_only,
-                atomCompare=atomCompare,
             )
 
         # Look up the absolute atom indices in the molecule
@@ -1348,7 +1387,9 @@ def roiMatch(
     return full_mapping
 
 
-def rmsdAlign(molecule0, molecule1, mapping=None, property_map0={}, property_map1={}):
+def rmsdAlign(
+    molecule0, molecule1, mapping=None, roi=None, property_map0={}, property_map1={}
+):
     """
     Align atoms in molecule0 to those in molecule1 using the mapping
     between matched atom indices. The molecule is aligned using rigid-body
@@ -1367,6 +1408,10 @@ def rmsdAlign(molecule0, molecule1, mapping=None, property_map0={}, property_map
 
     mapping : dict
         A dictionary mapping atoms in molecule0 to those in molecule1.
+
+    roi : list
+    The region of interest to align.
+    Consists of a list of ROI residue indices.
 
     property_map0 : dict
         A dictionary that maps "properties" in molecule0 to their user
@@ -1397,8 +1442,38 @@ def rmsdAlign(molecule0, molecule1, mapping=None, property_map0={}, property_map
 
     >>> import BioSimSpace as BSS
     >>> molecule0 = BSS.Align.rmsdAlign(molecule0, molecule1)
+
+    Align residue of interest from molecule0 to molecule1.
+
+    >>> import BioSimSpace as BSS
+    >>> molecule0 = BSS.Align.rmsdAlign(molecule0, molecule1, roi=[12])
+
+    Align multiple residues of interest from molecule0 to molecule1.
+
+    >>> import BioSimSpace as BSS
+    >>> molecule0 = BSS.Align.rmsdAlign(molecule0, molecule1, roi=[12,13])
     """
 
+    if roi is None:
+        return _rmsdAlign(
+            molecule0,
+            molecule1,
+            mapping=mapping,
+            property_map0=property_map0,
+            property_map1=property_map1,
+        )
+    else:
+        return _roiAlign(
+            molecule0,
+            molecule1,
+            roi=roi,
+            align_function="rmsd",
+            property_map0=property_map0,
+            property_map1=property_map1,
+        )
+
+
+def _rmsdAlign(molecule0, molecule1, mapping=None, property_map0={}, property_map1={}):
     if not isinstance(molecule0, _Molecule):
         raise TypeError(
             "'molecule0' must be of type 'BioSimSpace._SireWrappers.Molecule'"
@@ -1461,6 +1536,7 @@ def flexAlign(
     molecule1,
     mapping=None,
     fkcombu_exe=None,
+    roi=None,
     property_map0={},
     property_map1={},
 ):
@@ -1483,6 +1559,10 @@ def flexAlign(
     fkcombu_exe : str
         Path to the fkcombu executable. If None is passed, then BioSimSpace
         will attempt to find fkcombu by searching your PATH.
+
+    roi : list
+    The region of interest to align.
+    Consists of a list of ROI residue indices.
 
     property_map0 : dict
         A dictionary that maps "properties" in molecule0 to their user
@@ -1513,8 +1593,47 @@ def flexAlign(
 
     >>> import BioSimSpace as BSS
     >>> molecule0 = BSS.Align.flexAlign(molecule0, molecule1)
+
+    Align residue of interest from molecule0 to molecule1.
+
+    >>> import BioSimSpace as BSS
+    >>> molecule0 = BSS.Align.flexAlign(molecule0, molecule1, roi=[12])
+
+    Align multiple residues of interest from molecule0 to molecule1.
+
+    >>> import BioSimSpace as BSS
+    >>> molecule0 = BSS.Align.flexAlign(molecule0, molecule1, roi=[12,13])
     """
 
+    if roi is None:
+        return _flexAlign(
+            molecule0,
+            molecule1,
+            mapping=mapping,
+            fkcombu_exe=fkcombu_exe,
+            property_map0=property_map0,
+            property_map1=property_map1,
+        )
+    else:
+        return _roiAlign(
+            molecule0,
+            molecule1,
+            roi=roi,
+            align_function="rmsd_flex_align",
+            fkcombu_exe=fkcombu_exe,
+            property_map0=property_map0,
+            property_map1=property_map1,
+        )
+
+
+def _flexAlign(
+    molecule0,
+    molecule1,
+    mapping,
+    fkcombu_exe,
+    property_map0,
+    property_map1,
+):
     # Check that we found fkcombu in the PATH.
     if fkcombu_exe is None:
         if _fkcombu_exe is None:
@@ -1615,18 +1734,18 @@ def flexAlign(
     return _Molecule(molecule0)
 
 
-def roiAlign(
+def _roiAlign(
     molecule0,
     molecule1,
-    roi=None,
-    align_function="rmsd",
+    roi,
+    align_function,
+    property_map0,
+    property_map1,
     fkcombu_exe=None,
-    property_map0={},
-    property_map1={},
 ):
     """
     Flexibly align residue of interest (ROI) in molecule0 to that in molecule1
-    using BioSimSpace.Align.flexAlign().
+    using BioSimSpace.Align._flexAlign().
 
     Parameters
     ----------
@@ -1638,18 +1757,18 @@ def roiAlign(
         The reference molecule.
 
     roi : list
-        The region of interest to merge.
+        The region of interest to align.
         Consists of a list of ROI residue indices.
-    .
+
     align_function : str
         The alignment function used to align atoms. Available options are:
             - "rmsd"
                 Align atoms in molecule0 to those in molecule1 using the mapping
                 between matched atom indices.
-                Uses :class:`rmsdAlign <BioSimSpace.Align.rmsdAlign>` to align the atoms in the ROI.
+                Uses :class:`rmsdAlign <BioSimSpace.Align._rmsdAlign>` to align the atoms in the ROI.
             - "rmsd_flex_align"
                 Flexibly align roi from molecule0 to molecule1 based on the mapping.
-                Uses :class:`flexAlign <BioSimSpace.Align.flexAlign>` to align the atoms in the ROI.
+                Uses :class:`flexAlign <BioSimSpace.Align._flexAlign>` to align the atoms in the ROI.
 
     fkcombu_exe : str
         Path to the fkcombu executable. Will only be used if aligning with
@@ -1670,19 +1789,6 @@ def roiAlign(
 
     molecule : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
         The aligned molecule.
-
-    Examples
-    --------
-
-    Align residue of interest from molecule0 to molecule1.
-
-    >>> import BioSimSpace as BSS
-    >>> molecule0 = BSS.Align.roiAlign(molecule0, molecule1, roi=[12])
-
-    Align multiple residues of interest from molecule0 to molecule1.
-
-    >>> import BioSimSpace as BSS
-    >>> molecule0 = BSS.Align.roiAlign(molecule0, molecule1, roi=[12,13])
     """
 
     if not isinstance(molecule0, _Molecule):
