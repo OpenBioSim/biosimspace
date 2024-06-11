@@ -38,7 +38,6 @@ import os as _os
 import subprocess as _subprocess
 import sys as _sys
 
-
 from .._Utils import _try_import, _have_imported, _assert_imported
 
 import warnings as _warnings
@@ -2014,6 +2013,7 @@ def viewMapping(
     molecule0,
     molecule1,
     mapping=None,
+    roi=None,
     property_map0={},
     property_map1={},
     style=None,
@@ -2037,6 +2037,9 @@ def viewMapping(
 
     mapping : dict
         A dictionary mapping atoms in molecule0 to those in molecule1.
+
+    roi : int
+        The region of interest to highlight.
 
     property_map0 : dict
         A dictionary that maps "properties" in molecule0 to their user
@@ -2084,6 +2087,9 @@ def viewMapping(
         raise TypeError(
             "'molecule1' must be of type 'BioSimSpace._SireWrappers.Molecule'"
         )
+
+    if not isinstance(roi, int):
+        raise TypeError("'roi' must be of type 'int'")
 
     if not isinstance(property_map0, dict):
         raise TypeError("'property_map0' must be of type 'dict'")
@@ -2163,9 +2169,21 @@ def viewMapping(
     view.addModel(_Chem.MolToMolBlock(rdmol0), "mol0", viewer=viewer0)
     view.addModel(_Chem.MolToMolBlock(rdmol1), "mol1", viewer=viewer1)
 
-    # Set the style.
-    view.setStyle({"model": 0}, style, viewer=viewer0)
-    view.setStyle({"model": 0}, style, viewer=viewer1)
+    if roi is not None:
+        roi0_idx = [a.index() for a in molecule0.getResidues()[roi].getAtoms()]
+        roi1_idx = [a.index() for a in molecule1.getResidues()[roi].getAtoms()]
+
+        # find the key in the mapping that corresponds to the ROI atoms
+        mapping = {k: v for k, v in mapping.items() if k in roi0_idx}
+
+        # Set the style for the ROI atoms.
+        view.setStyle({"model": 0}, style={"stick": {"hidden": True}}, viewer=viewer0)
+        view.setStyle({"model": 0}, style={"stick": {"hidden": True}}, viewer=viewer1)
+        view.setStyle({"index": roi0_idx}, style, viewer=viewer0)
+        view.setStyle({"index": roi1_idx}, style, viewer=viewer1)
+    else:
+        view.setStyle({"model": 0}, style, viewer=viewer0)
+        view.setStyle({"model": 0}, style, viewer=viewer1)
 
     # Highlight the atoms from the mapping.
     for atom0, atom1 in mapping.items():
@@ -2204,9 +2222,13 @@ def viewMapping(
     view.setBackgroundColor("white", viewer=viewer0)
     view.setBackgroundColor("white", viewer=viewer1)
 
-    # Zoom to molecule.
-    view.zoomTo(viewer=viewer0)
-    view.zoomTo(viewer=viewer1)
+    if roi is not None:
+        view.zoomTo({"index": roi0_idx}, viewer=viewer0)
+        view.zoomTo({"index": roi1_idx}, viewer=viewer1)
+    else:
+        # Zoom to molecule.
+        view.zoomTo(viewer=viewer0)
+        view.zoomTo(viewer=viewer1)
 
     return view
 
