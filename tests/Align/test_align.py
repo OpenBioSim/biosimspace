@@ -472,13 +472,6 @@ def test_hydrogen_mass_repartitioning():
         assert mass1 == masses0[idx]
 
 
-@pytest.fixture
-def proteins(request):
-    p0 = BSS.IO.readMolecules(["ala_ser_size_5_capped.pdb"])[0]
-    p1 = BSS.IO.readMolecules(["ala_wt_size_5_capped.pdb"])[0]
-    return p0, p1
-
-
 @pytest.fixture(
     params=[
         (
