@@ -2088,7 +2088,7 @@ def viewMapping(
             "'molecule1' must be of type 'BioSimSpace._SireWrappers.Molecule'"
         )
 
-    if not isinstance(roi, int):
+    if roi is not None and not isinstance(roi, int):
         raise TypeError("'roi' must be of type 'int'")
 
     if not isinstance(property_map0, dict):
