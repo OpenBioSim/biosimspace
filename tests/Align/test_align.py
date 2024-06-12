@@ -593,8 +593,12 @@ def protein_inputs(request):
 
 def test_roi_match(protein_inputs):
     proteins, protein_mapping, roi = protein_inputs
-    p0 = BSS.IO.readMolecules([f"{proteins}_mut_peptide.pdb"])[0]
-    p1 = BSS.IO.readMolecules([f"{proteins}_wt_peptide.pdb"])[0]
+    p0 = BSS.IO.readMolecules(
+        BSS.IO.expand(BSS.tutorialUrl(), f"{proteins}_mut_peptide.pdb")
+    )[0]
+    p1 = BSS.IO.readMolecules(
+        BSS.IO.expand(BSS.tutorialUrl(), f"{proteins}_wt_peptide.pdb")
+    )[0]
     mapping = BSS.Align.matchAtoms(p0, p1, roi=roi)
     assert mapping == protein_mapping
 
@@ -602,8 +606,12 @@ def test_roi_match(protein_inputs):
 def test_roi_align(protein_inputs):
     # p0 has been translated by 10 A in each direction.
     proteins, protein_mapping, roi = protein_inputs
-    p0 = BSS.IO.readMolecules([f"{proteins}_mut_peptide.pdb"])[0]
-    p1 = BSS.IO.readMolecules([f"{proteins}_wt_peptide.pdb"])[0]
+    p0 = BSS.IO.readMolecules(
+        BSS.IO.expand(BSS.tutorialUrl(), f"{proteins}_mut_peptide.pdb")
+    )[0]
+    p1 = BSS.IO.readMolecules(
+        BSS.IO.expand(BSS.tutorialUrl(), f"{proteins}_wt_peptide.pdb")
+    )[0]
 
     aligned_p0 = BSS.Align.rmsdAlign(p0, p1, roi=roi)
     for res in roi:
@@ -624,8 +632,12 @@ def test_roi_align(protein_inputs):
 def test_roi_flex_align(protein_inputs):
     # p0 has been translated by 10 A in each direction.
     proteins, protein_mapping, roi = protein_inputs
-    p0 = BSS.IO.readMolecules([f"{proteins}_mut_peptide.pdb"])[0]
-    p1 = BSS.IO.readMolecules([f"{proteins}_wt_peptide.pdb"])[0]
+    p0 = BSS.IO.readMolecules(
+        BSS.IO.expand(BSS.tutorialUrl(), f"{proteins}_mut_peptide.pdb")
+    )[0]
+    p1 = BSS.IO.readMolecules(
+        BSS.IO.expand(BSS.tutorialUrl(), f"{proteins}_wt_peptide.pdb")
+    )[0]
 
     aligned_p0 = BSS.Align.flexAlign(p0, p1, roi=roi)
     for res in roi:
@@ -645,8 +657,12 @@ def test_roi_flex_align(protein_inputs):
 
 def test_roi_merge(protein_inputs):
     proteins, protein_mapping, roi = protein_inputs
-    p0 = BSS.IO.readMolecules([f"{proteins}_mut_peptide.pdb"])[0]
-    p1 = BSS.IO.readMolecules([f"{proteins}_wt_peptide.pdb"])[0]
+    p0 = BSS.IO.readMolecules(
+        BSS.IO.expand(BSS.tutorialUrl(), f"{proteins}_mut_peptide.pdb")
+    )[0]
+    p1 = BSS.IO.readMolecules(
+        BSS.IO.expand(BSS.tutorialUrl(), f"{proteins}_wt_peptide.pdb")
+    )[0]
 
     p0 = BSS.Parameters.ff14SB(p0).getMolecule()
     p1 = BSS.Parameters.ff14SB(p1).getMolecule()
