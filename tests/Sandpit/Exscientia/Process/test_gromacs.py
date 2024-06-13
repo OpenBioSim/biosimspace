@@ -226,7 +226,27 @@ class TestRestraint:
         # Run the process and check that it finishes without error.
         run_process(system, protocol, restraint=restraint, work_dir=str(tmp_path))
         with open(tmp_path / "test.top", "r") as f:
-            assert "intermolecular_interactions" in f.read()
+            text = f.read()
+            assert text.count("intermolecular_interactions") == 1
+
+    def test_position_restraint_protocol(self, setup, tmp_path_factory):
+        """Test if the restraint has been written in a way that could be processed
+        correctly.
+        """
+        tmp_path = tmp_path_factory.mktemp("out")
+        system, restraint = setup
+        # Create a short production protocol.
+        protocol = BSS.Protocol.FreeEnergy(
+            runtime=BSS.Types.Time(0.0001, "nanoseconds"),
+            perturbation_type="full",
+            restraint="heavy",
+        )
+
+        # Run the process and check that it finishes without error.
+        run_process(system, protocol, restraint=restraint, work_dir=str(tmp_path))
+        with open(tmp_path / "test.top", "r") as f:
+            text = f.read()
+            assert text.count("intermolecular_interactions") == 1
 
     def test_restraint_lambda(self, setup, tmp_path_factory):
         """Test if the restraint has been written correctly when restraint lambda is evoked."""

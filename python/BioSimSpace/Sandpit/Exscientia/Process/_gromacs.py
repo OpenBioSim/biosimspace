@@ -400,7 +400,6 @@ class Gromacs(_process.Process):
                 match_waters=False,
                 property_map=self._property_map,
             )
-            self._apply_ABFE_restraint()
 
     def _apply_ABFE_restraint(self):
         # Write the restraint to the topology file
