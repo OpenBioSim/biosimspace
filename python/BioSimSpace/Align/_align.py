@@ -1251,6 +1251,34 @@ def _roiMatch(
     if roi is type(list):
         raise TypeError("'roi' must be of type 'list'")
 
+    # Make sure that the atoms in the pre-ROI region between two molecules are
+    # in the same order. While the residue sequences between two molecules
+    # might be the same, saving the molecules in different formats/editors
+    # might change the order of the atoms. The mapping function will not work
+    # if the atoms are not in the same order outside the ROI region.
+    # We will only test the first residue in the protein, as doing this for
+    # every residue would be computationally expensive.
+    if roi[0] != 0:
+        molecule0_res = molecule0.getResidues()[0]
+        molecule1_res = molecule1.getResidues()[0]
+        if [a.name() for a in molecule0_res.getAtoms()] != [
+            b.name() for b in molecule1_res.getAtoms()
+        ]:
+            raise ValueError(
+                "The atoms outside the ROI region between the two molecules are not in the same order."
+            )
+    # If the ROI is the first residue, then we will test the atoms in the last
+    # residue of the molecule.
+    else:
+        molecule0_res = molecule0.getResidues()[-1]
+        molecule1_res = molecule1.getResidues()[-1]
+        if [a.name() for a in molecule0_res.getAtoms()] != [
+            b.name() for b in molecule1_res.getAtoms()
+        ]:
+            raise ValueError(
+                "The atoms outside the ROI region between the two molecules are not in the same order."
+            )
+
     # Get the atoms before the ROI.
     # This is being done so that when we map the atoms in ROI, we can append
     # the ROI mapping to this pre-ROI mapping which will then be used as
@@ -1280,7 +1308,9 @@ def _roiMatch(
             molecule1_atoms = [a.name() for a in molecule1_roi.getAtoms()]
             if molecule0_atoms == molecule1_atoms:
                 _warnings.warn(
-                    f"Residue {res_idx} between molecule0 and molecule1 have identical atomtypes."
+                    f"Residues {res_idx} between molecule0 and molecule1 have "
+                    "identical atomtypes, which means you are likely attempting "
+                    "to match two identical residues."
                 )
 
         res0_idx = [a.index() for a in molecule0_roi]
