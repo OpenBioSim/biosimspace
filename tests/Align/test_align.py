@@ -3,6 +3,7 @@ import sys
 
 from sire.legacy.MM import InternalFF, IntraCLJFF, IntraFF
 from sire.legacy.Mol import AtomIdx, Element, PartialMolecule
+from tests.conftest import has_amber
 
 import BioSimSpace as BSS
 
@@ -655,6 +656,7 @@ def test_roi_flex_align(protein_inputs):
             assert coord.value() == pytest.approx(p1_roi_coords[i].value(), abs=0.5)
 
 
+@pytest.mark.skipif(has_amber is False, reason="Requires AMBER and to be installed.")
 def test_roi_merge(protein_inputs):
     proteins, protein_mapping, roi = protein_inputs
     p0 = BSS.IO.readMolecules(
