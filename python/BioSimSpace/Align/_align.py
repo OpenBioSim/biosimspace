@@ -1158,8 +1158,7 @@ def _roiMatch(
     molecule0,
     molecule1,
     roi,
-    use_kartograf,
-    kartograf_kwargs,
+    **kwargs,
 ):
     """
     Matching of two molecules based on a region of interest (ROI).
@@ -1180,6 +1179,9 @@ def _roiMatch(
     roi : list
         The region of interest to match.
         Consists of a list of ROI residue indices.
+
+    Keyword Args
+    ------------
 
     use_kartograf : bool
         If set to True, will use the kartograf algorithm to match the
@@ -1247,9 +1249,14 @@ def _roiMatch(
         raise TypeError(
             "'molecule1' must be of type 'BioSimSpace._SireWrappers.Molecule'"
         )
+    if roi is None:
+        raise ValueError("No region of interest (ROI) has been provided.")
+    else:
+        _validate_roi([molecule0, molecule1], roi)
 
-    if roi is type(list):
-        raise TypeError("'roi' must be of type 'list'")
+    # Check kwargs
+    use_kartograf = kwargs.get("use_kartograf", False)
+    kartograf_kwargs = kwargs.get("kartograf_kwargs", {})
 
     # Make sure that the atoms in the pre-ROI region between two molecules are
     # in the same order. While the residue sequences between two molecules
@@ -1832,13 +1839,15 @@ def _roiAlign(
     if roi is None:
         raise ValueError("No region of interest (ROI) has been provided.")
     else:
-        if not isinstance(roi, list):
-            raise TypeError("'roi' must be of type 'list'.")
+        _validate_roi([molecule0, molecule1], roi)
 
     if align_function not in ["rmsd", "rmsd_flex_align"]:
         raise ValueError(
             "Invalid alignment function. Available options are: 'rmsd', 'rmsd_flex_align'"
         )
+
+    # Get the property name for the coordinates
+    prop0 = property_map0.get("coordinates", "coordinates")
 
     for roi_idx in roi:
         res0 = molecule0.getResidues()[roi_idx]
@@ -1863,7 +1872,7 @@ def _roiAlign(
 
         # Now update molecule0 with the aligned residue coordinates
         mol0 = molecule0._getSireObject()
-        res0_aligned_coords = res0_aligned._getSireObject().property("coordinates")
+        res0_aligned_coords = res0_aligned._getSireObject().property(prop0)
 
         # A list to store the updated coordinates for molecule0
         mol0_coords = []
@@ -1871,7 +1880,7 @@ def _roiAlign(
             if i == roi_idx:
                 mol0_coords.append(res0_aligned_coords)
             else:
-                mol0_coords.append(res.property("coordinates"))
+                mol0_coords.append(res.property(prop0))
 
         # Flatten the list
         mol0_coords = [item for sublist in mol0_coords for item in sublist]
@@ -1879,7 +1888,7 @@ def _roiAlign(
         # Create a cursor for updating the coordinates property
         c = mol0.cursor()
         for i, atom in enumerate(c.atoms()):
-            atom["coordinates"] = mol0_coords[i]
+            atom[prop0] = mol0_coords[i]
         mol0 = c.commit()
 
         # Convert the Sire molecule back to a BioSimSpace molecule so we can
@@ -2703,6 +2712,35 @@ def _validate_mapping(molecule0, molecule1, mapping, name):
                 "The molecules contain %d and %d atoms."
                 % (name, idx0, idx1, molecule0.nAtoms(), molecule1.nAtoms())
             )
+
+
+def _validate_roi(molecules, roi):
+    """
+    Internal function to validate that a region of interest (ROI) is a list
+    of integers that are within the range of the molecule.
+
+    Parameters
+    ----------
+
+    molecules : list
+        Consits of a list of :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`.
+
+    roi : list
+        The region of interest.
+        Consists of a list of ROI residue indices.
+    """
+
+    if not isinstance(roi, list):
+        raise TypeError("'roi' must be of type 'list'.")
+
+    for mol in molecules:
+        for idx in roi:
+            if not isinstance(idx, int):
+                raise TypeError("'roi' must be a list of integers.")
+            if idx < 0 or idx > (mol.nResidues() - 1):
+                raise ValueError(
+                    f"Residue index {idx} is out of range! The molecule contains {mol.nResidues()} residues."
+                )
 
 
 def _to_sire_mapping(mapping):
