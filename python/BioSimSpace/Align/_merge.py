@@ -152,7 +152,7 @@ def merge(
                 if idx < 0 or idx > (mol.nResidues() - 1):
                     raise ValueError(
                         f"Residue index {idx} is out of range! The molecule contains {mol.nResidues()} residues."
-                )
+                    )
 
     # Set 'allow_ring_breaking' and 'allow_ring_size_change' to true if the
     # user has requested to 'force' the merge, i.e. the 'force' argument

@@ -37,6 +37,8 @@ import csv as _csv
 import os as _os
 import subprocess as _subprocess
 import sys as _sys
+from typing import Any, Collection, Optional
+from itertools import chain
 
 from .._Utils import _try_import, _have_imported, _assert_imported
 
@@ -52,6 +54,8 @@ with _warnings.catch_warnings():
         from rdkit import Chem as _Chem
         from rdkit.Chem import rdFMCS as _rdFMCS
         from rdkit import RDLogger as _RDLogger
+        from rdkit.Chem import Draw
+        from rdkit.Chem import AllChem
 
         # Disable RDKit warnings.
         _RDLogger.DisableLog("rdApp.*")
@@ -1178,16 +1182,13 @@ def _roiMatch(
 
     roi : list
         The region of interest to match.
-        Consists of a list of ROI residue indices.
+        Consists of a list of ROI residue indices
 
-    Keyword Args
-    ------------
-
-    use_kartograf : bool
+    use_kartograf : bool, optional, default=False
         If set to True, will use the kartograf algorithm to match the
-        molecules. This is set to False by default.
+        molecules.
 
-    kartograf_kwargs : dict
+    kartograf_kwargs : dict, optional, default={}
         A dictionary of keyword arguments to be passed to kartograf.
 
     Returns
@@ -2053,14 +2054,13 @@ def viewMapping(
     molecule1,
     mapping=None,
     roi=None,
+    pixels=300,
     property_map0={},
     property_map1={},
-    style=None,
-    orientation="horizontal",
-    pixels=900,
+    **kwargs,
 ):
     """
-    Visualise the mapping between molecule0 and molecule1. This draws a 3D
+    Visualise the mapping between molecule0 and molecule1. This draws a 2D
     depiction of both molecules with the mapped atoms highlighted in green.
     Labels specify the indices of the atoms, along with the indices of
     the atoms to which they map in the other molecule.
@@ -2080,6 +2080,9 @@ def viewMapping(
     roi : int
         The region of interest to highlight.
 
+    pixels : int
+        The size in pixels of the 2D drawing.
+
     property_map0 : dict
         A dictionary that maps "properties" in molecule0 to their user
         defined values. This allows the user to refer to properties
@@ -2089,31 +2092,15 @@ def viewMapping(
         A dictionary that maps "properties" in molecule1 to their user
         defined values.
 
-    style : dict
-        Drawing style. See https://3dmol.csb.pitt.edu/doc/$3Dmol.GLViewer.html
-        for some examples.
-
-    orientation : str
-        Whether to display the two molecules in a "horizontal" or "vertical"
-        arrangement.
-
-    pixels : int
-        The size of the largest view dimension in pixel, i.e. either the
-        "horizontal" or "vertical" size.
-
-    Returns
-    -------
-
-    view : py3Dmol.view
-        A view of the two molecules with the mapped atoms highlighted and
-        labelled.
+    show_adjacent_residues : bool, optional default=False
+        If set to True, will show neighouring residues to the ROI region.
     """
-
-    # Adapted from: https://gist.github.com/cisert/d05664d4c98ac1cf86ee70b8700e56a9
 
     # Only draw within a notebook.
     if not _is_notebook:
         return None
+    else:
+        from IPython.display import display, Image
 
     _assert_imported(_rdkit)
 
@@ -2136,27 +2123,15 @@ def viewMapping(
     if not isinstance(property_map1, dict):
         raise TypeError("'property_map1' must be of type 'dict'")
 
-    if style is not None:
-        if not isinstance(style, dict):
-            raise TypeError("'style' must be of type 'dict'")
-
-    if not isinstance(orientation, str):
-        raise TypeError("'orientation' must be of type 'str'")
-    else:
-        # Convert to lower case and strip whitespace.
-        orientation = orientation.lower().replace(" ", "")
-
-        if orientation not in ["horizontal", "vertical"]:
-            raise ValueError(
-                "'orientation' must be equal to 'horizontal' " "or 'vertical'."
-            )
-
     if isinstance(pixels, float):
         pixels = int(pixels)
     if not type(pixels) is int:
         raise TypeError("'pixels' must be of type 'int'")
     if pixels <= 0:
         raise ValueError("pixels' must be > 0!")
+
+    # Get kwargs for the view
+    show_adjacent_residues = kwargs.get("show_adjacent_residues", False)
 
     # The user has passed an atom mapping.
     if mapping is not None:
@@ -2176,100 +2151,276 @@ def viewMapping(
         )
         molecule0 = rmsdAlign(molecule0, molecule1, mapping)
 
-    import py3Dmol as _py3Dmol
-
-    # Convert the molecules to RDKit format.
-    rdmol0 = _Convert.toRDKit(molecule0, property_map=property_map0)
-    rdmol1 = _Convert.toRDKit(molecule1, property_map=property_map1)
-
-    # Set grid view properties.
-    viewer0 = (0, 0)
-    if orientation == "horizontal":
-        viewergrid = (1, 2)
-        viewer1 = (0, 1)
-        width = pixels
-        height = int(pixels / 2)
-    else:
-        viewergrid = (2, 1)
-        viewer1 = (1, 0)
-        width = int(pixels / 2)
-        height = pixels
-
-    # Create the view.
-    view = _py3Dmol.view(
-        linked=False, width=width, height=height, viewergrid=viewergrid
-    )
-
-    # Set default drawing style.
-    if style is None:
-        style = {"stick": {"colorscheme": "grayCarbon", "linewidth": 0.1}}
-
-    # Add the molecules to the views.
-    view.addModel(_Chem.MolToMolBlock(rdmol0), "mol0", viewer=viewer0)
-    view.addModel(_Chem.MolToMolBlock(rdmol1), "mol1", viewer=viewer1)
-
     if roi is not None:
-        roi0_idx = [a.index() for a in molecule0.getResidues()[roi].getAtoms()]
-        roi1_idx = [a.index() for a in molecule1.getResidues()[roi].getAtoms()]
+        if show_adjacent_residues:
+            # Extract the region of interest from the molecules plus one residue on each side.
+            # residue[roi-1:roi+1] would only extract the ROI residue.
+            roi0_region = molecule0.search(f"residue[{roi - 2}:{roi + 2}]")
+            roi1_region = molecule1.search(f"residue[{roi - 2}:{roi + 2}]")
+        else:
+            roi0_region = molecule0.search(f"residue[{roi - 1}:{roi + 1}]")
+            roi1_region = molecule1.search(f"residue[{roi - 1}:{roi + 1}]")
+
+        roi0_idx = [a.index() for a in roi0_region.atoms()]
+        roi1_idx = [a.index() for a in roi1_region.atoms()]
+
+        molecule0 = molecule0.extract(roi0_idx)
+        molecule1 = molecule1.extract(roi1_idx)
 
         # find the key in the mapping that corresponds to the ROI atoms
         mapping = {k: v for k, v in mapping.items() if k in roi0_idx}
 
-        # Set the style for the ROI atoms.
-        view.setStyle({"model": 0}, style={"stick": {"hidden": True}}, viewer=viewer0)
-        view.setStyle({"model": 0}, style={"stick": {"hidden": True}}, viewer=viewer1)
-        view.setStyle({"index": roi0_idx}, style, viewer=viewer0)
-        view.setStyle({"index": roi1_idx}, style, viewer=viewer1)
-    else:
-        view.setStyle({"model": 0}, style, viewer=viewer0)
-        view.setStyle({"model": 0}, style, viewer=viewer1)
+        # now we need to update the mapping to reflect the new atom indices
+        mapping = {roi0_idx.index(k): roi1_idx.index(v) for k, v in mapping.items()}
 
-    # Highlight the atoms from the mapping.
-    for atom0, atom1 in mapping.items():
-        p = rdmol0.GetConformer().GetAtomPosition(atom0)
-        view.addSphere(
-            {
-                "center": {"x": p.x, "y": p.y, "z": p.z},
-                "radius": 0.5,
-                "color": "green",
-                "alpha": 0.8,
-            },
-            viewer=viewer0,
-        )
-        view.addLabel(
-            f"{atom0} \u2192 {atom1}",
-            {"position": {"x": p.x, "y": p.y, "z": p.z}},
-            viewer=viewer0,
-        )
-        p = rdmol1.GetConformer().GetAtomPosition(atom1)
-        view.addSphere(
-            {
-                "center": {"x": p.x, "y": p.y, "z": p.z},
-                "radius": 0.5,
-                "color": "green",
-                "alpha": 0.8,
-            },
-            viewer=viewer1,
-        )
-        view.addLabel(
-            f"{atom1} \u2192 {atom0}",
-            {"position": {"x": p.x, "y": p.y, "z": p.z}},
-            viewer=viewer1,
+    # Convert the molecules to RDKit format.
+    rdmol0 = _Convert.toRDKit(molecule0, property_map=property_map0)
+    rdmol1 = _Convert.toRDKit(molecule1, property_map=property_map1)
+    text = _draw_mapping(mapping, rdmol0, rdmol1, pixels=pixels)
+    img = Image(data=text)
+    display(img)
+
+
+# This code is adopted from OpenFE and is licensed under the MIT license.
+# For details, see https://github.com/OpenFreeEnergy/gufe/visualization/mapping_visualization.py
+def _match_elements(mol1: _Chem.Mol, idx1: int, mol2: _Chem.Mol, idx2: int) -> bool:
+    """
+    Convenience method to check if elements between two molecules (molA
+    and molB) are the same.
+
+    Parameters
+    ----------
+    mol1 : RDKit.Mol
+        RDKit representation of molecule 1.
+    idx1 : int
+        Index of atom to check in molecule 1.
+    mol2 : RDKit.Mol
+        RDKit representation of molecule 2.
+    idx2 : int
+        Index of atom to check in molecule 2.
+
+    Returns
+    -------
+    bool
+        True if elements are the same, False otherwise.
+    """
+    elem_mol1 = mol1.GetAtomWithIdx(idx1).GetAtomicNum()
+    elem_mol2 = mol2.GetAtomWithIdx(idx2).GetAtomicNum()
+    return elem_mol1 == elem_mol2
+
+
+def _get_unique_bonds_and_atoms(
+    mapping: dict[int, int], mol1: _Chem.Mol, mol2: _Chem.Mol
+) -> dict:
+    """
+    Given an input mapping, returns new atoms, element changes, and
+    involved bonds.
+
+    Parameters
+    ----------
+    mapping : dict of int:int
+        Dictionary describing the atom mapping between molecules 1 and 2.
+    mol1 : RDKit.Mol
+        RDKit representation of molecule 1.
+    mol2 : RDKit.Mol
+        RDKit representation of molecule 2.
+
+    Returns
+    -------
+    uniques : dict
+        Dictionary containing; unique atoms ("atoms"), new elements
+        ("elements"), deleted bonds ("bond_deletions) and altered bonds
+        ("bond_changes) for molecule 1.
+    """
+
+    uniques: dict[str, set] = {
+        "atoms": set(),  # atoms which fully don't exist in molB
+        "elements": set(),  # atoms which exist but change elements in molB
+        "bond_deletions": set(),  # bonds which are removed
+        "bond_changes": set(),  # bonds which change
+    }
+
+    for at in mol1.GetAtoms():
+        idx = at.GetIdx()
+        if idx not in mapping:
+            uniques["atoms"].add(idx)
+        elif not _match_elements(mol1, idx, mol2, mapping[idx]):
+            uniques["elements"].add(idx)
+
+    for bond in mol1.GetBonds():
+        bond_at_idxs = [bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()]
+        for at in chain(uniques["atoms"], uniques["elements"]):
+            if at in bond_at_idxs:
+                bond_idx = bond.GetIdx()
+
+                if any(i in uniques["atoms"] for i in bond_at_idxs):
+                    uniques["bond_deletions"].add(bond_idx)
+                else:
+                    uniques["bond_changes"].add(bond_idx)
+
+    return uniques
+
+
+def _draw_molecules(
+    d2d,
+    mols: Collection[_Chem.Mol],
+    atoms_list: Collection[set[int]],
+    bonds_list: Collection[set[int]],
+    atom_colors: Collection[dict[Any, tuple[float, float, float, float]]],
+    bond_colors: Collection[dict[int, tuple[float, float, float, float]]],
+    highlight_color: tuple[float, float, float, float],
+    pixels: int,
+    atom_mapping: Optional[dict[tuple[int, int], dict[int, int]]] = None,
+) -> str:
+    """
+    Internal method to visualize a molecule, possibly with mapping info
+
+    Parameters
+    ----------
+    d2d :
+        renderer to draw the molecule; currently we only support
+        rdkit.rdMolDraw2D
+    mols : Collection[RDKitMol]
+        molecules to visualize
+    atoms_list: Collection[Set[int]]
+        iterable containing one set per molecule in ``mols``, with each set
+        containing the indices of the atoms to highlight
+    bonds_list: Collection[Set[int]]
+        iterable containing one set per molecule in ``mols``, with each set
+        containing the indices of the atoms involved in bonds to highlight
+    atom_colors: Collection[Dict[Any, Tuple[float, float, float, float]]]
+        iterable containing one dict per molecule in ``mols``, with each
+        dict containing a mapping of RDKit atom to color, expressed as an
+        RGBA tuple, for atoms that need special coloring (e.g., element
+        changes)
+    bond_colors: Collection[dict[int, tuple[float, float, float, float]]]
+        one dict for each molecule, each dict mapping
+    highlight_color: Tuple[float, float, float, float]
+        RGBA tuple for the default highlight color used in the mapping
+        visualization
+    pixels: int
+        size of the 2D image in pixels
+    atom_mapping: Dict[Tuple[int,int], Dict[int, int]], optional
+        used to align the molecules to each othter for clearer visualization.
+        The structure contains the indices of the molecules in mols as key
+        Tuple[molA, molB] and maps the atom indices via the value Dict[
+        molA_atom_idx, molB_atom_idx]
+        default None
+    """
+    # input standardization:
+    if atom_mapping is None:
+        atom_mapping = {}
+
+    if d2d is None:
+        # select default layout based on number of molecules
+        grid_x, grid_y = {
+            1: (1, 1),
+            2: (2, 1),
+        }[len(mols)]
+        d2d = Draw.rdMolDraw2D.MolDraw2DCairo(
+            grid_x * pixels, grid_y * pixels, pixels, pixels
         )
 
-    # Set background colour.
-    view.setBackgroundColor("white", viewer=viewer0)
-    view.setBackgroundColor("white", viewer=viewer1)
+    # get molecule name labels
+    # labels = [m.GetProp("ofe-name") if(m.HasProp("ofe-name"))
+    #           else "test" for m in mols]
 
-    if roi is not None:
-        view.zoomTo({"index": roi0_idx}, viewer=viewer0)
-        view.zoomTo({"index": roi1_idx}, viewer=viewer1)
-    else:
-        # Zoom to molecule.
-        view.zoomTo(viewer=viewer0)
-        view.zoomTo(viewer=viewer1)
+    labels = ["molecule0", "molecule1"]
 
-    return view
+    # squash to 2D
+    copies = [_Chem.Mol(mol) for mol in mols]
+    for mol in copies:
+        AllChem.Compute2DCoords(mol)
+
+    # mol alignments if atom_mapping present
+    for (i, j), atomMap in atom_mapping.items():
+        AllChem.AlignMol(
+            copies[j], copies[i], atomMap=[(k, v) for v, k in atomMap.items()]
+        )
+
+    # standard settings for visualization
+    d2d.drawOptions().useBWAtomPalette()
+    d2d.drawOptions().continousHighlight = False
+    d2d.drawOptions().setHighlightColour(highlight_color)
+    d2d.drawOptions().addAtomIndices = True
+    d2d.DrawMolecules(
+        copies,
+        highlightAtoms=atoms_list,
+        highlightBonds=bonds_list,
+        highlightAtomColors=atom_colors,
+        highlightBondColors=bond_colors,
+        legends=labels,
+    )
+    d2d.FinishDrawing()
+    return d2d.GetDrawingText()
+
+
+def _draw_mapping(
+    mol1_to_mol2: dict[int, int], mol1: _Chem.Mol, mol2: _Chem.Mol, d2d=None, pixels=300
+):
+    """
+    Method to visualise the atom map correspondence between two rdkit
+    molecules given an input mapping.
+
+    Legend:
+        * Red highlighted atoms: unique atoms, i.e. atoms which are not
+          mapped.
+        * Blue highlighted atoms: element changes, i.e. atoms which are
+          mapped but change elements.
+        * Red highlighted bonds: any bond which involves at least one
+          unique atom or one element change.
+
+    Parameters
+    ----------
+    mol1_to_mol2 : dict of int:int
+        Atom mapping between input molecules.
+    mol1 : RDKit.Mol
+        RDKit representation of molecule 1
+    mol2 : RDKit.Mol
+        RDKit representation of molecule 2
+    d2d : :class:`rdkit.Chem.Draw.rdMolDraw2D.MolDraw2D`
+        Optional MolDraw2D backend to use for visualisation.
+    pixels : int
+        Size of the 2D image in pixels.
+    """
+    # highlight core element changes differently from unique atoms
+    # RGBA color value needs to be between 0 and 1, so divide by 255
+    RED = (220 / 255, 50 / 255, 32 / 255, 1.0)
+    BLUE = (0.0, 90 / 255, 181 / 255, 1.0)
+    mol1_uniques = _get_unique_bonds_and_atoms(mol1_to_mol2, mol1, mol2)
+
+    # invert map
+    mol2_to_mol1_map = {v: k for k, v in mol1_to_mol2.items()}
+    mol2_uniques = _get_unique_bonds_and_atoms(mol2_to_mol1_map, mol2, mol1)
+
+    atoms_list = [
+        mol1_uniques["atoms"] | mol1_uniques["elements"],
+        mol2_uniques["atoms"] | mol2_uniques["elements"],
+    ]
+    bonds_list = [
+        mol1_uniques["bond_deletions"] | mol1_uniques["bond_changes"],
+        mol2_uniques["bond_deletions"] | mol2_uniques["bond_changes"],
+    ]
+
+    at1_colors = {at: BLUE for at in mol1_uniques["elements"]}
+    at2_colors = {at: BLUE for at in mol2_uniques["elements"]}
+    bd1_colors = {bd: BLUE for bd in mol1_uniques["bond_changes"]}
+    bd2_colors = {bd: BLUE for bd in mol2_uniques["bond_changes"]}
+
+    atom_colors = [at1_colors, at2_colors]
+    bond_colors = [bd1_colors, bd2_colors]
+
+    return _draw_molecules(
+        d2d,
+        [mol1, mol2],
+        atoms_list=atoms_list,
+        bonds_list=bonds_list,
+        atom_colors=atom_colors,
+        bond_colors=bond_colors,
+        highlight_color=RED,
+        pixels=pixels,
+        atom_mapping={(0, 1): mol1_to_mol2},
+    )
 
 
 def _score_rdkit_mappings(
