@@ -143,6 +143,7 @@ def merge(
     # Validate the region of interest.
     if roi is not None:
         from ._align import _validate_roi
+
         _validate_roi([molecule0, molecule1], roi)
 
     # Set 'allow_ring_breaking' and 'allow_ring_size_change' to true if the
