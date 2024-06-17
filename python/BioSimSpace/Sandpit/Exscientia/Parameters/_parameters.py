@@ -111,8 +111,10 @@ def parameterise(
     Returns
     -------
 
-    molecule : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
-        The parameterised molecule.
+    process : :class:`Process <BioSimSpace.Parameters._process.Process>`
+        A process to parameterise the molecule in the background. Call the
+        .getMolecule() method on the returned process to block until the
+        parameterisation is complete and get the parameterised molecule.
     """
 
     if not isinstance(forcefield, str):
@@ -208,8 +210,10 @@ def _parameterise_amber_protein(
     Returns
     -------
 
-    molecule : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
-        The parameterised molecule.
+    process : :class:`Process <BioSimSpace.Parameters._process.Process>`
+        A process to parameterise the molecule in the background. Call the
+        .getMolecule() method on the returned process to block until the
+        parameterisation is complete and get the parameterised molecule.
     """
 
     if not isinstance(forcefield, str):
@@ -314,8 +318,10 @@ def gaff(
     Returns
     -------
 
-    molecule : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
-        The parameterised molecule.
+    process : :class:`Process <BioSimSpace.Parameters._process.Process>`
+        A process to parameterise the molecule in the background. Call the
+        .getMolecule() method on the returned process to block until the
+        parameterisation is complete and get the parameterised molecule.
     """
 
     if _amber_home is None:
@@ -407,8 +413,10 @@ def gaff2(
     Returns
     -------
 
-    molecule : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
-        The parameterised molecule.
+    process : :class:`Process <BioSimSpace.Parameters._process.Process>`
+        A process to parameterise the molecule in the background. Call the
+        .getMolecule() method on the returned process to block until the
+        parameterisation is complete and get the parameterised molecule.
     """
 
     if _amber_home is None:
@@ -506,8 +514,10 @@ def _parameterise_openff(
     Returns
     -------
 
-    molecule : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
-        The parameterised molecule.
+    process : :class:`Process <BioSimSpace.Parameters._process.Process>`
+        A process to parameterise the molecule in the background. Call the
+        .getMolecule() method on the returned process to block until the
+        parameterisation is complete and get the parameterised molecule.
     """
 
     from sire.legacy.Base import findExe as _findExe
@@ -1068,8 +1078,10 @@ def _make_amber_protein_function(name):
         Returns
         -------
 
-        molecule : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
-            The parameterised molecule.
+        process : :class:`Process <BioSimSpace.Parameters._process.Process>`
+            A process to parameterise the molecule in the background. Call the
+            .getMolecule() method on the returned process to block until the
+            parameterisation is complete and get the parameterised molecule.
         """
         return _parameterise_amber_protein(
             name,
@@ -1133,8 +1145,10 @@ def _make_openff_function(name):
         Returns
         -------
 
-        molecule : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
-            The parameterised molecule.
+        process : :class:`Process <BioSimSpace.Parameters._process.Process>`
+            A process to parameterise the molecule in the background. Call the
+            .getMolecule() method on the returned process to block until the
+            parameterisation is complete and get the parameterised molecule.
         """
         return _parameterise_openff(
             name,
