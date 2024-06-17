@@ -142,17 +142,9 @@ def merge(
 
     # Validate the region of interest.
     if roi is not None:
-        if not isinstance(roi, list):
-            raise TypeError("'roi' must be of type 'list'.")
+        from ..Align import _validate_roi
 
-        for mol in [molecule0, molecule1]:
-            for idx in roi:
-                if not isinstance(idx, int):
-                    raise TypeError("'roi' must be a list of integers.")
-                if idx < 0 or idx > (mol.nResidues() - 1):
-                    raise ValueError(
-                        f"Residue index {idx} is out of range! The molecule contains {mol.nResidues()} residues."
-                    )
+        _validate_roi(roi, molecule0, molecule1)
 
     # Set 'allow_ring_breaking' and 'allow_ring_size_change' to true if the
     # user has requested to 'force' the merge, i.e. the 'force' argument
