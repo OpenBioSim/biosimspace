@@ -670,6 +670,6 @@ def test_roi_merge(protein_inputs):
     p1 = BSS.Parameters.ff14SB(p1).getMolecule()
 
     aligned_p0 = BSS.Align.rmsdAlign(p0, p1, roi=roi)
-    merged = BSS.Align.merge(aligned_p0, p1, protein_mapping)
+    merged = BSS.Align.merge(aligned_p0, p1, protein_mapping, roi=roi)
     merged_system = merged.toSystem()
     assert merged_system.nPerturbableMolecules() == 1
