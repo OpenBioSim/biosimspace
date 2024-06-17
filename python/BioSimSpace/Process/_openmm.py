@@ -49,7 +49,6 @@ from .._SireWrappers import System as _System
 from ..Metadynamics import CollectiveVariable as _CollectiveVariable
 from ..Protocol._position_restraint_mixin import _PositionRestraintMixin
 from ..Types._type import Type as _Type
-
 from .. import IO as _IO
 from .. import Protocol as _Protocol
 from .. import Trajectory as _Trajectory
@@ -67,6 +66,34 @@ class OpenMM(_process.Process):
 
     # Dictionary of platforms and their OpenMM keyword.
     _platforms = {"CPU": "CPU", "CUDA": "CUDA", "OPENCL": "OpenCL"}
+
+    # Special cases for generate config when using ATM protocols.
+    def __new__(
+        cls,
+        system,
+        protocol,
+        reference_system=None,
+        exe=None,
+        name="openmm",
+        platform="CPU",
+        work_dir=None,
+        seed=None,
+        property_map={},
+        **kwargs,
+    ):
+        from ._atm import OpenMMAToM
+
+        # would like to use issubclass but _Protocol._AToM is not exposed
+        if (
+            isinstance(protocol, _Protocol.AToMMinimisation)
+            or isinstance(protocol, _Protocol.AToMEquilibration)
+            or isinstance(protocol, _Protocol.AToMAnnealing)
+            or isinstance(protocol, _Protocol.AToMProduction)
+        ):
+
+            return super().__new__(OpenMMAToM)
+        else:
+            return super().__new__(cls)
 
     def __init__(
         self,
@@ -1380,17 +1407,16 @@ class OpenMM(_process.Process):
                 # multiplied by the time step.
                 if frac_complete > 1:
                     frac_complete = 1
-
                 # Work out the trajectory frame index, rounding down.
                 # Remember that frames in MDTraj are zero indexed, like Python.
                 index = int(frac_complete * num_frames)
                 if index > 0:
                     index -= 1
-
                 # Return the most recent frame.
                 return self.getFrame(index)
 
-        except:
+        except Exception as e:
+            _warnings.warn(f"The following error was raised when getting system: {e}")
             return None
 
     def getCurrentSystem(self):

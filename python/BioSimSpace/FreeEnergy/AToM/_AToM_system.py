@@ -709,7 +709,7 @@ class relativeATM:
     def __init__(
         self,
         system,
-        protocol=None,
+        protocol,
         platform="CPU",
         work_dir=None,
         setup_only=False,

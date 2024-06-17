@@ -8,27 +8,6 @@ import json
 import BioSimSpace as BSS
 
 
-@pytest.fixture()
-def TEMOA_host():
-    # This will be replaced by the relevant URL when the test is run.
-    host = BSS.Stream.load("temoa_host.bss")
-    return host
-
-
-@pytest.fixture()
-def TEMOA_lig1():
-    # This will be replaced by the relevant URL when the test is run.
-    lig1 = BSS.Stream.load("temoa_ligG1.bss")
-    return lig1
-
-
-@pytest.fixture()
-def TEMOA_lig2():
-    # This will be replaced by the relevant URL when the test is run.
-    lig2 = BSS.Stream.load("temoa_ligG4.bss")
-    return lig2
-
-
 def test_makeSystem(TEMOA_host, TEMOA_lig1, TEMOA_lig2):
 
     atm_generator = BSS.FreeEnergy.AToM(

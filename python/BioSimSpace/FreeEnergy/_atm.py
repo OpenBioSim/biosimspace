@@ -624,11 +624,11 @@ class AToM:
             vec = _findTranslationVector(prot_lig1, displacement, protein, ligand1)
             ligand2_aligned.translate([vec.x(), vec.y(), vec.z()])
 
-        system = (protein + ligand1 + ligand2_aligned).toSystem()
-        prot_ind = system.getIndex(protein)
-        lig1_ind = system.getIndex(ligand1)
-        lig2_ind = system.getIndex(ligand2_aligned)
-        return system, prot_ind, lig1_ind, lig2_ind, vec
+        sys = (protein + ligand1 + ligand2_aligned).toSystem()
+        prot_ind = sys.getIndex(protein)
+        lig1_ind = sys.getIndex(ligand1)
+        lig2_ind = sys.getIndex(ligand2_aligned)
+        return sys, prot_ind, lig1_ind, lig2_ind, vec
 
     def _systemInfo(self):
         """
@@ -879,7 +879,15 @@ class AToM:
             return furthest_pair[0], furthest_pair[1], max_distance
 
         def vector_from_points(point1, point2):
-            return (point2[0] - point1[0], point2[1] - point1[1], point2[2] - point1[2])
+            dx = point2[0] - point1[0]
+            dy = point2[1] - point1[1]
+            dz = point2[2] - point1[2]
+
+            magnitude = _math.sqrt(dx**2 + dy**2 + dz**2)
+            if magnitude == 0:
+                return (0, 0, 0)
+
+            return (dx / magnitude, dy / magnitude, dz / magnitude)
 
         # if a system is provided, check that it has the "atom_data" property
         if system is not None:
@@ -946,9 +954,9 @@ class AToM:
         # Translate ligand2 so they don't overlap
         ligand2.translate(
             [
-                lig1_distance * vector[0],
-                lig1_distance * vector[1],
-                lig1_distance * vector[2],
+                lig1_distance * 2 * vector[0],
+                lig1_distance * 2 * vector[1],
+                lig1_distance * 2 * vector[2],
             ]
         )
         # Get coords of rigid core atoms

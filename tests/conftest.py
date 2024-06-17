@@ -86,3 +86,39 @@ def solvated_perturbable_system():
         f"{url}/solvated_perturbable_system1.prm7",
         f"{url}/solvated_perturbable_system1.rst7",
     )
+
+
+@pytest.fixture(scope="session")
+def TEMOA_host():
+    host = BSS.IO.readMolecules(
+        BSS.IO.expand(BSS.tutorialUrl(), ["temoa_host.rst7", "temoa_host.prm7"])
+    )[0]
+    return host
+
+
+@pytest.fixture(scope="session")
+def TEMOA_lig1():
+    lig1 = BSS.IO.readMolecules(
+        BSS.IO.expand(BSS.tutorialUrl(), ["temoa_ligG1.rst7", "temoa_ligG1.prm7"])
+    )[0]
+    return lig1
+
+
+@pytest.fixture(scope="session")
+def TEMOA_lig2():
+    lig2 = BSS.IO.readMolecules(
+        BSS.IO.expand(BSS.tutorialUrl(), ["temoa_ligG1.rst7", "temoa_ligG1.prm7"])
+    )[0]
+    return lig2
+
+
+@pytest.fixture(scope="session")
+def TEMOA_hostguest(TEMOA_host, TEMOA_lig1, TEMOA_lig2):
+    atm_generator = BSS.FreeEnergy.AToM(
+        protein=TEMOA_host, ligand1=TEMOA_lig1, ligand2=TEMOA_lig2
+    )
+    rigid_core = [1, 2, 3]
+    atm_system, atm_data = atm_generator.prepare(
+        ligand1_rigid_core=rigid_core, ligand2_rigid_core=rigid_core
+    )
+    return atm_system, atm_data
