@@ -754,6 +754,34 @@ def merge(
                     edit_mol.atom(idx).setProperty(name, atom.property(prop)).molecule()
                 )
 
+    # Tolerance for zero sigma values.
+    null_lj_sigma = 1e-9
+
+    # Atoms with zero LJ sigma values need to have their sigma values set to the
+    # value from the other end state.
+    for atom in edit_mol.atoms():
+        # Get the end state LJ sigma values.
+        lj0 = atom.property("LJ0")
+        lj1 = atom.property("LJ1")
+
+        # Lambda = 0 state has a zero sigma value.
+        if abs(lj0.sigma().value()) <= null_lj_sigma:
+            # Use the sigma value from the lambda = 1 state.
+            edit_mol = (
+                edit_mol.atom(atom.index())
+                .set_property("LJ0", _SireMM.LJParameter(lj1.sigma(), lj0.epsilon()))
+                .molecule()
+            )
+
+        # Lambda = 1 state has a zero sigma value.
+        if abs(lj1.sigma().value()) <= null_lj_sigma:
+            # Use the sigma value from the lambda = 0 state.
+            edit_mol = (
+                edit_mol.atom(atom.index())
+                .set_property("LJ1", _SireMM.LJParameter(lj0.sigma(), lj1.epsilon()))
+                .molecule()
+            )
+
     # We now need to merge "bond", "angle", "dihedral", and "improper" parameters.
     # To do so, we extract the properties from molecule1, then add the additional
     # properties from molecule0, making sure to update the atom indices, and bond

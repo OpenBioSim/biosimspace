@@ -764,7 +764,7 @@ def saveMolecules(
             continue
 
         # Add the file format to the property map.
-        _property_map["fileformat"] = _SireBase.wrap(format)
+        _property_map["fileformat"] = format
 
         # Warn the user if any molecules are parameterised with a force field
         # that uses geometric combining rules. While we can write this to file
