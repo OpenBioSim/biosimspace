@@ -226,6 +226,14 @@ class Somd(_process.Process):
             else:
                 raise IOError("SOMD executable doesn't exist: '%s'" % exe)
 
+        # Validate torsion modification kwargs.
+        self._zero_dummy_dihedrals = kwargs.get("zero_dummy_dihedrals", False)
+        if not isinstance(self._zero_dummy_dihedrals, bool):
+            self._zero_dummy_dihedrals = False
+        self._zero_dummy_impropers = kwargs.get("zero_dummy_impropers", False)
+        if not isinstance(self._zero_dummy_impropers, bool):
+            self._zero_dummy_impropers = False
+
         # The names of the input files.
         self._rst_file = _os.path.join(str(self._work_dir), f"{name}.rst7")
         self._top_file = _os.path.join(str(self._work_dir), f"{name}.prm7")
@@ -322,7 +330,9 @@ class Somd(_process.Process):
                 # to the lambda = 0 state.
                 pert_mol = _to_pert_file(
                     pert_mol,
-                    self._pert_file,
+                    filename=self._pert_file,
+                    zero_dummy_dihedrals=self._zero_dummy_dihedrals,
+                    zero_dummy_impropers=self._zero_dummy_impropers,
                     property_map=self._property_map,
                     perturbation_type=self._protocol.getPerturbationType(),
                 )
