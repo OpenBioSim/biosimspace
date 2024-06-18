@@ -37,6 +37,8 @@ import csv as _csv
 import os as _os
 import subprocess as _subprocess
 import sys as _sys
+from typing import Any, Collection, Optional
+from itertools import chain
 
 from .._Utils import _try_import, _have_imported, _assert_imported
 
@@ -52,6 +54,8 @@ with _warnings.catch_warnings():
         from rdkit import Chem as _Chem
         from rdkit.Chem import rdFMCS as _rdFMCS
         from rdkit import RDLogger as _RDLogger
+        from rdkit.Chem import Draw
+        from rdkit.Chem import AllChem
 
         # Disable RDKit warnings.
         _RDLogger.DisableLog("rdApp.*")
@@ -720,6 +724,7 @@ def matchAtoms(
     timeout=5 * _Units.Time.second,
     complete_rings_only=True,
     max_scoring_matches=1000,
+    roi=None,
     property_map0={},
     property_map1={},
 ):
@@ -729,7 +734,7 @@ def matchAtoms(
     When requesting more than one match, the mappings will be sorted using
     a scoring function and returned in order of best to worst score. (Note
     that, depending on the scoring function the "best" score may have the
-    lowest value.).
+    lowest value).
 
     Parameters
     ----------
@@ -751,7 +756,7 @@ def matchAtoms(
               computing the above RMSD score.
           - "rmsd_flex_align"
               Flexibly align molecule0 to molecule1 based on the mapping
-              before computing the above RMSD score. (based on the
+              before computing the above RMSD score. (Requires the
               'fkcombu'. package: https://pdbj.org/kcombu)
 
     matches : int
@@ -777,6 +782,10 @@ def matchAtoms(
         matchAtoms function to be taking an excessive amount of time. This
         option is only relevant to MCS performed using RDKit and will be
         ignored when falling back on Sire.
+
+    roi : list
+    The region of interest to match.
+    Consists of a list of ROI residue indices.
 
     property_map0 : dict
         A dictionary that maps "properties" in molecule0 to their user
@@ -826,8 +835,56 @@ def matchAtoms(
 
     >>> import BioSimSpace as BSS
     >>> mapping = BSS.Align.matchAtoms(molecule0, molecule1, prematch={0 : 10, 3 : 7})
+
+    Find the best maximum common substructure mapping between two molecules
+    with a region of interest defined as a list of residues.
+
+    >>> import BioSimSpace as BSS
+    >>> mapping = BSS.Align.matchAtoms(molecule0, molecule1, roi=[12])
+
+    Find the mapping between two molecules with multiple regions of interest.
+
+    >>> import BioSimSpace as BSS
+    >>> mapping = BSS.Align.matchAtoms(molecule0, molecule1, roi=[12, 13, 14])
     """
 
+    if roi is None:
+        return _matchAtoms(
+            molecule0=molecule0,
+            molecule1=molecule1,
+            scoring_function=scoring_function,
+            matches=matches,
+            return_scores=return_scores,
+            prematch=prematch,
+            timeout=timeout,
+            complete_rings_only=complete_rings_only,
+            max_scoring_matches=max_scoring_matches,
+            property_map0=property_map0,
+            property_map1=property_map1,
+        )
+    else:
+        return _roiMatch(
+            molecule0=molecule0,
+            molecule1=molecule1,
+            roi=roi,
+            use_kartograf=False,
+            kartograf_kwargs={},
+        )
+
+
+def _matchAtoms(
+    molecule0,
+    molecule1,
+    scoring_function,
+    matches,
+    return_scores,
+    prematch,
+    timeout,
+    complete_rings_only,
+    max_scoring_matches,
+    property_map0,
+    property_map1,
+):
     # A list of supported scoring functions.
     scoring_functions = ["RMSD", "RMSDALIGN", "RMSDFLEXALIGN"]
 
@@ -896,9 +953,6 @@ def matchAtoms(
 
     # Convert the timeout to seconds and take the value as an integer.
     timeout = int(timeout.seconds().value())
-
-    # Create the working directory.
-    work_dir = _Utils.WorkDir()
 
     # Use RDKkit to find the maximum common substructure.
 
@@ -1030,7 +1084,349 @@ def matchAtoms(
             return mappings[0:matches]
 
 
-def rmsdAlign(molecule0, molecule1, mapping=None, property_map0={}, property_map1={}):
+def _kartograf_map(molecule0, molecule1, kartograf_kwargs):
+    """
+    A wrapper function for kartograf mapping algorithm.
+
+    Parameters
+    ----------
+
+    molecule0 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
+        The molecule of interest.
+
+    molecule1 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
+        The reference molecule.
+
+    kartograf_kwargs : dict
+        A dictionary of keyword arguments to be passed to kartograf.
+
+    Returns
+    -------
+
+    kartograf_mapping : gufe.mapping.ligandatommapping.LigandAtomMapping
+        The kartograf mapping object.
+
+    """
+    # try to import kartograf
+    try:
+        from kartograf.atom_aligner import align_mol_shape as _align_mol_shape
+        from kartograf.atom_mapping_scorer import (
+            MappingRMSDScorer as _MappingRMSDScorer,
+        )
+        from kartograf import (
+            KartografAtomMapper,
+            SmallMoleculeComponent as _SmallMoleculeComponent,
+        )
+    except ImportError:
+        raise ImportError(
+            "Unable to import Kartograf. Make sure Kartograf is installed properly to use this function."
+        )
+
+    # Validate input
+    if not isinstance(molecule0, _Molecule):
+        raise TypeError(
+            "'molecule0' must be of type 'BioSimSpace._SireWrappers.Molecule'"
+        )
+
+    if not isinstance(molecule1, _Molecule):
+        raise TypeError(
+            "'molecule1' must be of type 'BioSimSpace._SireWrappers.Molecule'"
+        )
+    from ..Convert import toRDKit as _toRDKit
+
+    rdkit_mol0 = _toRDKit(molecule0)
+    rdkit_mol1 = _toRDKit(molecule1)
+    rdkit_mols = [rdkit_mol0, rdkit_mol1]
+
+    # build small molecule components
+    mol0, mol1 = [_SmallMoleculeComponent.from_rdkit(m) for m in rdkit_mols]
+
+    # align molecules first
+    a_mol1 = _align_mol_shape(mol1, ref_mol=mol0)
+
+    # build Kartograf Atom Mapper
+    mapper = KartografAtomMapper(**kartograf_kwargs)
+
+    # get the mapping
+    kartograf_mapping = next(mapper.suggest_mappings(mol0, a_mol1))
+
+    # score the mapping
+    rmsd_scorer = _MappingRMSDScorer()
+    score = rmsd_scorer(mapping=kartograf_mapping)
+    print(f"RMSD score: {score:.2f}")
+
+    return kartograf_mapping
+
+
+def _roiMatch(
+    molecule0,
+    molecule1,
+    roi,
+    **kwargs,
+):
+    """
+    Matching of two molecules based on a region of interest (ROI).
+    The ROI is defined as a list of residues in the molecule/protein.
+    The function will attempt to match the ROI in the two molecules and
+    return the mapping between the two molecules. Multiple ROIs can be
+    provided.
+
+    Parameters
+    ----------
+
+    molecule0 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
+        The molecule of interest.
+
+    molecule1 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
+        The reference molecule.
+
+    roi : list
+        The region of interest to match.
+        Consists of a list of ROI residue indices
+
+    use_kartograf : bool, optional, default=False
+        If set to True, will use the kartograf algorithm to match the
+        molecules.
+
+    kartograf_kwargs : dict, optional, default={}
+        A dictionary of keyword arguments to be passed to kartograf.
+
+    Returns
+    -------
+
+    full_mapping : dict
+        A dictionary of the mapping between the two molecules.
+
+    Notes
+    -----
+
+    The key assumption of this function is that the two molecules are
+    structurally identical except for the region of interest (ROI). The ROI
+    could be a point mutation, or a residue that has been covalently modified.
+    The function will attempt to match the atoms in the ROI based on the
+    maximum common substructure (MCS) algorithm. First, the ROI is extracted
+    from the two molecules and then the atoms in the ROI are matched using
+    a mapping function such as BioSimSpace.Align.matchAtoms for example.
+    The function will return the mapping between the two molecules.
+    This "relative" mapping will then be used to map the atoms in the ROI to
+    the "absolute" indices in the molecule.
+    So for example the relative mapping could be {0: 3, 1: 2, 2: 5} and
+    the absolute mapping could be {100: 103, 101: 102, 102: 105}. This way we
+    can bypass the need to map the entire molecule and only focus on the ROI,
+    which is significantly faster for large molecules. The rest of the mapping
+    is then composed of atoms before the ROI (pre-ROI) and after the ROI.
+    Every time we map the atoms in the ROI, we append the ROI
+    mapping to the pre-ROI mapping, which will then be used as the pre-ROI
+    mapping for the next ROI in the list.
+
+    Examples
+    --------
+
+    Find the best maximum common substructure mapping between two molecules
+    with a region of interest defined as a list of residues.
+
+    >>> import BioSimSpace as BSS
+    >>> mapping = BSS.Align._align._roiMatch(molecule0, molecule1, roi=[12])
+
+    Find the mapping between two molecules with multiple regions of interest.
+
+    >>> import BioSimSpace as BSS
+    >>> mapping = BSS.Align._align._roiMatch(molecule0, molecule1, roi=[12, 13, 14])
+
+    Find the best maximum common substructure mapping between two molecules,
+    using Kartograf as the MCS algorithm.
+
+    >>> import BioSimSpace as BSS
+    >>> mapping = BSS.Align._align._roiMatch(molecule0, molecule1, roi=[12], use_kartograf=True)
+    """
+
+    # Validate input
+    if not isinstance(molecule0, _Molecule):
+        raise TypeError(
+            "'molecule0' must be of type 'BioSimSpace._SireWrappers.Molecule'"
+        )
+
+    if not isinstance(molecule1, _Molecule):
+        raise TypeError(
+            "'molecule1' must be of type 'BioSimSpace._SireWrappers.Molecule'"
+        )
+    if roi is None:
+        raise ValueError("No region of interest (ROI) has been provided.")
+    else:
+        _validate_roi([molecule0, molecule1], roi)
+
+    # Check kwargs
+    use_kartograf = kwargs.get("use_kartograf", False)
+    kartograf_kwargs = kwargs.get("kartograf_kwargs", {})
+
+    # Make sure that the atoms in the pre-ROI region between two molecules are
+    # in the same order. While the residue sequences between two molecules
+    # might be the same, saving the molecules in different formats/editors
+    # might change the order of the atoms. The mapping function will not work
+    # if the atoms are not in the same order outside the ROI region.
+    # We will only test the first residue in the protein, as doing this for
+    # every residue would be computationally expensive.
+    if roi[0] != 0:
+        molecule0_res = molecule0.getResidues()[0]
+        molecule1_res = molecule1.getResidues()[0]
+        if [a.name() for a in molecule0_res.getAtoms()] != [
+            b.name() for b in molecule1_res.getAtoms()
+        ]:
+            raise ValueError(
+                "The atoms outside the ROI region between the two molecules are not in the same order."
+            )
+    # If the ROI is the first residue, then we will test the atoms in the last
+    # residue of the molecule.
+    else:
+        molecule0_res = molecule0.getResidues()[-1]
+        molecule1_res = molecule1.getResidues()[-1]
+        if [a.name() for a in molecule0_res.getAtoms()] != [
+            b.name() for b in molecule1_res.getAtoms()
+        ]:
+            raise ValueError(
+                "The atoms outside the ROI region between the two molecules are not in the same order."
+            )
+
+    # Get the atoms before the ROI.
+    # This is being done so that when we map the atoms in ROI, we can append
+    # the ROI mapping to this pre-ROI mapping which will then be used as
+    # the pre-ROI mapping for the next ROI in the list, i.e.
+    # pre_roi_mapping = pre_roi_mapping + roi mapping + mapping to next ROI
+    pre_roi_molecule0 = molecule0.search(f"residue[0:{roi[0]}]")
+    pre_roi_atom_idx_molecule0 = [a.index() for a in pre_roi_molecule0.atoms()]
+
+    pre_roi_molecule1 = molecule1.search(f"residue[0:{roi[0]}]")
+    pre_roi_atom_idx_molecule1 = [a.index() for a in pre_roi_molecule1.atoms()]
+
+    pre_roi_mapping = dict(zip(pre_roi_atom_idx_molecule0, pre_roi_atom_idx_molecule1))
+
+    # Loop over the residues of interest
+    for i, res_idx in enumerate(roi):
+        molecule0_roi = molecule0.getResidues()[res_idx]
+        molecule1_roi = molecule1.getResidues()[res_idx]
+
+        # Warn if matching between the same residues, in a case where we are
+        # transforming from one enantiomer to another, the atomtypes will
+        # be the same and trigger this warning.
+        if (
+            molecule0_roi.name() == molecule1_roi.name()
+            and molecule0_roi.nAtoms() == molecule1_roi.nAtoms()
+        ):
+            molecule0_atoms = [a.name() for a in molecule0_roi.getAtoms()]
+            molecule1_atoms = [a.name() for a in molecule1_roi.getAtoms()]
+            if molecule0_atoms == molecule1_atoms:
+                _warnings.warn(
+                    f"Residues {res_idx} between molecule0 and molecule1 have "
+                    "identical atomtypes, which means you are likely attempting "
+                    "to match two identical residues."
+                )
+
+        res0_idx = [a.index() for a in molecule0_roi]
+        res1_idx = [a.index() for a in molecule1_roi]
+
+        # Extract the residues of interest from the molecules
+        res0_extracted = molecule0.extract(res0_idx)
+        res1_extracted = molecule1.extract(res1_idx)
+
+        if use_kartograf:
+            kartograf_mapping = _kartograf_map(
+                res0_extracted, res1_extracted, kartograf_kwargs
+            )
+            mapping = kartograf_mapping.componentA_to_componentB
+        else:
+            mapping = matchAtoms(
+                res0_extracted,
+                res1_extracted,
+            )
+
+        # Look up the absolute atom indices in the molecule
+        res0_lookup_table = list(mapping.keys())
+        absolute_mapped_atoms_res0 = [res0_idx[i] for i in res0_lookup_table]
+
+        res1_lookup_table = list(mapping.values())
+        absolute_mapped_atoms_res1 = [res1_idx[i] for i in res1_lookup_table]
+
+        absolute_roi_mapping = dict(
+            zip(absolute_mapped_atoms_res0, absolute_mapped_atoms_res1)
+        )
+
+        # If we are at the last residue of interest, we don't need to worry
+        # too much about the after ROI region as this region will be all of the
+        # molecule atoms after the last residue of interest.
+        # In the case when we are not at the last residue of interest,
+        # we need to map the atoms to the next ROI.
+        if res_idx != roi[-1]:
+
+            # If the next ROI residue index in the ROI list is next to
+            # the current ROI index, after_roi atom index list will be empty
+            # i.e. if we're currently at residue 10 and the next ROI is 11,
+            # we don't need to map the atoms.
+            # If we were at residue 10 and the next residue of interest is 12,
+            # we would need to map the atoms between residues 10 and 12.
+            if roi[i + 1] - roi[i] == 1:
+                after_roi_atom_idx_molecule0 = []
+                after_roi_atom_idx_molecule1 = []
+            else:
+                after_roi_molecule0 = molecule0.search(
+                    f"residue[{res_idx+1}:{roi[i+1]}]"
+                )
+                after_roi_atom_idx_molecule0 = [
+                    a.index() for a in after_roi_molecule0.atoms()
+                ]
+
+                after_roi_molecule1 = molecule1.search(
+                    f"residue[{res_idx+1}:{roi[i+1]}]"
+                )
+                after_roi_atom_idx_molecule1 = [
+                    b.index() for b in after_roi_molecule1.atoms()
+                ]
+
+            after_roi_mapping = dict(
+                zip(
+                    after_roi_atom_idx_molecule0,
+                    after_roi_atom_idx_molecule1,
+                )
+            )
+
+            # Append the mappings to the pre_roi_mapping, which will then be
+            # used as the pre_roi_mapping for the next ROI in the list.
+            pre_roi_mapping = {
+                **pre_roi_mapping,
+                **absolute_roi_mapping,
+                **after_roi_mapping,
+            }
+        else:
+            # Get all of the remaining atoms after the last ROI
+            after_roi_molecule0 = molecule0.search(f"residue[{res_idx+1}:]")
+            after_roi_atom_idx_molecule0 = [
+                a.index() for a in after_roi_molecule0.atoms()
+            ]
+
+            after_roi_molecule1 = molecule1.search(f"residue[{res_idx+1}:]")
+            after_roi_atom_idx_molecule1 = [
+                b.index() for b in after_roi_molecule1.atoms()
+            ]
+
+    after_roi_mapping = dict(
+        zip(
+            after_roi_atom_idx_molecule0,
+            after_roi_atom_idx_molecule1,
+        )
+    )
+
+    # Combine the dictionaries to get the full mapping
+    full_mapping = {
+        **pre_roi_mapping,
+        **absolute_roi_mapping,
+        **after_roi_mapping,
+    }
+
+    return full_mapping
+
+
+def rmsdAlign(
+    molecule0, molecule1, mapping=None, roi=None, property_map0={}, property_map1={}
+):
     """
     Align atoms in molecule0 to those in molecule1 using the mapping
     between matched atom indices. The molecule is aligned using rigid-body
@@ -1049,6 +1445,10 @@ def rmsdAlign(molecule0, molecule1, mapping=None, property_map0={}, property_map
 
     mapping : dict
         A dictionary mapping atoms in molecule0 to those in molecule1.
+
+    roi : list
+    The region of interest to align.
+    Consists of a list of ROI residue indices.
 
     property_map0 : dict
         A dictionary that maps "properties" in molecule0 to their user
@@ -1079,8 +1479,38 @@ def rmsdAlign(molecule0, molecule1, mapping=None, property_map0={}, property_map
 
     >>> import BioSimSpace as BSS
     >>> molecule0 = BSS.Align.rmsdAlign(molecule0, molecule1)
+
+    Align residue of interest from molecule0 to molecule1.
+
+    >>> import BioSimSpace as BSS
+    >>> molecule0 = BSS.Align.rmsdAlign(molecule0, molecule1, roi=[12])
+
+    Align multiple residues of interest from molecule0 to molecule1.
+
+    >>> import BioSimSpace as BSS
+    >>> molecule0 = BSS.Align.rmsdAlign(molecule0, molecule1, roi=[12,13])
     """
 
+    if roi is None:
+        return _rmsdAlign(
+            molecule0,
+            molecule1,
+            mapping=mapping,
+            property_map0=property_map0,
+            property_map1=property_map1,
+        )
+    else:
+        return _roiAlign(
+            molecule0,
+            molecule1,
+            roi=roi,
+            align_function="rmsd",
+            property_map0=property_map0,
+            property_map1=property_map1,
+        )
+
+
+def _rmsdAlign(molecule0, molecule1, mapping=None, property_map0={}, property_map1={}):
     if not isinstance(molecule0, _Molecule):
         raise TypeError(
             "'molecule0' must be of type 'BioSimSpace._SireWrappers.Molecule'"
@@ -1143,6 +1573,7 @@ def flexAlign(
     molecule1,
     mapping=None,
     fkcombu_exe=None,
+    roi=None,
     property_map0={},
     property_map1={},
 ):
@@ -1165,6 +1596,10 @@ def flexAlign(
     fkcombu_exe : str
         Path to the fkcombu executable. If None is passed, then BioSimSpace
         will attempt to find fkcombu by searching your PATH.
+
+    roi : list
+    The region of interest to align.
+    Consists of a list of ROI residue indices.
 
     property_map0 : dict
         A dictionary that maps "properties" in molecule0 to their user
@@ -1195,8 +1630,47 @@ def flexAlign(
 
     >>> import BioSimSpace as BSS
     >>> molecule0 = BSS.Align.flexAlign(molecule0, molecule1)
+
+    Align residue of interest from molecule0 to molecule1.
+
+    >>> import BioSimSpace as BSS
+    >>> molecule0 = BSS.Align.flexAlign(molecule0, molecule1, roi=[12])
+
+    Align multiple residues of interest from molecule0 to molecule1.
+
+    >>> import BioSimSpace as BSS
+    >>> molecule0 = BSS.Align.flexAlign(molecule0, molecule1, roi=[12,13])
     """
 
+    if roi is None:
+        return _flexAlign(
+            molecule0,
+            molecule1,
+            mapping=mapping,
+            fkcombu_exe=fkcombu_exe,
+            property_map0=property_map0,
+            property_map1=property_map1,
+        )
+    else:
+        return _roiAlign(
+            molecule0,
+            molecule1,
+            roi=roi,
+            align_function="rmsd_flex_align",
+            fkcombu_exe=fkcombu_exe,
+            property_map0=property_map0,
+            property_map1=property_map1,
+        )
+
+
+def _flexAlign(
+    molecule0,
+    molecule1,
+    mapping,
+    fkcombu_exe,
+    property_map0,
+    property_map1,
+):
     # Check that we found fkcombu in the PATH.
     if fkcombu_exe is None:
         if _fkcombu_exe is None:
@@ -1297,6 +1771,134 @@ def flexAlign(
     return _Molecule(molecule0)
 
 
+def _roiAlign(
+    molecule0,
+    molecule1,
+    roi,
+    align_function,
+    property_map0,
+    property_map1,
+    fkcombu_exe=None,
+):
+    """
+    Flexibly align residue of interest (ROI) in molecule0 to that in molecule1
+    using BioSimSpace.Align._flexAlign().
+
+    Parameters
+    ----------
+
+    molecule0 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
+        The molecule to align.
+
+    molecule1 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
+        The reference molecule.
+
+    roi : list
+        The region of interest to align.
+        Consists of a list of ROI residue indices.
+
+    align_function : str
+        The alignment function used to align atoms. Available options are:
+            - "rmsd"
+                Align atoms in molecule0 to those in molecule1 using the mapping
+                between matched atom indices.
+                Uses :class:`rmsdAlign <BioSimSpace.Align._rmsdAlign>` to align the atoms in the ROI.
+            - "rmsd_flex_align"
+                Flexibly align roi from molecule0 to molecule1 based on the mapping.
+                Uses :class:`flexAlign <BioSimSpace.Align._flexAlign>` to align the atoms in the ROI.
+
+    fkcombu_exe : str
+        Path to the fkcombu executable. Will only be used if aligning with
+        "rmsd_flex_align" function. If None is passed, then BioSimSpace
+        will attempt to find fkcombu by searching your PATH.
+
+    property_map0 : dict
+        A dictionary that maps "properties" in molecule0 to their user
+        defined values. This allows the user to refer to properties
+        with their own naming scheme, e.g. { "charge" : "my-charge" }
+
+    property_map1 : dict
+        A dictionary that maps "properties" in molecule1 to their user
+        defined values.
+
+    Returns
+    -------
+
+    molecule : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
+        The aligned molecule.
+    """
+
+    if not isinstance(molecule0, _Molecule):
+        raise TypeError(
+            "'molecule0' must be of type 'BioSimSpace._SireWrappers.Molecule'"
+        )
+
+    if not isinstance(molecule1, _Molecule):
+        raise TypeError(
+            "'molecule1' must be of type 'BioSimSpace._SireWrappers.Molecule'"
+        )
+    if roi is None:
+        raise ValueError("No region of interest (ROI) has been provided.")
+    else:
+        _validate_roi([molecule0, molecule1], roi)
+
+    if align_function not in ["rmsd", "rmsd_flex_align"]:
+        raise ValueError(
+            "Invalid alignment function. Available options are: 'rmsd', 'rmsd_flex_align'"
+        )
+
+    # Get the property name for the coordinates
+    prop0 = property_map0.get("coordinates", "coordinates")
+
+    for roi_idx in roi:
+        res0 = molecule0.getResidues()[roi_idx]
+        res1 = molecule1.getResidues()[roi_idx]
+
+        res0_idx = [a.index() for a in res0.getAtoms()]
+        res1_idx = [a.index() for a in res1.getAtoms()]
+
+        # Extract the residues of interest from the molecules
+        res0_extracted = molecule0.extract(res0_idx)
+        res1_extracted = molecule1.extract(res1_idx)
+
+        if align_function == "rmsd":
+            res0_aligned = rmsdAlign(molecule0=res0_extracted, molecule1=res1_extracted)
+
+        elif align_function == "rmsd_flex_align":
+            res0_aligned = flexAlign(
+                molecule0=res0_extracted,
+                molecule1=res1_extracted,
+                fkcombu_exe=fkcombu_exe,
+            )
+
+        # Now update molecule0 with the aligned residue coordinates
+        mol0 = molecule0._getSireObject()
+        res0_aligned_coords = res0_aligned._getSireObject().property(prop0)
+
+        # A list to store the updated coordinates for molecule0
+        mol0_coords = []
+        for i, res in enumerate(mol0.residues()):
+            if i == roi_idx:
+                mol0_coords.append(res0_aligned_coords)
+            else:
+                mol0_coords.append(res.property(prop0))
+
+        # Flatten the list
+        mol0_coords = [item for sublist in mol0_coords for item in sublist]
+
+        # Create a cursor for updating the coordinates property
+        c = mol0.cursor()
+        for i, atom in enumerate(c.atoms()):
+            atom[prop0] = mol0_coords[i]
+        mol0 = c.commit()
+
+        # Convert the Sire molecule back to a BioSimSpace molecule so we can
+        # loop over it again if needed
+        molecule0 = _Molecule(mol0)
+
+    return molecule0
+
+
 def merge(
     molecule0,
     molecule1,
@@ -1304,6 +1906,7 @@ def merge(
     allow_ring_breaking=False,
     allow_ring_size_change=False,
     force=False,
+    roi=None,
     property_map0={},
     property_map1={},
 ):
@@ -1340,6 +1943,10 @@ def merge(
         takes precedence over 'allow_ring_breaking' and
         'allow_ring_size_change'.
 
+    roi : list
+        The region of interest to merge.
+        Consists of a list of ROI residue indices.
+
     property_map0 : dict
         A dictionary that maps "properties" in molecule0 to their user
         defined values. This allows the user to refer to properties
@@ -1362,6 +1969,12 @@ def merge(
 
     >>> import BioSimSpace as BSS
     >>> merged = BSS.Align.merge(molecule0, molecule1, mapping)
+
+    Merge molecule0 and molecule1 based on a precomputed mapping and a region
+    of interest.
+
+    >>> import BioSimSpace as BSS
+    >>> merged = BSS.Align.merge(molecule0, molecule1, mapping, roi=[12])
 
     Merge molecule0 with molecule1. Since no mapping is passed one will be
     autogenerated using :class:`matchAtoms <BioSimSpace.Align.matchAtoms>`
@@ -1397,6 +2010,10 @@ def merge(
     if not isinstance(force, bool):
         raise TypeError("'force' must be of type 'bool'")
 
+    if roi is not None:
+        if not isinstance(roi, list):
+            raise TypeError("'roi' must be of type 'list'.")
+
     # The user has passed an atom mapping.
     if mapping is not None:
         if not isinstance(mapping, dict):
@@ -1426,6 +2043,7 @@ def merge(
         allow_ring_breaking=allow_ring_breaking,
         allow_ring_size_change=allow_ring_size_change,
         force=force,
+        roi=roi,
         property_map0=property_map0,
         property_map1=property_map1,
     )
@@ -1435,14 +2053,14 @@ def viewMapping(
     molecule0,
     molecule1,
     mapping=None,
+    roi=None,
+    pixels=300,
     property_map0={},
     property_map1={},
-    style=None,
-    orientation="horizontal",
-    pixels=900,
+    **kwargs,
 ):
     """
-    Visualise the mapping between molecule0 and molecule1. This draws a 3D
+    Visualise the mapping between molecule0 and molecule1. This draws a 2D
     depiction of both molecules with the mapped atoms highlighted in green.
     Labels specify the indices of the atoms, along with the indices of
     the atoms to which they map in the other molecule.
@@ -1459,6 +2077,12 @@ def viewMapping(
     mapping : dict
         A dictionary mapping atoms in molecule0 to those in molecule1.
 
+    roi : int
+        The region of interest to highlight.
+
+    pixels : int
+        The size in pixels of the 2D drawing.
+
     property_map0 : dict
         A dictionary that maps "properties" in molecule0 to their user
         defined values. This allows the user to refer to properties
@@ -1468,31 +2092,15 @@ def viewMapping(
         A dictionary that maps "properties" in molecule1 to their user
         defined values.
 
-    style : dict
-        Drawing style. See https://3dmol.csb.pitt.edu/doc/$3Dmol.GLViewer.html
-        for some examples.
-
-    orientation : str
-        Whether to display the two molecules in a "horizontal" or "vertical"
-        arrangement.
-
-    pixels : int
-        The size of the largest view dimension in pixel, i.e. either the
-        "horizontal" or "vertical" size.
-
-    Returns
-    -------
-
-    view : py3Dmol.view
-        A view of the two molecules with the mapped atoms highlighted and
-        labelled.
+    show_adjacent_residues : bool, optional default=False
+        If set to True, will show neighouring residues to the ROI region.
     """
-
-    # Adapted from: https://gist.github.com/cisert/d05664d4c98ac1cf86ee70b8700e56a9
 
     # Only draw within a notebook.
     if not _is_notebook:
         return None
+    else:
+        from IPython.display import display, Image
 
     _assert_imported(_rdkit)
 
@@ -1506,26 +2114,14 @@ def viewMapping(
             "'molecule1' must be of type 'BioSimSpace._SireWrappers.Molecule'"
         )
 
+    if roi is not None and not isinstance(roi, int):
+        raise TypeError("'roi' must be of type 'int'")
+
     if not isinstance(property_map0, dict):
         raise TypeError("'property_map0' must be of type 'dict'")
 
     if not isinstance(property_map1, dict):
         raise TypeError("'property_map1' must be of type 'dict'")
-
-    if style is not None:
-        if not isinstance(style, dict):
-            raise TypeError("'style' must be of type 'dict'")
-
-    if not isinstance(orientation, str):
-        raise TypeError("'orientation' must be of type 'str'")
-    else:
-        # Convert to lower case and strip whitespace.
-        orientation = orientation.lower().replace(" ", "")
-
-        if orientation not in ["horizontal", "vertical"]:
-            raise ValueError(
-                "'orientation' must be equal to 'horizontal' " "or 'vertical'."
-            )
 
     if isinstance(pixels, float):
         pixels = int(pixels)
@@ -1533,6 +2129,9 @@ def viewMapping(
         raise TypeError("'pixels' must be of type 'int'")
     if pixels <= 0:
         raise ValueError("pixels' must be > 0!")
+
+    # Get kwargs for the view
+    show_adjacent_residues = kwargs.get("show_adjacent_residues", False)
 
     # The user has passed an atom mapping.
     if mapping is not None:
@@ -1552,84 +2151,276 @@ def viewMapping(
         )
         molecule0 = rmsdAlign(molecule0, molecule1, mapping)
 
+    if roi is not None:
+        if show_adjacent_residues:
+            # Extract the region of interest from the molecules plus one residue on each side.
+            # residue[roi-1:roi+1] would only extract the ROI residue.
+            roi0_region = molecule0.search(f"residue[{roi - 2}:{roi + 2}]")
+            roi1_region = molecule1.search(f"residue[{roi - 2}:{roi + 2}]")
+        else:
+            roi0_region = molecule0.search(f"residue[{roi - 1}:{roi + 1}]")
+            roi1_region = molecule1.search(f"residue[{roi - 1}:{roi + 1}]")
+
+        roi0_idx = [a.index() for a in roi0_region.atoms()]
+        roi1_idx = [a.index() for a in roi1_region.atoms()]
+
+        molecule0 = molecule0.extract(roi0_idx)
+        molecule1 = molecule1.extract(roi1_idx)
+
+        # find the key in the mapping that corresponds to the ROI atoms
+        mapping = {k: v for k, v in mapping.items() if k in roi0_idx}
+
+        # now we need to update the mapping to reflect the new atom indices
+        mapping = {roi0_idx.index(k): roi1_idx.index(v) for k, v in mapping.items()}
+
     # Convert the molecules to RDKit format.
     rdmol0 = _Convert.toRDKit(molecule0, property_map=property_map0)
     rdmol1 = _Convert.toRDKit(molecule1, property_map=property_map1)
+    text = _draw_mapping(mapping, rdmol0, rdmol1, pixels=pixels)
+    img = Image(data=text)
+    display(img)
 
-    import py3Dmol as _py3Dmol
 
-    # Set grid view properties.
-    viewer0 = (0, 0)
-    if orientation == "horizontal":
-        viewergrid = (1, 2)
-        viewer1 = (0, 1)
-        width = pixels
-        height = int(pixels / 2)
-    else:
-        viewergrid = (2, 1)
-        viewer1 = (1, 0)
-        width = int(pixels / 2)
-        height = pixels
+# This code is adopted from OpenFE and is licensed under the MIT license.
+# For details, see https://github.com/OpenFreeEnergy/gufe/visualization/mapping_visualization.py
+def _match_elements(mol1: _Chem.Mol, idx1: int, mol2: _Chem.Mol, idx2: int) -> bool:
+    """
+    Convenience method to check if elements between two molecules (molA
+    and molB) are the same.
 
-    # Create the view.
-    view = _py3Dmol.view(
-        linked=False, width=width, height=height, viewergrid=viewergrid
+    Parameters
+    ----------
+    mol1 : RDKit.Mol
+        RDKit representation of molecule 1.
+    idx1 : int
+        Index of atom to check in molecule 1.
+    mol2 : RDKit.Mol
+        RDKit representation of molecule 2.
+    idx2 : int
+        Index of atom to check in molecule 2.
+
+    Returns
+    -------
+    bool
+        True if elements are the same, False otherwise.
+    """
+    elem_mol1 = mol1.GetAtomWithIdx(idx1).GetAtomicNum()
+    elem_mol2 = mol2.GetAtomWithIdx(idx2).GetAtomicNum()
+    return elem_mol1 == elem_mol2
+
+
+def _get_unique_bonds_and_atoms(
+    mapping: dict[int, int], mol1: _Chem.Mol, mol2: _Chem.Mol
+) -> dict:
+    """
+    Given an input mapping, returns new atoms, element changes, and
+    involved bonds.
+
+    Parameters
+    ----------
+    mapping : dict of int:int
+        Dictionary describing the atom mapping between molecules 1 and 2.
+    mol1 : RDKit.Mol
+        RDKit representation of molecule 1.
+    mol2 : RDKit.Mol
+        RDKit representation of molecule 2.
+
+    Returns
+    -------
+    uniques : dict
+        Dictionary containing; unique atoms ("atoms"), new elements
+        ("elements"), deleted bonds ("bond_deletions) and altered bonds
+        ("bond_changes) for molecule 1.
+    """
+
+    uniques: dict[str, set] = {
+        "atoms": set(),  # atoms which fully don't exist in molB
+        "elements": set(),  # atoms which exist but change elements in molB
+        "bond_deletions": set(),  # bonds which are removed
+        "bond_changes": set(),  # bonds which change
+    }
+
+    for at in mol1.GetAtoms():
+        idx = at.GetIdx()
+        if idx not in mapping:
+            uniques["atoms"].add(idx)
+        elif not _match_elements(mol1, idx, mol2, mapping[idx]):
+            uniques["elements"].add(idx)
+
+    for bond in mol1.GetBonds():
+        bond_at_idxs = [bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()]
+        for at in chain(uniques["atoms"], uniques["elements"]):
+            if at in bond_at_idxs:
+                bond_idx = bond.GetIdx()
+
+                if any(i in uniques["atoms"] for i in bond_at_idxs):
+                    uniques["bond_deletions"].add(bond_idx)
+                else:
+                    uniques["bond_changes"].add(bond_idx)
+
+    return uniques
+
+
+def _draw_molecules(
+    d2d,
+    mols: Collection[_Chem.Mol],
+    atoms_list: Collection[set[int]],
+    bonds_list: Collection[set[int]],
+    atom_colors: Collection[dict[Any, tuple[float, float, float, float]]],
+    bond_colors: Collection[dict[int, tuple[float, float, float, float]]],
+    highlight_color: tuple[float, float, float, float],
+    pixels: int,
+    atom_mapping: Optional[dict[tuple[int, int], dict[int, int]]] = None,
+) -> str:
+    """
+    Internal method to visualize a molecule, possibly with mapping info
+
+    Parameters
+    ----------
+    d2d :
+        renderer to draw the molecule; currently we only support
+        rdkit.rdMolDraw2D
+    mols : Collection[RDKitMol]
+        molecules to visualize
+    atoms_list: Collection[Set[int]]
+        iterable containing one set per molecule in ``mols``, with each set
+        containing the indices of the atoms to highlight
+    bonds_list: Collection[Set[int]]
+        iterable containing one set per molecule in ``mols``, with each set
+        containing the indices of the atoms involved in bonds to highlight
+    atom_colors: Collection[Dict[Any, Tuple[float, float, float, float]]]
+        iterable containing one dict per molecule in ``mols``, with each
+        dict containing a mapping of RDKit atom to color, expressed as an
+        RGBA tuple, for atoms that need special coloring (e.g., element
+        changes)
+    bond_colors: Collection[dict[int, tuple[float, float, float, float]]]
+        one dict for each molecule, each dict mapping
+    highlight_color: Tuple[float, float, float, float]
+        RGBA tuple for the default highlight color used in the mapping
+        visualization
+    pixels: int
+        size of the 2D image in pixels
+    atom_mapping: Dict[Tuple[int,int], Dict[int, int]], optional
+        used to align the molecules to each othter for clearer visualization.
+        The structure contains the indices of the molecules in mols as key
+        Tuple[molA, molB] and maps the atom indices via the value Dict[
+        molA_atom_idx, molB_atom_idx]
+        default None
+    """
+    # input standardization:
+    if atom_mapping is None:
+        atom_mapping = {}
+
+    if d2d is None:
+        # select default layout based on number of molecules
+        grid_x, grid_y = {
+            1: (1, 1),
+            2: (2, 1),
+        }[len(mols)]
+        d2d = Draw.rdMolDraw2D.MolDraw2DCairo(
+            grid_x * pixels, grid_y * pixels, pixels, pixels
+        )
+
+    # get molecule name labels
+    # labels = [m.GetProp("ofe-name") if(m.HasProp("ofe-name"))
+    #           else "test" for m in mols]
+
+    labels = ["molecule0", "molecule1"]
+
+    # squash to 2D
+    copies = [_Chem.Mol(mol) for mol in mols]
+    for mol in copies:
+        AllChem.Compute2DCoords(mol)
+
+    # mol alignments if atom_mapping present
+    for (i, j), atomMap in atom_mapping.items():
+        AllChem.AlignMol(
+            copies[j], copies[i], atomMap=[(k, v) for v, k in atomMap.items()]
+        )
+
+    # standard settings for visualization
+    d2d.drawOptions().useBWAtomPalette()
+    d2d.drawOptions().continousHighlight = False
+    d2d.drawOptions().setHighlightColour(highlight_color)
+    d2d.drawOptions().addAtomIndices = True
+    d2d.DrawMolecules(
+        copies,
+        highlightAtoms=atoms_list,
+        highlightBonds=bonds_list,
+        highlightAtomColors=atom_colors,
+        highlightBondColors=bond_colors,
+        legends=labels,
     )
+    d2d.FinishDrawing()
+    return d2d.GetDrawingText()
 
-    # Set default drawing style.
-    if style is None:
-        style = {"stick": {"colorscheme": "grayCarbon", "linewidth": 0.1}}
 
-    # Add the molecules to the views.
-    view.addModel(_Chem.MolToMolBlock(rdmol0), "mol0", viewer=viewer0)
-    view.addModel(_Chem.MolToMolBlock(rdmol1), "mol1", viewer=viewer1)
+def _draw_mapping(
+    mol1_to_mol2: dict[int, int], mol1: _Chem.Mol, mol2: _Chem.Mol, d2d=None, pixels=300
+):
+    """
+    Method to visualise the atom map correspondence between two rdkit
+    molecules given an input mapping.
 
-    # Set the style.
-    view.setStyle({"model": 0}, style, viewer=viewer0)
-    view.setStyle({"model": 0}, style, viewer=viewer1)
+    Legend:
+        * Red highlighted atoms: unique atoms, i.e. atoms which are not
+          mapped.
+        * Blue highlighted atoms: element changes, i.e. atoms which are
+          mapped but change elements.
+        * Red highlighted bonds: any bond which involves at least one
+          unique atom or one element change.
 
-    # Highlight the atoms from the mapping.
-    for atom0, atom1 in mapping.items():
-        p = rdmol0.GetConformer().GetAtomPosition(atom0)
-        view.addSphere(
-            {
-                "center": {"x": p.x, "y": p.y, "z": p.z},
-                "radius": 0.5,
-                "color": "green",
-                "alpha": 0.8,
-            },
-            viewer=viewer0,
-        )
-        view.addLabel(
-            f"{atom0} \u2192 {atom1}",
-            {"position": {"x": p.x, "y": p.y, "z": p.z}},
-            viewer=viewer0,
-        )
-        p = rdmol1.GetConformer().GetAtomPosition(atom1)
-        view.addSphere(
-            {
-                "center": {"x": p.x, "y": p.y, "z": p.z},
-                "radius": 0.5,
-                "color": "green",
-                "alpha": 0.8,
-            },
-            viewer=viewer1,
-        )
-        view.addLabel(
-            f"{atom1} \u2192 {atom0}",
-            {"position": {"x": p.x, "y": p.y, "z": p.z}},
-            viewer=viewer1,
-        )
+    Parameters
+    ----------
+    mol1_to_mol2 : dict of int:int
+        Atom mapping between input molecules.
+    mol1 : RDKit.Mol
+        RDKit representation of molecule 1
+    mol2 : RDKit.Mol
+        RDKit representation of molecule 2
+    d2d : :class:`rdkit.Chem.Draw.rdMolDraw2D.MolDraw2D`
+        Optional MolDraw2D backend to use for visualisation.
+    pixels : int
+        Size of the 2D image in pixels.
+    """
+    # highlight core element changes differently from unique atoms
+    # RGBA color value needs to be between 0 and 1, so divide by 255
+    RED = (220 / 255, 50 / 255, 32 / 255, 1.0)
+    BLUE = (0.0, 90 / 255, 181 / 255, 1.0)
+    mol1_uniques = _get_unique_bonds_and_atoms(mol1_to_mol2, mol1, mol2)
 
-    # Set background colour.
-    view.setBackgroundColor("white", viewer=viewer0)
-    view.setBackgroundColor("white", viewer=viewer1)
+    # invert map
+    mol2_to_mol1_map = {v: k for k, v in mol1_to_mol2.items()}
+    mol2_uniques = _get_unique_bonds_and_atoms(mol2_to_mol1_map, mol2, mol1)
 
-    # Zoom to molecule.
-    view.zoomTo(viewer=viewer0)
-    view.zoomTo(viewer=viewer1)
+    atoms_list = [
+        mol1_uniques["atoms"] | mol1_uniques["elements"],
+        mol2_uniques["atoms"] | mol2_uniques["elements"],
+    ]
+    bonds_list = [
+        mol1_uniques["bond_deletions"] | mol1_uniques["bond_changes"],
+        mol2_uniques["bond_deletions"] | mol2_uniques["bond_changes"],
+    ]
 
-    return view
+    at1_colors = {at: BLUE for at in mol1_uniques["elements"]}
+    at2_colors = {at: BLUE for at in mol2_uniques["elements"]}
+    bd1_colors = {bd: BLUE for bd in mol1_uniques["bond_changes"]}
+    bd2_colors = {bd: BLUE for bd in mol2_uniques["bond_changes"]}
+
+    atom_colors = [at1_colors, at2_colors]
+    bond_colors = [bd1_colors, bd2_colors]
+
+    return _draw_molecules(
+        d2d,
+        [mol1, mol2],
+        atoms_list=atoms_list,
+        bonds_list=bonds_list,
+        atom_colors=atom_colors,
+        bond_colors=bond_colors,
+        highlight_color=RED,
+        pixels=pixels,
+        atom_mapping={(0, 1): mol1_to_mol2},
+    )
 
 
 def _score_rdkit_mappings(
@@ -2072,6 +2863,35 @@ def _validate_mapping(molecule0, molecule1, mapping, name):
                 "The molecules contain %d and %d atoms."
                 % (name, idx0, idx1, molecule0.nAtoms(), molecule1.nAtoms())
             )
+
+
+def _validate_roi(molecules, roi):
+    """
+    Internal function to validate that a region of interest (ROI) is a list
+    of integers that are within the range of the molecule.
+
+    Parameters
+    ----------
+
+    molecules : list
+        Consits of a list of :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`.
+
+    roi : list
+        The region of interest.
+        Consists of a list of ROI residue indices.
+    """
+
+    if not isinstance(roi, list):
+        raise TypeError("'roi' must be of type 'list'.")
+
+    for mol in molecules:
+        for idx in roi:
+            if not isinstance(idx, int):
+                raise TypeError("'roi' must be a list of integers.")
+            if idx < 0 or idx > (mol.nResidues() - 1):
+                raise ValueError(
+                    f"Residue index {idx} is out of range! The molecule contains {mol.nResidues()} residues."
+                )
 
 
 def _to_sire_mapping(mapping):
