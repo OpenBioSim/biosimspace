@@ -145,6 +145,13 @@ class Amber(_process.Process):
             property_map,
         )
 
+        if not isinstance(protocol, _Protocol._FreeEnergyMixin) and (
+            system.nPerturbableMolecules() or system.nDecoupledMolecules()
+        ):
+            raise _IncompatibleError(
+                "Perturbable system is not compatible with none free energy protocol."
+            )
+
         # Set the package name.
         self._package_name = "AMBER"
 

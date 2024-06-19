@@ -247,10 +247,24 @@ class ConfigFactory:
             # Restrain the backbone.
             restraint = self.protocol.getRestraint()
 
+            # Convert to a squashed representation, if needed
+            if isinstance(self.protocol, _Protocol._FreeEnergyMixin):
+                atom_mapping0 = _squashed_atom_mapping(self.system, is_lambda1=False)
+                atom_mapping1 = _squashed_atom_mapping(self.system, is_lambda1=True)
+
             if self.system.getAlchemicalIon():
                 alchem_ion_idx = self.system.getAlchemicalIonIdx()
                 protein_com_idx = _get_protein_com_idx(self.system)
-                alchemical_ion_mask = f"@{alchem_ion_idx} | @{protein_com_idx}"
+                atom_idxs = [alchem_ion_idx, protein_com_idx]
+                if isinstance(self.protocol, _Protocol._FreeEnergyMixin):
+                    atom_idxs = sorted(
+                        {atom_mapping0[x] for x in atom_idxs if x in atom_mapping0}
+                        | {atom_mapping1[x] for x in atom_idxs if x in atom_mapping1}
+                    )
+                # Convert to 1-based index
+                alchemical_ion_mask = "@" + ",".join(
+                    [str(atom_idx + 1) for atom_idx in atom_idxs]
+                )
             else:
                 alchemical_ion_mask = None
 
@@ -263,10 +277,6 @@ class ConfigFactory:
 
                 # Convert to a squashed representation, if needed
                 if isinstance(self.protocol, _Protocol._FreeEnergyMixin):
-                    atom_mapping0 = _squashed_atom_mapping(
-                        self.system, is_lambda1=False
-                    )
-                    atom_mapping1 = _squashed_atom_mapping(self.system, is_lambda1=True)
                     atom_idxs = sorted(
                         {atom_mapping0[x] for x in atom_idxs if x in atom_mapping0}
                         | {atom_mapping1[x] for x in atom_idxs if x in atom_mapping1}

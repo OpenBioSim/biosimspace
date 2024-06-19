@@ -7,6 +7,7 @@ import pandas as pd
 import pytest
 
 import BioSimSpace.Sandpit.Exscientia as BSS
+from BioSimSpace.Sandpit.Exscientia._Exceptions import IncompatibleError
 from tests.Sandpit.Exscientia.conftest import has_amber, has_pyarrow
 from tests.conftest import root_fp
 
@@ -400,6 +401,16 @@ class TestsaveMetric:
         )
         process.saveMetric()
         return process
+
+    def test_incompatible_error(self, alchemical_system):
+        with pytest.raises(
+            IncompatibleError,
+            match="Perturbable system is not compatible with none free energy protocol.",
+        ):
+            BSS.Process.Amber(
+                alchemical_system,
+                BSS.Protocol.Minimisation(),
+            )
 
     def test_error_alchemlyb_extract(self, alchemical_system):
         # Create a process using any system and the protocol.
