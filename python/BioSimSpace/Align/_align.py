@@ -784,8 +784,8 @@ def matchAtoms(
         ignored when falling back on Sire.
 
     roi : list
-    The region of interest to match.
-    Consists of a list of ROI residue indices.
+        The region of interest to match.
+        Consists of a list of ROI residue indices.
 
     property_map0 : dict
         A dictionary that maps "properties" in molecule0 to their user
@@ -1447,8 +1447,8 @@ def rmsdAlign(
         A dictionary mapping atoms in molecule0 to those in molecule1.
 
     roi : list
-    The region of interest to align.
-    Consists of a list of ROI residue indices.
+        The region of interest to align.
+        Consists of a list of ROI residue indices.
 
     property_map0 : dict
         A dictionary that maps "properties" in molecule0 to their user
@@ -1598,8 +1598,8 @@ def flexAlign(
         will attempt to find fkcombu by searching your PATH.
 
     roi : list
-    The region of interest to align.
-    Consists of a list of ROI residue indices.
+        The region of interest to align.
+        Consists of a list of ROI residue indices.
 
     property_map0 : dict
         A dictionary that maps "properties" in molecule0 to their user
