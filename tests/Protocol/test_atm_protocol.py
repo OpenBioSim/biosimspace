@@ -151,8 +151,8 @@ def test_atm_equilibration(TEMOA_hostguest):
     )
 
     # Check that all protocols have the same values
-    assert protocol_units._getTimestep() == protocol_strings._getTimestep()
-    assert protocol_units._getRuntime() == protocol_strings._getRuntime()
+    assert protocol_units.getTimeStep() == protocol_strings.getTimeStep()
+    assert protocol_units.getRunTime() == protocol_strings.getRunTime()
     assert (
         protocol_units._getStartTemperature() == protocol_strings._getStartTemperature()
     )
@@ -268,3 +268,22 @@ def test_atm_production(TEMOA_hostguest):
     assert protocol._getAlpha() == end_product
     assert protocol._getUh() == end_product
     assert protocol._getW0() == end_product
+
+    # now check that all of the allowed analysis options can be set
+    protocol = BSS.Protocol.AToMProduction(
+        data=data,
+        num_lambda=6,
+        analysis_method="UWHAM",
+    )
+
+    protocol = BSS.Protocol.AToMProduction(
+        data=data,
+        num_lambda=6,
+        analysis_method="MBAR",
+    )
+
+    protocol = BSS.Protocol.AToMProduction(
+        data=data,
+        num_lambda=6,
+        analysis_method="both",
+    )

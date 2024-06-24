@@ -1937,3 +1937,250 @@ class _Production(_Process.OpenMM):
         # self.addToConfig(f"for x in range(0, {cycles}):")
         # self.addToConfig(f"    simulation.step({steps_per_cycle})")
         # self.addToConfig(f"    simulation.saveState('{self._name}.xml')")
+
+
+class _relativeATM:
+    """
+    A class for setting up and performing RBFE calculations using AToM
+    """
+
+    def __init__(
+        self,
+        system,
+        protocol,
+        platform="CPU",
+        work_dir=None,
+        setup_only=False,
+        ignore_warnings=False,
+        show_errors=True,
+        property_map={},
+    ):
+        """
+        Constructor.
+
+        Parameters
+        ----------
+        system : BioSimSpace._SireWrappers.System
+            A prepared AToM system containing a protein and two ligands, one bound and one free.
+            Assumed to already be equilibrated.
+
+        protocol : BioSimSpace.Protocol.AToM
+            A protocol object that defines the RBFE protocol.
+
+        platform : str
+            The platform for the simulation: “CPU”, “CUDA”, or “OPENCL”.
+            For CUDA use the CUDA_VISIBLE_DEVICES environment variable to set the GPUs on which to run,
+            e.g. to run on two GPUs indexed 0 and 1 use: CUDA_VISIBLE_DEVICES=0,1.
+            For OPENCL, instead use OPENCL_VISIBLE_DEVICES.
+
+        work_dir : str
+            The working directory for the simulation.
+
+        setup_only : bool
+            Whether to only support simulation setup. If True, then no
+            simulation processes objects will be created, only the directory
+            hierarchy and input files to run a simulation externally. This
+            can be useful when you don't intend to use BioSimSpace to run
+            the simulation. Note that a 'work_dir' must also be specified.
+
+        ignore_warnings : bool
+            Whether to ignore warnings when generating the binary run file.
+            This option is specific to GROMACS and will be ignored when a
+            different molecular dynamics engine is chosen.
+
+        show_errors : bool
+            Whether to show warning/error messages when generating the binary
+            run file. This option is specific to GROMACS and will be ignored
+            when a different molecular dynamics engine is chosen.
+
+        property_map : dict
+            A dictionary that maps system "properties" to their user defined
+            values. This allows the user to refer to properties with their
+            own naming scheme, e.g. { "charge" : "my-charge" }
+
+        """
+        from .. import _Utils
+
+        self._system = system.copy()
+
+        # Validate the protocol.
+        if protocol is not None:
+            from ..Protocol._AToM import AToMProduction as _Production
+
+            if not isinstance(protocol, _Production):
+                raise TypeError(
+                    "'protocol' must be of type 'BioSimSpace.Protocol.AToMProduction'"
+                )
+            else:
+                self._protocol = protocol
+        else:
+            # No default protocol due to the need for well-defined rigid cores
+            raise ValueError("A protocol must be specified")
+
+        # Check the platform.
+        if not isinstance(platform, str):
+            raise TypeError("'platform' must be of type 'str'.")
+        else:
+            self._platform = platform
+
+        if not isinstance(setup_only, bool):
+            raise TypeError("'setup_only' must be of type 'bool'.")
+        else:
+            self._setup_only = setup_only
+
+        if work_dir is None and setup_only:
+            raise ValueError(
+                "A 'work_dir' must be specified when 'setup_only' is True!"
+            )
+
+        # Create the working directory.
+        self._work_dir = _Utils.WorkDir(work_dir)
+
+        if not isinstance(ignore_warnings, bool):
+            raise ValueError("'ignore_warnings' must be of type 'bool.")
+        self._ignore_warnings = ignore_warnings
+
+        if not isinstance(show_errors, bool):
+            raise ValueError("'show_errors' must be of type 'bool.")
+        self._show_errors = show_errors
+        # Check that the map is valid.
+        if not isinstance(property_map, dict):
+            raise TypeError("'property_map' must be of type 'dict'")
+        self._property_map = property_map
+
+        self._inititalise_runner(system=self._system)
+
+    def run(self, serial=True):
+        """
+        Run the simulations.
+        Returns
+        -------
+        list of :class:`Process <BioSimSpace.Process>`
+            A list of process objects.
+        """
+        # Initialise the runner.
+        if not isinstance(serial, bool):
+            raise TypeError("'serial' must be of type 'bool'.")
+
+        if self._setup_only:
+            _warnings.warn("No processes exist! Object created in 'setup_only' mode.")
+
+        else:
+            self._runner.startAll(serial=serial)
+
+    def _inititalise_runner(self, system):
+        """
+        Internal helper function to initialise the process runner.
+
+        Parameters
+        ----------
+
+        system : :class:`System <BioSimSpace._SireWrappers.System>`
+            The molecular system.
+        """
+        from ..Process import OpenMM as OMMprocess
+
+        # This protocol will have to be minimal - cannot guess rigid core atoms
+        if self._protocol is None:
+            raise RuntimeError("No protocol has been set - cannot run simulations.")
+        # Initialise list to store the processe
+        processes = []
+        # Get the list of lambda1 values so that the total number of simulations can
+        # be asserted
+        lambda_list = self._protocol._get_lambda_values()
+        # Set index of current simulation to 0
+        self._protocol._set_current_index(0)
+        lam = lambda_list[0]
+
+        first_dir = "%s/lambda_%5.4f" % (self._work_dir, lam)
+
+        # Create the first simulation, which will be copied and used for future simulations.
+        first_process = OMMprocess(
+            system=system,
+            protocol=self._protocol,
+            platform=self._platform,
+            work_dir=first_dir,
+            property_map=self._property_map,
+        )
+
+        if self._setup_only:
+            del first_process
+        else:
+            processes.append(first_process)
+
+        # Remove first index as its already been used
+        lambda_list = lambda_list[1:]
+        # Enumerate starting at 1 to account for the removal of the first lambda value
+        for index, lam in enumerate(lambda_list, 1):
+            # TODO: Support for simulations restarting from a checkpoint.
+            # Files are named according to index, rather than lambda value
+            # This is to avoid confusion arising from the fact that there are multiple lambdas
+            # and that the values of lambda1 and lambda2 wont necessarily be go from 0 to 1
+            # and may contain duplicates
+            new_dir = "%s/lambda_%5.4f" % (self._work_dir, lam)
+            # Use absolute path.
+            if not _os.path.isabs(new_dir):
+                new_dir = _os.path.abspath(new_dir)
+
+            # Delete any existing directories.
+            if _os.path.isdir(new_dir):
+                _shutil.rmtree(new_dir, ignore_errors=True)
+
+            # Copy the first directory to that of the current lambda value.
+            _shutil.copytree(first_dir, new_dir)
+            # For speed reasons, additional processes need to be created by copying the first process.
+            # this is more difficult than usual due to the number of window-dependent variables
+            new_config = []
+            # All variables that need to change
+            new_lam_1 = self._protocol.getLambda1()[index]
+            new_lam_2 = self._protocol.getLambda2()[index]
+            new_alpha = self._protocol.getAlpha()[index].value()
+            new_uh = self._protocol.getUh()[index].value()
+            new_w0 = self._protocol.getW0()[index].value()
+            new_direction = self._protocol.getDirections()[index]
+            with open(new_dir + "/openmm_script.py", "r") as f:
+                for line in f:
+                    if line.startswith("lambda1"):
+                        new_config.append(f"lambda1 = {new_lam_1}\n")
+                    elif line.startswith("lambda2"):
+                        new_config.append(f"lambda2 = {new_lam_2}\n")
+                    elif line.startswith("alpha"):
+                        new_config.append(
+                            f"alpha = {new_alpha} * kilocalories_per_mole\n"
+                        )
+                    elif line.startswith("uh"):
+                        new_config.append(f"uh = {new_uh} * kilocalories_per_mole\n")
+                    elif line.startswith("w0"):
+                        new_config.append(f"w0 = {new_w0} * kilocalories_per_mole\n")
+                    elif line.startswith("direction"):
+                        new_config.append(f"direction = {new_direction}\n")
+                    elif line.startswith("window_index"):
+                        new_config.append(f"window_index = {index}\n")
+                    else:
+                        new_config.append(line)
+            with open(new_dir + "/openmm_script.py", "w") as f:
+                for line in new_config:
+                    f.write(line)
+
+            # biosimspace runner functionality
+            if not self._setup_only:
+                process = _copy.copy(first_process)
+                process._system = first_process._system.copy()
+                process._protocol = self._protocol
+                process._work_dir = new_dir
+                process._stdout_file = new_dir + "/AToM.out"
+                process._stderr_file = new_dir + "/AToM.err"
+                process._rst_file = new_dir + "/openmm.rst7"
+                process._top_file = new_dir + "/openmm.prm7"
+                process._traj_file = new_dir + "/openmm.dcd"
+                process._config_file = new_dir + "/openmm_script.py"
+                process._input_files = [
+                    process._config_file,
+                    process._rst_file,
+                    process._top_file,
+                ]
+                processes.append(process)
+
+        if not self._setup_only:
+            # Initialise process runner.
+            self._runner = _Process.ProcessRunner(processes)

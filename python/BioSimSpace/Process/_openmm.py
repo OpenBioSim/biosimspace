@@ -1415,8 +1415,7 @@ class OpenMM(_process.Process):
                 # Return the most recent frame.
                 return self.getFrame(index)
 
-        except Exception as e:
-            _warnings.warn(f"The following error was raised when getting system: {e}")
+        except:
             return None
 
     def getCurrentSystem(self):

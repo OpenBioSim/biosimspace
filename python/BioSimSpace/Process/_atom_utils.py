@@ -407,7 +407,7 @@ class _AToMUtils:
             List of atom indices to be restrained. Need to be explicitly given due to the ability to parse strings in the protocol.
         """
         # Still using the position restraint mixin, get the values of the relevant constants
-        pos_const = self.protocol._getForceConstant().value()
+        pos_const = self.protocol.getForceConstant().value()
         pos_width = self.protocol._getPosRestWidth().value()
         output = ""
         output += "fc = {} * kilocalorie_per_mole / angstrom**2\n".format(pos_const)
@@ -471,7 +471,14 @@ class _AToMUtils:
         return output
 
     def createLoopWithReporting(
-        self, name, cycles, steps_per_cycle, report_interval, timestep, steps=0
+        self,
+        name,
+        cycles,
+        steps_per_cycle,
+        report_interval,
+        timestep,
+        inflex_point,
+        steps=0,
     ):
         """Creates the loop in which simulations are run, stopping each cycle
         to report the potential energies required for MBAR analysis.
@@ -488,13 +495,12 @@ class _AToMUtils:
             Timestep used in the simulation.
         steps : int
             Total number of steps that have been performed so far (Default 0).
+        inflex_point : int
+            The index at which the protocol changes direction. Potentials only need to be calculated for each half of the protocol.
         """
-        _warnings.warn(
-            "MBAR analysis functionality is not fully implemented and WILL NOT WORK"
-        )
         output = ""
         output += "# Create the dictionary which will hold the energies\n"
-        output += f"master_lambda_list = {self.protocol._get_lambda_values()}\n"
+        output += f"master_lambda_list = {[round(i,4) for i in self.protocol._get_lambda_values()]}\n"
         output += "energies = {}\n"
         output += "energies['time'] = []\n"
         output += "energies['fep-lambda'] = []\n"
@@ -504,7 +510,8 @@ class _AToMUtils:
         output += f"steps_so_far = {steps}\n"
         output += "# Timestep in ps\n"
         output += f"timestep = {timestep}\n"
-        # TODO: REMEMBER TO RESET VALUES BACK TO THE ORIGINAL VALUES AFTER EACH CYCLE
+        output += f"inflex_point = {inflex_point}\n"
+        output += f"master_lambda = master_lambda_list[window_index]\n"
         output += f"for x in range(0, {cycles}):\n"
         output += f"    simulation.step({steps_per_cycle})\n"
         output += f"    steps_so_far += {steps_per_cycle}\n"
@@ -512,11 +519,36 @@ class _AToMUtils:
         output += "    energies['time'].append(time)\n"
         output += "    energies['fep-lambda'].append(master_lambda)\n"
         output += "    #now loop over all simulate lambda values, set the values in the context, and calculate potential energy\n"
-        output += "    for ind, lam in enumerate(master_lambda_list):\n"
-        output += "        for key in atm_constants.keys():\n"
-        output += "            simulation.context.setParameter(key, atm_constants[key][ind].value_in_unit(kilojoules_per_mole))\n"
-        output += "        state = simulation.context.getState(getEnergy=True)\n"
-        output += "        energies[lam].append(state.getPotentialEnergy().value_in_unit(kilocalories_per_mole))\n"
+        output += "    # do the first half of master lambda if direction == 1\n"
+        output += "    if direction == 1:\n"
+        output += (
+            "        for ind, lam in enumerate(master_lambda_list[:inflex_point]):\n"
+        )
+        output += "            for key in atm_constants.keys():\n"
+        output += "                if key in ['Alpha','Uh','W0']:\n"
+        output += "                    simulation.context.setParameter(key, atm_constants[key][ind].value_in_unit(kilojoules_per_mole))\n"
+        output += "                else:\n"
+        output += "                    simulation.context.setParameter(key, atm_constants[key][ind])\n"
+        output += "            state = simulation.context.getState(getEnergy=True)\n"
+        output += "            energies[lam].append(state.getPotentialEnergy().value_in_unit(kilocalories_per_mole))\n"
+        output += "    #fill the rest of the dictionary with NaNs\n"
+        output += "        for lam in master_lambda_list[inflex_point:]:\n"
+        output += "            energies[lam].append(float('nan'))\n"
+        output += "    # do the second half of master lambda if direction == -1\n"
+        output += "    else:\n"
+        output += "    #fill the first half of the dictionary with NaNs\n"
+        output += "        for lam in master_lambda_list[:inflex_point]:\n"
+        output += "            energies[lam].append(float('nan'))\n"
+        output += (
+            "        for ind, lam in enumerate(master_lambda_list[inflex_point:]):\n"
+        )
+        output += "            for key in atm_constants.keys():\n"
+        output += "                if key in ['Alpha','Uh','W0']:\n"
+        output += "                    simulation.context.setParameter(key, atm_constants[key][ind+inflex_point].value_in_unit(kilojoules_per_mole))\n"
+        output += "                else:\n"
+        output += "                    simulation.context.setParameter(key, atm_constants[key][ind+inflex_point])\n"
+        output += "            state = simulation.context.getState(getEnergy=True)\n"
+        output += "            energies[lam].append(state.getPotentialEnergy().value_in_unit(kilocalories_per_mole))\n"
         output += (
             "    #Now reset lambda-dependent values back to their original state\n"
         )
@@ -598,4 +630,169 @@ class _AToMUtils:
         output += "df = pd.DataFrame(result)\n"
         output += "df.set_index('window', inplace= True)\n"
         output += f"df.to_csv('{name}.csv')\n"
+        return output
+
+    def createReportingBoth(
+        self,
+        name,
+        cycles,
+        steps_per_cycle,
+        timestep,
+        inflex_point,
+        steps=0,
+    ):
+        output = ""
+        output += f"steps_so_far = {steps}\n"
+        output += "# Timestep in ps\n"
+        output += f"timestep = {timestep}\n"
+        output += "\n"
+        output += "#Reporting for UWHAM:\n"
+        output += "result = {}\n"
+        output += "result['window'] = []\n"
+        output += "result['temperature'] = []\n"
+        output += "result['direction'] = []\n"
+        output += "result['lambda1'] = []\n"
+        output += "result['lambda2'] = []\n"
+        output += "result['alpha'] = []\n"
+        output += "result['uh'] = []\n"
+        output += "result['w0'] = []\n"
+        output += "result['pot_en'] = []\n"
+        output += "result['pert_en'] = []\n"
+        output += "result['metad_offset'] = []\n"
+
+        output += "# Reporting for MBAR:\n"
+        # round master lambda to 4 d.p. to avoid floating point errors
+        output += f"master_lambda_list = {[round(i,4) for i in self.protocol._get_lambda_values()]}\n"
+        output += "energies = {}\n"
+        output += "energies['time'] = []\n"
+        output += "energies['fep-lambda'] = []\n"
+        output += "for i in master_lambda_list:\n"
+        output += "    energies[i] = []\n"
+        output += f"inflex_point = {inflex_point}\n"
+        output += f"master_lambda = master_lambda_list[window_index]\n"
+        output += f"steps_so_far = {steps}\n"
+
+        output += "# Now run the simulation.\n"
+        output += f"for x in range(0, {cycles}):\n"
+        output += f"    simulation.step({steps_per_cycle})\n"
+        output += "    time = steps_so_far * timestep\n"
+        output += (
+            "    state = simulation.context.getState(getEnergy = True, groups = -1)\n"
+        )
+        output += "    pot_energy = state.getPotentialEnergy()\n"
+        output += "    (u1, u0, alchemicalEBias) = atm_force.getPerturbationEnergy(simulation.context)\n"
+        output += "    umcore = simulation.context.getParameter(atm_force.Umax())* kilojoules_per_mole\n"
+        output += "    ubcore = simulation.context.getParameter(atm_force.Ubcore())* kilojoules_per_mole\n"
+        output += "    acore = simulation.context.getParameter(atm_force.Acore())\n"
+        output += "    uoffset = 0.0 * kilojoules_per_mole\n"
+        output += (
+            "    direction = simulation.context.getParameter(atm_force.Direction())\n"
+        )
+        output += "    if direction > 0:\n"
+        output += (
+            "        pert_e = softCorePertE(u1-(u0+uoffset), umcore, ubcore, acore)\n"
+        )
+        output += "    else:\n"
+        output += (
+            "        pert_e = softCorePertE(u0-(u1+uoffset), umcore, ubcore, acore)\n"
+        )
+        output += "    result['window'].append(window_index)\n"
+        output += "    result['temperature'].append(temperature)\n"
+        output += "    result['direction'].append(direction)\n"
+        output += "    result['lambda1'].append(lambda1)\n"
+        output += "    result['lambda2'].append(lambda2)\n"
+        output += (
+            "    result['alpha'].append(alpha.value_in_unit(kilocalories_per_mole))\n"
+        )
+        output += "    result['uh'].append(uh.value_in_unit(kilocalories_per_mole))\n"
+        output += "    result['w0'].append(w0.value_in_unit(kilocalories_per_mole))\n"
+        output += "    result['pot_en'].append(pot_energy.value_in_unit(kilocalories_per_mole))\n"
+        output += "    result['pert_en'].append(pert_e.value_in_unit(kilocalories_per_mole))\n"
+        output += "    result['metad_offset'].append(0.0)\n"
+        output += "    energies['time'].append(time)\n"
+        output += "    energies['fep-lambda'].append(master_lambda)\n"
+        output += "    #now loop over all simulate lambda values, set the values in the context, and calculate potential energy\n"
+        output += "    # do the first half of master lambda if direction == 1\n"
+        output += "    if direction == 1:\n"
+        output += (
+            "        for ind, lam in enumerate(master_lambda_list[:inflex_point]):\n"
+        )
+        output += "            for key in atm_constants.keys():\n"
+        output += "                if key in ['Alpha','Uh','W0']:\n"
+        output += "                    simulation.context.setParameter(key, atm_constants[key][ind].value_in_unit(kilojoules_per_mole))\n"
+        output += "                else:\n"
+        output += "                    simulation.context.setParameter(key, atm_constants[key][ind])\n"
+        output += "            state = simulation.context.getState(getEnergy=True)\n"
+        output += "            energies[lam].append(state.getPotentialEnergy().value_in_unit(kilocalories_per_mole))\n"
+        output += "    #fill the rest of the dictionary with NaNs\n"
+        output += "        for lam in master_lambda_list[inflex_point:]:\n"
+        output += "            energies[lam].append(float('nan'))\n"
+        output += "    # do the second half of master lambda if direction == -1\n"
+        output += "    else:\n"
+        output += "    #fill the first half of the dictionary with NaNs\n"
+        output += "        for lam in master_lambda_list[:inflex_point]:\n"
+        output += "            energies[lam].append(float('nan'))\n"
+        output += (
+            "        for ind, lam in enumerate(master_lambda_list[inflex_point:]):\n"
+        )
+        output += "            for key in atm_constants.keys():\n"
+        output += "                if key in ['Alpha','Uh','W0']:\n"
+        output += "                    simulation.context.setParameter(key, atm_constants[key][ind+inflex_point].value_in_unit(kilojoules_per_mole))\n"
+        output += "                else:\n"
+        output += "                    simulation.context.setParameter(key, atm_constants[key][ind+inflex_point])\n"
+        output += "            state = simulation.context.getState(getEnergy=True)\n"
+        output += "            energies[lam].append(state.getPotentialEnergy().value_in_unit(kilocalories_per_mole))\n"
+        output += (
+            "    #Now reset lambda-dependent values back to their original state\n"
+        )
+        output += "    simulation.context.setParameter('Lambda1',lambda1)\n"
+        output += "    simulation.context.setParameter('Lambda2',lambda2)\n"
+        output += "    simulation.context.setParameter('Alpha',alpha)\n"
+        output += "    simulation.context.setParameter('Uh',uh)\n"
+        output += "    simulation.context.setParameter('W0',w0)\n"
+        output += "    simulation.context.setParameter('Direction',direction)\n"
+        output += "    #save the state of the simulation\n"
+        output += f"    simulation.saveState('{name}.xml')\n"
+
+        output += "#now convert the UWHAM dictionary to a pandas dataframe\n"
+        output += "df = pd.DataFrame(result)\n"
+        output += "df.set_index('window', inplace= True)\n"
+        output += f"df.to_csv('{name}.csv')\n"
+
+        output += "# same for MBAR\n"
+        output += "df = pd.DataFrame(energies)\n"
+        output += "df.set_index(['time', 'fep-lambda'], inplace=True)\n"
+        output += "df.to_csv(f'energies_{master_lambda}.csv')\n"
+
+        return output
+
+    def createSinglePointTest(self, inflex_point):
+        """Create a single point test for the ATM force"""
+        output = ""
+        output += "# Create the dictionary which will hold the energies\n"
+        output += f"master_lambda_list = {self.protocol._get_lambda_values()}\n"
+        output += "energies = {}\n"
+        output += f"for i in master_lambda_list[{inflex_point}]:\n"
+        output += "    energies[i] = []\n"
+        output += "#now loop over all simulate lambda values, set the values in the context, and calculate potential energy\n"
+        output += f"for ind, lam in enumerate(master_lambda_list[{inflex_point}]):\n"
+        output += "    for key in atm_constants.keys():\n"
+        output += "        simulation.context.setParameter(key, atm_constants[key][ind].value_in_unit(kilojoules_per_mole))\n"
+        output += "    state = simulation.context.getState(getEnergy=True)\n"
+        output += "    energies[lam].append(state.getPotentialEnergy().value_in_unit(kilocalories_per_mole))\n"
+        output += (
+            "    #Now reset lambda-dependent values back to their original state\n"
+        )
+        output += "    simulation.context.setParameter('Lambda1',lambda1)\n"
+        output += "    simulation.context.setParameter('Lambda2',lambda2)\n"
+        output += "    simulation.context.setParameter('Alpha',alpha)\n"
+        output += "    simulation.context.setParameter('Uh',uh)\n"
+        output += "    simulation.context.setParameter('W0',w0)\n"
+        output += "    simulation.context.setParameter('Direction',direction)\n"
+        output += f"    simulation.saveState('{name}.xml')\n"
+        output += "#now convert the dictionary to a pandas dataframe, with both time and fep-lambda as index columns\n"
+        output += "df = pd.DataFrame(energies)\n"
+        output += "df.set_index(['time', 'fep-lambda'], inplace=True)\n"
+        output += "df.to_csv(f'energies_{master_lambda}.csv')\n"
+        output += "simulation.step(1)\n"
         return output

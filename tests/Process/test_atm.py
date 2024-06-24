@@ -72,6 +72,27 @@ def test_custom_ATM_anneal(TEMOA_hostguest):
     run_process(system, protocol)
 
 
+def test_ATM_production(TEMOA_hostguest):
+    # First get a system with data
+    system, data = TEMOA_hostguest
+    # Generate a production protocol
+    prot_prod = BSS.Protocol.AToMProduction(data=data, runtime="0.2 ps")
+
+    run_process(system, prot_prod)
+
+    # now test "MBAR" analysis method
+    prot_prod = BSS.Protocol.AToMProduction(
+        data=data, runtime="0.2 ps", analysis_method="MBAR"
+    )
+    run_process(system, prot_prod)
+
+    # finally, test the "both" analysis method
+    prot_prod = BSS.Protocol.AToMProduction(
+        data=data, runtime="0.2 ps", analysis_method="both"
+    )
+    run_process(system, prot_prod)
+
+
 def run_process(system, protocol):
     """Helper function to run various simulation protocols."""
 

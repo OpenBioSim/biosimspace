@@ -113,6 +113,12 @@ class _AToM(_Protocol, _PositionRestraintMixin):
                 "Either 'system' or 'data' must be passed to the AToM protocol."
             )
 
+        if system is not None and not isinstance(system, _System):
+            raise TypeError("'system' must be of type 'BioSimSpace.System'")
+
+        if data is not None and not isinstance(data, dict):
+            raise TypeError("'data' must be of type 'dict'")
+
         if isinstance(system, _System) and data is None:
             try:
                 sdata = _json.loads(system._sire_object.property("atom_data").value())
@@ -2495,6 +2501,7 @@ class AToMProduction(_AToM):
         SC_a=0.0625,
         cm_kf=25 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
         cm_tol=5 * _Units.Length.angstrom,
+        analysis_method="UWHAM",
     ):
         """
         Create a new production protocol.
@@ -2614,6 +2621,9 @@ class AToMProduction(_AToM):
         W0 : list of int, float, str, :class:`Energy <BioSimSpace.Types.Energy>
             The W0 values.
 
+        analysis_method : str
+            The method to use for analysis. Options are "UWHAM", "MBAR" or "both"
+            This affects the output files and the analysis that is performed.
         """
         super().__init__(
             system,
@@ -2677,6 +2687,8 @@ class AToMProduction(_AToM):
         self._setW0(W0)
 
         self._set_lambda_values()
+
+        self._setAnalysisMethod(analysis_method)
 
     def getTimeStep(self):
         """
@@ -3307,6 +3319,18 @@ class AToMProduction(_AToM):
             return self._lambda_values
         except:
             return None
+
+    def _setAnalysisMethod(self, analysis_method):
+        """Set the method that will be used for analysis of the simulation results.
+        This will change the output files that are generated."""
+        allowed_methods = ["UWHAM", "MBAR", "both"]
+        if analysis_method in allowed_methods:
+            self._analysis_method = analysis_method
+        else:
+            raise ValueError(f"analysis_method must be one of {allowed_methods}")
+
+    def _getAnalysisMethod(self):
+        return self._analysis_method
 
     def _set_current_index(self, index):
         # Internal function to set index of the current simulation window
