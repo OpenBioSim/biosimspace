@@ -42,4 +42,4 @@ Functions
 
 from ._relative import *
 from ._utils import *
-from . import AToM
+from ._atm import *
