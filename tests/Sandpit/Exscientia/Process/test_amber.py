@@ -8,7 +8,11 @@ import pytest
 
 import BioSimSpace.Sandpit.Exscientia as BSS
 from BioSimSpace.Sandpit.Exscientia._Exceptions import IncompatibleError
-from tests.Sandpit.Exscientia.conftest import has_amber, has_pyarrow
+from tests.Sandpit.Exscientia.conftest import (
+    has_amber,
+    has_pyarrow,
+    url,
+)
 from tests.conftest import root_fp
 
 
@@ -402,7 +406,13 @@ class TestsaveMetric:
         process.saveMetric()
         return process
 
-    def test_incompatible_error(self, alchemical_system):
+    def test_incompatible_error(self):
+        alchemical_system = BSS.IO.readPerturbableSystem(
+            f"{url}/complex_vac0.prm7.bz2",
+            f"{url}/complex_vac0.rst7.bz2",
+            f"{url}/complex_vac1.prm7.bz2",
+            f"{url}/complex_vac1.rst7.bz2",
+        )
         with pytest.raises(
             IncompatibleError,
             match="Perturbable system is not compatible with none free energy protocol.",
