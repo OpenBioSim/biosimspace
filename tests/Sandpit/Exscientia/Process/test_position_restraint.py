@@ -13,6 +13,7 @@ from BioSimSpace.Sandpit.Exscientia.Align._alch_ion import _mark_alchemical_ion
 from BioSimSpace.Sandpit.Exscientia.Units.Energy import kj_per_mol
 from BioSimSpace.Sandpit.Exscientia.Units.Length import angstrom
 from BioSimSpace.Sandpit.Exscientia._SireWrappers import Molecule
+from tests.Sandpit.Exscientia.conftest import has_amber, has_gromacs, has_openff
 from tests.conftest import root_fp
 
 
@@ -138,6 +139,10 @@ def protocol(request, restraint, free_energy, minimisation, equilibration, produ
             return BSS.Protocol.Production(**production, **restraint)
 
 
+@pytest.mark.skipif(
+    has_gromacs is False or has_openff is False,
+    reason="Requires GROMACS and openff to be installed",
+)
 def test_gromacs(protocol, system, ref_system, tmp_path):
     proc = BSS.Process.Gromacs(
         system,
@@ -162,6 +167,10 @@ def test_gromacs(protocol, system, ref_system, tmp_path):
     assert len(diff)
 
 
+@pytest.mark.skipif(
+    has_amber is False or has_openff is False,
+    reason="Requires AMBER and openff to be installed",
+)
 def test_amber(protocol, system, ref_system, tmp_path):
     if not isinstance(protocol, BSS.Protocol._FreeEnergyMixin):
         pytest.skip("AMBER position restraint only works for free energy protocol")
@@ -187,6 +196,10 @@ def test_amber(protocol, system, ref_system, tmp_path):
     assert f"{proc._work_dir}/{proc.getArgs()['-ref']}" == proc._ref_file
 
 
+@pytest.mark.skipif(
+    has_gromacs is False or has_openff is False,
+    reason="Requires GROMACS and openff to be installed",
+)
 @pytest.mark.parametrize(
     "restraint",
     ["backbone", "heavy", "all", "none"],
@@ -232,6 +245,10 @@ def test_gromacs_alchemical_ion(
     assert gro[2].split() == ["1ACE", "HH31", "1", "0.000", "0.000", "0.000"]
 
 
+@pytest.mark.skipif(
+    has_amber is False or has_gromacs is False or has_openff is False,
+    reason="Requires AMBER, GROMACS and OpenFF to be installed",
+)
 @pytest.mark.parametrize(
     ("restraint", "protocol", "target"),
     [

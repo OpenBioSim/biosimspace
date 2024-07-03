@@ -15,6 +15,8 @@ from BioSimSpace.Sandpit.Exscientia.Units.Energy import kcal_per_mol
 from BioSimSpace.Sandpit.Exscientia.Units.Length import angstrom
 from BioSimSpace.Sandpit.Exscientia.Units.Temperature import kelvin
 
+from tests.conftest import has_gromacs
+
 # Store the tutorial URL.
 url = BSS.tutorialUrl()
 
@@ -75,6 +77,7 @@ def boresch_restraint_component():
     return system, restraint_dict
 
 
+@pytest.mark.skipif(has_gromacs is False, reason="Requires GROMACS to be installed.")
 @pytest.mark.parametrize(
     ("protocol", "posres"),
     [
