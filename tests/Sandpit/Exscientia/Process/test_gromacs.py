@@ -226,7 +226,27 @@ class TestRestraint:
         # Run the process and check that it finishes without error.
         run_process(system, protocol, restraint=restraint, work_dir=str(tmp_path))
         with open(tmp_path / "test.top", "r") as f:
-            assert "intermolecular_interactions" in f.read()
+            text = f.read()
+            assert text.count("intermolecular_interactions") == 1
+
+    def test_position_restraint_protocol(self, setup, tmp_path_factory):
+        """Test if the restraint has been written in a way that could be processed
+        correctly.
+        """
+        tmp_path = tmp_path_factory.mktemp("out")
+        system, restraint = setup
+        # Create a short production protocol.
+        protocol = BSS.Protocol.FreeEnergy(
+            runtime=BSS.Types.Time(0.0001, "nanoseconds"),
+            perturbation_type="full",
+            restraint="heavy",
+        )
+
+        # Run the process and check that it finishes without error.
+        run_process(system, protocol, restraint=restraint, work_dir=str(tmp_path))
+        with open(tmp_path / "test.top", "r") as f:
+            text = f.read()
+            assert text.count("intermolecular_interactions") == 1
 
     def test_restraint_lambda(self, setup, tmp_path_factory):
         """Test if the restraint has been written correctly when restraint lambda is evoked."""
@@ -383,10 +403,59 @@ class TestGetRecord:
             perturbable_system,
             BSS.Protocol.FreeEnergy(temperature=298 * BSS.Units.Temperature.kelvin),
         )
-        process.wait()
+        process.saveMetric()
         with open(process.workDir() + "/gromacs.err", "r") as f:
             text = f.read()
             assert "Exception Information" in text
+
+    @staticmethod
+    @pytest.mark.parametrize(
+        ("filename", "u_nk", "dHdl"),
+        [
+            ("metric.parquet", None, None),
+            (None, "u_nk.parquet", None),
+            (None, None, "dHdl.parquet"),
+        ],
+    )
+    def test_selective(perturbable_system, filename, u_nk, dHdl):
+        from alchemtest.gmx import load_ABFE
+
+        protocol = BSS.Protocol.FreeEnergy(
+            runtime=BSS.Types.Time(60, "picosecond"),
+            timestep=BSS.Types.Time(4, "femtosecond"),
+            report_interval=200,
+        )
+        process = BSS.Process.Gromacs(perturbable_system, protocol)
+        shutil.copyfile(
+            f"{root_fp}/Sandpit/Exscientia/output/gromacs.edr",
+            process.workDir() + "/gromacs.edr",
+        )
+        shutil.copyfile(
+            load_ABFE().data["ligand"][0],
+            process.workDir() + "/gromacs.xvg",
+        )
+
+        process.saveMetric(filename, u_nk, dHdl)
+        if filename is not None:
+            assert (Path(process.workDir()) / filename).exists()
+        else:
+            assert not (Path(process.workDir()) / "metric.parquet").exists()
+        if u_nk is not None:
+            assert (Path(process.workDir()) / u_nk).exists()
+        else:
+            assert not (Path(process.workDir()) / "u_nk.parquet").exists()
+        if dHdl is not None:
+            assert (Path(process.workDir()) / dHdl).exists()
+        else:
+            assert not (Path(process.workDir()) / "dHdl.parquet").exists()
+
+
+def test_error_saveMetric(perturbable_system):
+    protocol = BSS.Protocol.FreeEnergy()
+    process = BSS.Process.Gromacs(perturbable_system, protocol)
+    process.saveMetric()
+    with open(f"{process.workDir()}/{process._name}.err", "r") as f:
+        assert "Exception Information during saveMetric():" in f.read()
 
 
 @pytest.mark.skipif(
