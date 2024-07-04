@@ -9,6 +9,19 @@ company supporting open-source development of fostering academic/industrial coll
 within the biomolecular simulation community. Our software is hosted via the `OpenBioSim`
 `GitHub <https://github.com/OpenBioSim/biosimspace>`__ organisation.
 
+`2024.2.0 <https://github.com/openbiosim/biosimspace/compare/2024.1.0...2024.2.0>`_ - Jul 04 2024
+-------------------------------------------------------------------------------------------------
+
+* Fixed incorect use of ``self`` in :func:`Trajectory.getFrame <BioSimSpace.Trajectory.getFrame>` function (`#281 <https://github.com/OpenBioSim/biosimspace/pull/281>`__).
+* Use SDF as an intermediate for ``antechamber`` if the original molecule was loaded from that format (`#287 <https://github.com/OpenBioSim/biosimspace/pull/287>`__).
+* Detect dummy atoms by checking ``element`` *and* ``ambertype`` properties when creating ``SOMD`` pert files (`#289 <https://github.com/OpenBioSim/biosimspace/pull/289>`__).
+* Add missing ``match_water`` kwarg to ``prepareFEP`` node (`#292 <https://github.com/OpenBioSim/biosimspace/pull/292>`__).
+* Add protein free-energy perturbation functionality (`@akalpokas <https://github.com/akalpokas (`#294 <https://github.com/OpenBioSim/biosimspace/pull/294>`__).
+* Ensure that the LJ sigma parameter for perturbed atoms is non-zero (`#295 <https://github.com/OpenBioSim/biosimspace/pull/295>`__).
+* Fixed return type docstrings for functions in the :mod:`BioSimSpace.Parameters` module (`#298 <https://github.com/OpenBioSim/biosimspace/pull/298>`__).
+* Don't use ``sire.legacy.Base.wrap`` with the ``file_format`` property to avoid (incorrect) auto string to unit conversion of ``mol2`` to moles squared (`#300 <https://github.com/OpenBioSim/biosimspace/pull/300>`__).
+* Expose ``SOMD`` torsion modification kwargs (`#302 <https://github.com/OpenBioSim/biosimspace/pull/302>`__).
+
 `2024.1.0 <https://github.com/openbiosim/biosimspace/compare/2023.5.1...2024.1.0>`_ - Apr 15 2024
 -------------------------------------------------------------------------------------------------
 
