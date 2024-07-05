@@ -43,6 +43,7 @@ def merge(
     allow_ring_breaking=False,
     allow_ring_size_change=False,
     force=False,
+    roi=None,
     property_map0={},
     property_map1={},
 ):
@@ -73,6 +74,10 @@ def merge(
         This will likely lead to an unstable perturbation. This option
         takes precedence over 'allow_ring_breaking' and
         'allow_ring_size_change'.
+
+    roi : list
+        The region of interest to merge.
+        Consists of a list of ROI residue indices.
 
     property_map0 : dict
         A dictionary that maps "properties" in this molecule to their
@@ -135,6 +140,12 @@ def merge(
                     "key:value pairs in 'mapping' must be of type 'Sire.Mol.AtomIdx'"
                 )
 
+    # Validate the region of interest.
+    if roi is not None:
+        from ._align import _validate_roi
+
+        _validate_roi([molecule0, molecule1], roi)
+
     # Set 'allow_ring_breaking' and 'allow_ring_size_change' to true if the
     # user has requested to 'force' the merge, i.e. the 'force' argument
     # takes precedence.
@@ -155,6 +166,10 @@ def merge(
 
     # Create the reverse mapping: molecule1 --> molecule0
     inv_mapping = {v: k for k, v in mapping.items()}
+
+    # Generate the mappings from each molecule to the merged molecule
+    mol0_merged_mapping = {}
+    mol1_merged_mapping = {}
 
     # Invert the user property mappings.
     inv_property_map0 = {v: k for k, v in property_map0.items()}
@@ -202,35 +217,79 @@ def merge(
 
     # Create a new molecule to hold the merged molecule.
     molecule = _SireMol.Molecule("Merged_Molecule")
+    # Only part of the ligand is to be merged
+    if roi is not None:
+        if molecule0.nResidues() != molecule1.nResidues():
+            raise ValueError(
+                "The two molecules need to have the same number of residues."
+            )
 
-    # Add a single residue called LIG.
-    res = molecule.edit().add(_SireMol.ResNum(1))
-    res.rename(_SireMol.ResName("LIG"))
+        num = 1
+        for idx, (mol0_res, mol1_res) in enumerate(
+            zip(molecule0.residues(), molecule1.residues())
+        ):
+            res = molecule.edit().add(_SireMol.ResNum(idx + 1))
+            if mol0_res.name() == mol1_res.name():
+                res.rename(mol0_res.name())
+            else:
+                resname = "MUT" if len(molecule0.residues()) > 1 else "LIG"
+                res.rename(_SireMol.ResName(resname))
 
-    # Create a single cut-group.
-    cg = res.molecule().add(_SireMol.CGName("1"))
+            cg = res.molecule().add(_SireMol.CGName(f"{idx}"))
+            for atom in mol0_res.atoms():
+                mol0_merged_mapping[atom.index()] = _SireMol.AtomIdx(num - 1)
+                added = cg.add(atom.name())
+                added.renumber(_SireMol.AtomNum(num))
+                added.reparent(_SireMol.ResIdx(idx))
+                num += 1
 
-    # Counter for the number of atoms.
-    num = 1
+            for atom in mol1_res.atoms():
+                if atom.index() in atoms1_idx:
+                    added = cg.add(atom.name())
+                    added.renumber(_SireMol.AtomNum(num))
+                    added.reparent(_SireMol.ResIdx(idx))
+                    mol1_merged_mapping[atom.index()] = _SireMol.AtomIdx(num - 1)
+                    num += 1
+                else:
+                    mol1_merged_mapping[atom.index()] = mol0_merged_mapping[
+                        inv_mapping[atom.index()]
+                    ]
+            molecule = cg.molecule().commit()
+    else:
+        # Add a single residue called LIG.
+        res = molecule.edit().add(_SireMol.ResNum(1))
+        res.rename(_SireMol.ResName("LIG"))
 
-    # First add all of the atoms from molecule0.
-    for atom in molecule0.atoms():
-        # Add the atom.
-        added = cg.add(atom.name())
-        added.renumber(_SireMol.AtomNum(num))
-        added.reparent(_SireMol.ResIdx(0))
-        num += 1
+        # Create a single cut-group.
+        cg = res.molecule().add(_SireMol.CGName("1"))
 
-    # Now add all of the atoms from molecule1 that aren't mapped from molecule0.
-    for atom in atoms1:
-        added = cg.add(atom.name())
-        added.renumber(_SireMol.AtomNum(num))
-        added.reparent(_SireMol.ResIdx(0))
-        inv_mapping[atom.index()] = _SireMol.AtomIdx(num - 1)
-        num += 1
+        # Counter for the number of atoms.
+        num = 1
 
-    # Commit the changes to the molecule.
-    molecule = cg.molecule().commit()
+        # First add all of the atoms from molecule0.
+        for atom in molecule0.atoms():
+            # Add the atom.
+            added = cg.add(atom.name())
+            added.renumber(_SireMol.AtomNum(num))
+            added.reparent(_SireMol.ResIdx(0))
+            mol0_merged_mapping[atom.index()] = _SireMol.AtomIdx(num - 1)
+            num += 1
+
+        # Now add all of the atoms from molecule1 that aren't mapped from molecule0.
+        for atom in molecule1.atoms():
+            if atom in atoms1:
+                added = cg.add(atom.name())
+                added.renumber(_SireMol.AtomNum(num))
+                added.reparent(_SireMol.ResIdx(0))
+                mol1_merged_mapping[atom.index()] = _SireMol.AtomIdx(num - 1)
+                num += 1
+            else:
+                mol1_merged_mapping[atom.index()] = mol0_merged_mapping[
+                    inv_mapping[atom.index()]
+                ]
+
+        # Commit the changes to the molecule.
+        molecule = cg.molecule().commit()
 
     # Make the molecule editable.
     edit_mol = molecule.edit()
@@ -340,11 +399,12 @@ def merge(
 
     # Add the atom properties from molecule0.
     for atom in molecule0.atoms():
+        # Get the atom index in the merged molecule.
+        idx = mol0_merged_mapping[atom.index()]
+
         # Add an "name0" property.
         edit_mol = (
-            edit_mol.atom(atom.index())
-            .setProperty("name0", atom.name().value())
-            .molecule()
+            edit_mol.atom(idx).setProperty("name0", atom.name().value()).molecule()
         )
 
         # Loop over all atom properties.
@@ -358,15 +418,13 @@ def merge(
 
             # Add the property to the atom in the merged molecule.
             edit_mol = (
-                edit_mol.atom(atom.index())
-                .setProperty(name, atom.property(prop))
-                .molecule()
+                edit_mol.atom(idx).setProperty(name, atom.property(prop)).molecule()
             )
 
     # Add the atom properties from molecule1.
     for atom in atoms1:
         # Get the atom index in the merged molecule.
-        idx = inv_mapping[atom.index()]
+        idx = mol1_merged_mapping[atom.index()]
 
         # Add an "name0" property.
         edit_mol = (
@@ -433,8 +491,8 @@ def merge(
 
         # Add all of the bonds from molecule0.
         for bond in bonds0.potentials():
-            atom0 = info0.atomIdx(bond.atom0())
-            atom1 = info0.atomIdx(bond.atom1())
+            atom0 = mol0_merged_mapping[info0.atomIdx(bond.atom0())]
+            atom1 = mol0_merged_mapping[info0.atomIdx(bond.atom1())]
             bonds.set(atom0, atom1, bond.function())
 
         # Loop over all bonds in molecule1.
@@ -450,8 +508,8 @@ def merge(
                 exprn = bond.function()
 
                 # Map the atom indices to their position in the merged molecule.
-                atom0 = inv_mapping[atom0]
-                atom1 = inv_mapping[atom1]
+                atom0 = mol1_merged_mapping[atom0]
+                atom1 = mol1_merged_mapping[atom1]
 
                 # Set the new bond.
                 bonds.set(atom0, atom1, exprn)
@@ -478,9 +536,9 @@ def merge(
 
         # Add all of the angles from molecule0.
         for angle in angles0.potentials():
-            atom0 = info0.atomIdx(angle.atom0())
-            atom1 = info0.atomIdx(angle.atom1())
-            atom2 = info0.atomIdx(angle.atom2())
+            atom0 = mol0_merged_mapping[info0.atomIdx(angle.atom0())]
+            atom1 = mol0_merged_mapping[info0.atomIdx(angle.atom1())]
+            atom2 = mol0_merged_mapping[info0.atomIdx(angle.atom2())]
             angles.set(atom0, atom1, atom2, angle.function())
 
         # Loop over all angles in molecule1.
@@ -498,9 +556,9 @@ def merge(
                 exprn = angle.function()
 
                 # Map the atom indices to their position in the merged molecule.
-                atom0 = inv_mapping[atom0]
-                atom1 = inv_mapping[atom1]
-                atom2 = inv_mapping[atom2]
+                atom0 = mol1_merged_mapping[atom0]
+                atom1 = mol1_merged_mapping[atom1]
+                atom2 = mol1_merged_mapping[atom2]
 
                 # Set the new angle.
                 angles.set(atom0, atom1, atom2, exprn)
@@ -527,10 +585,10 @@ def merge(
 
         # Add all of the dihedrals from molecule0.
         for dihedral in dihedrals0.potentials():
-            atom0 = info0.atomIdx(dihedral.atom0())
-            atom1 = info0.atomIdx(dihedral.atom1())
-            atom2 = info0.atomIdx(dihedral.atom2())
-            atom3 = info0.atomIdx(dihedral.atom3())
+            atom0 = mol0_merged_mapping[info0.atomIdx(dihedral.atom0())]
+            atom1 = mol0_merged_mapping[info0.atomIdx(dihedral.atom1())]
+            atom2 = mol0_merged_mapping[info0.atomIdx(dihedral.atom2())]
+            atom3 = mol0_merged_mapping[info0.atomIdx(dihedral.atom3())]
             dihedrals.set(atom0, atom1, atom2, atom3, dihedral.function())
 
         # Loop over all dihedrals in molecule1.
@@ -550,10 +608,10 @@ def merge(
                 exprn = dihedral.function()
 
                 # Map the atom indices to their position in the merged molecule.
-                atom0 = inv_mapping[atom0]
-                atom1 = inv_mapping[atom1]
-                atom2 = inv_mapping[atom2]
-                atom3 = inv_mapping[atom3]
+                atom0 = mol1_merged_mapping[atom0]
+                atom1 = mol1_merged_mapping[atom1]
+                atom2 = mol1_merged_mapping[atom2]
+                atom3 = mol1_merged_mapping[atom3]
 
                 # Set the new dihedral.
                 dihedrals.set(atom0, atom1, atom2, atom3, exprn)
@@ -580,10 +638,10 @@ def merge(
 
         # Add all of the impropers from molecule0.
         for improper in impropers0.potentials():
-            atom0 = info0.atomIdx(improper.atom0())
-            atom1 = info0.atomIdx(improper.atom1())
-            atom2 = info0.atomIdx(improper.atom2())
-            atom3 = info0.atomIdx(improper.atom3())
+            atom0 = mol0_merged_mapping[info0.atomIdx(improper.atom0())]
+            atom1 = mol0_merged_mapping[info0.atomIdx(improper.atom1())]
+            atom2 = mol0_merged_mapping[info0.atomIdx(improper.atom2())]
+            atom3 = mol0_merged_mapping[info0.atomIdx(improper.atom3())]
             impropers.set(atom0, atom1, atom2, atom3, improper.function())
 
         # Loop over all impropers in molecule1.
@@ -603,10 +661,10 @@ def merge(
                 exprn = improper.function()
 
                 # Map the atom indices to their position in the merged molecule.
-                atom0 = inv_mapping[atom0]
-                atom1 = inv_mapping[atom1]
-                atom2 = inv_mapping[atom2]
-                atom3 = inv_mapping[atom3]
+                atom0 = mol1_merged_mapping[atom0]
+                atom1 = mol1_merged_mapping[atom1]
+                atom2 = mol1_merged_mapping[atom2]
+                atom3 = mol1_merged_mapping[atom3]
 
                 # Set the new improper.
                 impropers.set(atom0, atom1, atom2, atom3, exprn)
@@ -621,7 +679,7 @@ def merge(
     # Add the atom properties from molecule1.
     for atom in molecule1.atoms():
         # Get the atom index in the merged molecule.
-        idx = inv_mapping[atom.index()]
+        idx = mol1_merged_mapping[atom.index()]
 
         # Add an "name1" property.
         edit_mol = (
@@ -644,11 +702,12 @@ def merge(
 
     # Add the properties from atoms unique to molecule0.
     for atom in atoms0:
+        # Get the atom index in the merged molecule.
+        idx = mol0_merged_mapping[atom.index()]
+
         # Add an "name1" property.
         edit_mol = (
-            edit_mol.atom(atom.index())
-            .setProperty("name1", atom.name().value())
-            .molecule()
+            edit_mol.atom(idx).setProperty("name1", atom.name().value()).molecule()
         )
 
         # Loop over all atom properties.
@@ -659,25 +718,21 @@ def merge(
             # Zero the "charge" and "LJ" property for atoms that are unique to molecule0.
             if name == "charge":
                 edit_mol = (
-                    edit_mol.atom(atom.index())
+                    edit_mol.atom(idx)
                     .setProperty("charge1", 0 * _SireUnits.e_charge)
                     .molecule()
                 )
             elif name == "LJ":
                 edit_mol = (
-                    edit_mol.atom(atom.index())
+                    edit_mol.atom(idx)
                     .setProperty("LJ1", _SireMM.LJParameter())
                     .molecule()
                 )
             elif name == "ambertype":
-                edit_mol = (
-                    edit_mol.atom(atom.index())
-                    .setProperty("ambertype1", "du")
-                    .molecule()
-                )
+                edit_mol = edit_mol.atom(idx).setProperty("ambertype1", "du").molecule()
             elif name == "element":
                 edit_mol = (
-                    edit_mol.atom(atom.index())
+                    edit_mol.atom(idx)
                     .setProperty("element1", _SireMol.Element(0))
                     .molecule()
                 )
@@ -688,10 +743,36 @@ def merge(
 
                 # Add the property to the atom in the merged molecule.
                 edit_mol = (
-                    edit_mol.atom(atom.index())
-                    .setProperty(name, atom.property(prop))
-                    .molecule()
+                    edit_mol.atom(idx).setProperty(name, atom.property(prop)).molecule()
                 )
+
+    # Tolerance for zero sigma values.
+    null_lj_sigma = 1e-9
+
+    # Atoms with zero LJ sigma values need to have their sigma values set to the
+    # value from the other end state.
+    for atom in edit_mol.atoms():
+        # Get the end state LJ sigma values.
+        lj0 = atom.property("LJ0")
+        lj1 = atom.property("LJ1")
+
+        # Lambda = 0 state has a zero sigma value.
+        if abs(lj0.sigma().value()) <= null_lj_sigma:
+            # Use the sigma value from the lambda = 1 state.
+            edit_mol = (
+                edit_mol.atom(atom.index())
+                .set_property("LJ0", _SireMM.LJParameter(lj1.sigma(), lj0.epsilon()))
+                .molecule()
+            )
+
+        # Lambda = 1 state has a zero sigma value.
+        if abs(lj1.sigma().value()) <= null_lj_sigma:
+            # Use the sigma value from the lambda = 0 state.
+            edit_mol = (
+                edit_mol.atom(atom.index())
+                .set_property("LJ1", _SireMM.LJParameter(lj0.sigma(), lj1.epsilon()))
+                .molecule()
+            )
 
     # We now need to merge "bond", "angle", "dihedral", and "improper" parameters.
     # To do so, we extract the properties from molecule1, then add the additional
@@ -723,8 +804,8 @@ def merge(
             exprn = bond.function()
 
             # Map the atom indices to their position in the merged molecule.
-            atom0 = inv_mapping[atom0]
-            atom1 = inv_mapping[atom1]
+            atom0 = mol1_merged_mapping[atom0]
+            atom1 = mol1_merged_mapping[atom1]
 
             # Set the new bond.
             bonds.set(atom0, atom1, exprn)
@@ -737,8 +818,8 @@ def merge(
                 or info0.atomIdx(bond.atom1()) in atoms0_idx
             ):
                 # Extract the bond information.
-                atom0 = info0.atomIdx(bond.atom0())
-                atom1 = info0.atomIdx(bond.atom1())
+                atom0 = mol0_merged_mapping[info0.atomIdx(bond.atom0())]
+                atom1 = mol0_merged_mapping[info0.atomIdx(bond.atom1())]
                 exprn = bond.function()
 
                 # Set the new bond.
@@ -773,9 +854,9 @@ def merge(
             exprn = angle.function()
 
             # Map the atom indices to their position in the merged molecule.
-            atom0 = inv_mapping[atom0]
-            atom1 = inv_mapping[atom1]
-            atom2 = inv_mapping[atom2]
+            atom0 = mol1_merged_mapping[atom0]
+            atom1 = mol1_merged_mapping[atom1]
+            atom2 = mol1_merged_mapping[atom2]
 
             # Set the new angle.
             angles.set(atom0, atom1, atom2, exprn)
@@ -789,9 +870,9 @@ def merge(
                 or info0.atomIdx(angle.atom2()) in atoms0_idx
             ):
                 # Extract the angle information.
-                atom0 = info0.atomIdx(angle.atom0())
-                atom1 = info0.atomIdx(angle.atom1())
-                atom2 = info0.atomIdx(angle.atom2())
+                atom0 = mol0_merged_mapping[info0.atomIdx(angle.atom0())]
+                atom1 = mol0_merged_mapping[info0.atomIdx(angle.atom1())]
+                atom2 = mol0_merged_mapping[info0.atomIdx(angle.atom2())]
                 exprn = angle.function()
 
                 # Set the new angle.
@@ -827,10 +908,10 @@ def merge(
             exprn = dihedral.function()
 
             # Map the atom indices to their position in the merged molecule.
-            atom0 = inv_mapping[atom0]
-            atom1 = inv_mapping[atom1]
-            atom2 = inv_mapping[atom2]
-            atom3 = inv_mapping[atom3]
+            atom0 = mol1_merged_mapping[atom0]
+            atom1 = mol1_merged_mapping[atom1]
+            atom2 = mol1_merged_mapping[atom2]
+            atom3 = mol1_merged_mapping[atom3]
 
             # Set the new dihedral.
             dihedrals.set(atom0, atom1, atom2, atom3, exprn)
@@ -845,10 +926,10 @@ def merge(
                 or info0.atomIdx(dihedral.atom3()) in atoms0_idx
             ):
                 # Extract the dihedral information.
-                atom0 = info0.atomIdx(dihedral.atom0())
-                atom1 = info0.atomIdx(dihedral.atom1())
-                atom2 = info0.atomIdx(dihedral.atom2())
-                atom3 = info0.atomIdx(dihedral.atom3())
+                atom0 = mol0_merged_mapping[info0.atomIdx(dihedral.atom0())]
+                atom1 = mol0_merged_mapping[info0.atomIdx(dihedral.atom1())]
+                atom2 = mol0_merged_mapping[info0.atomIdx(dihedral.atom2())]
+                atom3 = mol0_merged_mapping[info0.atomIdx(dihedral.atom3())]
                 exprn = dihedral.function()
 
                 # Set the new dihedral.
@@ -884,10 +965,10 @@ def merge(
             exprn = improper.function()
 
             # Map the atom indices to their position in the merged molecule.
-            atom0 = inv_mapping[atom0]
-            atom1 = inv_mapping[atom1]
-            atom2 = inv_mapping[atom2]
-            atom3 = inv_mapping[atom3]
+            atom0 = mol1_merged_mapping[atom0]
+            atom1 = mol1_merged_mapping[atom1]
+            atom2 = mol1_merged_mapping[atom2]
+            atom3 = mol1_merged_mapping[atom3]
 
             # Set the new improper.
             impropers.set(atom0, atom1, atom2, atom3, exprn)
@@ -902,10 +983,10 @@ def merge(
                 or info0.atomIdx(improper.atom3()) in atoms0_idx
             ):
                 # Extract the improper information.
-                atom0 = info0.atomIdx(improper.atom0())
-                atom1 = info0.atomIdx(improper.atom1())
-                atom2 = info0.atomIdx(improper.atom2())
-                atom3 = info0.atomIdx(improper.atom3())
+                atom0 = mol0_merged_mapping[info0.atomIdx(improper.atom0())]
+                atom1 = mol0_merged_mapping[info0.atomIdx(improper.atom1())]
+                atom2 = mol0_merged_mapping[info0.atomIdx(improper.atom2())]
+                atom3 = mol0_merged_mapping[info0.atomIdx(improper.atom3())]
                 exprn = improper.function()
 
                 # Set the new improper.
@@ -928,156 +1009,183 @@ def merge(
                 "or 'allow_ring_size_change' options."
             )
 
-    # Create the connectivity objects.
+    # Create the connectivity object.
+    conn = _SireMol.Connectivity(edit_mol.info()).edit()
+
+    # Connectivity in the merged molecule.
     conn0 = _SireMol.Connectivity(edit_mol.info()).edit()
     conn1 = _SireMol.Connectivity(edit_mol.info()).edit()
 
-    # Connect the bonded atoms in both end states.
-    for bond in edit_mol.property("bond0").potentials():
-        conn0.connect(bond.atom0(), bond.atom1())
+    bonds_atoms0 = {
+        frozenset([bond.atom0(), bond.atom1()])
+        for bond in edit_mol.property("bond0").potentials()
+    }
+    bonds_atoms1 = {
+        frozenset([bond.atom0(), bond.atom1()])
+        for bond in edit_mol.property("bond1").potentials()
+    }
+
+    for atom0, atom1 in bonds_atoms0:
+        conn0.connect(atom0, atom1)
+
+    for atom0, atom1 in bonds_atoms1:
+        conn1.connect(atom0, atom1)
+
+    # We only add a bond to the total connectivity if it's defined in both states
+    # This results in a "broken" topology if one writes it in GROMACS
+    # But GROMACS can't handle bond breaks anyway
+    for atom0, atom1 in bonds_atoms0 & bonds_atoms1:
+        conn.connect(atom0, atom1)
+
+    conn = conn.commit()
     conn0 = conn0.commit()
-    for bond in edit_mol.property("bond1").potentials():
-        conn1.connect(bond.atom0(), bond.atom1())
     conn1 = conn1.commit()
 
-    # Get the original connectivity of the two molecules.
+    # Get the connectivity of the two molecules.
     c0 = molecule0.property("connectivity")
     c1 = molecule1.property("connectivity")
 
     # Check that the merge hasn't modified the connectivity.
 
-    # molecule0
-    for x in range(0, molecule0.nAtoms()):
-        # Convert to an AtomIdx.
-        idx = _SireMol.AtomIdx(x)
-
-        for y in range(x + 1, molecule0.nAtoms()):
+    # The checking was blocked when merging a protein
+    if roi is None:
+        # molecule0
+        for x in range(0, molecule0.nAtoms()):
             # Convert to an AtomIdx.
-            idy = _SireMol.AtomIdx(y)
-
-            # Was a ring opened/closed?
-            is_ring_broken = _is_ring_broken(c0, conn1, idx, idy, idx, idy)
-
-            # A ring was broken and it is not allowed.
-            if is_ring_broken and not allow_ring_breaking:
-                raise _IncompatibleError(
-                    "The merge has opened/closed a ring. To allow this "
-                    "perturbation, set the 'allow_ring_breaking' option "
-                    "to 'True'."
-                )
-
-            # Did a ring change size?
-            is_ring_size_change = _is_ring_size_changed(c0, conn1, idx, idy, idx, idy)
-
-            # A ring changed size and it is not allowed.
-            if (
-                not is_ring_broken
-                and is_ring_size_change
-                and not allow_ring_size_change
-            ):
-                raise _IncompatibleError(
-                    "The merge has changed the size of a ring. To allow this "
-                    "perturbation, set the 'allow_ring_size_change' option "
-                    "to 'True'. Be aware that this perturbation may not work "
-                    "and a transition through an intermediate state may be "
-                    "preferable."
-                )
-
-            # The connectivity has changed.
-            if c0.connectionType(idx, idy) != conn1.connectionType(idx, idy):
-                # The connectivity changed for an unknown reason.
-                if not (is_ring_broken or is_ring_size_change) and not force:
-                    raise _IncompatibleError(
-                        "The merge has changed the molecular connectivity "
-                        "but a ring didn't open/close or change size. "
-                        "If you want to proceed with this mapping pass "
-                        "'force=True'. You are warned that the resulting "
-                        "perturbation will likely be unstable."
-                    )
-    # molecule1
-    for x in range(0, molecule1.nAtoms()):
-        # Convert to an AtomIdx.
-        idx = _SireMol.AtomIdx(x)
-
-        # Map the index to its position in the merged molecule.
-        idx_map = inv_mapping[idx]
-
-        for y in range(x + 1, molecule1.nAtoms()):
-            # Convert to an AtomIdx.
-            idy = _SireMol.AtomIdx(y)
+            idx = _SireMol.AtomIdx(x)
 
             # Map the index to its position in the merged molecule.
-            idy_map = inv_mapping[idy]
+            idx_map = mol0_merged_mapping[idx]
 
-            # Was a ring opened/closed?
-            is_ring_broken = _is_ring_broken(c1, conn0, idx, idy, idx_map, idy_map)
+            for y in range(x + 1, molecule0.nAtoms()):
+                # Convert to an AtomIdx.
+                idy = _SireMol.AtomIdx(y)
 
-            # A ring was broken and it is not allowed.
-            if is_ring_broken and not allow_ring_breaking:
-                raise _IncompatibleError(
-                    "The merge has opened/closed a ring. To allow this "
-                    "perturbation, set the 'allow_ring_breaking' option "
-                    "to 'True'."
-                )
+                # Map the index to its position in the merged molecule.
+                idy_map = mol0_merged_mapping[idy]
 
-            # Did a ring change size?
-            is_ring_size_change = _is_ring_size_changed(
-                c1, conn0, idx, idy, idx_map, idy_map
-            )
+                # Was a ring opened/closed?
+                is_ring_broken = _is_ring_broken(c0, conn, idx, idy, idx_map, idy_map)
 
-            # A ring changed size and it is not allowed.
-            if (
-                not is_ring_broken
-                and is_ring_size_change
-                and not allow_ring_size_change
-            ):
-                raise _IncompatibleError(
-                    "The merge has changed the size of a ring. To allow this "
-                    "perturbation, set the 'allow_ring_size_change' option "
-                    "to 'True'. Be aware that this perturbation may not work "
-                    "and a transition through an intermediate state may be "
-                    "preferable."
-                )
-
-            # The connectivity has changed.
-            if c1.connectionType(idx, idy) != conn0.connectionType(idx_map, idy_map):
-                # The connectivity changed for an unknown reason.
-                if not (is_ring_broken or is_ring_size_change) and not force:
+                # A ring was broken and it is not allowed.
+                if is_ring_broken and not allow_ring_breaking:
                     raise _IncompatibleError(
-                        "The merge has changed the molecular connectivity "
-                        "but a ring didn't open/close or change size. "
-                        "If you want to proceed with this mapping pass "
-                        "'force=True'. You are warned that the resulting "
-                        "perturbation will likely be unstable."
+                        "The merge has opened/closed a ring. To allow this "
+                        "perturbation, set the 'allow_ring_breaking' option "
+                        "to 'True'."
                     )
 
-    # Set the "connectivity" property. If the end state connectivity is the same,
-    # then we can just set the "connectivity" property.
-    if conn0 == conn1:
-        edit_mol.setProperty("connectivity", conn0)
-    else:
-        edit_mol.setProperty("connectivity0", conn0)
-        edit_mol.setProperty("connectivity1", conn1)
+                # Did a ring change size?
+                is_ring_size_change = _is_ring_size_changed(
+                    c0, conn, idx, idy, idx_map, idy_map
+                )
+
+                # A ring changed size and it is not allowed.
+                if (
+                    not is_ring_broken
+                    and is_ring_size_change
+                    and not allow_ring_size_change
+                ):
+                    raise _IncompatibleError(
+                        "The merge has changed the size of a ring. To allow this "
+                        "perturbation, set the 'allow_ring_size_change' option "
+                        "to 'True'. Be aware that this perturbation may not work "
+                        "and a transition through an intermediate state may be "
+                        "preferable."
+                    )
+
+                # The connectivity has changed.
+                if c0.connectionType(idx, idy) != conn.connectionType(idx_map, idy_map):
+                    # The connectivity changed for an unknown reason.
+                    if not (is_ring_broken or is_ring_size_change) and not force:
+                        raise _IncompatibleError(
+                            "The merge has changed the molecular connectivity "
+                            "but a ring didn't open/close or change size. "
+                            "If you want to proceed with this mapping pass "
+                            "'force=True'. You are warned that the resulting "
+                            "perturbation will likely be unstable."
+                        )
+        # molecule1
+        for x in range(0, molecule1.nAtoms()):
+            # Convert to an AtomIdx.
+            idx = _SireMol.AtomIdx(x)
+
+            # Map the index to its position in the merged molecule.
+            idx_map = mol1_merged_mapping[idx]
+
+            for y in range(x + 1, molecule1.nAtoms()):
+                # Convert to an AtomIdx.
+                idy = _SireMol.AtomIdx(y)
+
+                # Map the index to its position in the merged molecule.
+                idy_map = mol1_merged_mapping[idy]
+
+                # Was a ring opened/closed?
+                is_ring_broken = _is_ring_broken(c1, conn, idx, idy, idx_map, idy_map)
+
+                # A ring was broken and it is not allowed.
+                if is_ring_broken and not allow_ring_breaking:
+                    raise _IncompatibleError(
+                        "The merge has opened/closed a ring. To allow this "
+                        "perturbation, set the 'allow_ring_breaking' option "
+                        "to 'True'."
+                    )
+
+                # Did a ring change size?
+                is_ring_size_change = _is_ring_size_changed(
+                    c1, conn, idx, idy, idx_map, idy_map
+                )
+
+                # A ring changed size and it is not allowed.
+                if (
+                    not is_ring_broken
+                    and is_ring_size_change
+                    and not allow_ring_size_change
+                ):
+                    raise _IncompatibleError(
+                        "The merge has changed the size of a ring. To allow this "
+                        "perturbation, set the 'allow_ring_size_change' option "
+                        "to 'True'. Be aware that this perturbation may not work "
+                        "and a transition through an intermediate state may be "
+                        "preferable."
+                    )
+
+                # The connectivity has changed.
+                if c1.connectionType(idx, idy) != conn.connectionType(idx_map, idy_map):
+                    # The connectivity changed for an unknown reason.
+                    if not (is_ring_broken or is_ring_size_change) and not force:
+                        raise _IncompatibleError(
+                            "The merge has changed the molecular connectivity "
+                            "but a ring didn't open/close or change size. "
+                            "If you want to proceed with this mapping pass "
+                            "'force=True'. You are warned that the resulting "
+                            "perturbation will likely be unstable."
+                        )
+
+    # Set the "connectivity" property.
+    edit_mol.setProperty("connectivity", conn)
 
     # Create the CLJNBPairs matrices.
     ff = molecule0.property(ff0)
 
-    # Initialise the intrascale matrices for both end states.
-    clj_nb_pairs0 = _SireMM.CLJNBPairs(edit_mol.info(), _SireMM.CLJScaleFactor(0, 0))
-    clj_nb_pairs1 = _SireMM.CLJNBPairs(edit_mol.info(), _SireMM.CLJScaleFactor(0, 0))
+    scale_factor_14 = _SireMM.CLJScaleFactor(
+        ff.electrostatic14ScaleFactor(), ff.vdw14ScaleFactor()
+    )
+    clj_nb_pairs0 = _SireMM.CLJNBPairs(conn0, scale_factor_14)
+    clj_nb_pairs1 = _SireMM.CLJNBPairs(conn1, scale_factor_14)
 
     # Loop over all atoms unique to molecule0.
     for idx0 in atoms0_idx:
+        # Map the index to its position in the merged molecule.
+        idx0 = mol0_merged_mapping[idx0]
+
         # Loop over all atoms unique to molecule1.
         for idx1 in atoms1_idx:
             # Map the index to its position in the merged molecule.
-            idx1 = inv_mapping[idx1]
+            idx1 = mol1_merged_mapping[idx1]
 
-            # Work out the connection type between the atoms in both end states.
+            # Work out the connection type between the atoms, in molecule 0.
             conn_type0 = conn0.connectionType(idx0, idx1)
-            conn_type1 = conn1.connectionType(idx0, idx1)
-
-            # Lambda = 0
 
             # The atoms aren't bonded.
             if conn_type0 == 0:
@@ -1091,7 +1199,13 @@ def merge(
                 )
                 clj_nb_pairs0.set(idx0, idx1, clj_scale_factor)
 
-            # Lambda = 1
+            # The atoms are bonded
+            else:
+                clj_scale_factor = _SireMM.CLJScaleFactor(0, 0)
+                clj_nb_pairs0.set(idx0, idx1, clj_scale_factor)
+
+            # Work out the connection type between the atoms, in molecule 1.
+            conn_type1 = conn1.connectionType(idx0, idx1)
 
             # The atoms aren't bonded.
             if conn_type1 == 0:
@@ -1105,77 +1219,155 @@ def merge(
                 )
                 clj_nb_pairs1.set(idx0, idx1, clj_scale_factor)
 
-    # Get the user defined "intrascale" property names.
-    prop0 = inv_property_map0.get("intrascale", "intrascale")
-    prop1 = inv_property_map1.get("intrascale", "intrascale")
-
-    # Get the "intrascale" property from the two molecules.
-    intrascale0 = molecule0.property(prop0)
-    intrascale1 = molecule1.property(prop1)
+            # The atoms are bonded
+            else:
+                clj_scale_factor = _SireMM.CLJScaleFactor(0, 0)
+                clj_nb_pairs1.set(idx0, idx1, clj_scale_factor)
 
     # Copy the intrascale from molecule1 into clj_nb_pairs0.
 
     # Perform a triangular loop over atoms from molecule1.
-    for x in range(0, molecule1.nAtoms()):
-        # Convert to an AtomIdx.
-        idx = _SireMol.AtomIdx(x)
+    if roi is None:
+        iterlen = molecule1.nAtoms()
+        iterrange = list(range(molecule1.nAtoms()))
+    # When region of interest is defined, perfrom loop from these indices
+    else:
+        for roi_res in roi:
+            # Get atom indices of ROI residue in molecule1
+            molecule1_roi = molecule1.residues()[roi_res]
+            molecule1_roi_idx = [a.index() for a in molecule1_roi]
+            iterlen = len(molecule1_roi_idx)
+            iterrange = molecule1_roi_idx
 
-        # Map the index to its position in the merged molecule.
-        idx = inv_mapping[idx]
-
-        for y in range(x + 1, molecule1.nAtoms()):
+        for x in range(0, iterlen):
             # Convert to an AtomIdx.
-            idy = _SireMol.AtomIdx(y)
+            idx = iterrange[x]
+            idx = _SireMol.AtomIdx(idx)
 
             # Map the index to its position in the merged molecule.
-            idy = inv_mapping[idy]
+            idx_map = mol1_merged_mapping[idx]
 
-            # Get the intrascale value.
-            intra = intrascale1.get(_SireMol.AtomIdx(x), _SireMol.AtomIdx(y))
+            for y in range(x + 1, iterlen):
+                idy = iterrange[y]
+                # Convert to an AtomIdx.
+                idy = _SireMol.AtomIdx(idy)
 
-            # Only set if there is a non-zero value.
-            # Set using the re-mapped atom indices.
-            if not intra.coulomb() == 0:
-                clj_nb_pairs0.set(idx, idy, intra)
+                # Map the index to its position in the merged molecule.
+                idy_map = mol1_merged_mapping[idy]
+
+                conn_type = conn0.connectionType(idx_map, idy_map)
+                # The atoms aren't bonded.
+                if conn_type == 0:
+                    clj_scale_factor = _SireMM.CLJScaleFactor(1, 1)
+                    clj_nb_pairs0.set(idx_map, idy_map, clj_scale_factor)
+
+                # The atoms are part of a dihedral.
+                elif conn_type == 4:
+                    clj_scale_factor = _SireMM.CLJScaleFactor(
+                        ff.electrostatic14ScaleFactor(), ff.vdw14ScaleFactor()
+                    )
+                    clj_nb_pairs0.set(idx_map, idy_map, clj_scale_factor)
+
+                # The atoms are bonded
+                else:
+                    clj_scale_factor = _SireMM.CLJScaleFactor(0, 0)
+                    clj_nb_pairs0.set(idx_map, idy_map, clj_scale_factor)
 
     # Now copy in all intrascale values from molecule0 into both
     # clj_nb_pairs matrices.
+    if roi is None:
+        iterlen = molecule0.nAtoms()
+        iterrange = list(range(molecule0.nAtoms()))
+    # When region of interest is defined, perfrom loop from these indices
+    else:
+        for roi_res in roi:
+            # Get atom indices of ROI residue in molecule0
+            molecule0_roi = molecule0.residues()[roi_res]
+            molecule0_roi_idx = [a.index() for a in molecule0_roi]
+            iterlen = len(molecule0_roi_idx)
+            iterrange = molecule0_roi_idx
 
-    # Perform a triangular loop over atoms from molecule0.
-    for x in range(0, molecule0.nAtoms()):
-        for y in range(x + 1, molecule0.nAtoms()):
-            # Get the intrascale value.
-            intra = intrascale0.get(_SireMol.AtomIdx(x), _SireMol.AtomIdx(y))
+            # Perform a triangular loop over atoms from molecule0.
+            for x in range(0, iterlen):
+                # Convert to an AtomIdx.
+                idx = iterrange[x]
+                idx = _SireMol.AtomIdx(idx)
 
-            # Set the value in the new matrix, overwriting existing value.
-            clj_nb_pairs0.set(_SireMol.AtomIdx(x), _SireMol.AtomIdx(y), intra)
+                # Map the index to its position in the merged molecule.
+                idx_map = mol0_merged_mapping[idx]
 
-            # Only set if there is a non-zero value.
-            if not intra.coulomb() == 0:
-                clj_nb_pairs1.set(_SireMol.AtomIdx(x), _SireMol.AtomIdx(y), intra)
+                for y in range(x + 1, iterlen):
+                    idy = iterrange[y]
+                    # Convert to an AtomIdx.
+                    idy = _SireMol.AtomIdx(idy)
+
+                    # Map the index to its position in the merged molecule.
+                    idy_map = mol0_merged_mapping[idy]
+
+                    conn_type = conn0.connectionType(idx_map, idy_map)
+                    # The atoms aren't bonded.
+                    if conn_type == 0:
+                        clj_scale_factor = _SireMM.CLJScaleFactor(1, 1)
+                        clj_nb_pairs0.set(idx_map, idy_map, clj_scale_factor)
+
+                    # The atoms are part of a dihedral.
+                    elif conn_type == 4:
+                        clj_scale_factor = _SireMM.CLJScaleFactor(
+                            ff.electrostatic14ScaleFactor(), ff.vdw14ScaleFactor()
+                        )
+                        clj_nb_pairs0.set(idx_map, idy_map, clj_scale_factor)
+
+                    # The atoms are bonded
+                    else:
+                        clj_scale_factor = _SireMM.CLJScaleFactor(0, 0)
+                        clj_nb_pairs0.set(idx_map, idy_map, clj_scale_factor)
 
     # Finally, copy the intrascale from molecule1 into clj_nb_pairs1.
+    if roi is None:
+        iterlen = molecule1.nAtoms()
+        iterrange = list(range(molecule1.nAtoms()))
 
-    # Perform a triangular loop over atoms from molecule1.
-    for x in range(0, molecule1.nAtoms()):
-        # Convert to an AtomIdx.
-        idx = _SireMol.AtomIdx(x)
+    else:
+        for roi_res in roi:
+            molecule1_roi = molecule1.residues()[roi_res]
+            molecule1_roi_idx = [a.index() for a in molecule1_roi]
+            iterlen = len(molecule1_roi_idx)
+            iterrange = molecule1_roi_idx
 
-        # Map the index to its position in the merged molecule.
-        idx = inv_mapping[idx]
+            # Perform a triangular loop over atoms from molecule1.
+            for x in range(0, iterlen):
+                # Convert to an AtomIdx.
+                idx = iterrange[x]
+                idx = _SireMol.AtomIdx(idx)
 
-        for y in range(x + 1, molecule1.nAtoms()):
-            # Convert to an AtomIdx.
-            idy = _SireMol.AtomIdx(y)
+                # Map the index to its position in the merged molecule.
+                idx = mol1_merged_mapping[idx]
 
-            # Map the index to its position in the merged molecule.
-            idy = inv_mapping[idy]
+                for y in range(x + 1, iterlen):
+                    idy = iterrange[y]
+                    # Convert to an AtomIdx.
+                    idy = _SireMol.AtomIdx(idy)
 
-            # Get the intrascale value.
-            intra = intrascale1.get(_SireMol.AtomIdx(x), _SireMol.AtomIdx(y))
+                    # Map the index to its position in the merged molecule.
+                    idy = mol1_merged_mapping[idy]
 
-            # Set the value in the new matrix, overwriting existing value.
-            clj_nb_pairs1.set(idx, idy, intra)
+                    conn_type = conn1.connectionType(idx, idy)
+
+                    if conn_type == 0:
+                        clj_scale_factor = _SireMM.CLJScaleFactor(1, 1)
+                        clj_nb_pairs1.set(idx, idy, clj_scale_factor)
+
+                    # The atoms are part of a dihedral.
+                    elif conn_type == 4:
+                        clj_scale_factor = _SireMM.CLJScaleFactor(
+                            ff.electrostatic14ScaleFactor(), ff.vdw14ScaleFactor()
+                        )
+                        clj_nb_pairs1.set(idx, idy, clj_scale_factor)
+
+                    # The atoms are bonded
+                    else:
+                        clj_scale_factor = _SireMM.CLJScaleFactor(0, 0)
+                        clj_nb_pairs1.set(idx, idy, clj_scale_factor)
 
     # Store the two molecular components.
     edit_mol.setProperty("molecule0", molecule0)
@@ -1394,8 +1586,7 @@ def _is_on_ring(idx, conn):
 
 def _removeDummies(molecule, is_lambda1):
     """
-    Internal function which removes the dummy atoms from one of the endstates
-    of a merged molecule.
+    Internal function which removes the dummy atoms from one of the endstates of a merged molecule.
 
     Parameters
     ----------
