@@ -9,7 +9,7 @@ company supporting open-source development of fostering academic/industrial coll
 within the biomolecular simulation community. Our software is hosted via the `OpenBioSim`
 `GitHub <https://github.com/OpenBioSim/biosimspace>`__ organisation.
 
-`2024.2.0 <https://github.com/openbiosim/biosimspace/compare/2024.1.0...2024.2.0>`_ - Jul 04 2024
+`2024.2.0 <https://github.com/openbiosim/biosimspace/compare/2024.1.0...2024.2.0>`_ - Jul 09 2024
 -------------------------------------------------------------------------------------------------
 
 * Fixed incorect use of ``self`` in :func:`Trajectory.getFrame <BioSimSpace.Trajectory.getFrame>` function (`#281 <https://github.com/OpenBioSim/biosimspace/pull/281>`__).
