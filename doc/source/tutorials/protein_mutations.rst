@@ -360,7 +360,7 @@ ligand and the cofactor of aldose reductase:
     ligand_47d = BSS.IO.readMolecules(BSS.IO.expand(BSS.tutorialUrl(), ["ligand_47_gaff2.gro", "ligand_47_gaff2.top"]))[0]
     cofactor_nap = BSS.IO.readMolecules(BSS.IO.expand(BSS.tutorialUrl(), ["cofactor_nap_gaff2.gro", "cofactor_nap_gaff2.top"]))[0]
 
-We can use BioSimSpace’s Amber parametrisation pipeline if we wish to,
+We can use BioSimSpace’s AMBER parametrisation pipeline if we wish to,
 but in this case the ligands have been parametrised for us so we can
 skip the following cell:
 
