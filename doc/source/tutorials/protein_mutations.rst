@@ -82,24 +82,24 @@ and mutant structures:
 
 .. parsed-literal::
 
-    
+
     ==================================================
     Summary of pdb4amber for: 1UBQ.pdb
     ===================================================
-    
+
     ----------Chains
     The following (original) chains have been found:
     A
-    
+
     ---------- Alternate Locations (Original Residues!))
-    
+
     The following residues had alternate locations:
     None
     -----------Non-standard-resnames
-    
-    
+
+
     ---------- Missing heavy atom(s)
-    
+
     None
 
 
@@ -112,24 +112,24 @@ Next, we are going to create a mutant structure:
 
 .. parsed-literal::
 
-    
+
     ==================================================
     Summary of pdb4amber for: 1UBQ_dry_wt.pdb
     ===================================================
-    
+
     ----------Chains
     The following (original) chains have been found:
-    
-    
+
+
     ---------- Alternate Locations (Original Residues!))
-    
+
     The following residues had alternate locations:
     None
     -----------Non-standard-resnames
-    
-    
+
+
     ---------- Missing heavy atom(s)
-    
+
     ALA_9 misses 1 heavy atom(s)
 
 
@@ -239,13 +239,13 @@ FEP engine <https://github.com/OpenBioSim/somd2>`__:
 .. code:: ipython3
 
     merged_system = merged_protein.toSystem()
-    
+
     # solvate the system with the padding of 15 angstroms
     padding = 15 * BSS.Units.Length.angstrom
     box_min, box_max = merged_system.getAxisAlignedBoundingBox()
     box_size = [y - x for x, y in zip(box_min, box_max)]
     box_sizes = [x + padding for x in box_size]
-    
+
     box, angles = BSS.Box.rhombicDodecahedronHexagon(max(box_sizes))
     solvated_system = BSS.Solvent.tip3p(molecule=merged_system, box=box, angles=angles, ion_conc=0.15)
 
@@ -273,8 +273,8 @@ residue 47 mutated via PyMol (V47I), and standardised via *pdb4amber*.
 
 .. code:: ipython3
 
-    protein_wt = BSS.IO.readMolecules("input_files/aldose_reductase_dry.pdb")[0]
-    protein_mut = BSS.IO.readMolecules("input_files/aldose_reductase_v47i_dry.pdb")[0]
+    protein_wt = BSS.IO.readMolecules(BSS.IO.expand(BSS.tutorialUrl(), "aldose_reductase_dry.pdb"))[0]
+    protein_mut = BSS.IO.readMolecules(BSS.IO.expand(BSS.tutorialUrl(), "aldose_reductase_v47i_dry.pdb"))[0]
 
 We can use ``ensure_compatible=False`` in order to get tLEaP to re-add
 the hydrogens for us:
@@ -335,7 +335,7 @@ up as before:
 .. code:: ipython3
 
     padding = 15 * BSS.Units.Length.angstrom
-    
+
     box_min, box_max = merged_system.getAxisAlignedBoundingBox()
     box_size = [y - x for x, y in zip(box_min, box_max)]
     box_sizes = [x + padding for x in box_size]
@@ -357,8 +357,8 @@ ligand and the cofactor of aldose reductase:
 
 .. code:: ipython3
 
-    ligand_47d = BSS.IO.readMolecules(["input_files/ligand_47_gaff2.gro", "input_files/ligand_47_gaff2.top"])[0]
-    cofactor_nap = BSS.IO.readMolecules(["input_files/cofactor_nap_gaff2.gro", "input_files/cofactor_nap_gaff2.top"])[0]
+    ligand_47d = BSS.IO.readMolecules(BSS.IO.expand(BSS.tutorialUrl(), ["ligand_47_gaff2.gro", "ligand_47_gaff2.top"]))[0]
+    cofactor_nap = BSS.IO.readMolecules(BSS.IO.expand(BSS.tutorialUrl(), ["cofactor_nap_gaff2.gro", "cofactor_nap_gaff2.top"]))[0]
 
 We can use BioSimSpace’s Amber parametrisation pipeline if we wish to,
 but in this case the ligands have been parametrised for us so we can
@@ -385,12 +385,12 @@ simulations <https://github.com/OpenBioSim/biosimspace_tutorials/tree/main/04_fe
 .. code:: ipython3
 
     padding = 15 * BSS.Units.Length.angstrom
-    
+
     box_min, box_max = merged_system.getAxisAlignedBoundingBox()
     box_size = [y - x for x, y in zip(box_min, box_max)]
     box_sizes = [x + padding for x in box_size]
-    
+
     box, angles = BSS.Box.rhombicDodecahedronHexagon(max(box_sizes))
     solvated_system = BSS.Solvent.tip3p(molecule=merged_system, box=box, angles=angles, ion_conc=0.15)
-    
+
     BSS.IO.saveMolecules("holo_aldose_reductase_v47i", solvated_system, ["gro87", "grotop"])
