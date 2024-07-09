@@ -23,3 +23,4 @@ please :doc:`ask for support. <../support>`
    crystal_water
    hydration_freenrg
    metadynamics
+   protein_mutations
