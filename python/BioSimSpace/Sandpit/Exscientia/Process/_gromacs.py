@@ -54,7 +54,8 @@ from .._Utils import _assert_imported, _have_imported, _try_import
 _alchemlyb = _try_import("alchemlyb")
 
 if _have_imported(_alchemlyb):
-    from alchemlyb.parsing.gmx import extract as _extract
+    from alchemlyb.parsing.gmx import extract_u_nk as _extract_u_nk
+    from alchemlyb.parsing.gmx import extract_dHdl as _extract_dHdl
 
 from .. import _gmx_exe
 from .. import _isVerbose
@@ -400,18 +401,19 @@ class Gromacs(_process.Process):
                 property_map=self._property_map,
             )
 
-            # Write the restraint to the topology file
-            if self._restraint:
-                with open(topol_file, "a") as f:
-                    f.write("\n")
-                    f.write(
-                        self._restraint.toString(
-                            engine="GROMACS",
-                            perturbation_type=self._protocol.getPerturbationType(),
-                            restraint_lambda="restraint"
-                            in self._protocol.getLambda(type="series"),
-                        )
+    def _apply_ABFE_restraint(self):
+        # Write the restraint to the topology file
+        if self._restraint:
+            with open(self._top_file, "a") as f:
+                f.write("\n")
+                f.write(
+                    self._restraint.toString(
+                        engine="GROMACS",
+                        perturbation_type=self._protocol.getPerturbationType(),
+                        restraint_lambda="restraint"
+                        in self._protocol.getLambda(type="series"),
                     )
+                )
 
     def _generate_config(self):
         """Generate GROMACS configuration file strings."""
@@ -488,6 +490,7 @@ class Gromacs(_process.Process):
                 if isinstance(self._protocol, _Protocol._FreeEnergyMixin)
                 else None
             )
+            self._apply_ABFE_restraint()
             self.addToConfig(
                 config.generateGromacsConfig(
                     extra_options={**config_options, **self._extra_options},
@@ -841,7 +844,6 @@ class Gromacs(_process.Process):
         system : :class:`System <BioSimSpace._SireWrappers.System>`
             The latest molecular system.
         """
-
         # Wait for the process to finish.
         if block is True:
             self.wait()
@@ -856,6 +858,10 @@ class Gromacs(_process.Process):
         if block is True and not self.isError():
             return self._getFinalFrame()
         else:
+            raise ValueError(
+                "getSystem should not use `trjconv` to get the frame in production settings."
+                "Trigger an exception here to show the traceback when that happens."
+            )
             # Minimisation trajectories have a single frame, i.e. the final state.
             if isinstance(self._protocol, _Protocol.Minimisation):
                 time = 0 * _Units.Time.nanosecond
@@ -2396,22 +2402,27 @@ class Gromacs(_process.Process):
         U-B, Proper-Dih.. Note that this order is absolute and will not be
         changed by the input to `gmx energy`.
         """
-        sections = text.split("---")
+        # Get rid of all the nasty message from argo
+        content = text.split("End your selection with an empty line or a zero.")[1]
+        sections = content.split("---")
         # Remove the empty sections
-        sections = [section for section in sections if section]
+        sections = [section for section in sections if section.strip()]
         # Concatenate the lines
-        section = sections[1].replace("\n", "")
+        section = sections[0].replace("\n", "")
         terms = section.split()
         # Remove the possible '-' from the separation line
         terms = [term for term in terms if term != "-"]
         # Check if the index order is correct
-        indexes = [int(term) for term in terms[::2]]
+        try:
+            indexes = [int(term) for term in terms[::2]]
+        except ValueError:
+            raise ValueError("Cannot parse the terms: {}".format("\n".join(terms)))
         energy_names = terms[1::2]
         length_nomatch = len(indexes) != len(energy_names)
         # -1 as the index is 1-based.
         index_nomatch = (_np.arange(len(indexes)) != _np.array(indexes) - 1).any()
         if length_nomatch or index_nomatch:
-            raise ValueError(f"Cannot parse the energy terms in the {edr_file} file.")
+            raise ValueError(f"Cannot parse the energy terms in the {text} file.")
         else:
             return energy_names
 
@@ -2858,7 +2869,7 @@ class Gromacs(_process.Process):
         else:
             return self._traj_file
 
-    def saveMetric(
+    def _saveMetric(
         self, filename="metric.parquet", u_nk="u_nk.parquet", dHdl="dHdl.parquet"
     ):
         """
@@ -2867,41 +2878,56 @@ class Gromacs(_process.Process):
         is Free Energy protocol, the dHdl and the u_nk data will be saved in the
         same parquet format as well.
         """
-
-        _assert_imported(_alchemlyb)
-
-        self._update_energy_dict(initialise=True)
-        datadict_keys = [
-            ("Time (ps)", _Units.Time.picosecond, "getTime"),
-            (
-                "PotentialEnergy (kJ/mol)",
-                _Units.Energy.kj_per_mol,
-                "getPotentialEnergy",
-            ),
-        ]
-        if not isinstance(self._protocol, _Protocol.Minimisation):
-            datadict_keys.extend(
-                [
-                    ("Volume (nm^3)", _Units.Volume.nanometer3, "getVolume"),
-                    ("Pressure (bar)", _Units.Pressure.bar, "getPressure"),
-                    (
-                        "Temperature (kelvin)",
-                        _Units.Temperature.kelvin,
-                        "getTemperature",
-                    ),
-                ]
-            )
-        df = self._convert_datadict_keys(datadict_keys)
-        df.to_parquet(path=f"{self.workDir()}/{filename}", index=True)
-        if isinstance(self._protocol, _Protocol.FreeEnergy):
-            energy = _extract(
-                f"{self.workDir()}/{self._name}.xvg",
-                T=self._protocol.getTemperature() / _Units.Temperature.kelvin,
-            )
-            if "u_nk" in energy:
-                energy["u_nk"].to_parquet(path=f"{self.workDir()}/{u_nk}", index=True)
-            if "dHdl" in energy:
-                energy["dHdl"].to_parquet(path=f"{self.workDir()}/{dHdl}", index=True)
+        if filename is not None:
+            self._update_energy_dict(initialise=True)
+            datadict_keys = [
+                ("Time (ps)", _Units.Time.picosecond, "getTime"),
+                (
+                    "PotentialEnergy (kJ/mol)",
+                    _Units.Energy.kj_per_mol,
+                    "getPotentialEnergy",
+                ),
+            ]
+            if not isinstance(self._protocol, _Protocol.Minimisation):
+                datadict_keys.extend(
+                    [
+                        ("Volume (nm^3)", _Units.Volume.nanometer3, "getVolume"),
+                        ("Pressure (bar)", _Units.Pressure.bar, "getPressure"),
+                        (
+                            "Temperature (kelvin)",
+                            _Units.Temperature.kelvin,
+                            "getTemperature",
+                        ),
+                    ]
+                )
+            df = self._convert_datadict_keys(datadict_keys)
+            df.to_parquet(path=f"{self.workDir()}/{filename}", index=True)
+        if u_nk is not None:
+            _assert_imported(_alchemlyb)
+            if isinstance(self._protocol, _Protocol.FreeEnergy):
+                energy = _extract_u_nk(
+                    f"{self.workDir()}/{self._name}.xvg",
+                    T=self._protocol.getTemperature() / _Units.Temperature.kelvin,
+                )
+                with _warnings.catch_warnings():
+                    _warnings.filterwarnings(
+                        "ignore",
+                        message="The DataFrame has column names of mixed type.",
+                    )
+                    energy.to_parquet(path=f"{self.workDir()}/{u_nk}", index=True)
+        if dHdl is not None:
+            _assert_imported(_alchemlyb)
+            if isinstance(self._protocol, _Protocol.FreeEnergy):
+                energy = _extract_dHdl(
+                    f"{self.workDir()}/{self._name}.xvg",
+                    T=self._protocol.getTemperature() / _Units.Temperature.kelvin,
+                )
+                with _warnings.catch_warnings():
+                    _warnings.filterwarnings(
+                        "ignore",
+                        message="The DataFrame has column names of mixed type.",
+                    )
+                    energy.to_parquet(path=f"{self.workDir()}/{dHdl}", index=True)
 
 
 def _is_minimisation(config):

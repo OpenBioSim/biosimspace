@@ -116,6 +116,8 @@ def test_gromacs(protocol, system, tmp_path):
     reason="Requires AMBER and OpenFF to be installed.",
 )
 def test_amber(protocol, system, tmp_path):
+    if not isinstance(protocol, BSS.Protocol._FreeEnergyMixin):
+        pytest.skip("AMBER position restraint only works for free energy protocol")
     BSS.Process.Amber(system, protocol, work_dir=str(tmp_path))
     with open(tmp_path / "amber.cfg", "r") as f:
         cfg = f.read()
