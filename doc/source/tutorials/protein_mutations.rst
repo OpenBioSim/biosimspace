@@ -268,7 +268,7 @@ Apo System
 Now we are going to focus on the aldose reductase system and set up an
 alchemical transformation in both apo and holo forms of the protein. The
 input files (2PDG_8.0) were taken from the SI of a `paper by Aldeghi et.
-al <https://pubs.acs.org/doi/full/10.1021/acscentsci.9b00590>`__,
+al <https://pubs.acs.org/doi/full/10.1021/acscentsci.8b00717>`__,
 residue 47 mutated via PyMol (V47I), and standardised via *pdb4amber*.
 
 .. code:: ipython3
