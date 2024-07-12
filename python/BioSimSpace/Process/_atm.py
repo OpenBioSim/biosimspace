@@ -47,11 +47,11 @@ class OpenMMAToM(_OpenMM):
     ):
         # Look for the is_testing flag in the kwargs.
         # Only used for calculating single point energies.
-        """if "_is_testing" in kwargs:
+        if "_is_testing" in kwargs:
             _warnings.warn("NOW IN TESTING MODE")
             self._is_testing = kwargs["_is_testing"]
         else:
-            self._is_testing = False"""
+            self._is_testing = False
         super().__init__(
             system,
             protocol,
@@ -72,8 +72,8 @@ class OpenMMAToM(_OpenMM):
             self._generate_config_equilibration()
         elif isinstance(self._protocol, _Protocol.AToMAnnealing):
             self._generate_config_annealing()
-        # elif isinstance(self._protocol, _Protocol.AToMProduction) and self._is_testing:
-        #   self._generate_config_single_point_testing()
+        elif isinstance(self._protocol, _Protocol.AToMProduction) and self._is_testing:
+            self._generate_config_single_point_testing()
         elif isinstance(self._protocol, _Protocol.AToMProduction):
             self._generate_config_production()
 
@@ -686,6 +686,7 @@ class OpenMMAToM(_OpenMM):
         # Designed as a hidden method - uses a production protocol to
         # calculate single point energies for each lambda window
         # quite hacky, but not designed to be exposed to the user anyway
+        self._protocol._set_current_index(0)
         if not isinstance(self._protocol, _Protocol.AToMProduction):
             raise _IncompatibleError(
                 "Single point testing requires an AToMProduction protocol."
@@ -734,7 +735,7 @@ class OpenMMAToM(_OpenMM):
             else:
                 restrained_atoms = restraint
             self.addToConfig("\n# Add position restraints.")
-            frc = util.create_flat_bottom_restraint(restrained_atoms)
+            frc = util.create_flat_bottom_restraint(restrained_atoms, force_group=5)
             self.addToConfig(frc)
 
         # Use utils to create AToM-specific forces
@@ -742,14 +743,16 @@ class OpenMMAToM(_OpenMM):
         disp = util.createDisplacement()
         self.addToConfig(disp)
         self.addToConfig("\n# Add AToM Force.")
-        self.addToConfig(util.createATMForce(self._protocol._get_window_index()))
+        self.addToConfig(
+            util.createATMForce(self._protocol._get_window_index(), force_group=10)
+        )
         if self._protocol._getCoreAlignment():
-            alignment = util.createAlignmentForce()
+            alignment = util.createAlignmentForce(force_group=[6, 7, 8])
             self.addToConfig("\n# Add alignment force.")
             self.addToConfig(alignment)
 
         if self._protocol._getCMCMRestraint():
-            CMCM = util.createCOMRestraint()
+            CMCM = util.createCOMRestraint(force_group=9)
             self.addToConfig("\n# Add COM restraint.")
             self.addToConfig(CMCM)
 
@@ -835,4 +838,13 @@ class OpenMMAToM(_OpenMM):
             if direction[i] != direction[i + 1]:
                 inflex = i + 1
                 break
-        self.addToConfig(util.createSinglePointTest(inflex))
+        self.addToConfig(
+            util.createSinglePointTest(
+                inflex,
+                self._name,
+                atm_force_group=10,
+                position_restraint_force_group=5,
+                alignment_force_groups=[6, 7, 8],
+                com_force_group=9,
+            )
+        )

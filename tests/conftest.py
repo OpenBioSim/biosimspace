@@ -107,7 +107,7 @@ def TEMOA_lig1():
 @pytest.fixture(scope="session")
 def TEMOA_lig2():
     lig2 = BSS.IO.readMolecules(
-        BSS.IO.expand(BSS.tutorialUrl(), ["temoa_ligG1.rst7", "temoa_ligG1.prm7"])
+        BSS.IO.expand(BSS.tutorialUrl(), ["temoa_ligG4.rst7", "temoa_ligG4.prm7"])
     )[0]
     return lig2
 
