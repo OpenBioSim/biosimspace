@@ -7,7 +7,12 @@ import pandas as pd
 import pytest
 
 import BioSimSpace.Sandpit.Exscientia as BSS
-from tests.Sandpit.Exscientia.conftest import has_amber, has_pyarrow
+from BioSimSpace.Sandpit.Exscientia._Exceptions import IncompatibleError
+from tests.Sandpit.Exscientia.conftest import (
+    has_amber,
+    has_pyarrow,
+    url,
+)
 from tests.conftest import root_fp
 
 
@@ -373,6 +378,10 @@ def test_parse_fep_output(system, protocol):
         assert len(records_sc1) != 0
 
 
+@pytest.mark.skipif(
+    has_amber is False or has_pyarrow is False,
+    reason="Requires AMBER and pyarrow to be installed.",
+)
 class TestsaveMetric:
     @staticmethod
     @pytest.fixture()
@@ -401,13 +410,29 @@ class TestsaveMetric:
         process.saveMetric()
         return process
 
+    def test_incompatible_error(self):
+        alchemical_system = BSS.IO.readPerturbableSystem(
+            f"{url}/complex_vac0.prm7.bz2",
+            f"{url}/complex_vac0.rst7.bz2",
+            f"{url}/complex_vac1.prm7.bz2",
+            f"{url}/complex_vac1.rst7.bz2",
+        )
+        with pytest.raises(
+            IncompatibleError,
+            match="Perturbable system is not compatible with none free energy protocol.",
+        ):
+            BSS.Process.Amber(
+                alchemical_system,
+                BSS.Protocol.Minimisation(),
+            )
+
     def test_error_alchemlyb_extract(self, alchemical_system):
         # Create a process using any system and the protocol.
         process = BSS.Process.Amber(
             alchemical_system,
             BSS.Protocol.FreeEnergy(temperature=298 * BSS.Units.Temperature.kelvin),
         )
-        process.wait()
+        process.saveMetric()
         with open(process.workDir() + "/amber.err", "r") as f:
             text = f.read()
             assert "Exception Information" in text
@@ -433,3 +458,37 @@ class TestsaveMetric:
         process = BSS.Process.Amber(system, BSS.Protocol.Production())
         with pytest.warns(match="Simulation didn't produce any output."):
             process.saveMetric()
+
+    @staticmethod
+    @pytest.mark.parametrize(
+        ("filename", "u_nk", "dHdl"),
+        [
+            ("metric.parquet", None, None),
+            (None, "u_nk.parquet", None),
+            (None, None, "dHdl.parquet"),
+        ],
+    )
+    def test_selective(alchemical_system, filename, u_nk, dHdl):
+        # Create a process using any system and the protocol.
+        process = BSS.Process.Amber(
+            alchemical_system,
+            BSS.Protocol.FreeEnergy(temperature=298 * BSS.Units.Temperature.kelvin),
+        )
+        shutil.copyfile(
+            f"{root_fp}/Sandpit/Exscientia/output/amber_fep.out",
+            process.workDir() + "/amber.out",
+        )
+        process.saveMetric(filename, u_nk, dHdl)
+        if filename is not None:
+            assert (Path(process.workDir()) / filename).exists()
+        else:
+            assert not (Path(process.workDir()) / "metric.parquet").exists()
+        if u_nk is not None:
+            assert (Path(process.workDir()) / u_nk).exists()
+        else:
+            assert not (Path(process.workDir()) / "u_nk.parquet").exists()
+        if dHdl is not None:
+            # The file doesn't contain dHdl information
+            pass
+        else:
+            assert not (Path(process.workDir()) / "dHdl.parquet").exists()

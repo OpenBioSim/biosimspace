@@ -92,6 +92,9 @@ _MDRestraintsGenerator = _try_import(
     install_command="pip install MDRestraintsGenerator",
 )
 if _have_imported(_MDRestraintsGenerator):
+    from Bio import BiopythonDeprecationWarning
+
+    _warnings.simplefilter("ignore", BiopythonDeprecationWarning)
     from MDRestraintsGenerator import search as _search
     from MDRestraintsGenerator.restraints import (
         FindBoreschRestraint as _FindBoreschRestraint,

@@ -36,12 +36,20 @@ def alchemical_ion_system():
     )
     ion = solvated.getMolecule(-1)
     pert_ion = BSS.Align.merge(ion, ion, mapping={0: 0})
+    for lambda_ in [0, 1]:
+        atomtype = pert_ion._sire_object.property(f"atomtype{lambda_}")
+        pert_ion._sire_object = (
+            pert_ion._sire_object.edit()
+            .setProperty(f"ambertype{lambda_}", atomtype)
+            .molecule()
+        )
     pert_ion._sire_object = (
         pert_ion.getAtoms()[0]
         ._sire_object.edit()
         .setProperty("charge1", 0 * SireUnits.mod_electron)
         .molecule()
     )
+
     alchemcial_ion = _mark_alchemical_ion(pert_ion)
     solvated.updateMolecule(solvated.getIndex(ion), alchemcial_ion)
     return solvated
@@ -164,6 +172,8 @@ def test_gromacs(protocol, system, ref_system, tmp_path):
     reason="Requires AMBER and openff to be installed",
 )
 def test_amber(protocol, system, ref_system, tmp_path):
+    if not isinstance(protocol, BSS.Protocol._FreeEnergyMixin):
+        pytest.skip("AMBER position restraint only works for free energy protocol")
     proc = BSS.Process.Amber(
         system, protocol, reference_system=ref_system, work_dir=str(tmp_path)
     )
@@ -240,19 +250,27 @@ def test_gromacs_alchemical_ion(
     reason="Requires AMBER, GROMACS and OpenFF to be installed",
 )
 @pytest.mark.parametrize(
-    ("restraint", "target"),
+    ("restraint", "protocol", "target"),
     [
-        ("backbone", "@5-7,9,15-17 | @2148 | @8"),
-        ("heavy", "@2,5-7,9,11,15-17,19 | @2148 | @8"),
-        ("all", "@1-22 | @2148 | @8"),
-        ("none", "@2148 | @8"),
+        (
+            "backbone",
+            BSS.Protocol.FreeEnergyEquilibration,
+            "@5-7,9,15-17 | @9,6442,6443",
+        ),
+        (
+            "heavy",
+            BSS.Protocol.FreeEnergyEquilibration,
+            "@2,5-7,9,11,15-17,19 | @9,6442,6443",
+        ),
+        ("all", BSS.Protocol.FreeEnergyEquilibration, "@1-22 | @9,6442,6443"),
+        ("none", BSS.Protocol.FreeEnergyEquilibration, "@9,6442,6443"),
     ],
 )
 def test_amber_alchemical_ion(
-    alchemical_ion_system, restraint, target, alchemical_ion_system_psores
+    alchemical_ion_system, restraint, protocol, target, alchemical_ion_system_psores
 ):
     # Create an equilibration protocol with backbone restraints.
-    protocol = BSS.Protocol.Equilibration(restraint=restraint)
+    protocol = protocol(restraint=restraint)
 
     # Create the process object.
     process = BSS.Process.Amber(

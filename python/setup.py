@@ -110,7 +110,7 @@ finally:
         conda_deps = [
             "alchemlyb",  # known not available on aarch64
             "configargparse",
-            "ipywidgets<8",
+            "ipywidgets",
             "kcombu_bss",
             "lomap2",
             "mdtraj",  # known not available on aarch64
