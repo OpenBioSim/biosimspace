@@ -41,6 +41,9 @@ import json as _json
 import copy as _copy
 import os as _os
 import shutil as _shutil
+import pathlib as _pathlib
+import pandas as _pd
+import numpy as _np
 
 
 class AToM:
@@ -1035,9 +1038,16 @@ class AToM:
             The inflection point for the UWHAM analysis.
         """
         if method == "UWHAM":
-            _warnings.warn("DOINGUwham")
             total_ddg, total_ddg_err = AToM._analyse_UWHAM(work_dir, inflex_point)
             return total_ddg, total_ddg_err
+        if method == "MBAR":
+            from ._relative import Relative as _Relative
+
+            # temporary version to check that things are working
+            ddg_forward, ddg_reverse = AToM._analyse_MBAR(work_dir, inflex_point)
+            ddg_forward = _Relative.difference(ddg_forward)
+            ddg_reverse = _Relative.difference(ddg_reverse)
+            return ddg_forward, ddg_reverse
         else:
             raise ValueError(f"Method {method} is not supported for analysis.")
 
@@ -1050,6 +1060,150 @@ class AToM:
 
         total_ddg, total_ddg_err = _UWHAM(work_dir, inflex_point)
         return total_ddg, total_ddg_err
+
+    @staticmethod
+    def _analyse_MBAR(work_dir, inflex_point=None):
+        """
+        Analyse the MBAR-compatible outputs.
+        Adapted version of BioSimSpace _analyse_internal function
+        """
+        from ._relative import Relative as _Relative
+        from alchemlyb.postprocessors.units import to_kcalmol as _to_kcalmol
+        from .. import Units as _Units
+
+        try:
+            from alchemlyb.estimators import AutoMBAR as _AutoMBAR
+        except ImportError:
+            from alchemlyb.estimators import MBAR as _AutoMBAR
+
+        if not isinstance(work_dir, str):
+            raise TypeError("work_dir must be a string")
+        if not _os.path.isdir(work_dir):
+            raise ValueError("work_dir must be a valid directory")
+
+        glob_path = _pathlib.Path(work_dir)
+        files = sorted(glob_path.glob("**/energies*.csv"))
+
+        # Slightly more complicated than a standard FE calculation
+        # the key complication comes from the need to split the forward and reverse legs
+        # instead of being inherently separate as in a standard FE calculation, they
+        # are dictated by 'direction'. This means that the energy arrays need
+        # to be re-numbered in to separate forward and reverse legs.
+
+        # need to make sure that all lambdas were run at the same temp
+        temps = []
+        dataframes_forward = []
+        dataframes_backward = []
+        for file in files:
+            # read the csv to a dataframe
+            df = _pd.read_csv(file)
+            # read the temperature column and make sure all values in it are equal
+            temp = df["temperature"].unique()
+            if len(temp) != 1:
+                raise ValueError(f"Temperature column in {file} is not uniform")
+            # check if the last column in the dataframe is full of NaNs
+            if df.iloc[:, -1:].isnull().values.all():
+                reverse = False
+            else:
+                reverse = True
+            temps.append(temp[0])
+            # now drop the temperature column
+            df = df.drop(columns=["temperature"])
+            # remove columns with NaN values
+            df = df.dropna(axis=1)
+            # we will need to match the fep-lambda value to the correct new value
+            # first get fep-lambda, should be the same value for all entries in the 'fep-lambda' column
+            fep_lambda = df["fep-lambda"].unique()
+            if len(fep_lambda) != 1:
+                raise ValueError(f"fep-lambda column in {file} is not uniform")
+            # find all columns whose titles are only numbers
+            cols = []
+            num_lams = 0
+            for col in df.columns:
+                try:
+                    val = float(col)
+                    if val == fep_lambda:
+                        index_fep_lambda = num_lams
+                    num_lams += 1
+                except ValueError:
+                    cols.append(col)
+            new_lambdas = list(_np.linspace(0, 1, num_lams))
+            new_fep_lambda = new_lambdas[index_fep_lambda]
+            new_cols = cols + new_lambdas
+            # rename the columns
+            df.columns = new_cols
+            # now replace all values in the fep-lambda column with the new value
+            df["fep-lambda"] = new_fep_lambda
+            df.set_index(cols, inplace=True)
+            if reverse:
+                dataframes_backward.append(df)
+            else:
+                dataframes_forward.append(df)
+
+                # check that all temperatures are the same
+        if len(set(temps)) != 1:
+            raise ValueError("All temperatures must be the same")
+        data_forward = _Relative._preprocess_data(dataframes_forward, "MBAR")
+        data_backward = _Relative._preprocess_data(dataframes_backward, "MBAR")
+        try:
+            alchem_forward = _AutoMBAR().fit(data_forward)
+        except ValueError as e:
+            raise ValueError(f"Error in fitting forward leg of MBAR calculation: {e}")
+
+        try:
+            alchem_backward = _AutoMBAR().fit(data_backward)
+        except ValueError as e:
+            raise ValueError(f"Error in fitting backward leg of MBAR calculation: {e}")
+
+        print(data_forward)
+        alchem_forward.delta_f_.attrs = {
+            "temperature": temps[0],
+            "energy_unit": "kJ/mol",
+        }
+        delta_f_for = _to_kcalmol(alchem_forward.delta_f_)
+        alchem_forward.d_delta_f_.attrs = {
+            "temperature": temps[0],
+            "energy_unit": "kJ/mol",
+        }
+        d_delta_f_for = _to_kcalmol(alchem_forward.d_delta_f_)
+        data_forward_final = []
+        for lamb in new_lambdas:
+            x = new_lambdas.index(lamb)
+            mbar_value = delta_f_for.iloc[0, x]
+            mbar_error = d_delta_f_for.iloc[0, x]
+
+            data_forward_final.append(
+                (
+                    lamb,
+                    (mbar_value) * _Units.Energy.kcal_per_mol,
+                    (mbar_error) * _Units.Energy.kcal_per_mol,
+                )
+            )
+        alchem_backward.delta_f_.attrs = {
+            "temperature": temps[0],
+            "energy_unit": "kJ/mol",
+        }
+        delta_f_back = _to_kcalmol(alchem_backward.delta_f_)
+        alchem_backward.d_delta_f_.attrs = {
+            "temperature": temps[0],
+            "energy_unit": "kJ/mol",
+        }
+        d_delta_f_back = _to_kcalmol(alchem_backward.d_delta_f_)
+        data_backward_final = []
+        for lamb in new_lambdas:
+            x = new_lambdas.index(lamb)
+            mbar_value = delta_f_back.iloc[0, x]
+            mbar_error = d_delta_f_back.iloc[0, x]
+
+            data_backward_final.append(
+                (
+                    lamb,
+                    (mbar_value) * _Units.Energy.kcal_per_mol,
+                    (mbar_error) * _Units.Energy.kcal_per_mol,
+                )
+            )
+
+        return data_forward_final, data_backward_final
 
 
 class _relativeATM:

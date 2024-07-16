@@ -203,6 +203,13 @@ def analyse(work_dir, inflection_indices=None):
         Should be (last index of direction 1, first index of direction 2).
         If not provided not provided, will be implied from files.
 
+    Returns
+    -------
+    ddg_total : float
+        The free energy.
+    ddg_total_error : float
+        The error in the free energy.
+
     """
     dataframes = []
     slices = {}
