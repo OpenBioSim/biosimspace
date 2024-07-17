@@ -1547,22 +1547,47 @@ def _rmsdAlign(molecule0, molecule1, mapping=None, property_map0={}, property_ma
     mol0 = molecule0._getSireObject()
     mol1 = molecule1._getSireObject()
 
+    # Do we have a monatomic ion?
+    if (molecule0.nAtoms() == 1) or (molecule1.nAtoms() == 1):
+        is_ion = True
+    else:
+        is_ion = False
+
     # Convert the mapping to AtomIdx key:value pairs.
     sire_mapping = _to_sire_mapping(mapping)
 
     # Perform the alignment, mol0 to mol1.
-    try:
+    if len(mapping) == 1 and is_ion:
+        idx0 = list(mapping.keys())[0]
+        idx1 = list(mapping.values())[0]
+        # Replace the coordinates of the mapped atom with those of the reference.
         mol0 = (
-            mol0.move().align(mol1, _SireMol.AtomResultMatcher(sire_mapping)).molecule()
+            mol0.edit()
+            .atom(idx0)
+            .setProperty(
+                property_map0.get("coordinates", "coordinates"),
+                mol1.atom(idx1).property(
+                    property_map1.get("coordinates", "coordinates")
+                ),
+            )
+            .molecule()
+            .commit()
         )
-    except Exception as e:
-        msg = "Failed to align molecules based on mapping: %r" % mapping
-        if "Could not calculate the single value decomposition" in str(e):
-            msg += ". Try minimising your molecular coordinates prior to alignment."
-        if _isVerbose():
-            raise _AlignmentError(msg) from e
-        else:
-            raise _AlignmentError(msg) from None
+    else:
+        try:
+            mol0 = (
+                mol0.move()
+                .align(mol1, _SireMol.AtomResultMatcher(sire_mapping))
+                .molecule()
+            )
+        except Exception as e:
+            msg = "Failed to align molecules based on mapping: %r" % mapping
+            if "Could not calculate the single value decomposition" in str(e):
+                msg += ". Try minimising your molecular coordinates prior to alignment."
+            if _isVerbose():
+                raise _AlignmentError(msg) from e
+            else:
+                raise _AlignmentError(msg) from None
 
     # Return the aligned molecule.
     return _Molecule(mol0)
@@ -2509,6 +2534,12 @@ def _score_rdkit_mappings(
             .commit()
         )
 
+    # Do we have a monatomic ion?
+    if (molecule0.nAtoms() == 1) or (molecule1.nAtoms() == 1):
+        is_ion = True
+    else:
+        is_ion = False
+
     # Get the set of matching substructures in each molecule. For some reason
     # setting uniquify to True removes valid matches, in some cases even the
     # best match! As such, we set uniquify to False and account for duplicate
@@ -2575,61 +2606,68 @@ def _score_rdkit_mappings(
                         break
 
                 if is_valid:
-                    # Rigidly align molecule0 to molecule1 based on the mapping.
-                    if scoring_function == "RMSDALIGN":
-                        try:
-                            molecule0 = (
-                                molecule0.move()
-                                .align(
-                                    molecule1, _SireMol.AtomResultMatcher(sire_mapping)
+                    # If there is only a single atom in the mapping and one molecule
+                    # has one atom, e.g. an ion, then skip the alignment.
+                    if len(mapping) == 1 and is_ion:
+                        mappings.append(mapping)
+                        scores.append(0.0)
+                    else:
+                        # Rigidly align molecule0 to molecule1 based on the mapping.
+                        if scoring_function == "RMSDALIGN":
+                            try:
+                                molecule0 = (
+                                    molecule0.move()
+                                    .align(
+                                        molecule1,
+                                        _SireMol.AtomResultMatcher(sire_mapping),
+                                    )
+                                    .molecule()
                                 )
-                                .molecule()
-                            )
-                        except Exception as e:
-                            if (
-                                "Could not calculate the single value decomposition"
-                                in str(e)
-                            ):
-                                is_gsl_error = True
-                                gsl_exception = e
-                            else:
-                                msg = (
-                                    "Failed to align molecules when scoring based on mapping: %r"
-                                    % mapping
-                                )
-                                if _isVerbose():
-                                    raise _AlignmentError(msg) from e
+                            except Exception as e:
+                                if (
+                                    "Could not calculate the single value decomposition"
+                                    in str(e)
+                                ):
+                                    is_gsl_error = True
+                                    gsl_exception = e
                                 else:
-                                    raise _AlignmentError(msg) from None
-                    # Flexibly align molecule0 to molecule1 based on the mapping.
-                    elif scoring_function == "RMSDFLEXALIGN":
-                        molecule0 = flexAlign(
-                            _Molecule(molecule0),
-                            _Molecule(molecule1),
-                            mapping,
-                            property_map0=property_map0,
-                            property_map1=property_map1,
-                        )._sire_object
+                                    msg = (
+                                        "Failed to align molecules when scoring based on mapping: %r"
+                                        % mapping
+                                    )
+                                    if _isVerbose():
+                                        raise _AlignmentError(msg) from e
+                                    else:
+                                        raise _AlignmentError(msg) from None
+                        # Flexibly align molecule0 to molecule1 based on the mapping.
+                        elif scoring_function == "RMSDFLEXALIGN":
+                            molecule0 = flexAlign(
+                                _Molecule(molecule0),
+                                _Molecule(molecule1),
+                                mapping,
+                                property_map0=property_map0,
+                                property_map1=property_map1,
+                            )._sire_object
 
-                    # Append the mapping to the list.
-                    mappings.append(mapping)
+                        # Append the mapping to the list.
+                        mappings.append(mapping)
 
-                    # We now compute the RMSD between the coordinates of the matched atoms
-                    # in molecule0 and molecule1.
+                        # We now compute the RMSD between the coordinates of the matched atoms
+                        # in molecule0 and molecule1.
 
-                    # Initialise lists to hold the coordinates.
-                    c0 = []
-                    c1 = []
+                        # Initialise lists to hold the coordinates.
+                        c0 = []
+                        c1 = []
 
-                    # Loop over each atom index in the map.
-                    for idx0, idx1 in sire_mapping.items():
-                        # Append the coordinates of the matched atom in molecule0.
-                        c0.append(molecule0.atom(idx0).property("coordinates"))
-                        # Append the coordinates of atom in molecule1 to which it maps.
-                        c1.append(molecule1.atom(idx1).property("coordinates"))
+                        # Loop over each atom index in the map.
+                        for idx0, idx1 in sire_mapping.items():
+                            # Append the coordinates of the matched atom in molecule0.
+                            c0.append(molecule0.atom(idx0).property("coordinates"))
+                            # Append the coordinates of atom in molecule1 to which it maps.
+                            c1.append(molecule1.atom(idx1).property("coordinates"))
 
-                    # Compute the RMSD between the two sets of coordinates.
-                    scores.append(_SireMaths.getRMSD(c0, c1))
+                        # Compute the RMSD between the two sets of coordinates.
+                        scores.append(_SireMaths.getRMSD(c0, c1))
 
     # No mappings were found.
     if len(mappings) == 0:
@@ -2732,6 +2770,12 @@ def _score_sire_mappings(
             .commit()
         )
 
+    # Do we have a monatomic ion?
+    if (molecule0.nAtoms() == 1) or (molecule1.nAtoms() == 1):
+        is_ion = True
+    else:
+        is_ion = False
+
     # Initialise a list to hold the mappings.
     mappings = []
 
@@ -2751,54 +2795,60 @@ def _score_sire_mappings(
                 break
 
         if is_valid:
-            # Rigidly align molecule0 to molecule1 based on the mapping.
-            if scoring_function == "RMSDALIGN":
-                try:
-                    molecule0 = (
-                        molecule0.move()
-                        .align(molecule1, _SireMol.AtomResultMatcher(mapping))
-                        .molecule()
-                    )
-                except Exception as e:
-                    msg = (
-                        "Failed to align molecules when scoring based on mapping: %r"
-                        % mapping
-                    )
-                    if _isVerbose():
-                        raise _AlignmentError(msg) from e
-                    else:
-                        raise _AlignmentError(msg) from None
-            # Flexibly align molecule0 to molecule1 based on the mapping.
-            elif scoring_function == "RMSDFLEXALIGN":
-                molecule0 = flexAlign(
-                    _Molecule(molecule0),
-                    _Molecule(molecule1),
-                    _from_sire_mapping(mapping),
-                    property_map0=property_map0,
-                    property_map1=property_map1,
-                )._sire_object
+            # If there is only a single atom in the mapping and one molecule
+            # has one atom, e.g. an ion, then skip the alignment.
+            if len(mapping) == 1 and is_ion:
+                mappings.append(mapping)
+                scores.append(0.0)
+            else:
+                # Rigidly align molecule0 to molecule1 based on the mapping.
+                if scoring_function == "RMSDALIGN":
+                    try:
+                        molecule0 = (
+                            molecule0.move()
+                            .align(molecule1, _SireMol.AtomResultMatcher(mapping))
+                            .molecule()
+                        )
+                    except Exception as e:
+                        msg = (
+                            "Failed to align molecules when scoring based on mapping: %r"
+                            % mapping
+                        )
+                        if _isVerbose():
+                            raise _AlignmentError(msg) from e
+                        else:
+                            raise _AlignmentError(msg) from None
+                # Flexibly align molecule0 to molecule1 based on the mapping.
+                elif scoring_function == "RMSDFLEXALIGN":
+                    molecule0 = flexAlign(
+                        _Molecule(molecule0),
+                        _Molecule(molecule1),
+                        _from_sire_mapping(mapping),
+                        property_map0=property_map0,
+                        property_map1=property_map1,
+                    )._sire_object
 
-            # Append the mapping to the list.
-            mapping = _from_sire_mapping(mapping)
-            mapping = dict(sorted(mapping.items()))
-            mappings.append(mapping)
+                # Append the mapping to the list.
+                mapping = _from_sire_mapping(mapping)
+                mapping = dict(sorted(mapping.items()))
+                mappings.append(mapping)
 
-            # We now compute the RMSD between the coordinates of the matched atoms
-            # in molecule0 and molecule1.
+                # We now compute the RMSD between the coordinates of the matched atoms
+                # in molecule0 and molecule1.
 
-            # Initialise lists to hold the coordinates.
-            c0 = []
-            c1 = []
+                # Initialise lists to hold the coordinates.
+                c0 = []
+                c1 = []
 
-            # Loop over each atom index in the map.
-            for idx0, idx1 in mapping.items():
-                # Append the coordinates of the matched atom in molecule0.
-                c0.append(molecule0.atom(idx0).property("coordinates"))
-                # Append the coordinates of atom in molecule1 to which it maps.
-                c1.append(molecule1.atom(idx1).property("coordinates"))
+                # Loop over each atom index in the map.
+                for idx0, idx1 in mapping.items():
+                    # Append the coordinates of the matched atom in molecule0.
+                    c0.append(molecule0.atom(idx0).property("coordinates"))
+                    # Append the coordinates of atom in molecule1 to which it maps.
+                    c1.append(molecule1.atom(idx1).property("coordinates"))
 
-            # Compute the RMSD between the two sets of coordinates.
-            scores.append(_SireMaths.getRMSD(c0, c1))
+                # Compute the RMSD between the two sets of coordinates.
+                scores.append(_SireMaths.getRMSD(c0, c1))
 
     # No mappings were found.
     if len(mappings) == 0:

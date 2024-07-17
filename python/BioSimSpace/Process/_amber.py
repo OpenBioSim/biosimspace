@@ -2856,9 +2856,11 @@ def _find_exe(is_gpu=False, is_free_energy=False, is_vacuum=False):
             # order their path accordingly, or use the exe keyword argument.
             if results:
                 for exe in results:
-                    exe = _pathlib.Path(p) / exe
-                    if is_exe(exe):
-                        return str(exe)
+                    # Exclude "locally enhanced sampling" executables.
+                    if "LES" not in exe:
+                        exe = _pathlib.Path(p) / exe
+                        if is_exe(exe):
+                            return str(exe)
 
     msg = (
         "'BioSimSpace.Process.Amber' is not supported. "
