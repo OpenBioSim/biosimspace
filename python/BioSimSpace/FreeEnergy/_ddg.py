@@ -19,15 +19,21 @@
 # along with BioSimSpace. If not, see <http://www.gnu.org/licenses/>.
 ######################################################################
 
-__all__ = ["analyse"]
 
-import pandas as pd
+# Alchemical transfer analysis methods. UWHAM implementation adapted from
+# both the `femto` and `AToM-openmm` packages.
+__all__ = ["analyse_UWHAM", "analyse_MBAR", "new_MBAR"]
+
+import pandas as _pd
 
 import numpy
 import scipy.optimize
 import scipy.special
 import pathlib
 import functools
+import pathlib as _pathlib
+import os as _os
+import pymbar
 
 
 def _compute_weights(ln_z, ln_q, factor):
@@ -177,7 +183,7 @@ def _get_inflection_indices(folders):
 
     directions = []
     for folder in folders.values():
-        df = pd.read_csv(folder / "openmm.csv")
+        df = _pd.read_csv(folder / "openmm.csv")
         direction = df["direction"].values[0]
         directions.append(direction)
 
@@ -190,7 +196,7 @@ def _get_inflection_indices(folders):
     return inflection_indices
 
 
-def analyse(work_dir, inflection_indices=None):
+def analyse_UWHAM(work_dir, inflection_indices=None):
     """
     Analyse the output of BioSimSpace AToM simulations.
 
@@ -219,7 +225,7 @@ def analyse(work_dir, inflection_indices=None):
     if inflection_indices is None:
         inflection_indices = _get_inflection_indices(folders)
     for folder in folders.values():
-        df = pd.read_csv(folder / "openmm.csv")
+        df = _pd.read_csv(folder / "openmm.csv")
         df["beta"] = 1 / (0.001986209 * df["temperature"])
         total_states += 1
         total_samples += len(df)
@@ -239,7 +245,7 @@ def analyse(work_dir, inflection_indices=None):
         # get the dataframes for the current window
         dfs = slices[window]
         # combine the dataframes
-        combined_df = pd.concat(dfs)
+        combined_df = _pd.concat(dfs)
         dataframes.append(combined_df)
 
     # sort 'dataframes' based on 'window'
@@ -280,6 +286,7 @@ def analyse(work_dir, inflection_indices=None):
     f_i, d_i, weights = _estimate_f_i(ln_q, n_samples_first_half)
     ddg = f_i[-1] - f_i[0]
     ddg1 = ddg / dataframes[0]["beta"].values[0]
+    print(f"Forward leg: {ddg1}")
     ddg_error_1 = numpy.sqrt(d_i[-1] + d_i[0]) / dataframes[0]["beta"].values[0]
 
     n_samples_second_half = n_samples[inflection_indices[1] :]
@@ -306,8 +313,265 @@ def analyse(work_dir, inflection_indices=None):
     f_i, d_i, weights = _estimate_f_i(ln_q, n_samples_second_half)
     ddg = f_i[-1] - f_i[0]
     ddg2 = ddg / dataframes[0]["beta"].values[0]
+    print(f"Reverse leg: {ddg2}")
     ddg_error_2 = numpy.sqrt(d_i[-1] + d_i[0]) / dataframes[0]["beta"].values[0]
 
     ddg_total = ddg1 - ddg2
     ddg_total_error = numpy.sqrt(ddg_error_1**2 + ddg_error_2**2)
     return ddg_total, ddg_total_error
+
+
+def analyse_MBAR(work_dir):
+    """
+    Analyse the MBAR-compatible outputs.
+    Adapted version of BioSimSpace _analyse_internal function
+    """
+    from ._relative import Relative as _Relative
+    from alchemlyb.postprocessors.units import to_kcalmol as _to_kcalmol
+    from .. import Units as _Units
+
+    try:
+        from alchemlyb.estimators import AutoMBAR as _AutoMBAR
+    except ImportError:
+        from alchemlyb.estimators import MBAR as _AutoMBAR
+
+    if not isinstance(work_dir, str):
+        raise TypeError("work_dir must be a string")
+    if not _os.path.isdir(work_dir):
+        raise ValueError("work_dir must be a valid directory")
+
+    glob_path = _pathlib.Path(work_dir)
+    files = sorted(glob_path.glob("**/energies*.csv"))
+
+    # Slightly more complicated than a standard FE calculation
+    # the key complication comes from the need to split the forward and reverse legs
+    # instead of being inherently separate as in a standard FE calculation, they
+    # are dictated by 'direction'. This means that the energy arrays need
+    # to be re-numbered in to separate forward and reverse legs.
+
+    # need to make sure that all lambdas were run at the same temp
+    temps = []
+    dataframes_forward = []
+    dataframes_backward = []
+    for file in files:
+        # read the csv to a dataframe
+        df = _pd.read_csv(file)
+        # read the temperature column and make sure all values in it are equal
+        temp = df["temperature"].unique()
+        if len(temp) != 1:
+            raise ValueError(f"Temperature column in {file} is not uniform")
+        # check if the last column in the dataframe is full of NaNs
+        if df.iloc[:, -1:].isnull().values.all():
+            reverse = False
+        else:
+            reverse = True
+        temps.append(temp[0])
+        # now drop the temperature column
+        df = df.drop(columns=["temperature"])
+        # remove columns with NaN values
+        df = df.dropna(axis=1)
+        # we will need to match the fep-lambda value to the correct new value
+        # first get fep-lambda, should be the same value for all entries in the 'fep-lambda' column
+        fep_lambda = df["fep-lambda"].unique()
+        if len(fep_lambda) != 1:
+            raise ValueError(f"fep-lambda column in {file} is not uniform")
+        # find all columns whose titles are only numbers
+        cols = []
+        num_lams = 0
+        for col in df.columns:
+            try:
+                val = float(col)
+                if val == fep_lambda:
+                    index_fep_lambda = num_lams
+                num_lams += 1
+            except ValueError:
+                cols.append(col)
+        new_lambdas = list(numpy.linspace(0, 1, num_lams))
+        new_fep_lambda = new_lambdas[index_fep_lambda]
+        new_cols = cols + new_lambdas
+        # rename the columns
+        df.columns = new_cols
+        # now replace all values in the fep-lambda column with the new value
+        df["fep-lambda"] = new_fep_lambda
+        df.set_index(cols, inplace=True)
+        if reverse:
+            dataframes_backward.append(df)
+        else:
+            dataframes_forward.append(df)
+
+            # check that all temperatures are the same
+    if len(set(temps)) != 1:
+        raise ValueError("All temperatures must be the same")
+    data_forward = _Relative._preprocess_data(dataframes_forward, "MBAR")
+    data_backward = _Relative._preprocess_data(dataframes_backward, "MBAR")
+    print("\n\n\n\n\n")
+    print(type(data_forward))
+    data_forward.attrs = {
+        "temperature": temps[0],
+        "energy_unit": "kJ/mol",
+    }
+    data_backward.attrs = {
+        "temperature": temps[0],
+        "energy_unit": "kJ/mol",
+    }
+    try:
+        alchem_forward = _AutoMBAR().fit(data_forward)
+    except ValueError as e:
+        raise ValueError(f"Error in fitting forward leg of MBAR calculation: {e}")
+
+    try:
+        alchem_backward = _AutoMBAR().fit(data_backward)
+    except ValueError as e:
+        raise ValueError(f"Error in fitting backward leg of MBAR calculation: {e}")
+
+    alchem_forward.delta_f_.attrs = {
+        "temperature": temps[0],
+        "energy_unit": "kJ/mol",
+    }
+    delta_f_for = _to_kcalmol(alchem_forward.delta_f_)
+    alchem_forward.d_delta_f_.attrs = {
+        "temperature": temps[0],
+        "energy_unit": "kJ/mol",
+    }
+    d_delta_f_for = _to_kcalmol(alchem_forward.d_delta_f_)
+    data_forward_final = []
+    for lamb in new_lambdas:
+        x = new_lambdas.index(lamb)
+        mbar_value = delta_f_for.iloc[0, x]
+        mbar_error = d_delta_f_for.iloc[0, x]
+
+        data_forward_final.append(
+            (
+                lamb,
+                (mbar_value) * _Units.Energy.kcal_per_mol,
+                (mbar_error) * _Units.Energy.kcal_per_mol,
+            )
+        )
+    alchem_backward.delta_f_.attrs = {
+        "temperature": temps[0],
+        "energy_unit": "kJ/mol",
+    }
+    delta_f_back = _to_kcalmol(alchem_backward.delta_f_)
+    alchem_backward.d_delta_f_.attrs = {
+        "temperature": temps[0],
+        "energy_unit": "kJ/mol",
+    }
+    d_delta_f_back = _to_kcalmol(alchem_backward.d_delta_f_)
+    data_backward_final = []
+    for lamb in new_lambdas:
+        x = new_lambdas.index(lamb)
+        mbar_value = delta_f_back.iloc[0, x]
+        mbar_error = d_delta_f_back.iloc[0, x]
+
+        data_backward_final.append(
+            (
+                lamb,
+                (mbar_value) * _Units.Energy.kcal_per_mol,
+                (mbar_error) * _Units.Energy.kcal_per_mol,
+            )
+        )
+
+    return data_forward_final, data_backward_final
+
+
+def _naive_MBAR(u_kn, n_k):
+    # print(u_kn)
+    # print(n_k)
+    mbar = pymbar.MBAR(u_kn, n_k)
+    ddg_dict = mbar.compute_free_energy_differences()
+
+    return ddg_dict["Delta_f"][0, :], ddg_dict["dDelta_f"][0, :] ** 2, mbar.W_nk
+
+
+def new_MBAR(work_dir):
+    glob_path = _pathlib.Path(work_dir)
+    files = sorted(glob_path.glob("**/energies*.csv"))
+
+    energies_forward = []
+    energies_reverse = []
+    n_k_forward = []
+    n_k_reverse = []
+    betas = []
+    for file in files:
+        df = _pd.read_csv(file)
+        if df.iloc[:, -1:].isnull().values.all():
+            reverse = False
+        else:
+            reverse = True
+        # now drop columns containing NaN values
+        df = df.dropna(axis=1)
+        # beta, specifically for energies in units of kj/mol
+        df["beta"] = 1 / (0.001986209 * df["temperature"])
+        betas.append(df["beta"].values[0])
+        # check that beta is the same for all files
+        if len(set(betas)) != 1:
+            raise ValueError("All temperatures must be the same")
+        temp_list = []
+        # now reduce the potentials within the dataframe
+        for col in df.columns:
+            try:
+                float(col)
+                df[col] = df[col] * df["beta"]
+                temp_list.append(df[col].to_numpy())
+            except ValueError:
+                continue
+        if not reverse:
+            n_k_forward.append(len(df))
+            # now need to flatten temp_list to a single 1d list and append to energies
+            energies_forward.append(numpy.array(temp_list).ravel())
+        else:
+            n_k_reverse.append(len(df))
+            energies_reverse.append(numpy.array(temp_list).ravel())
+    energies_forward = numpy.array(energies_forward)
+    f_i, fi_var, weight = _naive_MBAR(energies_forward, n_k_forward)
+    ddg_forward = (f_i[-1] - f_i[0]) / betas[0]
+    ddg_forward_error = numpy.sqrt(fi_var[-1] + fi_var[0])
+
+    energies_reverse = numpy.array(energies_reverse)
+    f_i, fi_var, weight = _naive_MBAR(energies_reverse, n_k_reverse)
+    ddg_reverse = (f_i[-1] - f_i[0]) / betas[0]
+    ddg_reverse_error = numpy.sqrt(fi_var[-1] + fi_var[0])
+
+    return ddg_forward, ddg_reverse
+
+
+def MBAR_hijack_femto(work_dir):
+    import femto.fe.ddg
+    from openmm.unit import kelvin
+
+    glob_path = _pathlib.Path(work_dir)
+    files = sorted(glob_path.glob("**/energies*.csv"))
+
+    energies = []
+    n_k = []
+    num_nan = 0
+    for counter, file in enumerate(files):
+        df = _pd.read_csv(file)
+        # beta, specifically for energies in units of kj/mol
+        df["beta"] = 1 / (0.001986209 * df["temperature"])
+        energies_temp = []
+        # now reduce the potentials within the dataframe
+        for col in df.columns:
+            if counter == 0:
+                # counter the number of columns that are full of NaNs
+                if df[col].isnull().values.all():
+                    num_nan += 1
+            try:
+                float(col)
+                if counter == 0:
+                    n_k.append(len(df[col]))
+                df[col] = df[col] * df["beta"]
+                energies_temp.append(df[col].to_numpy())
+            except ValueError:
+                continue
+        energies_temp = numpy.array(energies_temp)
+        energies_temp = energies_temp.ravel()
+        energies.append(energies_temp)
+    energies = numpy.array(energies)
+    state_groups = [(num_nan, 1.0), (num_nan, 1.0)]
+    temperature = 300 * kelvin
+    print(n_k)
+    est, overlap = femto.fe.ddg.estimate_ddg(
+        energies, numpy.array(n_k), temperature, state_groups
+    )
+    return est, overlap
