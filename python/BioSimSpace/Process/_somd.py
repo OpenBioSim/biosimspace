@@ -78,6 +78,7 @@ class Somd(_process.Process):
         seed=None,
         extra_options={},
         extra_lines=[],
+        extra_args={},
         property_map={},
         **kwargs,
     ):
@@ -118,6 +119,9 @@ class Somd(_process.Process):
         extra_lines : [str]
             A list of extra lines to put at the end of the configuration file.
 
+        extra_args : dict
+            A dictionary of extra command-line arguments to pass to the SOMD executable.
+
         property_map : dict
             A dictionary that maps system "properties" to their user defined
             values. This allows the user to refer to properties with their
@@ -136,6 +140,7 @@ class Somd(_process.Process):
             seed=seed,
             extra_options=extra_options,
             extra_lines=extra_lines,
+            extra_args=extra_args,
             property_map=property_map,
         )
 
@@ -477,6 +482,10 @@ class Somd(_process.Process):
             self.setArg("-m", "%s.pert" % self._name)  # Perturbation file.
         self.setArg("-C", "%s.cfg" % self._name)  # Config file.
         self.setArg("-p", self._platform)  # Simulation platform.
+
+        # Add the extra arguments.
+        for key, value in self._extra_args.items():
+            self.setArg(key, value)
 
     def start(self):
         """
