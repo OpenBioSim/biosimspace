@@ -120,7 +120,7 @@ class Somd(_process.Process):
             A list of extra lines to put at the end of the configuration file.
 
         extra_args : dict
-            A dictionary of extra command-line arguments to pass to the AMBER executable.
+            A dictionary of extra command-line arguments to pass to the SOMD executable.
 
         property_map : dict
             A dictionary that maps system "properties" to their user defined
