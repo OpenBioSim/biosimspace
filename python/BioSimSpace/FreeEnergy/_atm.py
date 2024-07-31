@@ -64,20 +64,20 @@ class AToM:
 
         Parameters
         ----------
-        system : BioSimSpace._SireWrappers.System
+        system : :class:`System <BioSimSpace._SireWrappers.System>`
             A pre-prepared AToM system containing protein and ligands placed in their correct positions.
             If provided takes precedence over protein, ligand1 and ligand2.
-        protein : BioSimSpace._SireWrappers.Molecule
+        protein : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
             A protein molecule. Will be used along with ligand1 and ligand2 to create a system.
-        ligand1 : BioSimSpace._SireWrappers.Molecule
+        ligand1 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
             The bound ligand. Will be used along with protein and ligand2 to create a system.
-        ligand2 : BioSimSpace._SireWrappers.Molecule
+        ligand2 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
             The free ligand. Will be used along with protein and ligand1 to create a system.
-        protein_index: int, list
+        protein_index : int, [int]
             If passing a pre-prepared system, the index (or indices) of the protein molecule in the system (Default 0).
-        ligand1_index: int
+        ligand1_index : int
             If passing a pre-prepared system, the index of the bound ligand molecule in the system (Default 1).
-        ligand2_index: int
+        ligand2_index : int
             If passing a pre-prepared system, the index of the free ligand molecule in the system (Default 2).
         """
         # make sure that either system or protein, ligand1 and ligand2 are given
@@ -443,27 +443,35 @@ class AToM:
 
         Parameters
         ----------
-        ligand1_rigid_core : list
+        ligand1_rigid_core : [int]
             A list of three atom indices that define the rigid core of the bound ligand.
             Indices are set relative to the ligand, not the system and are 0-indexed.
-        ligand2_rigid_core : list
+        ligand2_rigid_core : [int]
             A list of three atom indices that define the rigid core of the free ligand.
             Indices are set relative to the ligand, not the system and are 0-indexed.
-        displacement : float, string, list
+        displacement : float, string, [float, float, float]
             The diplacement between the bound and free ligands.
             If a float or string is given, BioSimSpace will attempt to find the ideal vector along which to displace the ligand by the given magnitude.
             If a list is given, the vector will be used directly.
             Lengths should always be given in angstroms.
             Default is 20A.
-        protein_com_atoms : list
+        protein_com_atoms : [int]
             A list of atom indices that define the center of mass of the protein.
             If None, the center of mass of the protein will be found automatically.
-        ligand1_com_atoms : list
+        ligand1_com_atoms : [int]
             A list of atom indices that define the center of mass of the bound ligand.
             If None, the center of mass of the bound ligand will be found automatically.
-        ligand2_com_atoms : list
+        ligand2_com_atoms : [int]
             A list of atom indices that define the center of mass of the free ligand.
             If None, the center of mass of the free ligand will be found automatically.
+
+        Returns
+        -------
+
+        System : :class:`System <BioSimSpace._SireWrappers.System>`
+            The prepared system, including protein and ligands in their correct positions.
+        Data : dict
+            A dictionary containing the data needed for the AToM simulation.
         """
         if self._is_prepared:
             self._systemInfo()
@@ -843,12 +851,12 @@ class AToM:
 
         Parameters
         ----------
-        system : BioSimSpace._SireWrappers.System
+        system : :class:`System <BioSimSpace._SireWrappers.System>`
             The system for the AToM simulation that has been prepared AToM.prepare().
             All other parameters are ignored if this is provided.
-        ligand1 : BioSimSpace._SireWrappers.Molecule
+        ligand1 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
             The bound ligand.
-        ligand2 : BioSimSpace._SireWrappers.Molecule
+        ligand2 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
             The free ligand.
         ligand1_rigid_core : list
             The indices for the rigid core atoms of the bound ligand.
@@ -1008,10 +1016,37 @@ class AToM:
         platform="CPU",
         work_dir=None,
         setup_only=False,
-        ignore_warnings=False,
-        show_errors=True,
         property_map={},
     ):
+        """Run the AToM production simulation(s).
+
+        Parameters
+        ----------
+        system : :class:`System <BioSimSpace._SireWrappers.System>`
+            A prepared AToM system.
+
+        protocol : :class:`Protocol <BioSimSpace.Protocol.AToMProduction>`
+            A protocol object that defines the AToM protocol.
+
+        platform : str
+            The platform for the simulation.
+
+        work_dir : str
+            The working directory for the simulation.
+
+        setup_only : bool
+            Whether to only support simulation setup. If True, then no
+            simulation processes objects will be created, only the directory
+            hierarchy and input files to run a simulation externally. This
+            can be useful when you don't intend to use BioSimSpace to run
+            the simulation. Note that a 'work_dir' must also be specified.
+
+        property_map : dict
+            A dictionary that maps system "properties" to their user defined
+            values. This allows the user to refer to properties with their
+            own naming scheme, e.g. { "charge" : "my-charge" }
+
+        """
         runner = _relativeATM(
             system,
             protocol,
@@ -1019,8 +1054,6 @@ class AToM:
             property_map=property_map,
             work_dir=work_dir,
             setup_only=setup_only,
-            ignore_warnings=ignore_warnings,
-            show_errors=show_errors,
         )
         runner.run()
 
@@ -1036,6 +1069,13 @@ class AToM:
             The method to use for the analysis. Currently only UWHAM is supported.
         inflex_point : float
             The inflection point for the UWHAM analysis.
+
+        Returns
+        -------
+        ddg : float
+            The free energy difference between the two ligands.
+        ddg_err : float
+            The error in the free energy difference.
         """
         if method == "UWHAM":
             total_ddg, total_ddg_err = AToM._analyse_UWHAM(work_dir, inflex_point)
@@ -1109,8 +1149,6 @@ class _relativeATM:
         platform="CPU",
         work_dir=None,
         setup_only=False,
-        ignore_warnings=False,
-        show_errors=True,
         property_map={},
     ):
         """
@@ -1140,16 +1178,6 @@ class _relativeATM:
             hierarchy and input files to run a simulation externally. This
             can be useful when you don't intend to use BioSimSpace to run
             the simulation. Note that a 'work_dir' must also be specified.
-
-        ignore_warnings : bool
-            Whether to ignore warnings when generating the binary run file.
-            This option is specific to GROMACS and will be ignored when a
-            different molecular dynamics engine is chosen.
-
-        show_errors : bool
-            Whether to show warning/error messages when generating the binary
-            run file. This option is specific to GROMACS and will be ignored
-            when a different molecular dynamics engine is chosen.
 
         property_map : dict
             A dictionary that maps system "properties" to their user defined
@@ -1193,13 +1221,6 @@ class _relativeATM:
         # Create the working directory.
         self._work_dir = _Utils.WorkDir(work_dir)
 
-        if not isinstance(ignore_warnings, bool):
-            raise ValueError("'ignore_warnings' must be of type 'bool.")
-        self._ignore_warnings = ignore_warnings
-
-        if not isinstance(show_errors, bool):
-            raise ValueError("'show_errors' must be of type 'bool.")
-        self._show_errors = show_errors
         # Check that the map is valid.
         if not isinstance(property_map, dict):
             raise TypeError("'property_map' must be of type 'dict'")
@@ -1210,9 +1231,10 @@ class _relativeATM:
     def run(self, serial=True):
         """
         Run the simulations.
+
         Returns
         -------
-        list of :class:`Process <BioSimSpace.Process>`
+        Processes : [:class:`Process <BioSimSpace.Process>`]
             A list of process objects.
         """
         # Initialise the runner.

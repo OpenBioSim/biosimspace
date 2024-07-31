@@ -47,6 +47,10 @@ Classes
     Metadynamics
     Steering
     Custom
+    AToMMinimisation
+    AToMEquilibration
+    AToMAnnealing
+    AToMProduction
 
 Examples
 ========

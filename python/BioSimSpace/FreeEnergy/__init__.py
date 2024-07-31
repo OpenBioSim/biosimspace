@@ -29,6 +29,7 @@ Classes
     :toctree: generated/
 
     Relative
+    AToM
 
 Functions
 =========
