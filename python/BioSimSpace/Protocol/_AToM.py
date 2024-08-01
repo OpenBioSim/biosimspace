@@ -1583,6 +1583,8 @@ class AToMEquilibration(_AToM):
 
 
 class AToMAnnealing(_AToM):
+    """Annealing protocol for AToM simulations."""
+
     def __init__(
         self,
         system=None,
@@ -2399,6 +2401,8 @@ class AToMAnnealing(_AToM):
 
 
 class AToMProduction(_AToM):
+    """Production protocol for AToM simulations."""
+
     def __init__(
         self,
         system=None,
