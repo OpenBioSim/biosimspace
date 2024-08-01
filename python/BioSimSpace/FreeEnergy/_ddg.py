@@ -85,7 +85,7 @@ def _bias_fcn(epert, lam1, lam2, alpha, u0, w0):
     return ebias1 + lam2 * epert + w0
 
 
-def npot_fcn(e0, epert, bet, lam1, lam2, alpha, u0, w0):
+def _npot_fcn(e0, epert, bet, lam1, lam2, alpha, u0, w0):
     # This is the negative reduced energy
     # -beta*(U0+bias)
     return -bet * (e0 + _bias_fcn(epert, lam1, lam2, alpha, u0, w0))
@@ -196,7 +196,7 @@ def _get_inflection_indices(folders):
     return inflection_indices
 
 
-def analyse_UWHAM(work_dir, inflection_indices=None):
+def analyse_UWHAM(work_dir, ignore_lower, inflection_indices=None):
     """
     Analyse the output of BioSimSpace AToM simulations.
 
@@ -226,6 +226,8 @@ def analyse_UWHAM(work_dir, inflection_indices=None):
         inflection_indices = _get_inflection_indices(folders)
     for folder in folders.values():
         df = _pd.read_csv(folder / "openmm.csv")
+        # drop the first `ignore_lower` rows of each df
+        df = df.iloc[ignore_lower:]
         df["beta"] = 1 / (0.001986209 * df["temperature"])
         total_states += 1
         total_samples += len(df)
@@ -270,7 +272,7 @@ def analyse_UWHAM(work_dir, inflection_indices=None):
     sid = 0
 
     for be in range(len(n_samples_first_half)):
-        lnq = npot_fcn(
+        lnq = _npot_fcn(
             e0=pots_first_half,
             epert=pert_es_first_half,
             bet=dataframes[be]["beta"].values[0],
@@ -282,7 +284,6 @@ def analyse_UWHAM(work_dir, inflection_indices=None):
         )
         ln_q[sid] = lnq
         sid += 1
-
     f_i, d_i, weights = _estimate_f_i(ln_q, n_samples_first_half)
     ddg = f_i[-1] - f_i[0]
     ddg1 = ddg / dataframes[0]["beta"].values[0]
@@ -297,7 +298,7 @@ def analyse_UWHAM(work_dir, inflection_indices=None):
 
     # note the order of (be, te)
     for be in range(len(n_samples_second_half)):
-        lnq = npot_fcn(
+        lnq = _npot_fcn(
             e0=pots_second_half,
             epert=pert_es_second_half,
             bet=dataframes[be]["beta"].values[0],
@@ -309,7 +310,6 @@ def analyse_UWHAM(work_dir, inflection_indices=None):
         )
         ln_q[sid] = lnq
         sid += 1
-
     f_i, d_i, weights = _estimate_f_i(ln_q, n_samples_second_half)
     ddg = f_i[-1] - f_i[0]
     ddg2 = ddg / dataframes[0]["beta"].values[0]

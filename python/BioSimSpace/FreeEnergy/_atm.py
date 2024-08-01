@@ -1058,7 +1058,12 @@ class AToM:
         runner.run()
 
     @staticmethod
-    def analyse(work_dir, method="UWHAM", inflex_point=None):
+    def analyse(
+        work_dir,
+        method="UWHAM",
+        ignore_lower=0,
+        inflex_indices=None,
+    ):
         """Analyse the AToM simulation.
 
         Parameters
@@ -1067,8 +1072,12 @@ class AToM:
             The working directory where the AToM simulation is located.
         method : str
             The method to use for the analysis. Currently only UWHAM is supported.
-        inflex_point : float
-            The inflection point for the UWHAM analysis.
+        ignore_lower : int
+            Ignore the first N samples when analysing.
+        inflex_indices : [int]
+            The indices at which the direction changes. For example, if direction=[1,1,-1,-1],
+            then inflex_indices=[1,2].
+            If None, the inflexion point will be found automatically.
 
         Returns
         -------
@@ -1077,8 +1086,21 @@ class AToM:
         ddg_err : float
             The error in the free energy difference.
         """
+        if not isinstance(ignore_lower, int):
+            raise TypeError("'ignore_lower' must be an integer.")
+        if ignore_lower < 0:
+            raise ValueError("'ignore_lower' must be a positive integer.")
+        if inflex_indices is not None:
+            if not isinstance(inflex_indices, list):
+                raise TypeError("'inflex_indices' must be a list.")
+            if not all(isinstance(x, int) for x in inflex_indices):
+                raise TypeError("'inflex_indices' must be a list of integers.")
+            if not len(inflex_indices) == 2:
+                raise ValueError("'inflex_indices' must have length 2.")
         if method == "UWHAM":
-            total_ddg, total_ddg_err = AToM._analyse_UWHAM(work_dir, inflex_point)
+            total_ddg, total_ddg_err = AToM._analyse_UWHAM(
+                work_dir, ignore_lower, inflex_indices
+            )
             return total_ddg, total_ddg_err
         if method == "MBAR":
             from ._relative import Relative as _Relative
@@ -1100,13 +1122,15 @@ class AToM:
             raise ValueError(f"Method {method} is not supported for analysis.")
 
     @staticmethod
-    def _analyse_UWHAM(work_dir, inflex_point=None):
+    def _analyse_UWHAM(work_dir, ignore_lower, inflex_indices=None):
         """
         Analyse the UWHAM results from the AToM simulation.
         """
         from ._ddg import analyse_UWHAM as _UWHAM
 
-        total_ddg, total_ddg_err = _UWHAM(work_dir, inflex_point)
+        total_ddg, total_ddg_err = _UWHAM(
+            work_dir, ignore_lower, inflection_indices=inflex_indices
+        )
         return total_ddg, total_ddg_err
 
     @staticmethod
