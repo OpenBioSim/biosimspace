@@ -539,15 +539,27 @@ class _AToMUtils:
         output += "simulation.saveState('openmm.xml')"
         return output
 
+    def createRestartLogic(self, total_cycles, steps_per_cycle):
+        # Creates the logic to calculate, at run time, the number of cycles that need to be run
+        # based on the number of steps that have already been run
+        output = ""
+        output += f"total_required_cycles = {total_cycles}\n"
+        output += "if not is_restart:\n"
+        output += "    steps_so_far = 0\n"
+        output += "    numcycles = total_required_cycles\n"
+        output += "else:\n"
+        output += "    steps_so_far = step\n"
+        output += f"    cycles_so_far = steps_so_far / {steps_per_cycle}\n"
+        output += "    numcycles = int(total_required_cycles - cycles_so_far)\n"
+        return output
+
     def createLoopWithReporting(
         self,
         name,
-        cycles,
         steps_per_cycle,
         report_interval,
         timestep,
         inflex_point,
-        steps=0,
     ):
         """Creates the loop in which simulations are run, stopping each cycle
         to report the potential energies required for MBAR analysis.
@@ -568,21 +580,30 @@ class _AToMUtils:
             The index at which the protocol changes direction. Potentials only need to be calculated for each half of the protocol.
         """
         output = ""
-        output += "# Create the dictionary which will hold the energies\n"
+        output += "# Reporting for MBAR:\n"
+        # round master lambda to 4 d.p. to avoid floating point errors
         output += f"master_lambda_list = {[round(i,4) for i in self.protocol._get_lambda_values()]}\n"
-        output += "energies = {}\n"
-        output += "energies['time'] = []\n"
-        output += "energies['fep-lambda'] = []\n"
-        output += "energies['temperature'] = []\n"
-        output += "for i in master_lambda_list:\n"
-        output += "    energies[i] = []\n"
+        output += f"master_lambda = master_lambda_list[window_index]\n"
+
+        output += "if is_restart:\n"
+        output += "    try:\n"
+        output += "        MBAR_df = pd.read_csv(f'energies_{master_lambda}.csv')\n"
+        output += "        energies = MBAR_df.to_dict('list')\n"
+        output += "        energies = {float(k) if k.replace('.', '').isdigit() else k: v for k, v in energies.items()}\n"
+        output += "    except FileNotFoundError:\n"
+        output += "        raise FileNotFoundError('MBAR data not found, unable to restart')\n"
+        output += "else:\n"
+        output += "    energies = {}\n"
+        output += "    energies['time'] = []\n"
+        output += "    energies['fep-lambda'] = []\n"
+        output += "    energies['temperature'] = []\n"
+        output += "    for i in master_lambda_list:\n"
+        output += "        energies[i] = []\n"
         output += f"\n# Run the simulation in cycles, with each cycle having {report_interval} steps.\n"
-        output += f"steps_so_far = {steps}\n"
         output += "# Timestep in ps\n"
         output += f"timestep = {timestep}\n"
         output += f"inflex_point = {inflex_point}\n"
-        output += f"master_lambda = master_lambda_list[window_index]\n"
-        output += f"for x in range(0, {cycles}):\n"
+        output += f"for x in range(0, numcycles):\n"
         output += f"    simulation.step({steps_per_cycle})\n"
         output += f"    steps_so_far += {steps_per_cycle}\n"
         output += "    time = steps_so_far * timestep\n"
@@ -641,29 +662,43 @@ class _AToMUtils:
         return output
 
     def createSoftcorePertELoop(
-        self, name, cycles, steps_per_cycle, report_interval, timestep, steps=0
+        self,
+        name,
+        steps_per_cycle,
+        report_interval,
+        timestep,
     ):
         """Recreation of Gallachio lab analysis - currently uses {cycles} to define sampling frequency"""
         output = ""
         output += f"\n# Run the simulation in cycles, with each cycle having {report_interval} steps.\n"
-        output += f"steps_so_far = {steps}\n"
         output += "# Timestep in ps\n"
         output += f"timestep = {timestep}\n"
         output += "\n"
         output += "#Create dictionary for storing results in the same manner as the Gallachio lab code\n"
-        output += "result = {}\n"
-        output += "result['window'] = []\n"
-        output += "result['temperature'] = []\n"
-        output += "result['direction'] = []\n"
-        output += "result['lambda1'] = []\n"
-        output += "result['lambda2'] = []\n"
-        output += "result['alpha'] = []\n"
-        output += "result['uh'] = []\n"
-        output += "result['w0'] = []\n"
-        output += "result['pot_en'] = []\n"
-        output += "result['pert_en'] = []\n"
-        output += "result['metad_offset'] = []\n"
-        output += f"for x in range(0, {cycles}):\n"
+        # Logic for restarting simulations
+        output += "#Reporting for UWHAM:\n"
+        output += "if is_restart:\n"
+        # first UWHAM
+        output += "    try:\n"
+        output += f"        UWHAM_df = pd.read_csv('{name}.csv')\n"
+        output += "        result = UWHAM_df.to_dict('list')\n"
+        output += "    except FileNotFoundError:\n"
+        output += "        raise FileNotFoundError('UWHAM data not found, unable to restart')\n"
+        output += "else:\n"
+        output += "    result = {}\n"
+        output += "    result['window'] = []\n"
+        output += "    result['temperature'] = []\n"
+        output += "    result['direction'] = []\n"
+        output += "    result['lambda1'] = []\n"
+        output += "    result['lambda2'] = []\n"
+        output += "    result['alpha'] = []\n"
+        output += "    result['uh'] = []\n"
+        output += "    result['w0'] = []\n"
+        output += "    result['pot_en'] = []\n"
+        output += "    result['pert_en'] = []\n"
+        output += "    result['metad_offset'] = []\n"
+
+        output += f"for x in range(0, numcycles):\n"
         output += f"    simulation.step({steps_per_cycle})\n"
         output += (
             "    state = simulation.context.getState(getEnergy = True, groups = -1)\n"
@@ -714,46 +749,60 @@ class _AToMUtils:
     def createReportingBoth(
         self,
         name,
-        cycles,
         steps_per_cycle,
         timestep,
         inflex_point,
-        steps=0,
     ):
         output = ""
-        output += f"steps_so_far = {steps}\n"
         output += "# Timestep in ps\n"
         output += f"timestep = {timestep}\n"
         output += "\n"
+        # Logic for restarting simulations
         output += "#Reporting for UWHAM:\n"
-        output += "result = {}\n"
-        output += "result['window'] = []\n"
-        output += "result['temperature'] = []\n"
-        output += "result['direction'] = []\n"
-        output += "result['lambda1'] = []\n"
-        output += "result['lambda2'] = []\n"
-        output += "result['alpha'] = []\n"
-        output += "result['uh'] = []\n"
-        output += "result['w0'] = []\n"
-        output += "result['pot_en'] = []\n"
-        output += "result['pert_en'] = []\n"
-        output += "result['metad_offset'] = []\n"
+        output += "if is_restart:\n"
+        # first UWHAM
+        output += "    try:\n"
+        output += f"        UWHAM_df = pd.read_csv('{name}.csv')\n"
+        output += "        result = UWHAM_df.to_dict('list')\n"
+        output += "    except FileNotFoundError:\n"
+        output += "        raise FileNotFoundError('UWHAM data not found, unable to restart')\n"
+        output += "else:\n"
+        output += "    result = {}\n"
+        output += "    result['window'] = []\n"
+        output += "    result['temperature'] = []\n"
+        output += "    result['direction'] = []\n"
+        output += "    result['lambda1'] = []\n"
+        output += "    result['lambda2'] = []\n"
+        output += "    result['alpha'] = []\n"
+        output += "    result['uh'] = []\n"
+        output += "    result['w0'] = []\n"
+        output += "    result['pot_en'] = []\n"
+        output += "    result['pert_en'] = []\n"
+        output += "    result['metad_offset'] = []\n"
 
         output += "# Reporting for MBAR:\n"
         # round master lambda to 4 d.p. to avoid floating point errors
         output += f"master_lambda_list = {[round(i,4) for i in self.protocol._get_lambda_values()]}\n"
-        output += "energies = {}\n"
-        output += "energies['time'] = []\n"
-        output += "energies['fep-lambda'] = []\n"
-        output += "energies['temperature'] = []\n"
-        output += "for i in master_lambda_list:\n"
-        output += "    energies[i] = []\n"
-        output += f"inflex_point = {inflex_point}\n"
         output += f"master_lambda = master_lambda_list[window_index]\n"
-        output += f"steps_so_far = {steps}\n"
+        output += "if is_restart:\n"
+        output += "    try:\n"
+        output += "        MBAR_df = pd.read_csv(f'energies_{master_lambda}.csv')\n"
+        output += "        energies = MBAR_df.to_dict('list')\n"
+        output += "        energies = {float(k) if k.replace('.', '').isdigit() else k: v for k, v in energies.items()}\n"
+        output += "    except FileNotFoundError:\n"
+        output += "        raise FileNotFoundError('MBAR data not found, unable to restart')\n"
+        output += "else:\n"
+        output += "    energies = {}\n"
+        output += "    energies['time'] = []\n"
+        output += "    energies['fep-lambda'] = []\n"
+        output += "    energies['temperature'] = []\n"
+        output += "    for i in master_lambda_list:\n"
+        output += "        energies[i] = []\n"
+
+        output += f"inflex_point = {inflex_point}\n"
 
         output += "# Now run the simulation.\n"
-        output += f"for x in range(0, {cycles}):\n"
+        output += f"for x in range(0, numcycles):\n"
         output += f"    simulation.step({steps_per_cycle})\n"
         output += f"    steps_so_far += {steps_per_cycle}\n"
         output += "    time = steps_so_far * timestep\n"

@@ -602,14 +602,6 @@ class OpenMMAToM(_OpenMM):
             print("The simulation has already finished!")
             return
 
-        # Inform user that a restart was loaded.
-        self.addToConfig("\n# Print restart information.")
-        self.addToConfig("if is_restart:")
-        self.addToConfig(f"    steps = {total_steps}")
-        self.addToConfig("    percent_complete = 100 * (step / steps)")
-        self.addToConfig("    print('Loaded state from an existing simulation.')")
-        self.addToConfig("    print(f'Simulation is {percent_complete}% complete.')")
-
         # Get the report and restart intervals.
         report_interval = self._protocol.getReportInterval()
         restart_interval = self._protocol.getRestartInterval()
@@ -620,14 +612,6 @@ class OpenMMAToM(_OpenMM):
         if restart_interval > steps:
             restart_interval = steps
 
-        # Add the reporters.
-        self.addToConfig("\n# Add reporters.")
-        self._add_config_reporters(
-            state_interval=report_interval,
-            traj_interval=restart_interval,
-            is_restart=is_restart,
-        )
-
         # Work out the total simulation time in picoseconds.
         run_time = steps * timestep
 
@@ -637,12 +621,37 @@ class OpenMMAToM(_OpenMM):
         # Work out the number of steps per cycle.
         steps_per_cycle = int(steps / cycles)
 
+        self.addToConfig(
+            util.createRestartLogic(
+                total_cycles=cycles, steps_per_cycle=steps_per_cycle
+            )
+        )
+        # Inform user that a restart was loaded.
+        self.addToConfig("\n# Print restart information.")
+        self.addToConfig("if is_restart:")
+        self.addToConfig(f"    steps = {total_steps}")
+        self.addToConfig("    percent_complete = 100 * (step / steps)")
+        self.addToConfig("    print('Loaded state from an existing simulation.')")
+        self.addToConfig("    print(f'Simulation is {percent_complete}% complete.')")
+        self.addToConfig("    print(f'running an additional {numcycles} cycles')")
+
+        # Add the reporters.
+        self.addToConfig("\n# Add reporters.")
+        self._add_config_reporters(
+            state_interval=report_interval,
+            traj_interval=restart_interval,
+            is_restart=is_restart,
+        )
+
         self.addToConfig(f"\ntemperature = {temperature}")
         if analysis_method == "UWHAM":
             # Now run the simulation.
             self.addToConfig(
                 util.createSoftcorePertELoop(
-                    self._name, cycles, steps_per_cycle, report_interval, timestep, step
+                    name=self._name,
+                    steps_per_cycle=steps_per_cycle,
+                    report_interval=report_interval,
+                    timestep=timestep,
                 )
             )
         elif analysis_method == "both":
@@ -656,11 +665,9 @@ class OpenMMAToM(_OpenMM):
             self.addToConfig(
                 util.createReportingBoth(
                     name=self._name,
-                    cycles=cycles,
                     steps_per_cycle=steps_per_cycle,
                     timestep=timestep,
                     inflex_point=inflex,
-                    steps=step,
                 )
             )
         else:
@@ -673,11 +680,9 @@ class OpenMMAToM(_OpenMM):
             self.addToConfig(
                 util.createLoopWithReporting(
                     name=self._name,
-                    cycles=cycles,
                     steps_per_cycle=steps_per_cycle,
                     report_interval=report_interval,
                     timestep=timestep,
-                    steps=step,
                     inflex_point=inflex,
                 )
             )

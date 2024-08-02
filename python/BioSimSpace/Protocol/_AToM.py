@@ -2502,7 +2502,6 @@ class AToMProduction(_AToM):
         pos_restrained_atoms : list of int
             The atoms to be restrained.
 
-
         align_kf_sep : int, float, str, :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>`
             The force constant for the distance portion of the alignment restraint (kcal/(mol A^2)).
 
