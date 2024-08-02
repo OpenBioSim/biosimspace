@@ -1623,7 +1623,7 @@ class AToMAnnealing(_AToM):
 
         Parameters
         ----------
-        system : :class:`System <BioSimSpace._SireWrappers.System>``
+        system : :class:`System <BioSimSpace._SireWrappers.System>`
             A prepared AToM system.
 
         data : dict
@@ -2442,7 +2442,7 @@ class AToMProduction(_AToM):
 
         Parameters
         ----------
-        system : :class:`System <BioSimSpace._SireWrappers.System>``
+        system : :class:`System <BioSimSpace._SireWrappers.System>`
             A prepared AToM system.
 
         data : dict
