@@ -5,6 +5,7 @@ import tarfile
 import tempfile
 import json
 import pandas as pd
+import os
 
 import BioSimSpace as BSS
 
@@ -76,6 +77,39 @@ def test_makeSystem(TEMOA_host, TEMOA_lig1, TEMOA_lig2):
 
     # make a new atm_generator and check the parsing of a full system
     atm_generator = BSS.FreeEnergy.AToM(system=atm_system)
+
+
+def test_run(TEMOA_hostguest):
+    system, _ = TEMOA_hostguest
+    production_atm = BSS.Protocol.AToMProduction(
+        system=system,
+        CMCM_restraint=True,
+        runtime="2 fs",
+        report_interval=1,
+        restart_interval=1,
+        num_lambda=2,
+        analysis_method="UWHAM",
+    )
+    production_atm2 = BSS.Protocol.AToMProduction(
+        system=system,
+        CMCM_restraint=True,
+        runtime="4 fs",
+        report_interval=1,
+        restart_interval=1,
+        num_lambda=2,
+        analysis_method="UWHAM",
+    )
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        production = BSS.FreeEnergy.AToM.run(system, production_atm, work_dir=tmpdirname)
+        production.wait()
+        # read openmm.csv and make sure it has a single row
+        df = pd.read_csv(os.path.join(tmpdirname,"lambda_0.0000/openmm.csv"))
+        assert len(df) == 1
+
+        production2 = BSS.FreeEnergy.AToM.run(system, production_atm2, work_dir=tmpdirname)
+        production2.wait()
+        df = pd.read_csv(os.path.join(tmpdirname,"lambda_0.0000/openmm.csv"))
+        assert len(df) == 2
 
 
 def test_single_point_energies(TEMOA_host, TEMOA_lig1, TEMOA_lig2):

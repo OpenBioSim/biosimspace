@@ -1056,6 +1056,7 @@ class AToM:
             setup_only=setup_only,
         )
         runner.run()
+        return runner._runner
 
     @staticmethod
     def analyse(
@@ -1314,7 +1315,6 @@ class _relativeATM:
         lambda_list = lambda_list[1:]
         # Enumerate starting at 1 to account for the removal of the first lambda value
         for index, lam in enumerate(lambda_list, 1):
-            # TODO: Support for simulations restarting from a checkpoint.
             # Files are named according to index, rather than lambda value
             # This is to avoid confusion arising from the fact that there are multiple lambdas
             # and that the values of lambda1 and lambda2 wont necessarily be go from 0 to 1

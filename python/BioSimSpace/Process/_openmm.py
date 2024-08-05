@@ -70,8 +70,8 @@ class OpenMM(_process.Process):
     # Special cases for generate config when using ATM protocols.
     def __new__(
         cls,
-        system,
-        protocol,
+        system=None,
+        protocol=None,
         reference_system=None,
         exe=None,
         name="openmm",
