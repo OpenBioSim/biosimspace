@@ -1056,7 +1056,10 @@ class AToM:
             setup_only=setup_only,
         )
         runner.run()
-        return runner._runner
+        if setup_only:
+            return None
+        else:
+            return runner._runner
 
     @staticmethod
     def analyse(

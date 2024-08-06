@@ -287,5 +287,3 @@ def test_atm_production(TEMOA_hostguest):
         num_lambda=6,
         analysis_method="both",
     )
-
-    # Now test the ability to restart.
