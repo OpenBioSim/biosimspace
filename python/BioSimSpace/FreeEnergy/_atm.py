@@ -1114,14 +1114,6 @@ class AToM:
             ddg_forward = _Relative.difference(ddg_forward)
             ddg_reverse = _Relative.difference(ddg_reverse)
             return ddg_forward, ddg_reverse
-
-        if method == "test":
-            ddg_forward, ddg_reverse = AToM._analyse_test(work_dir)
-            return ddg_forward, ddg_reverse
-
-        if method == "femto":
-            est, o = AToM._analyse_femto(work_dir)
-            return est, o
         else:
             raise ValueError(f"Method {method} is not supported for analysis.")
 
