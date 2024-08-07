@@ -82,6 +82,7 @@ def _bias_fcn(epert, lam1, lam2, alpha, u0, w0):
     if alpha > 0:
         ee = 1 + numpy.exp(-alpha * (epert - u0))
         ebias1 = (lam2 - lam1) * numpy.log(ee) / alpha
+    print(ebias1)
     return ebias1 + lam2 * epert + w0
 
 
@@ -217,6 +218,8 @@ def analyse_UWHAM(work_dir, ignore_lower, inflection_indices=None):
         The error in the free energy.
 
     """
+    # NOTE: This code is not designed to work with repex
+    # It always assumes that each window is at the same temperature
     dataframes = []
     slices = {}
     total_states = 0
@@ -228,6 +231,7 @@ def analyse_UWHAM(work_dir, ignore_lower, inflection_indices=None):
         df = _pd.read_csv(folder / "openmm.csv")
         # drop the first `ignore_lower` rows of each df
         df = df.iloc[ignore_lower:]
+        # Beta values, assuming that energies are in kj/mol
         df["beta"] = 1 / (0.001986209 * df["temperature"])
         total_states += 1
         total_samples += len(df)
@@ -264,6 +268,17 @@ def analyse_UWHAM(work_dir, ignore_lower, inflection_indices=None):
         pots.append(e0)
         pert_es.append(pert_e)
 
+    # Should only matter in cases where states are at different temps,
+    # leaving here for debugging and parity with GL code
+    for be in range(len(n_samples)):
+        pots[be] = pots[be] - _bias_fcn(
+            pert_es[be],
+            lam1=dataframes[be]["lambda1"].values[0],
+            lam2=dataframes[be]["lambda2"].values[0],
+            alpha=dataframes[be]["alpha"].values[0],
+            u0=dataframes[be]["uh"].values[0],
+            w0=dataframes[be]["w0"].values[0],
+        )
     # We will assume that the point at which leg1 and leg2 are split is halfway through
     n_samples_first_half = n_samples[: inflection_indices[0] + 1]
     pots_first_half = numpy.concatenate(pots[: inflection_indices[0] + 1])
