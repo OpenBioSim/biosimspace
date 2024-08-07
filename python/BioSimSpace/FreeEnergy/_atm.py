@@ -853,7 +853,7 @@ class AToM:
         ----------
         system : :class:`System <BioSimSpace._SireWrappers.System>`
             The system for the AToM simulation that has been prepared AToM.prepare().
-            All other parameters are ignored if this is provided.
+            All other arguments are ignored if this is provided.
         ligand1 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
             The bound ligand.
         ligand2 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`

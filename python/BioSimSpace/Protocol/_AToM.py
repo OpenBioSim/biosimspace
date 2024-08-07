@@ -1680,7 +1680,7 @@ class AToMAnnealing(_AToM):
         pos_rest_width : float, :class:`Length <BioSimSpace.Types.Length>`
             The width of the flat-bottom potential used for coordinate restraint in Angstroms.
 
-        pos_restrained_atoms : list of int
+        pos_restrained_atoms : [int]
             The atoms to be restrained.
 
         align_kf_sep : int, float, str, :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>`
@@ -2499,7 +2499,7 @@ class AToMProduction(_AToM):
         pos_rest_width : :class:`Length <BioSimSpace.Types.Length>`, float
             The width of the flat-bottom potential used for coordinate restraint in Angstroms.
 
-        pos_restrained_atoms : list of int
+        pos_restrained_atoms : [int]
             The atoms to be restrained.
 
         align_kf_sep : int, float, str, :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>`
@@ -2533,25 +2533,25 @@ class AToMProduction(_AToM):
             The number of lambda values. This will be used to set the window-dependent
             AToM parameters, unless they are explicitly set by the user.
 
-        lambdas : list of float
+        lambdas : [float]
             The lambda values.
 
-        direction : list of int
+        direction : [int]
             The direction values. Must be either 1 (forwards) or -1 (backwards).
 
-        lambda1 : list of float
+        lambda1 : [float]
             The lambda1 values.
 
-        lambda2 : list of float
+        lambda2 : [float]
             The lambda2 values.
 
-        alpha : list of int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
+        alpha : [int], float, str, :class:`Energy <BioSimSpace.Types.Energy>`
             The alpha values.
 
-        uh : list of int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
+        uh : [int], float, str, :class:`Energy <BioSimSpace.Types.Energy>`
             The uh values.
 
-        W0 : list of int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
+        W0 : [int], float, str, :class:`Energy <BioSimSpace.Types.Energy>`
             The W0 values.
 
         analysis_method : str
@@ -2927,7 +2927,7 @@ class AToMProduction(_AToM):
         Returns
         -------
 
-        lambdas : list of float
+        lambdas : [float]
             The directions.
         """
         return self._directions
@@ -2939,7 +2939,7 @@ class AToMProduction(_AToM):
         Parameters
         ----------
 
-        directions : list of int
+        directions : [int]
             The directions.
         """
         if isinstance(directions, list):
@@ -2965,7 +2965,7 @@ class AToMProduction(_AToM):
         Returns
         -------
 
-        lambda1 : list of float
+        lambda1 : [float]
             The lambda1 values.
         """
         return self._lambda1
@@ -2977,7 +2977,7 @@ class AToMProduction(_AToM):
         Parameters
         ----------
 
-        lambda1 : list of float
+        lambda1 : [float]
             The lambda1 values.
         """
         if isinstance(lambda1, list):
@@ -2992,7 +2992,7 @@ class AToMProduction(_AToM):
                     "all entries in 'lambda1' must be floats with a value less than or equal to 0.5"
                 )
         elif lambda1 is None:
-            # use numpy to create a list of floats
+            # use numpy to create a [float]s
             self._lambda1 = _np.concatenate(
                 [
                     _np.linspace(0, 0.5, _math.floor(self._num_lambda / 2)),
@@ -3011,7 +3011,7 @@ class AToMProduction(_AToM):
         Returns
         -------
 
-        lambda2 : list of float
+        lambda2 : [float]
             The lambda2 values.
         """
         return self._lambda2
@@ -3023,7 +3023,7 @@ class AToMProduction(_AToM):
         Parameters
         ----------
 
-        lambda2 : list of float
+        lambda2 : [float]
             The lambda2 values.
         """
         if isinstance(lambda2, list):
@@ -3040,7 +3040,7 @@ class AToMProduction(_AToM):
             else:
                 raise ValueError("all entries in 'lambda2' must be floats")
         elif lambda2 is None:
-            # use numpy to create a list of floats
+            # use numpy to create a [float]s
             self._lambda2 = _np.concatenate(
                 [
                     _np.linspace(0, 0.5, _math.floor(self._num_lambda / 2)),
@@ -3071,7 +3071,7 @@ class AToMProduction(_AToM):
         Parameters
         ----------
 
-        alpha : list of :class:`Energy <BioSimSpace.Types.Energy> or list of int, float, str
+        alpha : list of :class:`Energy <BioSimSpace.Types.Energy> or [int], float, str
             The alpha values in kcal/mol.
         """
         if isinstance(alpha, list):
