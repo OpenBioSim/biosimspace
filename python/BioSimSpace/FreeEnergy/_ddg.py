@@ -82,7 +82,6 @@ def _bias_fcn(epert, lam1, lam2, alpha, u0, w0):
     if alpha > 0:
         ee = 1 + numpy.exp(-alpha * (epert - u0))
         ebias1 = (lam2 - lam1) * numpy.log(ee) / alpha
-    print(ebias1)
     return ebias1 + lam2 * epert + w0
 
 
