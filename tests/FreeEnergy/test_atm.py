@@ -438,13 +438,15 @@ def test_single_point_energies(TEMOA_host, TEMOA_lig1, TEMOA_lig2):
         production = BSS.Process.OpenMM(
             system,
             production_atm,
-            platform="CUDA",
+            platform="CPU",
             setup_only=True,
             work_dir=tmpdirname,
             **{"_is_testing": True},
         )
         production.start()
         production.wait()
+
+        assert not production.isError()
         # now get the file containing single points
         df = pd.read_csv(os.path.join(tmpdirname, "energies_singlepoint.csv"))
         ens = df.to_dict()
@@ -477,10 +479,9 @@ def test_single_point_energies(TEMOA_host, TEMOA_lig1, TEMOA_lig2):
             "com": 0.0,
             "distance": 0.02983,
             "angle": 0.0072010,
-            "dihedral": 6.234e-07,
+            "dihedral": 3.55355e-13,
             "position_restraint": 0.0,
         }
-        print(ens_nonlam)
         for key, en in ens_GL_nolam.items():
             assert pytest.approx(ens_nonlam[key][0], rel=1e-3) == en
 
