@@ -29,6 +29,7 @@ Classes
     :toctree: generated/
 
     Relative
+    AToM
 
 Functions
 =========
@@ -42,3 +43,4 @@ Functions
 
 from ._relative import *
 from ._utils import *
+from ._atm import *
