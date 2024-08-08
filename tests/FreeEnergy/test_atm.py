@@ -100,15 +100,19 @@ def test_run(TEMOA_hostguest):
         analysis_method="UWHAM",
     )
     with tempfile.TemporaryDirectory() as tmpdirname:
-        production = BSS.FreeEnergy.AToM.run(system, production_atm, work_dir=tmpdirname)
+        production = BSS.FreeEnergy.AToM.run(
+            system, production_atm, work_dir=tmpdirname
+        )
         production.wait()
         # read openmm.csv and make sure it has a single row
-        df = pd.read_csv(os.path.join(tmpdirname,"lambda_0.0000/openmm.csv"))
+        df = pd.read_csv(os.path.join(tmpdirname, "lambda_0.0000/openmm.csv"))
         assert len(df) == 1
 
-        production2 = BSS.FreeEnergy.AToM.run(system, production_atm2, work_dir=tmpdirname)
+        production2 = BSS.FreeEnergy.AToM.run(
+            system, production_atm2, work_dir=tmpdirname
+        )
         production2.wait()
-        df = pd.read_csv(os.path.join(tmpdirname,"lambda_0.0000/openmm.csv"))
+        df = pd.read_csv(os.path.join(tmpdirname, "lambda_0.0000/openmm.csv"))
         assert len(df) == 2
 
 
@@ -442,7 +446,7 @@ def test_single_point_energies(TEMOA_host, TEMOA_lig1, TEMOA_lig2):
         production.start()
         production.wait()
         # now get the file containing single points
-        df = pd.read_csv(tmpdirname + "/energies_singlepoint.csv")
+        df = pd.read_csv(os.path.join(tmpdirname, "energies_singlepoint.csv"))
         ens = df.to_dict()
 
         # Here we are specifically verifying the energies of the ATMForce
@@ -466,7 +470,7 @@ def test_single_point_energies(TEMOA_host, TEMOA_lig1, TEMOA_lig2):
             assert pytest.approx(ens[str(lam)][0], rel=1) == en + offset
 
         # Now check the rest of the forces
-        df_nonlam = pd.read_csv(tmpdirname + "/non_lambda_forces.csv")
+        df_nonlam = pd.read_csv(os.path.join(tmpdirname, "non_lambda_forces.csv"))
         ens_nonlam = df_nonlam.to_dict()
 
         ens_GL_nolam = {
