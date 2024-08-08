@@ -589,10 +589,10 @@ class OpenMMAToM(_OpenMM):
         # Check for a restart file and load the simulation state.
         is_restart, _ = self._add_config_restart()
 
-        #NOTE: The restarting logic here is different to previous openMM classes
+        # NOTE: The restarting logic here is different to previous openMM classes
         # It doesn't use the steps value from the restart function, instead
         # the number of steps is worked out at runtime within the openmm script
-        # this means that restarting either by using the biosimspace runner 
+        # this means that restarting either by using the biosimspace runner
         # OR by running the openmm script directly will work the same.
         step = 0
 
