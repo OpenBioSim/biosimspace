@@ -196,7 +196,7 @@ def _get_inflection_indices(folders):
     return inflection_indices
 
 
-def analyse_UWHAM(work_dir, ignore_lower, inflection_indices=None):
+def analyse_UWHAM(work_dir, ignore_lower, ignore_upper, inflection_indices=None):
     """
     Analyse the output of BioSimSpace AToM simulations.
 
@@ -204,6 +204,10 @@ def analyse_UWHAM(work_dir, ignore_lower, inflection_indices=None):
     ----------
     work_dir : str
         The directory containing the simulation data.
+    ignore_lower : int
+        The number of rows to ignore at the start of each file.
+    ignore_upper : int
+        The number of rows to ignore at the end of each file.
     inflection_indices : tuple, optional
         The point at which 'direction' changes.
         Should be (last index of direction 1, first index of direction 2).
@@ -229,7 +233,10 @@ def analyse_UWHAM(work_dir, ignore_lower, inflection_indices=None):
     for folder in folders.values():
         df = _pd.read_csv(folder / "openmm.csv")
         # drop the first `ignore_lower` rows of each df
-        df = df.iloc[ignore_lower:]
+        if ignore_upper is not None:
+            df = df.iloc[ignore_lower:ignore_upper]
+        else:
+            df = df.iloc[ignore_lower:]
         # Beta values, assuming that energies are in kj/mol
         df["beta"] = 1 / (0.001986209 * df["temperature"])
         total_states += 1
@@ -301,7 +308,7 @@ def analyse_UWHAM(work_dir, ignore_lower, inflection_indices=None):
     f_i, d_i, weights = _estimate_f_i(ln_q, n_samples_first_half)
     ddg = f_i[-1] - f_i[0]
     ddg1 = ddg / dataframes[0]["beta"].values[0]
-    print(f"Forward leg: {ddg1}")
+    # print(f"Forward leg: {ddg1}")
     ddg_error_1 = numpy.sqrt(d_i[-1] + d_i[0]) / dataframes[0]["beta"].values[0]
 
     n_samples_second_half = n_samples[inflection_indices[1] :]
@@ -327,7 +334,7 @@ def analyse_UWHAM(work_dir, ignore_lower, inflection_indices=None):
     f_i, d_i, weights = _estimate_f_i(ln_q, n_samples_second_half)
     ddg = f_i[-1] - f_i[0]
     ddg2 = ddg / dataframes[0]["beta"].values[0]
-    print(f"Reverse leg: {ddg2}")
+    # print(f"Reverse leg: {ddg2}")
     ddg_error_2 = numpy.sqrt(d_i[-1] + d_i[0]) / dataframes[0]["beta"].values[0]
 
     ddg_total = ddg1 - ddg2
