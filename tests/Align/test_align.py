@@ -3,6 +3,7 @@ import sys
 
 from sire.legacy.MM import InternalFF, IntraCLJFF, IntraFF
 from sire.legacy.Mol import AtomIdx, Element, PartialMolecule
+from tests.conftest import has_amber
 
 import BioSimSpace as BSS
 
@@ -470,3 +471,227 @@ def test_hydrogen_mass_repartitioning():
         assert mass0 == masses1[idx]
     for idx, mass1 in dummy_masses1:
         assert mass1 == masses0[idx]
+
+
+@pytest.fixture(
+    params=[
+        (
+            "single_mutant",
+            {
+                0: 0,
+                1: 1,
+                2: 2,
+                3: 3,
+                4: 4,
+                5: 5,
+                6: 6,
+                7: 7,
+                8: 8,
+                9: 9,
+                10: 10,
+                11: 11,
+                12: 12,
+                13: 13,
+                14: 14,
+                15: 15,
+                16: 16,
+                17: 17,
+                18: 18,
+                19: 19,
+                20: 20,
+                21: 23,
+                22: 21,
+                23: 22,
+                25: 24,
+                26: 25,
+                27: 26,
+                28: 27,
+                29: 28,
+                30: 29,
+                31: 30,
+                32: 31,
+                33: 32,
+                34: 33,
+                35: 34,
+                36: 35,
+                37: 36,
+                38: 37,
+                39: 38,
+                40: 39,
+                41: 40,
+                42: 41,
+            },
+            [2],
+        ),
+        (
+            "double_neighbour_mutant",
+            {
+                0: 0,
+                1: 1,
+                2: 2,
+                3: 3,
+                4: 4,
+                5: 5,
+                6: 6,
+                7: 7,
+                8: 8,
+                9: 9,
+                10: 10,
+                11: 11,
+                12: 12,
+                13: 13,
+                14: 14,
+                15: 15,
+                16: 16,
+                17: 17,
+                18: 18,
+                19: 19,
+                20: 20,
+                21: 24,
+                22: 25,
+                23: 26,
+                24: 27,
+                25: 28,
+                26: 29,
+                27: 30,
+                28: 34,
+                29: 35,
+                30: 36,
+                31: 37,
+                32: 38,
+                33: 39,
+                34: 40,
+                35: 41,
+                36: 42,
+                37: 43,
+                38: 44,
+                39: 45,
+                40: 46,
+                41: 47,
+                42: 48,
+                43: 49,
+                44: 50,
+                45: 51,
+                46: 52,
+                47: 53,
+                48: 54,
+                49: 55,
+                50: 56,
+                51: 57,
+                52: 58,
+                53: 59,
+                54: 60,
+                55: 61,
+            },
+            [2, 3],
+        ),
+    ],
+    ids=["single_mutant", "double_neighbour_mutant"],
+)
+def protein_inputs(request):
+    return request.param
+
+
+def test_roi_match(protein_inputs):
+    proteins, protein_mapping, roi = protein_inputs
+    p0 = BSS.IO.readMolecules(
+        BSS.IO.expand(BSS.tutorialUrl(), f"{proteins}_mut_peptide.pdb")
+    )[0]
+    p1 = BSS.IO.readMolecules(
+        BSS.IO.expand(BSS.tutorialUrl(), f"{proteins}_wt_peptide.pdb")
+    )[0]
+    mapping = BSS.Align.matchAtoms(p0, p1, roi=roi)
+    assert mapping == protein_mapping
+
+
+def test_roi_align(protein_inputs):
+    # p0 has been translated by 10 A in each direction.
+    proteins, protein_mapping, roi = protein_inputs
+    p0 = BSS.IO.readMolecules(
+        BSS.IO.expand(BSS.tutorialUrl(), f"{proteins}_mut_peptide.pdb")
+    )[0]
+    p1 = BSS.IO.readMolecules(
+        BSS.IO.expand(BSS.tutorialUrl(), f"{proteins}_wt_peptide.pdb")
+    )[0]
+
+    aligned_p0 = BSS.Align.rmsdAlign(p0, p1, roi=roi)
+    for res in roi:
+        # Extract sire objects for the ROI and compare their coordinates
+        aligned_roi = aligned_p0.extract(
+            [a.index() for a in aligned_p0.getResidues()[res].getAtoms()]
+        )
+        aligned_roi_coords = aligned_roi._sire_object.coordinates()
+
+        p1_roi = p1.extract([a.index() for a in p1.getResidues()[res].getAtoms()])
+        p1_roi_coords = p1_roi._sire_object.coordinates()
+
+        for i, coord in enumerate(aligned_roi_coords):
+            # assume that the test passes if the coordinates are within 0.5 A
+            assert coord.value() == pytest.approx(p1_roi_coords[i].value(), abs=0.5)
+
+
+def test_roi_flex_align(protein_inputs):
+    # p0 has been translated by 10 A in each direction.
+    proteins, protein_mapping, roi = protein_inputs
+    p0 = BSS.IO.readMolecules(
+        BSS.IO.expand(BSS.tutorialUrl(), f"{proteins}_mut_peptide.pdb")
+    )[0]
+    p1 = BSS.IO.readMolecules(
+        BSS.IO.expand(BSS.tutorialUrl(), f"{proteins}_wt_peptide.pdb")
+    )[0]
+
+    aligned_p0 = BSS.Align.flexAlign(p0, p1, roi=roi)
+    for res in roi:
+        # Extract sire objects for the ROI and compare their coordinates
+        aligned_roi = aligned_p0.extract(
+            [a.index() for a in aligned_p0.getResidues()[res].getAtoms()]
+        )
+        aligned_roi_coords = aligned_roi._sire_object.coordinates()
+
+        p1_roi = p1.extract([a.index() for a in p1.getResidues()[res].getAtoms()])
+        p1_roi_coords = p1_roi._sire_object.coordinates()
+
+        for i, coord in enumerate(aligned_roi_coords):
+            # assume that the test passes if the coordinates are within 0.5 A
+            assert coord.value() == pytest.approx(p1_roi_coords[i].value(), abs=0.5)
+
+
+@pytest.mark.skipif(has_amber is False, reason="Requires AMBER and to be installed.")
+def test_roi_merge(protein_inputs):
+    proteins, protein_mapping, roi = protein_inputs
+    p0 = BSS.IO.readMolecules(
+        BSS.IO.expand(BSS.tutorialUrl(), f"{proteins}_mut_peptide.pdb")
+    )[0]
+    p1 = BSS.IO.readMolecules(
+        BSS.IO.expand(BSS.tutorialUrl(), f"{proteins}_wt_peptide.pdb")
+    )[0]
+
+    p0 = BSS.Parameters.ff14SB(p0).getMolecule()
+    p1 = BSS.Parameters.ff14SB(p1).getMolecule()
+
+    aligned_p0 = BSS.Align.rmsdAlign(p0, p1, roi=roi)
+    merged = BSS.Align.merge(aligned_p0, p1, protein_mapping, roi=roi)
+    merged_system = merged.toSystem()
+    assert merged_system.nPerturbableMolecules() == 1
+
+
+def test_ion_merge(system):
+    from sire.legacy.IO import createSodiumIon
+
+    # Extract a water molecule.
+    water = system[-1]
+
+    # Create a sodium ion using the water coordinates.
+    ion = createSodiumIon(
+        water.getAtoms()[0]._sire_object.property("coordinates"), "tip3p"
+    )
+
+    # Merge the water and ion.
+    merged = BSS.Align.merge(water, BSS._SireWrappers.Molecule(ion))
+
+    # Make sure the ion has the coordintes of the oxygen atom.
+    coords0 = merged._sire_object.property("coordinates0").toVector()[0]
+    coords1 = merged._sire_object.property("coordinates1").toVector()[0]
+    water_coords = water._sire_object.property("coordinates").toVector()[0]
+    assert coords0 == coords1
+    assert coords0 == water_coords
