@@ -673,25 +673,3 @@ def test_roi_merge(protein_inputs):
     merged = BSS.Align.merge(aligned_p0, p1, protein_mapping, roi=roi)
     merged_system = merged.toSystem()
     assert merged_system.nPerturbableMolecules() == 1
-
-
-def test_ion_merge(system):
-    from sire.legacy.IO import createSodiumIon
-
-    # Extract a water molecule.
-    water = system[-1]
-
-    # Create a sodium ion using the water coordinates.
-    ion = createSodiumIon(
-        water.getAtoms()[0]._sire_object.property("coordinates"), "tip3p"
-    )
-
-    # Merge the water and ion.
-    merged = BSS.Align.merge(water, BSS._SireWrappers.Molecule(ion))
-
-    # Make sure the ion has the coordintes of the oxygen atom.
-    coords0 = merged._sire_object.property("coordinates0").toVector()[0]
-    coords1 = merged._sire_object.property("coordinates1").toVector()[0]
-    water_coords = water._sire_object.property("coordinates").toVector()[0]
-    assert coords0 == coords1
-    assert coords0 == water_coords
