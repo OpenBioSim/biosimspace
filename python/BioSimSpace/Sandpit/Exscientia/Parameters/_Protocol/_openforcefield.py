@@ -116,6 +116,7 @@ from sire.legacy import System as _SireSystem
 
 from ... import _isVerbose
 from ... import IO as _IO
+from ...Convert import smiles as _smiles
 from ..._Exceptions import IncompatibleError as _IncompatibleError
 from ..._Exceptions import ThirdPartyError as _ThirdPartyError
 from ..._SireWrappers import Molecule as _Molecule
@@ -415,31 +416,31 @@ class OpenForceField(_protocol.Protocol):
 
         # Make the parameterised molecule compatible with the original topology.
         if is_smiles:
-            new_mol = par_mol
+            # Try to create BioSimSpace molecule from the SMILES string.
+            try:
+                smiles = molecule
+                molecule = _smiles(molecule)
+                edit_mol = molecule._sire_object.edit()
+                edit_mol = edit_mol.rename(f"smiles:{smiles}").molecule()
+                molecule._sire_object = edit_mol.commit()
+            except Exception as e:
+                msg = "Unable to convert SMILES to Molecule using RDKit."
+                if _isVerbose():
+                    msg += ": " + getattr(e, "message", repr(e))
+                    raise _ThirdPartyError(msg) from e
+                else:
+                    raise _ThirdPartyError(msg) from None
 
-            # We'll now add MolName and ResName info to the molecule, since
-            # this will be missing.
-
-            # Rename the molecule with the original SMILES string.
-            # Since the name is written to topology file formats, we
-            # need to ensure that it doesn't start with an [ character,
-            # which would break GROMACS.
-            name = molecule
-            if name.startswith("["):
-                name = f"smiles:{name}"
-
-            edit_mol = new_mol._sire_object.edit()
-            edit_mol = edit_mol.rename(name).molecule()
-
-            # Rename the residue LIG.
-            resname = _SireMol.ResName("LIG")
-            edit_mol = edit_mol.residue(_SireMol.ResIdx(0)).rename(resname).molecule()
-
-            # Commit the changes.
-            new_mol._sire_object = edit_mol.commit()
-
+        if self._ensure_compatible:
+            new_mol = molecule.copy()
+            new_mol.makeCompatibleWith(
+                par_mol,
+                property_map=self._property_map,
+                overwrite=True,
+                verbose=False,
+            )
         else:
-            if self._ensure_compatible:
+            try:
                 new_mol = molecule.copy()
                 new_mol.makeCompatibleWith(
                     par_mol,
@@ -447,16 +448,8 @@ class OpenForceField(_protocol.Protocol):
                     overwrite=True,
                     verbose=False,
                 )
-            else:
-                try:
-                    new_mol.makeCompatibleWith(
-                        par_mol,
-                        property_map=self._property_map,
-                        overwrite=True,
-                        verbose=False,
-                    )
-                except:
-                    new_mol = par_mol
+            except:
+                new_mol = par_mol
 
         # Record the forcefield used to parameterise the molecule.
         new_mol._forcefield = self._forcefield
