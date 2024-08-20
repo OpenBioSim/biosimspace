@@ -109,4 +109,4 @@ from ._minimisation import *
 from ._production import *
 from ._steering import *
 from ._utils import *
-from ._AToM import *
+from ._atm import *

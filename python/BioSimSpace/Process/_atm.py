@@ -19,7 +19,7 @@
 # along with BioSimSpace. If not, see <http://www.gnu.org/licenses/>.
 ######################################################################
 
-from ._atom_utils import _AToMUtils
+from ._atm_utils import _AToMUtils
 import warnings as _warnings
 import math as _math
 from .._Exceptions import IncompatibleError as _IncompatibleError
@@ -198,11 +198,11 @@ class OpenMMAToM(_OpenMM):
         # Add the atom-specific restraints.
         disp = util.createDisplacement()
         self.addToConfig(disp)
-        if self._protocol._getCoreAlignment():
+        if self._protocol.getCoreAlignment():
             alignment = util.createAlignmentForce()
             self.addToConfig("\n# Add alignment force.")
             self.addToConfig(alignment)
-        if self._protocol._getCMCMRestraint():
+        if self._protocol.getCMCMRestraint():
             CMCM = util.createCOMRestraint()
             self.addToConfig("\n# Add COM restraint.")
             self.addToConfig(CMCM)
@@ -210,7 +210,7 @@ class OpenMMAToM(_OpenMM):
         self._add_simulation_instantiation()
 
         self.addToConfig(
-            f"simulation.minimizeEnergy(maxIterations={self._protocol._getSteps()})"
+            f"simulation.minimizeEnergy(maxIterations={self._protocol.getSteps()})"
         )
         # Add the reporters.
         self.addToConfig("\n# Add reporters.")
@@ -236,8 +236,8 @@ class OpenMMAToM(_OpenMM):
         is_periodic = self._add_initialisation(has_box)
 
         # Get the starting temperature and system pressure.
-        temperature = self._protocol._getStartTemperature().kelvin().value()
-        pressure = self._protocol._getPressure()
+        temperature = self._protocol.getStartTemperature().kelvin().value()
+        pressure = self._protocol.getPressure()
 
         is_constant_pressure = self._add_pressure_check(
             pressure, temperature, is_periodic
@@ -258,15 +258,15 @@ class OpenMMAToM(_OpenMM):
         # Add the atom-specific restraints.
         disp = util.createDisplacement()
         self.addToConfig(disp)
-        if self._protocol._getUseATMForce():
+        if self._protocol.getUseATMForce():
             atm = util.createATMForce(index=None)
             self.addToConfig(atm)
 
-        if self._protocol._getCoreAlignment():
+        if self._protocol.getCoreAlignment():
             alignment = util.createAlignmentForce()
             self.addToConfig("\n# Add alignment force.")
             self.addToConfig(alignment)
-        if self._protocol._getCMCMRestraint():
+        if self._protocol.getCMCMRestraint():
             CMCM = util.createCOMRestraint()
             self.addToConfig("\n# Add COM restraint.")
             self.addToConfig(CMCM)
@@ -277,7 +277,7 @@ class OpenMMAToM(_OpenMM):
         # Set the integrator.
         self.addToConfig("\n# Define the integrator.")
         self.addToConfig(f"integrator = LangevinMiddleIntegrator({temperature}*kelvin,")
-        friction = 1 / self._protocol._getThermostatTimeConstant().picoseconds().value()
+        friction = 1 / self._protocol.getThermostatTimeConstant().picoseconds().value()
         self.addToConfig(f"                                {friction:.5f}/picosecond,")
         self.addToConfig(f"                                {timestep}*picoseconds)")
         if self._is_seeded:
@@ -332,8 +332,8 @@ class OpenMMAToM(_OpenMM):
 
                 # Work out the temperature change per cycle.
                 delta_temp = (
-                    self._protocol._getEndTemperature().kelvin().value()
-                    - self._protocol._getStartTemperature().kelvin().value()
+                    self._protocol.getEndTemperature().kelvin().value()
+                    - self._protocol.getStartTemperature().kelvin().value()
                 ) / temp_cycles
 
                 self.addToConfig(f"start_temperature = {temperature}")
@@ -348,8 +348,8 @@ class OpenMMAToM(_OpenMM):
             else:
                 # Work out the temperature change per step.
                 delta_temp = (
-                    self._protocol._getEndTemperature().kelvin().value()
-                    - self._protocol._getStartTemperature().kelvin().value()
+                    self._protocol.getEndTemperature().kelvin().value()
+                    - self._protocol.getStartTemperature().kelvin().value()
                 ) / steps
 
                 self.addToConfig(f"start_temperature = {temperature}")
@@ -363,7 +363,7 @@ class OpenMMAToM(_OpenMM):
                 self.addToConfig("    simulation.step(1)")
 
     def _generate_config_annealing(self):
-        self._protocol._set_current_index(0)
+        self._protocol.set_current_index(0)
         util = _AToMUtils(self._protocol)
         # Clear the existing configuration list.
         self._config = []
@@ -381,8 +381,8 @@ class OpenMMAToM(_OpenMM):
         is_periodic = self._add_initialisation(has_box)
 
         # Get the starting temperature and system pressure.
-        temperature = self._protocol._getTemperature().kelvin().value()
-        pressure = self._protocol._getPressure()
+        temperature = self._protocol.getTemperature().kelvin().value()
+        pressure = self._protocol.getPressure()
 
         is_constant_pressure = self._add_pressure_check(
             pressure, temperature, is_periodic
@@ -406,13 +406,13 @@ class OpenMMAToM(_OpenMM):
         disp = util.createDisplacement()
         self.addToConfig(disp)
         self.addToConfig("\n# Add AToM Force.")
-        self.addToConfig(util.createATMForce(self._protocol._get_window_index()))
-        if self._protocol._getCoreAlignment():
+        self.addToConfig(util.createATMForce(self._protocol.get_window_index()))
+        if self._protocol.getCoreAlignment():
             alignment = util.createAlignmentForce()
             self.addToConfig("\n# Add alignment force.")
             self.addToConfig(alignment)
 
-        if self._protocol._getCMCMRestraint():
+        if self._protocol.getCMCMRestraint():
             CMCM = util.createCOMRestraint()
             self.addToConfig("\n# Add COM restraint.")
             self.addToConfig(CMCM)
@@ -423,7 +423,7 @@ class OpenMMAToM(_OpenMM):
         # Set the integrator.
         self.addToConfig("\n# Define the integrator.")
         self.addToConfig(f"integrator = LangevinMiddleIntegrator({temperature}*kelvin,")
-        friction = 1 / self._protocol._getThermostatTimeConstant().picoseconds().value()
+        friction = 1 / self._protocol.getThermostatTimeConstant().picoseconds().value()
         self.addToConfig(f"                                {friction:.5f}/picosecond,")
         self.addToConfig(f"                                {timestep}*picoseconds)")
         if self._is_seeded:
@@ -496,8 +496,8 @@ class OpenMMAToM(_OpenMM):
         self.addToConfig(annealing_protocol)
 
     def _generate_config_production(self):
-        self._protocol._set_current_index(0)
-        analysis_method = self._protocol._getAnalysisMethod()
+        self._protocol.set_current_index(0)
+        analysis_method = self._protocol.getAnalysisMethod()
         util = _AToMUtils(self._protocol)
         # Clear the existing configuration list.
         self._config = []
@@ -505,7 +505,7 @@ class OpenMMAToM(_OpenMM):
         has_box = self._check_space()
 
         # TODO: check extra_options, extra_lines and property_map
-        if self._protocol._get_window_index() is None:
+        if self._protocol.get_window_index() is None:
             raise _IncompatibleError(
                 "AToM protocol requires the current window index to be set."
             )
@@ -527,8 +527,8 @@ class OpenMMAToM(_OpenMM):
 
         is_periodic = self._add_initialisation(has_box)
         # Get the starting temperature and system pressure.
-        temperature = self._protocol._getTemperature().kelvin().value()
-        pressure = self._protocol._getPressure()
+        temperature = self._protocol.getTemperature().kelvin().value()
+        pressure = self._protocol.getPressure()
 
         is_constant_pressure = self._add_pressure_check(
             pressure, temperature, is_periodic
@@ -552,13 +552,13 @@ class OpenMMAToM(_OpenMM):
         disp = util.createDisplacement()
         self.addToConfig(disp)
         self.addToConfig("\n# Add AToM Force.")
-        self.addToConfig(util.createATMForce(self._protocol._get_window_index()))
-        if self._protocol._getCoreAlignment():
+        self.addToConfig(util.createATMForce(self._protocol.get_window_index()))
+        if self._protocol.getCoreAlignment():
             alignment = util.createAlignmentForce()
             self.addToConfig("\n# Add alignment force.")
             self.addToConfig(alignment)
 
-        if self._protocol._getCMCMRestraint():
+        if self._protocol.getCMCMRestraint():
             CMCM = util.createCOMRestraint()
             self.addToConfig("\n# Add COM restraint.")
             self.addToConfig(CMCM)
@@ -569,7 +569,7 @@ class OpenMMAToM(_OpenMM):
         # Set the integrator.
         self.addToConfig("\n# Define the integrator.")
         self.addToConfig(f"integrator = LangevinMiddleIntegrator({temperature}*kelvin,")
-        friction = 1 / self._protocol._getThermostatTimeConstant().picoseconds().value()
+        friction = 1 / self._protocol.getThermostatTimeConstant().picoseconds().value()
         self.addToConfig(f"                                {friction:.5f}/picosecond,")
         self.addToConfig(f"                                {timestep}*picoseconds)")
         if self._is_seeded:
@@ -662,7 +662,7 @@ class OpenMMAToM(_OpenMM):
                 )
             )
         elif analysis_method == "both":
-            direction = self._protocol._getDirection()
+            direction = self._protocol.getDirection()
             inflex = 0
             for i in range(len(direction) - 1):
                 if direction[i] != direction[i + 1]:
@@ -678,7 +678,7 @@ class OpenMMAToM(_OpenMM):
                 )
             )
         else:
-            direction = self._protocol._getDirection()
+            direction = self._protocol.getDirection()
             inflex = 0
             for i in range(len(direction) - 1):
                 if direction[i] != direction[i + 1]:
@@ -698,7 +698,7 @@ class OpenMMAToM(_OpenMM):
         # Designed as a hidden method - uses a production protocol to
         # calculate single point energies for each lambda window
         # quite hacky, but not designed to be exposed to the user anyway
-        self._protocol._set_current_index(0)
+        self._protocol.set_current_index(0)
         if not isinstance(self._protocol, _Protocol.AToMProduction):
             raise _IncompatibleError(
                 "Single point testing requires an AToMProduction protocol."
@@ -710,7 +710,7 @@ class OpenMMAToM(_OpenMM):
         has_box = self._check_space()
 
         # TODO: check extra_options, extra_lines and property_map
-        if self._protocol._get_window_index() is None:
+        if self._protocol.get_window_index() is None:
             raise _IncompatibleError(
                 "AToM protocol requires the current window index to be set."
             )
@@ -730,8 +730,8 @@ class OpenMMAToM(_OpenMM):
 
         is_periodic = self._add_initialisation(has_box)
         # Get the starting temperature and system pressure.
-        temperature = self._protocol._getTemperature().kelvin().value()
-        pressure = self._protocol._getPressure()
+        temperature = self._protocol.getTemperature().kelvin().value()
+        pressure = self._protocol.getPressure()
 
         is_constant_pressure = self._add_pressure_check(
             pressure, temperature, is_periodic
@@ -756,14 +756,14 @@ class OpenMMAToM(_OpenMM):
         self.addToConfig(disp)
         self.addToConfig("\n# Add AToM Force.")
         self.addToConfig(
-            util.createATMForce(self._protocol._get_window_index(), force_group=10)
+            util.createATMForce(self._protocol.get_window_index(), force_group=10)
         )
-        if self._protocol._getCoreAlignment():
+        if self._protocol.getCoreAlignment():
             alignment = util.createAlignmentForce(force_group=[6, 7, 8])
             self.addToConfig("\n# Add alignment force.")
             self.addToConfig(alignment)
 
-        if self._protocol._getCMCMRestraint():
+        if self._protocol.getCMCMRestraint():
             CMCM = util.createCOMRestraint(force_group=9)
             self.addToConfig("\n# Add COM restraint.")
             self.addToConfig(CMCM)
@@ -774,7 +774,7 @@ class OpenMMAToM(_OpenMM):
         # Set the integrator.
         self.addToConfig("\n# Define the integrator.")
         self.addToConfig(f"integrator = LangevinMiddleIntegrator({temperature}*kelvin,")
-        friction = 1 / self._protocol._getThermostatTimeConstant().picoseconds().value()
+        friction = 1 / self._protocol.getThermostatTimeConstant().picoseconds().value()
         self.addToConfig(f"                                {friction:.5f}/picosecond,")
         self.addToConfig(f"                                {timestep}*picoseconds)")
         if self._is_seeded:
@@ -844,7 +844,7 @@ class OpenMMAToM(_OpenMM):
 
         self.addToConfig(f"\ntemperature = {temperature}")
         # reading in the directions from the protocol, find the index at which direction changes
-        direction = self._protocol._getDirection()
+        direction = self._protocol.getDirection()
         inflex = 0
         for i in range(len(direction) - 1):
             if direction[i] != direction[i + 1]:

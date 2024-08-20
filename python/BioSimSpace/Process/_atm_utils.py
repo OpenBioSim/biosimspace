@@ -40,16 +40,16 @@ class _AToMUtils:
         ):
             raise TypeError("Protocol must be an AToM protocol")
         self.protocol = protocol
-        self.data = self.protocol._getData()
+        self.data = self.protocol.getData()
 
     def getAlignmentConstants(self):
-        self.alignment_k_distance = self.protocol._getAlignKfSep().value()
-        self.alignment_k_theta = self.protocol._getAlignKTheta().value()
-        self.alignment_k_psi = self.protocol._getAlignKPsi().value()
+        self.alignment_k_distance = self.protocol.getAlignKfSep().value()
+        self.alignment_k_theta = self.protocol.getAlignKTheta().value()
+        self.alignment_k_psi = self.protocol.getAlignKPsi().value()
 
     def getCMConstants(self):
-        self.cm_kf = self.protocol._getCMKf().value()
-        self.cm_tol = self.protocol._getCMTol().value()
+        self.cm_kf = self.protocol.getCMKf().value()
+        self.cm_tol = self.protocol.getCMTol().value()
 
     def findAbsoluteCoreIndices(self):
         import numpy as np
@@ -84,42 +84,42 @@ class _AToMUtils:
     def getATMForceConstants(self, index=None):
         self.lig1_atoms = self.getLigand1AtomsAsList()
         self.lig2_atoms = self.getLigand2AtomsAsList()
-        self.SCUmax = self.protocol._getSCUmax().value()
-        self.SCU0 = self.protocol._getSCU0().value()
-        self.SCa = self.protocol._getSCa()
+        self.SCUmax = self.protocol.getSCUmax().value()
+        self.SCU0 = self.protocol.getSCU0().value()
+        self.SCa = self.protocol.getSCa()
         if isinstance(self.protocol, _Protocol.AToMProduction):
             if index is None:
                 raise ValueError("Index must be set for AToMProduction protocol")
-            self.lambda1 = self.protocol._getLambda1()[index]
-            self.lambda2 = self.protocol._getLambda2()[index]
-            self.alpha = self.protocol._getAlpha()[index].value()
-            self.uh = self.protocol._getUh()[index].value()
-            self.w0 = self.protocol._getW0()[index].value()
-            self.direction = self.protocol._getDirection()[index]
-            self.master_lambda = self.protocol._get_lambda_values()[index]
+            self.lambda1 = self.protocol.getLambda1()[index]
+            self.lambda2 = self.protocol.getLambda2()[index]
+            self.alpha = self.protocol.getAlpha()[index].value()
+            self.uh = self.protocol.getUh()[index].value()
+            self.w0 = self.protocol.getW0()[index].value()
+            self.direction = self.protocol.getDirection()[index]
+            self.master_lambda = self.protocol.get_lambda_values()[index]
         elif isinstance(
             self.protocol, (_Protocol.AToMEquilibration, _Protocol.AToMAnnealing)
         ):
-            self.lambda1 = self.protocol._getLambda1()
-            self.lambda2 = self.protocol._getLambda2()
-            self.alpha = self.protocol._getAlpha().value()
-            self.uh = self.protocol._getUh().value()
-            self.w0 = self.protocol._getW0().value()
-            self.direction = self.protocol._getDirection()
+            self.lambda1 = self.protocol.getLambda1()
+            self.lambda2 = self.protocol.getLambda2()
+            self.alpha = self.protocol.getAlpha().value()
+            self.uh = self.protocol.getUh().value()
+            self.w0 = self.protocol.getW0().value()
+            self.direction = self.protocol.getDirection()
 
     def _dump_atm_constants_to_dict(self):
         """Internal function to write all ATM window-dependent constants to a dictionary (string)
         to be used in sampling for analysis."""
         output = ""
         output += "atm_constants = {\n"
-        output += "    'Lambda1': {},\n".format(self.protocol._getLambda1())
-        output += "    'Lambda2': {},\n".format(self.protocol._getLambda2())
+        output += "    'Lambda1': {},\n".format(self.protocol.getLambda1())
+        output += "    'Lambda2': {},\n".format(self.protocol.getLambda2())
         output += "    'Alpha': {},\n".format(
-            [i.value() for i in self.protocol._getAlpha()]
+            [i.value() for i in self.protocol.getAlpha()]
         )
-        output += "    'Uh': {},\n".format([i.value() for i in self.protocol._getUh()])
-        output += "    'W0': {},\n".format([i.value() for i in self.protocol._getW0()])
-        output += "    'Direction': {}\n".format(self.protocol._getDirection())
+        output += "    'Uh': {},\n".format([i.value() for i in self.protocol.getUh()])
+        output += "    'W0': {},\n".format([i.value() for i in self.protocol.getW0()])
+        output += "    'Direction': {}\n".format(self.protocol.getDirection())
         output += "}\n"
 
         output += "for key in atm_constants.keys():\n"
@@ -474,7 +474,7 @@ class _AToMUtils:
         """
         # Still using the position restraint mixin, get the values of the relevant constants
         pos_const = self.protocol.getForceConstant().value()
-        pos_width = self.protocol._getPosRestWidth().value()
+        pos_width = self.protocol.getPosRestWidth().value()
         output = ""
         output += "fc = {} * kilocalorie_per_mole / angstrom**2\n".format(pos_const)
         output += "tol = {} * angstrom\n".format(pos_width)
@@ -507,12 +507,12 @@ class _AToMUtils:
         Create a string which can be added directly to an openmm script to add an annealing protocol to the system.
         """
         anneal_runtime = self.protocol.getRunTime()
-        num_cycles = self.protocol._getAnnealNumCycles()
+        num_cycles = self.protocol.getAnnealNumCycles()
         cycle_numsteps = int(
             (anneal_runtime / num_cycles) / self.protocol.getTimeStep()
         )
 
-        prot = self.protocol._getAnnealValues()
+        prot = self.protocol.getAnnealValues()
         # Find all entries whose keys contain "start" and create a dictionary of these entries
         # Also remove the word "start" from the key
         start = {k.replace("_start", ""): v for k, v in prot.items() if "start" in k}
@@ -582,7 +582,7 @@ class _AToMUtils:
         output = ""
         output += "# Reporting for MBAR:\n"
         # round master lambda to 4 d.p. to avoid floating point errors
-        output += f"master_lambda_list = {[round(i,4) for i in self.protocol._get_lambda_values()]}\n"
+        output += f"master_lambda_list = {[round(i,4) for i in self.protocol.get_lambda_values()]}\n"
         output += f"master_lambda = master_lambda_list[window_index]\n"
 
         output += "if is_restart:\n"
@@ -782,7 +782,7 @@ class _AToMUtils:
 
         output += "# Reporting for MBAR:\n"
         # round master lambda to 4 d.p. to avoid floating point errors
-        output += f"master_lambda_list = {[round(i,4) for i in self.protocol._get_lambda_values()]}\n"
+        output += f"master_lambda_list = {[round(i,4) for i in self.protocol.get_lambda_values()]}\n"
         output += f"master_lambda = master_lambda_list[window_index]\n"
         output += "if is_restart:\n"
         output += "    try:\n"
@@ -917,7 +917,7 @@ class _AToMUtils:
         """Create a single point test for the ATM force"""
         output = ""
         output += "# Create the dictionary which will hold the energies\n"
-        output += f"master_lambda_list = {[round(i,4) for i in self.protocol._get_lambda_values()]}\n"
+        output += f"master_lambda_list = {[round(i,4) for i in self.protocol.get_lambda_values()]}\n"
         output += "energies = {}\n"
         output += f"for i in master_lambda_list[:{inflex_point}]:\n"
         output += "    energies[i] = []\n"

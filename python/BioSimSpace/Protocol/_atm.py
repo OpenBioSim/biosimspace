@@ -75,52 +75,52 @@ class _AToM(_Protocol, _PositionRestraintMixin):
             raise TypeError("'data' must be of type 'dict'")
 
         # Whether or not to use alignment restraints.
-        self._setCoreAlignment(core_alignment)
+        self.setCoreAlignment(core_alignment)
 
         # Whether or not to use the CMCM restraint.
-        self._setCMCMRestraint(CMCM_restraint)
+        self.setCMCMRestraint(CMCM_restraint)
 
         # Store the width of the coordinate retraint.
-        self._setPosRestWidth(pos_rest_width)
+        self.setPosRestWidth(pos_rest_width)
 
         # Store the align_kf_sep value.
-        self._setAlignKfSep(align_kf_sep)
+        self.setAlignKfSep(align_kf_sep)
 
         # Store the align_k_theta value.
-        self._setAlignKTheta(align_k_theta)
+        self.setAlignKTheta(align_k_theta)
 
         # Store the align_k_psi value.
-        self._setAlignKPsi(align_k_psi)
+        self.setAlignKPsi(align_k_psi)
 
         # Store the SC_umax value.
-        self._setSCUmax(SC_umax)
+        self.setSCUmax(SC_umax)
 
         # Store the SC_u0 value.
-        self._setSCU0(SC_u0)
+        self.setSCU0(SC_u0)
 
         # Store the SC_a value.
-        self._setSCa(SC_a)
+        self.setSCa(SC_a)
 
         # Store cm_kf value.
-        self._setCMKf(cm_kf)
+        self.setCMKf(cm_kf)
 
         # Store cm_tol value.
-        self._setCMTol(cm_tol)
+        self.setCMTol(cm_tol)
 
         # Set the postition restraint.
         _PositionRestraintMixin.__init__(self, restraint, force_constant)
 
     def __str__(self):
-        d = self._getData()
+        d = self.getData()
         """Return a string representation of the protocol."""
         string = "<BioSimSpace.Protocol.AToM>: "
         string += "timestep=%s " % self.getTimeStep()
         string += ", runtime=%s " % self.getRunTime()
-        string += ", temperature=%s " % self._getTemperature()
+        string += ", temperature=%s " % self.getTemperature()
         if self._pressure is not None:
-            string += ", pressure=%s, " % self._getPressure()
-        string += ", lambda1=%s " % self._getLambda1()
-        string += ", lambda2=%s " % self._getLambda2()
+            string += ", pressure=%s, " % self.getPressure()
+        string += ", lambda1=%s " % self.getLambda1()
+        string += ", lambda2=%s " % self.getLambda2()
         string += ", ligand1 core atoms=%s" % d["ligand1_rigid_core"]
         string += ", ligand2 core atoms=%s" % d["ligand2_rigid_core"]
         string += ", report_interval=%s " % self.getReportInterval()
@@ -133,7 +133,7 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         """Return a string showing how to instantiate the object."""
         return self.__str__()
 
-    def _getData(self):
+    def getData(self):
         """
         Return the AToM data dictionary.
 
@@ -145,7 +145,7 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         """
         return self._system_data
 
-    def _getCoreAlignment(self):
+    def getCoreAlignment(self):
         """
         Return core alignment boolean.
 
@@ -157,7 +157,7 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         """
         return self._core_alignment
 
-    def _setCoreAlignment(self, core_alignment):
+    def setCoreAlignment(self, core_alignment):
         """
         Set the core alignment flag.
 
@@ -173,7 +173,7 @@ class _AToM(_Protocol, _PositionRestraintMixin):
             _warnings.warn("Non-boolean core alignment flag. Defaulting to True!")
             self._core_alignment = True
 
-    def _getCMCMRestraint(self):
+    def getCMCMRestraint(self):
         """
         Return CMCM restraint boolean.
 
@@ -185,7 +185,7 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         """
         return self._CMCM_restraint
 
-    def _setCMCMRestraint(self, CMCM_restraint):
+    def setCMCMRestraint(self, CMCM_restraint):
         """
         Set the CMCM restraint flag.
 
@@ -201,7 +201,7 @@ class _AToM(_Protocol, _PositionRestraintMixin):
             _warnings.warn("Non-boolean CMCM restraint flag. Defaulting to True!")
             self._CMCM_restraint = True
 
-    def _getPosRestWidth(self):
+    def getPosRestWidth(self):
         """
         Return the width of the position restraint.
 
@@ -213,7 +213,7 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         """
         return self._pos_rest_width
 
-    def _setPosRestWidth(self, pos_rest_width):
+    def setPosRestWidth(self, pos_rest_width):
         """
         Set the width of the position restraint.
 
@@ -253,7 +253,7 @@ class _AToM(_Protocol, _PositionRestraintMixin):
                 )
         self._pos_rest_width = pos_rest_width
 
-    def _getAlignKfSep(self):
+    def getAlignKfSep(self):
         """
         Return the align_kf_sep value.
 
@@ -265,7 +265,7 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         """
         return self._align_kf_sep
 
-    def _setAlignKfSep(self, align_kf_sep):
+    def setAlignKfSep(self, align_kf_sep):
         """
         Set the align_kf_sep value.
 
@@ -303,7 +303,7 @@ class _AToM(_Protocol, _PositionRestraintMixin):
                 )
         self._align_kf_sep = align_kf_sep
 
-    def _getAlignKTheta(self):
+    def getAlignKTheta(self):
         """
         Return the align_k_theta value.
 
@@ -315,7 +315,7 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         """
         return self._align_k_theta
 
-    def _setAlignKTheta(self, align_k_theta):
+    def setAlignKTheta(self, align_k_theta):
         """
         Set the align_k_theta value.
 
@@ -356,7 +356,7 @@ class _AToM(_Protocol, _PositionRestraintMixin):
                 )
         self._align_k_theta = align_k_theta
 
-    def _getAlignKPsi(self):
+    def getAlignKPsi(self):
         """
         Return the align_k_psi value.
 
@@ -368,7 +368,7 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         """
         return self._align_k_psi
 
-    def _setAlignKPsi(self, align_k_psi):
+    def setAlignKPsi(self, align_k_psi):
         """
         Set the align_k_psi value.
 
@@ -406,7 +406,7 @@ class _AToM(_Protocol, _PositionRestraintMixin):
                 )
         self._align_k_psi = align_k_psi
 
-    def _getSCUmax(self):
+    def getSCUmax(self):
         """
         Return the SC_umax value.
 
@@ -418,7 +418,7 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         """
         return self._SC_umax
 
-    def _setSCUmax(self, SC_umax):
+    def setSCUmax(self, SC_umax):
         """
         Set the SC_umax value.
 
@@ -456,7 +456,7 @@ class _AToM(_Protocol, _PositionRestraintMixin):
                 )
         self._SC_umax = SC_umax
 
-    def _getSCU0(self):
+    def getSCU0(self):
         """
         Return the SC_u0 value.
 
@@ -468,7 +468,7 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         """
         return self._SC_u0
 
-    def _setSCU0(self, SC_u0):
+    def setSCU0(self, SC_u0):
         """
         Set the SC_u0 value.
 
@@ -506,7 +506,7 @@ class _AToM(_Protocol, _PositionRestraintMixin):
                 )
         self._SC_u0 = SC_u0
 
-    def _getSCa(self):
+    def getSCa(self):
         """
         Return the SC_a value.
 
@@ -518,7 +518,7 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         """
         return self._SC_a
 
-    def _setSCa(self, SC_a):
+    def setSCa(self, SC_a):
         """
         Set the SC_a value.
 
@@ -533,7 +533,7 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         else:
             raise TypeError("'SC_a' must be of type 'float'")
 
-    def _getCMKf(self):
+    def getCMKf(self):
         """
         Return the cm_kf value.
 
@@ -545,7 +545,7 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         """
         return self._cm_kf
 
-    def _setCMKf(self, cm_kf):
+    def setCMKf(self, cm_kf):
         """
         Set the cm_kf value.
 
@@ -583,7 +583,7 @@ class _AToM(_Protocol, _PositionRestraintMixin):
                 )
         self._cm_kf = cm_kf
 
-    def _getCMTol(self):
+    def getCMTol(self):
         """
         Return the cm_tol value.
 
@@ -595,7 +595,7 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         """
         return self._cm_tol
 
-    def _setCMTol(self, cm_tol):
+    def setCMTol(self, cm_tol):
         """
         Set the cm_tol value.
 
@@ -633,12 +633,12 @@ class _AToM(_Protocol, _PositionRestraintMixin):
                 )
         self._cm_tol = cm_tol
 
-    def _set_lambda_values(self):
+    def set_lambda_values(self):
         # Internal function to set the 'master lambda'
         # This lambda value serves as the master for all other window-dependent parameters
         self._lambda_values = _np.linspace(0, 1, self._num_lambda).tolist()
 
-    def _get_lambda_values(self):
+    def get_lambda_values(self):
         # Internal function to get the 'master lambda'
         # This lambda value serves as the master for all other window-dependent parameters
         try:
@@ -646,7 +646,7 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         except:
             return None
 
-    def _set_current_index(self, index):
+    def set_current_index(self, index):
         # Internal function to set index of the current simulation window
         # set using the master lambda list
         if index < 0:
@@ -655,7 +655,7 @@ class _AToM(_Protocol, _PositionRestraintMixin):
             raise TypeError("index must be an integer")
         self._current_index = index
 
-    def _get_window_index(self):
+    def get_window_index(self):
         # Internal function to get the current window index
         try:
             return self._current_index
@@ -771,9 +771,9 @@ class AToMMinimisation(_AToM):
             cm_tol,
         )
         # Store the number of minimisation steps.
-        self._setSteps(steps)
+        self.setSteps(steps)
 
-    def _getSteps(self):
+    def getSteps(self):
         """
         Return the number of minimisation steps.
 
@@ -785,7 +785,7 @@ class AToMMinimisation(_AToM):
         """
         return self._steps
 
-    def _setSteps(self, steps):
+    def setSteps(self, steps):
         """
         Set the number of minimisation steps.
 
@@ -974,13 +974,13 @@ class AToMEquilibration(_AToM):
             cm_tol,
         )
         # Store
-        self._setTimestep(timestep)
+        self.setTimestep(timestep)
 
-        self._setRuntime(runtime)
+        self.setRuntime(runtime)
         # Constant temperature equilibration.
         if temperature is not None:
-            self._setStartTemperature(temperature)
-            self._setEndTemperature(temperature)
+            self.setStartTemperature(temperature)
+            self.setEndTemperature(temperature)
             self._is_const_temp = True
 
         # Heating / cooling simulation.
@@ -988,10 +988,10 @@ class AToMEquilibration(_AToM):
             self._is_const_temp = False
 
             # Set the start temperature.
-            self._setStartTemperature(temperature_start)
+            self.setStartTemperature(temperature_start)
 
             # Set the final temperature.
-            self._setEndTemperature(temperature_end)
+            self.setEndTemperature(temperature_end)
 
             # Constant temperature simulation.
             if self._temperature_start == self._temperature_end:
@@ -999,29 +999,29 @@ class AToMEquilibration(_AToM):
 
         # Set the system pressure.
         if pressure is not None:
-            self._setPressure(pressure)
+            self.setPressure(pressure)
         else:
             self._pressure = None
 
-        self._setThermostatTimeConstant(thermostat_time_constant)
+        self.setThermostatTimeConstant(thermostat_time_constant)
 
-        self._setReportInterval(report_interval)
+        self.setReportInterval(report_interval)
 
-        self._setRestartInterval(restart_interval)
+        self.setRestartInterval(restart_interval)
 
-        self._setUseATMForce(use_atm_force)
+        self.setUseATMForce(use_atm_force)
 
-        self._setDirection(direction)
+        self.setDirection(direction)
 
-        self._setLambda1(lambda1)
+        self.setLambda1(lambda1)
 
-        self._setLambda2(lambda2)
+        self.setLambda2(lambda2)
 
-        self._setAlpha(alpha)
+        self.setAlpha(alpha)
 
-        self._setUh(uh)
+        self.setUh(uh)
 
-        self._setW0(W0)
+        self.setW0(W0)
 
     def getTimeStep(self):
         """
@@ -1035,7 +1035,7 @@ class AToMEquilibration(_AToM):
         """
         return self._timestep
 
-    def _setTimestep(self, timestep):
+    def setTimestep(self, timestep):
         """
         Set the time step.
 
@@ -1069,7 +1069,7 @@ class AToMEquilibration(_AToM):
         """
         return self._runtime
 
-    def _setRuntime(self, runtime):
+    def setRuntime(self, runtime):
         """
         Set the running time.
 
@@ -1091,7 +1091,7 @@ class AToMEquilibration(_AToM):
                 "'runtime' must be of type 'str' or 'BioSimSpace.Types.Time'"
             )
 
-    def _getStartTemperature(self):
+    def getStartTemperature(self):
         """
         Return the starting temperature.
 
@@ -1103,7 +1103,7 @@ class AToMEquilibration(_AToM):
         """
         return self._temperature_start
 
-    def _setStartTemperature(self, temperature):
+    def setStartTemperature(self, temperature):
         """
         Set the starting temperature.
 
@@ -1128,7 +1128,7 @@ class AToMEquilibration(_AToM):
             temperature._value = 0.01
         self._temperature_start = temperature
 
-    def _getEndTemperature(self):
+    def getEndTemperature(self):
         """
         Return the final temperature.
 
@@ -1140,7 +1140,7 @@ class AToMEquilibration(_AToM):
         """
         return self._temperature_end
 
-    def _setEndTemperature(self, temperature):
+    def setEndTemperature(self, temperature):
         """
         Set the final temperature.
 
@@ -1164,7 +1164,7 @@ class AToMEquilibration(_AToM):
             temperature._value = 0.01
         self._temperature_end = temperature
 
-    def _getPressure(self):
+    def getPressure(self):
         """
         Return the pressure.
 
@@ -1176,7 +1176,7 @@ class AToMEquilibration(_AToM):
         """
         return self._pressure
 
-    def _setPressure(self, pressure):
+    def setPressure(self, pressure):
         """
         Set the pressure.
 
@@ -1198,7 +1198,7 @@ class AToMEquilibration(_AToM):
                 "'pressure' must be of type 'str' or 'BioSimSpace.Types.Pressure'"
             )
 
-    def _getThermostatTimeConstant(self):
+    def getThermostatTimeConstant(self):
         """
         Return the time constant for the thermostat.
 
@@ -1210,7 +1210,7 @@ class AToMEquilibration(_AToM):
         """
         return self._thermostat_time_constant
 
-    def _setThermostatTimeConstant(self, thermostat_time_constant):
+    def setThermostatTimeConstant(self, thermostat_time_constant):
         """
         Set the time constant for the thermostat.
 
@@ -1244,7 +1244,7 @@ class AToMEquilibration(_AToM):
         """
         return self._report_interval
 
-    def _setReportInterval(self, report_interval):
+    def setReportInterval(self, report_interval):
         """
         Set the interval at which statistics are reported. (In integration steps.).
 
@@ -1277,7 +1277,7 @@ class AToMEquilibration(_AToM):
         """
         return self._restart_interval
 
-    def _setRestartInterval(self, restart_interval):
+    def setRestartInterval(self, restart_interval):
         """
         Set the interval between saving restart confiugrations, and/or
         trajectory frames. (In integration steps.).
@@ -1298,7 +1298,7 @@ class AToMEquilibration(_AToM):
 
         self._restart_interval = restart_interval
 
-    def _getUseATMForce(self):
+    def getUseATMForce(self):
         """
         Return the use_atm_force flag.
 
@@ -1310,7 +1310,7 @@ class AToMEquilibration(_AToM):
         """
         return self._use_atm_force
 
-    def _setUseATMForce(self, use_atm_force):
+    def setUseATMForce(self, use_atm_force):
         """
         Set the use_atm_force flag.
 
@@ -1324,7 +1324,7 @@ class AToMEquilibration(_AToM):
             raise TypeError("'use_atm_force' must be of type 'bool'")
         self._use_atm_force = use_atm_force
 
-    def _getDirection(self):
+    def getDirection(self):
         """
         Return the direction of the equilibration.
 
@@ -1336,7 +1336,7 @@ class AToMEquilibration(_AToM):
         """
         return self._direction
 
-    def _setDirection(self, direction):
+    def setDirection(self, direction):
         """
         Set the direction of the equilibration.
 
@@ -1350,7 +1350,7 @@ class AToMEquilibration(_AToM):
             raise TypeError("'direction' must have a value of 1 or -1")
         self._direction = int(direction)
 
-    def _getLambda1(self):
+    def getLambda1(self):
         """
         Return the lambda1 value for the ATM force.
 
@@ -1362,7 +1362,7 @@ class AToMEquilibration(_AToM):
         """
         return self._lambda1
 
-    def _setLambda1(self, lambda1):
+    def setLambda1(self, lambda1):
         """
         Set the lambda1 value for the ATM force.
 
@@ -1378,7 +1378,7 @@ class AToMEquilibration(_AToM):
             raise ValueError("lambda1 must be between 0 and 0.5")
         self._lambda1 = float(lambda1)
 
-    def _getLambda2(self):
+    def getLambda2(self):
         """
         Return the lambda2 value for the ATM force.
 
@@ -1390,7 +1390,7 @@ class AToMEquilibration(_AToM):
         """
         return self._lambda2
 
-    def _setLambda2(self, lambda2):
+    def setLambda2(self, lambda2):
         """
         Set the lambda2 value for the ATM force.
 
@@ -1406,7 +1406,7 @@ class AToMEquilibration(_AToM):
             raise ValueError("lambda2 must be between 0 and 0.5")
         self._lambda2 = float(lambda2)
 
-    def _getAlpha(self):
+    def getAlpha(self):
         """
         Return the alpha value for the ATM force.
 
@@ -1418,7 +1418,7 @@ class AToMEquilibration(_AToM):
         """
         return self._alpha
 
-    def _setAlpha(self, alpha):
+    def setAlpha(self, alpha):
         """
         Set the alpha value for the ATM force.
 
@@ -1456,7 +1456,7 @@ class AToMEquilibration(_AToM):
                 )
         self._alpha = alpha
 
-    def _getUh(self):
+    def getUh(self):
         """
         Return the uh value for the ATM force.
 
@@ -1468,7 +1468,7 @@ class AToMEquilibration(_AToM):
         """
         return self._uh
 
-    def _setUh(self, uh):
+    def setUh(self, uh):
         """
         Set the uh value for the ATM force.
 
@@ -1506,7 +1506,7 @@ class AToMEquilibration(_AToM):
                 )
         self._uh = uh
 
-    def _getW0(self):
+    def getW0(self):
         """
         Return the W0 value for the ATM force.
 
@@ -1518,7 +1518,7 @@ class AToMEquilibration(_AToM):
         """
         return self._W0
 
-    def _setW0(self, W0):
+    def setW0(self, W0):
         """
         Set the W0 value for the ATM force.
 
@@ -1781,41 +1781,41 @@ class AToMAnnealing(_AToM):
             cm_tol,
         )
 
-        self._setTimestep(timestep)
+        self.setTimestep(timestep)
 
-        self._setRuntime(runtime)
+        self.setRuntime(runtime)
 
-        self._setTemperature(temperature)
+        self.setTemperature(temperature)
 
         # Set the system pressure.
         if pressure is not None:
-            self._setPressure(pressure)
+            self.setPressure(pressure)
         else:
             self._pressure = None
 
-        self._setThermostatTimeConstant(thermostat_time_constant)
+        self.setThermostatTimeConstant(thermostat_time_constant)
 
-        self._setReportInterval(report_interval)
+        self.setReportInterval(report_interval)
 
-        self._setRestartInterval(restart_interval)
+        self.setRestartInterval(restart_interval)
 
-        self._setDirection(direction)
+        self.setDirection(direction)
 
-        self._setLambda1(lambda1)
+        self.setLambda1(lambda1)
 
-        self._setLambda2(lambda2)
+        self.setLambda2(lambda2)
 
-        self._setAlpha(alpha)
+        self.setAlpha(alpha)
 
-        self._setUh(uh)
+        self.setUh(uh)
 
-        self._setW0(W0)
+        self.setW0(W0)
 
         # Store the anneal values.
-        self._setAnnealValues(anneal_values)
+        self.setAnnealValues(anneal_values)
 
         # Set the number of annealing cycles.
-        self._setAnnealNumCycles(anneal_numcycles)
+        self.setAnnealNumCycles(anneal_numcycles)
 
     def getTimeStep(self):
         """
@@ -1829,7 +1829,7 @@ class AToMAnnealing(_AToM):
         """
         return self._timestep
 
-    def _setTimestep(self, timestep):
+    def setTimestep(self, timestep):
         """
         Set the time step.
 
@@ -1863,7 +1863,7 @@ class AToMAnnealing(_AToM):
         """
         return self._runtime
 
-    def _setRuntime(self, runtime):
+    def setRuntime(self, runtime):
         """
         Set the running time.
 
@@ -1885,7 +1885,7 @@ class AToMAnnealing(_AToM):
                 "'runtime' must be of type 'str' or 'BioSimSpace.Types.Time'"
             )
 
-    def _getTemperature(self):
+    def getTemperature(self):
         """
         Return temperature.
 
@@ -1897,7 +1897,7 @@ class AToMAnnealing(_AToM):
         """
         return self._temperature
 
-    def _setTemperature(self, temperature):
+    def setTemperature(self, temperature):
         """
         Set the temperature.
 
@@ -1919,7 +1919,7 @@ class AToMAnnealing(_AToM):
                 "'temperature' must be of type 'str' or 'BioSimSpace.Types.Temperature'"
             )
 
-    def _getPressure(self):
+    def getPressure(self):
         """
         Return the pressure.
 
@@ -1931,7 +1931,7 @@ class AToMAnnealing(_AToM):
         """
         return self._pressure
 
-    def _setPressure(self, pressure):
+    def setPressure(self, pressure):
         """
         Set the pressure.
 
@@ -1953,7 +1953,7 @@ class AToMAnnealing(_AToM):
                 "'pressure' must be of type 'str' or 'BioSimSpace.Types.Pressure'"
             )
 
-    def _getThermostatTimeConstant(self):
+    def getThermostatTimeConstant(self):
         """
         Return the time constant for the thermostat.
 
@@ -1965,7 +1965,7 @@ class AToMAnnealing(_AToM):
         """
         return self._thermostat_time_constant
 
-    def _setThermostatTimeConstant(self, thermostat_time_constant):
+    def setThermostatTimeConstant(self, thermostat_time_constant):
         """
         Set the time constant for the thermostat.
 
@@ -1999,7 +1999,7 @@ class AToMAnnealing(_AToM):
         """
         return self._report_interval
 
-    def _setReportInterval(self, report_interval):
+    def setReportInterval(self, report_interval):
         """
         Set the interval at which statistics are reported. (In integration steps.).
 
@@ -2032,7 +2032,7 @@ class AToMAnnealing(_AToM):
         """
         return self._restart_interval
 
-    def _setRestartInterval(self, restart_interval):
+    def setRestartInterval(self, restart_interval):
         """
         Set the interval between saving restart confiugrations, and/or
         trajectory frames. (In integration steps.).
@@ -2053,7 +2053,7 @@ class AToMAnnealing(_AToM):
 
         self._restart_interval = restart_interval
 
-    def _getDirection(self):
+    def getDirection(self):
         """
         Return the direction of the equilibration.
 
@@ -2065,7 +2065,7 @@ class AToMAnnealing(_AToM):
         """
         return self._direction
 
-    def _setDirection(self, direction):
+    def setDirection(self, direction):
         """
         Set the direction of the equilibration.
 
@@ -2079,7 +2079,7 @@ class AToMAnnealing(_AToM):
             raise TypeError("'direction' must have a value of 1 or -1")
         self._direction = int(direction)
 
-    def _getLambda1(self):
+    def getLambda1(self):
         """
         Return the lambda1 value for the ATM force.
 
@@ -2091,7 +2091,7 @@ class AToMAnnealing(_AToM):
         """
         return self._lambda1
 
-    def _setLambda1(self, lambda1):
+    def setLambda1(self, lambda1):
         """
         Set the lambda1 value for the ATM force.
 
@@ -2107,7 +2107,7 @@ class AToMAnnealing(_AToM):
             raise ValueError("lambda1 must be between 0 and 0.5")
         self._lambda1 = float(lambda1)
 
-    def _getLambda2(self):
+    def getLambda2(self):
         """
         Return the lambda2 value for the ATM force.
 
@@ -2119,7 +2119,7 @@ class AToMAnnealing(_AToM):
         """
         return self._lambda2
 
-    def _setLambda2(self, lambda2):
+    def setLambda2(self, lambda2):
         """
         Set the lambda2 value for the ATM force.
 
@@ -2135,7 +2135,7 @@ class AToMAnnealing(_AToM):
             raise ValueError("lambda2 must be between 0 and 0.5")
         self._lambda2 = float(lambda2)
 
-    def _getAlpha(self):
+    def getAlpha(self):
         """
         Return the alpha value for the ATM force.
 
@@ -2147,7 +2147,7 @@ class AToMAnnealing(_AToM):
         """
         return self._alpha
 
-    def _setAlpha(self, alpha):
+    def setAlpha(self, alpha):
         """
         Set the alpha value for the ATM force.
 
@@ -2185,7 +2185,7 @@ class AToMAnnealing(_AToM):
                 )
         self._alpha = alpha
 
-    def _getUh(self):
+    def getUh(self):
         """
         Return the uh value for the ATM force.
 
@@ -2197,7 +2197,7 @@ class AToMAnnealing(_AToM):
         """
         return self._uh
 
-    def _setUh(self, uh):
+    def setUh(self, uh):
         """
         Set the uh value for the ATM force.
 
@@ -2235,7 +2235,7 @@ class AToMAnnealing(_AToM):
                 )
         self._uh = uh
 
-    def _getW0(self):
+    def getW0(self):
         """
         Return the W0 value for the ATM force.
 
@@ -2247,7 +2247,7 @@ class AToMAnnealing(_AToM):
         """
         return self._W0
 
-    def _setW0(self, W0):
+    def setW0(self, W0):
         """
         Set the W0 value for the ATM force.
 
@@ -2285,7 +2285,7 @@ class AToMAnnealing(_AToM):
                 )
         self._W0 = W0
 
-    def _getAnnealValues(self):
+    def getAnnealValues(self):
         """
         Return the anneal protocol.
 
@@ -2297,7 +2297,7 @@ class AToMAnnealing(_AToM):
         """
         return self._anneal_values
 
-    def _setAnnealValues(self, anneal_values):
+    def setAnnealValues(self, anneal_values):
         """
         Set the anneal protocol.
 
@@ -2372,7 +2372,7 @@ class AToMAnnealing(_AToM):
                 "'anneal_values' must be of type 'dict', 'None', or 'default'"
             )
 
-    def _getAnnealNumCycles(self):
+    def getAnnealNumCycles(self):
         """
         Return the number of annealing cycles.
 
@@ -2384,7 +2384,7 @@ class AToMAnnealing(_AToM):
         """
         return self._anneal_numcycles
 
-    def _setAnnealNumCycles(self, anneal_numcycles):
+    def setAnnealNumCycles(self, anneal_numcycles):
         """
         Set the number of annealing cycles.
 
@@ -2577,52 +2577,52 @@ class AToMProduction(_AToM):
             cm_tol,
         )
 
-        self._setTimestep(timestep)
+        self.setTimestep(timestep)
 
-        self._setRuntime(runtime)
+        self.setRuntime(runtime)
 
-        self._setTemperature(temperature)
+        self.setTemperature(temperature)
 
         # Set the system pressure.
         if pressure is not None:
-            self._setPressure(pressure)
+            self.setPressure(pressure)
         else:
             self._pressure = None
 
-        self._setThermostatTimeConstant(thermostat_time_constant)
+        self.setThermostatTimeConstant(thermostat_time_constant)
 
-        self._setReportInterval(report_interval)
+        self.setReportInterval(report_interval)
 
-        self._setRestartInterval(restart_interval)
+        self.setRestartInterval(restart_interval)
 
         # Set the restart flag.
-        self._setRestart(restart)
+        self.setRestart(restart)
         # Set the number of lambda values.
         # If other window-dependent parameters are not set, then set them to
         # sensible defaults.
-        self._setNumLambda(num_lambda)
+        self.setNumLambda(num_lambda)
 
         # Store the direction values.
-        self._setDirection(direction)
+        self.setDirection(direction)
 
         # Store the lambda1 values.
-        self._setLambda1(lambda1)
+        self.setLambda1(lambda1)
 
         # Store the lambda2 values.
-        self._setLambda2(lambda2)
+        self.setLambda2(lambda2)
 
         # Store the alpha values.
-        self._setAlpha(alpha)
+        self.setAlpha(alpha)
 
         # Store the uh values.
-        self._setUh(uh)
+        self.setUh(uh)
 
         # Store the W0 values.
-        self._setW0(W0)
+        self.setW0(W0)
 
-        self._set_lambda_values()
+        self.set_lambda_values()
 
-        self._setAnalysisMethod(analysis_method)
+        self.setAnalysisMethod(analysis_method)
 
     def getTimeStep(self):
         """
@@ -2636,7 +2636,7 @@ class AToMProduction(_AToM):
         """
         return self._timestep
 
-    def _setTimestep(self, timestep):
+    def setTimestep(self, timestep):
         """
         Set the time step.
 
@@ -2670,7 +2670,7 @@ class AToMProduction(_AToM):
         """
         return self._runtime
 
-    def _setRuntime(self, runtime):
+    def setRuntime(self, runtime):
         """
         Set the running time.
 
@@ -2692,7 +2692,7 @@ class AToMProduction(_AToM):
                 "'runtime' must be of type 'str' or 'BioSimSpace.Types.Time'"
             )
 
-    def _getTemperature(self):
+    def getTemperature(self):
         """
         Return temperature.
 
@@ -2704,7 +2704,7 @@ class AToMProduction(_AToM):
         """
         return self._temperature
 
-    def _setTemperature(self, temperature):
+    def setTemperature(self, temperature):
         """
         Set the temperature.
 
@@ -2726,7 +2726,7 @@ class AToMProduction(_AToM):
                 "'temperature' must be of type 'str' or 'BioSimSpace.Types.Temperature'"
             )
 
-    def _getPressure(self):
+    def getPressure(self):
         """
         Return the pressure.
 
@@ -2738,7 +2738,7 @@ class AToMProduction(_AToM):
         """
         return self._pressure
 
-    def _setPressure(self, pressure):
+    def setPressure(self, pressure):
         """
         Set the pressure.
 
@@ -2760,7 +2760,7 @@ class AToMProduction(_AToM):
                 "'pressure' must be of type 'str' or 'BioSimSpace.Types.Pressure'"
             )
 
-    def _getThermostatTimeConstant(self):
+    def getThermostatTimeConstant(self):
         """
         Return the time constant for the thermostat.
 
@@ -2772,7 +2772,7 @@ class AToMProduction(_AToM):
         """
         return self._thermostat_time_constant
 
-    def _setThermostatTimeConstant(self, thermostat_time_constant):
+    def setThermostatTimeConstant(self, thermostat_time_constant):
         """
         Set the time constant for the thermostat.
 
@@ -2806,7 +2806,7 @@ class AToMProduction(_AToM):
         """
         return self._report_interval
 
-    def _setReportInterval(self, report_interval):
+    def setReportInterval(self, report_interval):
         """
         Set the interval at which statistics are reported. (In integration steps.).
 
@@ -2839,7 +2839,7 @@ class AToMProduction(_AToM):
         """
         return self._restart_interval
 
-    def _setRestartInterval(self, restart_interval):
+    def setRestartInterval(self, restart_interval):
         """
         Set the interval between saving restart confiugrations, and/or
         trajectory frames. (In integration steps.).
@@ -2872,7 +2872,7 @@ class AToMProduction(_AToM):
         """
         return self._restart
 
-    def _setRestart(self, restart):
+    def setRestart(self, restart):
         """
         Set the restart flag.
 
@@ -2888,7 +2888,7 @@ class AToMProduction(_AToM):
             _warnings.warn("Non-boolean restart flag. Defaulting to False!")
             self._restart = False
 
-    def _getNumLambda(self):
+    def getNumLambda(self):
         """
         Return the number of lambda values.
 
@@ -2900,7 +2900,7 @@ class AToMProduction(_AToM):
         """
         return self._num_lambda
 
-    def _setNumLambda(self, num_lambda):
+    def setNumLambda(self, num_lambda):
         """
         Set the number of lambda values.
 
@@ -2916,11 +2916,11 @@ class AToMProduction(_AToM):
                     "Warning: The AToM protocol is optimised for an even number of lambda values. Unknown behaviour may occur if using an odd number of lambda values."
                 )
             self._num_lambda = num_lambda
-            self._set_lambda_values()
+            self.set_lambda_values()
         else:
             raise TypeError("'num_lambda' must be of type 'int'")
 
-    def _getDirection(self):
+    def getDirection(self):
         """
         Return the direction values.
 
@@ -2932,7 +2932,7 @@ class AToMProduction(_AToM):
         """
         return self._directions
 
-    def _setDirection(self, directions):
+    def setDirection(self, directions):
         """
         Set the direction values.
 
@@ -2958,7 +2958,7 @@ class AToMProduction(_AToM):
         else:
             raise TypeError("'directions' must be of type 'list' or 'None'")
 
-    def _getLambda1(self):
+    def getLambda1(self):
         """
         Return the lambda1 values.
 
@@ -2970,7 +2970,7 @@ class AToMProduction(_AToM):
         """
         return self._lambda1
 
-    def _setLambda1(self, lambda1):
+    def setLambda1(self, lambda1):
         """
         Set the lambda1 values.
 
@@ -3004,7 +3004,7 @@ class AToMProduction(_AToM):
         else:
             raise TypeError("'lambda1' must be of type 'list'")
 
-    def _getLambda2(self):
+    def getLambda2(self):
         """
         Return the lambda2 values.
 
@@ -3016,7 +3016,7 @@ class AToMProduction(_AToM):
         """
         return self._lambda2
 
-    def _setLambda2(self, lambda2):
+    def setLambda2(self, lambda2):
         """
         Set the lambda2 values.
 
@@ -3052,7 +3052,7 @@ class AToMProduction(_AToM):
         else:
             raise TypeError("'lambda2' must be of type 'list'")
 
-    def _getAlpha(self):
+    def getAlpha(self):
         """
         Return the alpha values.
 
@@ -3064,7 +3064,7 @@ class AToMProduction(_AToM):
         """
         return self._alpha
 
-    def _setAlpha(self, alpha):
+    def setAlpha(self, alpha):
         """
         Set the alpha values.
 
@@ -3115,7 +3115,7 @@ class AToMProduction(_AToM):
         else:
             raise TypeError("'alpha' must be of type 'list' or None")
 
-    def _getUh(self):
+    def getUh(self):
         """
         Return the uh values.
 
@@ -3127,7 +3127,7 @@ class AToMProduction(_AToM):
         """
         return self._uh
 
-    def _setUh(self, uh):
+    def setUh(self, uh):
         """
         Set the uh values.
 
@@ -3178,7 +3178,7 @@ class AToMProduction(_AToM):
         else:
             raise TypeError("'uh' must be of type 'list'")
 
-    def _getW0(self):
+    def getW0(self):
         """
         Return the W0 values.
 
@@ -3190,7 +3190,7 @@ class AToMProduction(_AToM):
         """
         return self._W0
 
-    def _setW0(self, W0):
+    def setW0(self, W0):
         """
         Set the W0 values.
 
@@ -3241,12 +3241,12 @@ class AToMProduction(_AToM):
         else:
             raise TypeError("'W0' must be of type 'list'")
 
-    def _set_lambda_values(self):
+    def set_lambda_values(self):
         # Internal function to set the 'master lambda'
         # This lambda value serves as the master for all other window-dependent parameters
         self._lambda_values = _np.linspace(0, 1, self._num_lambda).tolist()
 
-    def _get_lambda_values(self):
+    def get_lambda_values(self):
         # Internal function to get the 'master lambda'
         # This lambda value serves as the master for all other window-dependent parameters
         try:
@@ -3254,7 +3254,7 @@ class AToMProduction(_AToM):
         except:
             return None
 
-    def _setAnalysisMethod(self, analysis_method):
+    def setAnalysisMethod(self, analysis_method):
         """Set the method that will be used for analysis of the simulation results.
         This will change the output files that are generated."""
         allowed_methods = ["UWHAM", "MBAR", "both"]
@@ -3263,10 +3263,10 @@ class AToMProduction(_AToM):
         else:
             raise ValueError(f"analysis_method must be one of {allowed_methods}")
 
-    def _getAnalysisMethod(self):
+    def getAnalysisMethod(self):
         return self._analysis_method
 
-    def _set_current_index(self, index):
+    def set_current_index(self, index):
         # Internal function to set index of the current simulation window
         # set using the master lambda list
         if index < 0:
@@ -3279,7 +3279,7 @@ class AToMProduction(_AToM):
             raise TypeError("index must be an integer")
         self._current_index = index
 
-    def _get_window_index(self):
+    def get_window_index(self):
         # Internal function to get the current window index
         try:
             return self._current_index

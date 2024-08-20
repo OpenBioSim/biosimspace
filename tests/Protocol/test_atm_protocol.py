@@ -59,49 +59,47 @@ def test_atm_minimisation(TEMOA_hostguest):
     # using getters, check that all protocols have the same values
     # (skip force constant and as it is not atm exclusive)
     assert (
-        protocol_units._getPosRestWidth()
-        == protocol_floats._getPosRestWidth()
-        == protocol_strings._getPosRestWidth()
+        protocol_units.getPosRestWidth()
+        == protocol_floats.getPosRestWidth()
+        == protocol_strings.getPosRestWidth()
     )
     assert (
-        protocol_units._getAlignKfSep()
-        == protocol_floats._getAlignKfSep()
-        == protocol_strings._getAlignKfSep()
+        protocol_units.getAlignKfSep()
+        == protocol_floats.getAlignKfSep()
+        == protocol_strings.getAlignKfSep()
     )
     assert (
-        protocol_units._getAlignKTheta()
-        == protocol_floats._getAlignKTheta()
-        == protocol_strings._getAlignKTheta()
+        protocol_units.getAlignKTheta()
+        == protocol_floats.getAlignKTheta()
+        == protocol_strings.getAlignKTheta()
     )
     assert (
-        protocol_units._getAlignKPsi()
-        == protocol_floats._getAlignKPsi()
-        == protocol_strings._getAlignKPsi()
+        protocol_units.getAlignKPsi()
+        == protocol_floats.getAlignKPsi()
+        == protocol_strings.getAlignKPsi()
     )
     assert (
-        protocol_units._getSCUmax()
-        == protocol_floats._getSCUmax()
-        == protocol_strings._getSCUmax()
+        protocol_units.getSCUmax()
+        == protocol_floats.getSCUmax()
+        == protocol_strings.getSCUmax()
     )
     assert (
-        protocol_units._getSCU0()
-        == protocol_floats._getSCU0()
-        == protocol_strings._getSCU0()
+        protocol_units.getSCU0()
+        == protocol_floats.getSCU0()
+        == protocol_strings.getSCU0()
     )
     assert (
-        protocol_units._getSCa()
-        == protocol_floats._getSCa()
-        == protocol_strings._getSCa()
+        protocol_units.getSCa() == protocol_floats.getSCa() == protocol_strings.getSCa()
     )
     assert (
-        protocol_units._getCMKf()
-        == protocol_floats._getCMKf()
-        == protocol_strings._getCMKf()
+        protocol_units.getCMKf()
+        == protocol_floats.getCMKf()
+        == protocol_strings.getCMKf()
     )
     assert (
-        protocol_units._getCMTol()
-        == protocol_floats._getCMTol()
-        == protocol_strings._getCMTol()
+        protocol_units.getCMTol()
+        == protocol_floats.getCMTol()
+        == protocol_strings.getCMTol()
     )
 
 
@@ -154,25 +152,21 @@ def test_atm_equilibration(TEMOA_hostguest):
     assert protocol_units.getTimeStep() == protocol_strings.getTimeStep()
     assert protocol_units.getRunTime() == protocol_strings.getRunTime()
     assert (
-        protocol_units._getStartTemperature() == protocol_strings._getStartTemperature()
+        protocol_units.getStartTemperature() == protocol_strings.getStartTemperature()
     )
-    assert protocol_units._getEndTemperature() == protocol_strings._getEndTemperature()
-    assert protocol_units._getPressure() == protocol_strings._getPressure()
+    assert protocol_units.getEndTemperature() == protocol_strings.getEndTemperature()
+    assert protocol_units.getPressure() == protocol_strings.getPressure()
     assert (
-        protocol_units._getThermostatTimeConstant()
-        == protocol_strings._getThermostatTimeConstant()
-    )
-    assert (
-        protocol_units._getAlpha()
-        == protocol_floats._getAlpha()
-        == protocol_strings._getAlpha()
+        protocol_units.getThermostatTimeConstant()
+        == protocol_strings.getThermostatTimeConstant()
     )
     assert (
-        protocol_units._getUh() == protocol_floats._getUh() == protocol_strings._getUh()
+        protocol_units.getAlpha()
+        == protocol_floats.getAlpha()
+        == protocol_strings.getAlpha()
     )
-    assert (
-        protocol_units._getW0() == protocol_floats._getW0() == protocol_strings._getW0()
-    )
+    assert protocol_units.getUh() == protocol_floats.getUh() == protocol_strings.getUh()
+    assert protocol_units.getW0() == protocol_floats.getW0() == protocol_strings.getW0()
 
 
 def test_atm_annealing(TEMOA_hostguest):
@@ -223,27 +217,27 @@ def test_atm_production(TEMOA_hostguest):
         num_lambda=6,
     )
     # get values for direction, lambda1, lambda2, alpha, uh and W0
-    assert len(protocol._getDirection()) == 6
-    assert len(protocol._getLambda1()) == 6
-    assert len(protocol._getLambda2()) == 6
-    assert len(protocol._getAlpha()) == 6
-    assert len(protocol._getUh()) == 6
-    assert len(protocol._getW0()) == 6
+    assert len(protocol.getDirection()) == 6
+    assert len(protocol.getLambda1()) == 6
+    assert len(protocol.getLambda2()) == 6
+    assert len(protocol.getAlpha()) == 6
+    assert len(protocol.getUh()) == 6
+    assert len(protocol.getW0()) == 6
 
     # Define custom values for direction that are not valid and check that an error is raised
     d = [1, 2, 3, 4, 5, 6]
     with pytest.raises(ValueError):
-        protocol._setDirection(d)
+        protocol.setDirection(d)
 
     # Define custom values for lambda1 that are not valid and check that an error is raised
     l1 = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
     with pytest.raises(ValueError):
-        protocol._setLambda1(l1)
+        protocol.setLambda1(l1)
 
     # Define custom values for lambda2 that are not valid and check that an error is raised
     l2 = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
     with pytest.raises(ValueError):
-        protocol._setLambda2(l2)
+        protocol.setLambda2(l2)
 
     # check that a list of strings, ints, floats and BSS units can be parsed for alpha,uh and w0
     list_of_units = [
@@ -265,9 +259,9 @@ def test_atm_production(TEMOA_hostguest):
 
     end_product = [0.1 * BSS.Units.Energy.kcal_per_mol] * 5
     end_product.append(1 * BSS.Units.Energy.kcal_per_mol)
-    assert protocol._getAlpha() == end_product
-    assert protocol._getUh() == end_product
-    assert protocol._getW0() == end_product
+    assert protocol.getAlpha() == end_product
+    assert protocol.getUh() == end_product
+    assert protocol.getW0() == end_product
 
     # now check that all of the allowed analysis options can be set
     protocol = BSS.Protocol.AToMProduction(

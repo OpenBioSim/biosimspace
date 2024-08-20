@@ -1220,7 +1220,7 @@ class _relativeATM:
 
         # Validate the protocol.
         if protocol is not None:
-            from ..Protocol._AToM import AToMProduction as _Production
+            from ..Protocol._atm import AToMProduction as _Production
 
             if not isinstance(protocol, _Production):
                 raise TypeError(
@@ -1295,9 +1295,9 @@ class _relativeATM:
         processes = []
         # Get the list of lambda1 values so that the total number of simulations can
         # be asserted
-        lambda_list = self._protocol._get_lambda_values()
+        lambda_list = self._protocol.get_lambda_values()
         # Set index of current simulation to 0
-        self._protocol._set_current_index(0)
+        self._protocol.set_current_index(0)
         lam = lambda_list[0]
 
         first_dir = "%s/lambda_%5.4f" % (self._work_dir, lam)
@@ -1339,12 +1339,12 @@ class _relativeATM:
             # this is more difficult than usual due to the number of window-dependent variables
             new_config = []
             # All variables that need to change
-            new_lam_1 = self._protocol._getLambda1()[index]
-            new_lam_2 = self._protocol._getLambda2()[index]
-            new_alpha = self._protocol._getAlpha()[index].value()
-            new_uh = self._protocol._getUh()[index].value()
-            new_w0 = self._protocol._getW0()[index].value()
-            new_direction = self._protocol._getDirection()[index]
+            new_lam_1 = self._protocol.getLambda1()[index]
+            new_lam_2 = self._protocol.getLambda2()[index]
+            new_alpha = self._protocol.getAlpha()[index].value()
+            new_uh = self._protocol.getUh()[index].value()
+            new_w0 = self._protocol.getW0()[index].value()
+            new_direction = self._protocol.getDirection()[index]
             with open(new_dir + "/openmm_script.py", "r") as f:
                 for line in f:
                     if line.startswith("lambda1"):

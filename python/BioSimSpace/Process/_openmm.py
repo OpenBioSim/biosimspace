@@ -82,15 +82,10 @@ class OpenMM(_process.Process):
         **kwargs,
     ):
         from ._atm import OpenMMAToM
+        from ..Protocol._atm import _AToM
 
         # would like to use issubclass but _Protocol._AToM is not exposed
-        if (
-            isinstance(protocol, _Protocol.AToMMinimisation)
-            or isinstance(protocol, _Protocol.AToMEquilibration)
-            or isinstance(protocol, _Protocol.AToMAnnealing)
-            or isinstance(protocol, _Protocol.AToMProduction)
-        ):
-
+        if isinstance(protocol, _AToM):
             return super().__new__(OpenMMAToM)
         else:
             return super().__new__(cls)
