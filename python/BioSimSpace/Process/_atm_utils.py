@@ -23,21 +23,14 @@ from .. import Protocol as _Protocol
 from ..Types import Vector as _Vector
 import math as _math
 import warnings as _warnings
+from ..Protocol._atm import _AToM
 
 
 class _AToMUtils:
     # Internal class for creating openmm forces within an AToM process.
     def __init__(self, protocol):
         # Check for proper typing
-        if not isinstance(
-            protocol,
-            (
-                _Protocol.AToMMinimisation,
-                _Protocol.AToMEquilibration,
-                _Protocol.AToMAnnealing,
-                _Protocol.AToMProduction,
-            ),
-        ):
+        if not isinstance(protocol, _AToM):
             raise TypeError("Protocol must be an AToM protocol")
         self.protocol = protocol
         self.data = self.protocol.getData()
