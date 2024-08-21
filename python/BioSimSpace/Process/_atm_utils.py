@@ -143,7 +143,7 @@ class _AToMUtils:
         return output
 
     def createSoftcorePertE(self):
-        """Create the softcorePertE function for the Gallachio lab analysis"""
+        """Create the softcorePertE function for the Gallicchio  lab analysis"""
         output = ""
         output += "def softCorePertE(u, umax, ub, a):\n"
         output += "    usc = u\n"
@@ -251,7 +251,7 @@ class _AToMUtils:
         # "dx_21 = x2 - x1; dy_21 = y2 - y1; dz_21 = z2 - z1;"
         # )\n"""
 
-        # Gallachio lab dihedral form:
+        # Gallicchio  lab dihedral form:
         output += 'dihedral_energy_fn = "(k/2) * (1 - cosp) ; "\n'
         output += 'dihedral_energy_fn += "cosp = xvn*xwn + yvn*ywn + zvn*zwn ; "\n'
         output += 'dihedral_energy_fn += "xvn = xv/v ; yvn = yv/v; zvn = zv/v ;"\n'
@@ -661,13 +661,13 @@ class _AToMUtils:
         report_interval,
         timestep,
     ):
-        """Recreation of Gallachio lab analysis - currently uses {cycles} to define sampling frequency"""
+        """Recreation of Gallicchio  lab analysis - currently uses {cycles} to define sampling frequency"""
         output = ""
         output += f"\n# Run the simulation in cycles, with each cycle having {report_interval} steps.\n"
         output += "# Timestep in ps\n"
         output += f"timestep = {timestep}\n"
         output += "\n"
-        output += "#Create dictionary for storing results in the same manner as the Gallachio lab code\n"
+        output += "#Create dictionary for storing results in the same manner as the Gallicchio  lab code\n"
         # Logic for restarting simulations
         output += "#Reporting for UWHAM:\n"
         output += "if is_restart:\n"

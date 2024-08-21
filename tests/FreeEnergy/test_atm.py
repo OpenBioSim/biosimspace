@@ -489,7 +489,7 @@ def test_single_point_energies(TEMOA_host, TEMOA_lig1, TEMOA_lig2):
 def test_UWHAM():
     import numpy as np
 
-    # To try and ensure parity with the Gallachio lab code
+    # To try and ensure parity with the Gallicchio  lab code
     # we will test each individual element of the UWHAM calculation
     potential = -69702.79
     e_pert = 70.48908
