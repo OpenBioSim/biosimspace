@@ -378,6 +378,10 @@ def test_parse_fep_output(system, protocol):
         assert len(records_sc1) != 0
 
 
+@pytest.mark.skipif(
+    has_amber is False or has_pyarrow is False,
+    reason="Requires AMBER and pyarrow to be installed.",
+)
 class TestsaveMetric:
     @staticmethod
     @pytest.fixture()

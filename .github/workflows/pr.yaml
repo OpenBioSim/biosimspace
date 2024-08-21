@@ -46,14 +46,12 @@ jobs:
           python-version: ${{ matrix.python-version }}
           activate-environment: bss_build
           miniforge-version: latest
-          miniforge-variant: Mambaforge
-          use-mamba: true
 #
       - name: Clone the feature branch
         run: git clone -b ${{ github.head_ref }} --single-branch https://github.com/${{ env.REPO }} biosimspace
 #
       - name: Setup Conda
-        run: mamba install -y -c conda-forge boa anaconda-client packaging pip-requirements-parser
+        run: conda install -y -c conda-forge boa anaconda-client packaging pip-requirements-parser
 #
       - name: Update Conda recipe
         run: python ${{ github.workspace }}/biosimspace/actions/update_recipe.py
@@ -61,10 +59,10 @@ jobs:
       - name: Prepare build location
         run: mkdir ${{ github.workspace }}/build
 #
-      - name: Build Conda package using mamba build using main channel
+      - name: Build Conda package using conda build using main channel
         if: ${{ github.base_ref == 'main' }}
-        run: conda mambabuild -c conda-forge -c openbiosim/label/main ${{ github.workspace }}/biosimspace/recipes/biosimspace
+        run: conda build -c conda-forge -c openbiosim/label/main ${{ github.workspace }}/biosimspace/recipes/biosimspace
 #
-      - name: Build Conda package using mamba build using dev channel
+      - name: Build Conda package using conda build using dev channel
         if: ${{ github.base_ref != 'main' }}
-        run: conda mambabuild -c conda-forge -c openbiosim/label/dev ${{ github.workspace }}/biosimspace/recipes/biosimspace
+        run: conda build -c conda-forge -c openbiosim/label/dev ${{ github.workspace }}/biosimspace/recipes/biosimspace

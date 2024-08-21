@@ -30,12 +30,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
           activate-environment: bss_build
           miniforge-version: latest
-          miniforge-variant: Mambaforge
-          use-mamba: true
 
       - name: Install dependency
         run: |
-          mamba install -c conda-forge -c openbiosim/label/main biosimspace python=3.10 ambertools gromacs "sire=2024.1.0" "alchemlyb>=2.1" pytest openff-interchange pint=0.21 rdkit "jaxlib>0.3.7" tqdm
+          conda install -c conda-forge -c openbiosim/label/main biosimspace python=3.10 ambertools gromacs "sire=2024.2.0" "alchemlyb>=2.1" pytest openff-interchange pint=0.21 rdkit "jaxlib>0.3.7" tqdm
           python -m pip install git+https://github.com/Exscientia/MDRestraintsGenerator.git
           # For the testing of BSS.FreeEnergy.AlchemicalFreeEnergy.analysis
           python -m pip install https://github.com/alchemistry/alchemtest/archive/master.zip

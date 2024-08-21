@@ -450,6 +450,10 @@ class TestGetRecord:
             assert not (Path(process.workDir()) / "dHdl.parquet").exists()
 
 
+@pytest.mark.skipif(
+    has_gromacs is False or has_pyarrow is False,
+    reason="Requires GROMACS and pyarrow to be installed.",
+)
 def test_error_saveMetric(perturbable_system):
     protocol = BSS.Protocol.FreeEnergy()
     process = BSS.Process.Gromacs(perturbable_system, protocol)
