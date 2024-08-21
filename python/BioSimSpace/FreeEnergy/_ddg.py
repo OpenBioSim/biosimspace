@@ -22,36 +22,34 @@
 
 # Alchemical transfer analysis methods. UWHAM implementation adapted from
 # both the `femto` and `AToM-openmm` packages.
-__all__ = ["analyse_UWHAM", "analyse_MBAR", "new_MBAR"]
+__all__ = ["analyse_UWHAM", "analyse_MBAR"]
 
 import pandas as _pd
 
-import numpy
-import scipy.optimize
-import scipy.special
-import pathlib
-import functools
+import numpy as _numpy
+import scipy.optimize as _optimize
+import scipy.special as _special
+import functools as _functools
 import pathlib as _pathlib
 import os as _os
-import pymbar
 
 
 def _compute_weights(ln_z, ln_q, factor):
-    q_ij = numpy.exp(ln_q - ln_z)
+    q_ij = _numpy.exp(ln_q - ln_z)
     return q_ij / (factor * q_ij).sum(axis=-1, keepdims=True)
 
 
 def _compute_kappa_hessian(ln_z, ln_q, factor, n):
-    ln_z = numpy.insert(ln_z, 0, 0.0)
+    ln_z = _numpy.insert(ln_z, 0, 0.0)
 
     w = (factor * _compute_weights(ln_z, ln_q, factor))[:, 1:]
-    return -w.T @ w / n + numpy.diag(w.sum(axis=0) / n)
+    return -w.T @ w / n + _numpy.diag(w.sum(axis=0) / n)
 
 
 def _compute_kappa(ln_z, ln_q, factor, n):
-    ln_z = numpy.insert(ln_z, 0, 0.0)
+    ln_z = _numpy.insert(ln_z, 0, 0.0)
 
-    ln_q_ij_sum = scipy.special.logsumexp(a=ln_q - ln_z, b=factor, axis=1)
+    ln_q_ij_sum = _special.logsumexp(a=ln_q - ln_z, b=factor, axis=1)
     kappa = ln_q_ij_sum.sum() / n + (factor * ln_z).sum()
 
     w = factor * _compute_weights(ln_z, ln_q, factor)
@@ -63,14 +61,14 @@ def _compute_kappa(ln_z, ln_q, factor, n):
 def _compute_variance(ln_z, w, factor, n):
     o = w.T @ w / n
 
-    b = o * factor - numpy.eye(len(ln_z))
+    b = o * factor - _numpy.eye(len(ln_z))
     b = b[1:, 1:]
 
     b_inv_a = -o + o[0, :]
     b_inv_a = b_inv_a[1:, 1:]
 
-    var_matrix = (b_inv_a @ numpy.linalg.inv(b.T)) / n
-    return numpy.insert(numpy.diag(var_matrix), 0, 0.0)
+    var_matrix = (b_inv_a @ _numpy.linalg.inv(b.T)) / n
+    return _numpy.insert(_numpy.diag(var_matrix), 0, 0.0)
 
 
 def _bias_fcn(epert, lam1, lam2, alpha, u0, w0):
@@ -78,10 +76,10 @@ def _bias_fcn(epert, lam1, lam2, alpha, u0, w0):
     This is for the bias ilogistic potential
     (lambda2-lambda1) ln[1+exp(-alpha (u-u0))]/alpha + lambda2 u + w0
     """
-    ebias1 = numpy.zeros_like(epert)
+    ebias1 = _numpy.zeros_like(epert)
     if alpha > 0:
-        ee = 1 + numpy.exp(-alpha * (epert - u0))
-        ebias1 = (lam2 - lam1) * numpy.log(ee) / alpha
+        ee = 1 + _numpy.exp(-alpha * (epert - u0))
+        ebias1 = (lam2 - lam1) * _numpy.log(ee) / alpha
     return ebias1 + lam2 * epert + w0
 
 
@@ -102,9 +100,9 @@ def _estimate_f_i(ln_q, n_k):
     Returns:
         The estimated reduced free energies and their estimated variance.
     """
-    n_k = numpy.array(n_k)
+    n_k = _numpy.array(n_k)
 
-    ln_q = numpy.array(ln_q).T
+    ln_q = _numpy.array(ln_q).T
 
     n_samples, n_states = ln_q.shape
 
@@ -117,29 +115,29 @@ def _estimate_f_i(ln_q, n_k):
             "The number of samples do not match: %d != %d" % (n_samples, n_k.sum())
         )
 
-    ln_z = numpy.zeros(len(n_k) - 1)  # ln_z_0 is always fixed at 0.0
+    ln_z = _numpy.zeros(len(n_k) - 1)  # ln_z_0 is always fixed at 0.0
     ln_q -= ln_q[:, :1]
 
     n = n_k.sum()
     factor = n_k / n
 
-    result = scipy.optimize.minimize(
-        functools.partial(_compute_kappa, ln_q=ln_q, n=n, factor=factor),
+    result = _optimize.minimize(
+        _functools.partial(_compute_kappa, ln_q=ln_q, n=n, factor=factor),
         ln_z,
         method="trust-ncg",
         jac=True,
-        hess=functools.partial(_compute_kappa_hessian, ln_q=ln_q, n=n, factor=factor),
+        hess=_functools.partial(_compute_kappa_hessian, ln_q=ln_q, n=n, factor=factor),
     )
 
     if not result.success:
         raise RuntimeError("The UWHAM minimization failed to converge.")
 
-    f_i = numpy.insert(-result.x, 0, 0.0)
-    ln_z = numpy.insert(result.x, 0, 0.0)
+    f_i = _numpy.insert(-result.x, 0, 0.0)
+    ln_z = _numpy.insert(result.x, 0, 0.0)
 
     weights = _compute_weights(ln_z, ln_q, factor)
 
-    if not numpy.allclose(weights.sum(axis=0) / n, 1.0, atol=1e-3):
+    if not _numpy.allclose(weights.sum(axis=0) / n, 1.0, atol=1e-3):
         raise RuntimeError("The UWHAM weights do not sum to 1.0")
 
     df_i = _compute_variance(ln_z, weights, factor, n)
@@ -161,7 +159,7 @@ def _sort_folders(work_dir):
         A dictionary of folder names and their corresponding lambda values.
     """
     folders = {}
-    for folder in pathlib.Path(work_dir).iterdir():
+    for folder in _pathlib.Path(work_dir).iterdir():
         if folder.is_dir() and folder.name.startswith("lambda_"):
             try:
                 lambda_val = float(folder.name.split("_")[-1])
@@ -287,9 +285,9 @@ def analyse_UWHAM(work_dir, ignore_lower, ignore_upper, inflection_indices=None)
         )
     # We will assume that the point at which leg1 and leg2 are split is halfway through
     n_samples_first_half = n_samples[: inflection_indices[0] + 1]
-    pots_first_half = numpy.concatenate(pots[: inflection_indices[0] + 1])
-    pert_es_first_half = numpy.concatenate(pert_es[: inflection_indices[0] + 1])
-    ln_q = numpy.zeros((inflection_indices[0] + 1, len(pots_first_half)))
+    pots_first_half = _numpy.concatenate(pots[: inflection_indices[0] + 1])
+    pert_es_first_half = _numpy.concatenate(pert_es[: inflection_indices[0] + 1])
+    ln_q = _numpy.zeros((inflection_indices[0] + 1, len(pots_first_half)))
     sid = 0
 
     for be in range(len(n_samples_first_half)):
@@ -309,12 +307,12 @@ def analyse_UWHAM(work_dir, ignore_lower, ignore_upper, inflection_indices=None)
     ddg = f_i[-1] - f_i[0]
     ddg1 = ddg / dataframes[0]["beta"].values[0]
     # print(f"Forward leg: {ddg1}")
-    ddg_error_1 = numpy.sqrt(d_i[-1] + d_i[0]) / dataframes[0]["beta"].values[0]
+    ddg_error_1 = _numpy.sqrt(d_i[-1] + d_i[0]) / dataframes[0]["beta"].values[0]
 
     n_samples_second_half = n_samples[inflection_indices[1] :]
-    pots_second_half = numpy.concatenate(pots[inflection_indices[1] :])
-    pert_es_second_half = numpy.concatenate(pert_es[inflection_indices[1] :])
-    ln_q = numpy.zeros((total_states - inflection_indices[1], len(pots_second_half)))
+    pots_second_half = _numpy.concatenate(pots[inflection_indices[1] :])
+    pert_es_second_half = _numpy.concatenate(pert_es[inflection_indices[1] :])
+    ln_q = _numpy.zeros((total_states - inflection_indices[1], len(pots_second_half)))
     sid = 0
 
     # note the order of (be, te)
@@ -335,10 +333,10 @@ def analyse_UWHAM(work_dir, ignore_lower, ignore_upper, inflection_indices=None)
     ddg = f_i[-1] - f_i[0]
     ddg2 = ddg / dataframes[0]["beta"].values[0]
     # print(f"Reverse leg: {ddg2}")
-    ddg_error_2 = numpy.sqrt(d_i[-1] + d_i[0]) / dataframes[0]["beta"].values[0]
+    ddg_error_2 = _numpy.sqrt(d_i[-1] + d_i[0]) / dataframes[0]["beta"].values[0]
 
     ddg_total = ddg1 - ddg2
-    ddg_total_error = numpy.sqrt(ddg_error_1**2 + ddg_error_2**2)
+    ddg_total_error = _numpy.sqrt(ddg_error_1**2 + ddg_error_2**2)
     return ddg_total, ddg_total_error
 
 
@@ -407,7 +405,7 @@ def analyse_MBAR(work_dir):
                 num_lams += 1
             except ValueError:
                 cols.append(col)
-        new_lambdas = list(numpy.linspace(0, 1, num_lams))
+        new_lambdas = list(_numpy.linspace(0, 1, num_lams))
         new_fep_lambda = new_lambdas[index_fep_lambda]
         new_cols = cols + new_lambdas
         # rename the columns
