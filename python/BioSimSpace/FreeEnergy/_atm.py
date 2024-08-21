@@ -1086,9 +1086,9 @@ class AToM:
 
         Returns
         -------
-        ddg : float
+        ddg : :class:`BioSimSpace.Types.Energy`
             The free energy difference between the two ligands.
-        ddg_err : float
+        ddg_err :class:`BioSimSpace.Types.Energy`
             The error in the free energy difference.
         """
         if not isinstance(ignore_lower, int):

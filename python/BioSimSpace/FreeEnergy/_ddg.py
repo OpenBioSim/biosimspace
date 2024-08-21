@@ -213,9 +213,9 @@ def analyse_UWHAM(work_dir, ignore_lower, ignore_upper, inflection_indices=None)
 
     Returns
     -------
-    ddg_total : float
+    ddg_total : :class:`BioSimSpace.Types.Energy`
         The free energy.
-    ddg_total_error : float
+    ddg_total_error : :class:`BioSimSpace.Types.Energy`
         The error in the free energy.
 
     """
@@ -337,6 +337,11 @@ def analyse_UWHAM(work_dir, ignore_lower, ignore_upper, inflection_indices=None)
 
     ddg_total = ddg1 - ddg2
     ddg_total_error = _numpy.sqrt(ddg_error_1**2 + ddg_error_2**2)
+    from BioSimSpace.Units import Energy as _Energy
+
+    ddg_total = ddg_total * _Energy.kcal_per_mol
+    ddg_total_error = ddg_total_error * _Energy.kcal_per_mol
+
     return ddg_total, ddg_total_error
 
 
