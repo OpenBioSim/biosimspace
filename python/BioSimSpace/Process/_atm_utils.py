@@ -43,7 +43,7 @@ class _AToMUtils:
         self.data = self.protocol.getData()
 
     def getAlignmentConstants(self):
-        self.alignment_k_distance = self.protocol.getAlignKfSep().value()
+        self.alignment_k_distance = self.protocol.getAlignKDistance().value()
         self.alignment_k_theta = self.protocol.getAlignKTheta().value()
         self.alignment_k_psi = self.protocol.getAlignKPsi().value()
 

@@ -22,15 +22,15 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         system=None,
         data=None,
         core_alignment=True,
+        align_k_distance=2.5 * kcal_per_mol / angstrom2,
+        align_k_theta=10.0 * kcal_per_mol,
+        align_k_psi=10.0 * kcal_per_mol,
         com_distance_restraint=True,
         com_k=25.0 * kcal_per_mol / angstrom2,
         com_restraint_width=5.0 * angstrom,
         restraint=None,
         force_constant=10 * kcal_per_mol / angstrom2,
         positional_restraint_width=0.5 * angstrom,
-        align_kf_sep=2.5 * kcal_per_mol / angstrom2,
-        align_k_theta=10.0 * kcal_per_mol,
-        align_k_psi=10.0 * kcal_per_mol,
         SC_umax=1000.0 * kcal_per_mol,
         SC_u0=500.0 * kcal_per_mol,
         SC_a=0.0625,
@@ -77,6 +77,15 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         # Whether or not to use alignment restraints.
         self.setCoreAlignment(core_alignment)
 
+        # Store the align_k_distance value.
+        self.setAlignKDistance(align_k_distance)
+
+        # Store the align_k_theta value.
+        self.setAlignKTheta(align_k_theta)
+
+        # Store the align_k_psi value.
+        self.setAlignKPsi(align_k_psi)
+
         # Whether or not to use the CMCM restraint.
         self.setCOMDistanceRestraint(com_distance_restraint)
 
@@ -88,15 +97,6 @@ class _AToM(_Protocol, _PositionRestraintMixin):
 
         # Store the width of the coordinate restraint.
         self.setPosRestWidth(positional_restraint_width)
-
-        # Store the align_kf_sep value.
-        self.setAlignKfSep(align_kf_sep)
-
-        # Store the align_k_theta value.
-        self.setAlignKTheta(align_k_theta)
-
-        # Store the align_k_psi value.
-        self.setAlignKPsi(align_k_psi)
 
         # Store the SC_umax value.
         self.setSCUmax(SC_umax)
@@ -257,55 +257,57 @@ class _AToM(_Protocol, _PositionRestraintMixin):
                 )
         self._positional_restraint_width = positional_restraint_width
 
-    def getAlignKfSep(self):
+    def getAlignKDistance(self):
         """
-        Return the align_kf_sep value.
+        Return the align_k_distance value.
 
         Returns
         -------
 
-        align_kf_sep : :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>`
-            The align_kf_sep value in kcal/mol angstrom**2.
+        align_k_distance : :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>`
+            The align_k_distance value in kcal/mol angstrom**2.
         """
-        return self._align_kf_sep
+        return self._align_k_distance
 
-    def setAlignKfSep(self, align_kf_sep):
+    def setAlignKDistance(self, align_k_distance):
         """
-        Set the align_kf_sep value.
+        Set the align_k_distance value.
 
         Parameters
         ----------
 
-        align_kf_sep : int, float, str, :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>`, float
+        align_k_distance : int, float, str, :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>`, float
             Length value for the alignment restraint kcal/mol angstrom**2.
         """
         # Convert int to float.
-        if type(align_kf_sep) is int:
-            align_kf_sep = float(align_kf_sep)
+        if type(align_k_distance) is int:
+            align_k_distance = float(align_k_distance)
 
-        if isinstance(align_kf_sep, float):
+        if isinstance(align_k_distance, float):
             # Use default units.
-            align_kf_sep *= _Units.Energy.kcal_per_mol / _Units.Area.angstrom2
+            align_k_distance *= _Units.Energy.kcal_per_mol / _Units.Area.angstrom2
 
         else:
-            if isinstance(align_kf_sep, str):
+            if isinstance(align_k_distance, str):
                 try:
-                    align_kf_sep = _Types._GeneralUnit(align_kf_sep)
+                    align_k_distance = _Types._GeneralUnit(align_k_distance)
                 except Exception:
-                    raise ValueError("Unable to parse 'align_kf_sep' string.") from None
+                    raise ValueError(
+                        "Unable to parse 'align_k_distance' string."
+                    ) from None
 
-            elif not isinstance(align_kf_sep, _Types._GeneralUnit):
+            elif not isinstance(align_k_distance, _Types._GeneralUnit):
                 raise TypeError(
-                    "'align_kf_sep' must be of type 'BioSimSpace.Types._GeneralUnit', 'str', or 'float'."
+                    "'align_k_distance' must be of type 'BioSimSpace.Types._GeneralUnit', 'str', or 'float'."
                 )
 
             # Validate the dimensions.
-            if align_kf_sep.dimensions() != (1, 0, -2, 0, 0, -1, 0):
+            if align_k_distance.dimensions() != (1, 0, -2, 0, 0, -1, 0):
                 raise ValueError(
-                    "'align_kf_sep' has invalid dimensions! "
-                    f"Expected dimensions of energy density/area (e.g. kcal/molA^2), found '{align_kf_sep.unit()}'"
+                    "'align_k_distance' has invalid dimensions! "
+                    f"Expected dimensions of energy density/area (e.g. kcal/molA^2), found '{align_k_distance.unit()}'"
                 )
-        self._align_kf_sep = align_kf_sep
+        self._align_k_distance = align_k_distance
 
     def getAlignKTheta(self):
         """
@@ -655,7 +657,7 @@ class AToMMinimisation(_AToM):
         restraint=None,
         force_constant=10 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
         positional_restraint_width=0.5 * angstrom,
-        align_kf_sep=2.5 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
+        align_k_distance=2.5 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
         align_k_theta=10 * _Units.Energy.kcal_per_mol,
         align_k_psi=10 * _Units.Energy.kcal_per_mol,
         SC_umax=1000 * _Units.Energy.kcal_per_mol,
@@ -675,6 +677,15 @@ class AToMMinimisation(_AToM):
 
         core_alignment : bool
             Whether to use rigid core restraints to align the two ligands.
+
+        align_k_distance : int, float, str, :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>`
+            The force constant for the distance portion of the alignment restraint (kcal/(mol A^2)).
+
+        align_k_theta : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
+            The force constant for the angular portion of the alignment restaint (kcal/mol).
+
+        align_k_psi : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
+            The force constant for the dihedral portion of the alignment restraint (kcal/mol).
 
         com_distance_restraint : bool
             Whether to use a center of mass distance restraint.
@@ -714,14 +725,7 @@ class AToMMinimisation(_AToM):
         pos_restrained_atoms : [int]
             The atoms to be restrained.
 
-        align_kf_sep : int, float, str, :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>`
-            The force constant for the distance portion of the alignment restraint (kcal/(mol A^2)).
 
-        align_k_theta : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
-            The force constant for the angular portion of the alignment restaint (kcal/mol).
-
-        align_k_psi : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
-            The force constant for the dihedral portion of the alignment restraint (kcal/mol).
 
         SC_umax : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
             The Umax value for the ATM softcore potential (kcal/mol).
@@ -733,21 +737,21 @@ class AToMMinimisation(_AToM):
             The a value for the ATM softcore potential."""
 
         super().__init__(
-            system,
-            data,
-            core_alignment,
-            com_distance_restraint,
-            com_k,
-            com_restraint_width,
-            restraint,
-            force_constant,
-            positional_restraint_width,
-            align_kf_sep,
-            align_k_theta,
-            align_k_psi,
-            SC_umax,
-            SC_u0,
-            SC_a,
+            system=system,
+            data=data,
+            core_alignment=core_alignment,
+            align_k_distance=align_k_distance,
+            align_k_theta=align_k_theta,
+            align_k_psi=align_k_psi,
+            com_distance_restraint=com_distance_restraint,
+            com_k=com_k,
+            com_restraint_width=com_restraint_width,
+            restraint=restraint,
+            force_constant=force_constant,
+            positional_restraint_width=positional_restraint_width,
+            SC_umax=SC_umax,
+            SC_u0=SC_u0,
+            SC_a=SC_a,
         )
         # Store the number of minimisation steps.
         self.setSteps(steps)
@@ -803,7 +807,7 @@ class AToMEquilibration(_AToM):
         restraint=None,
         force_constant=10 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
         positional_restraint_width=0.5 * angstrom,
-        align_kf_sep=2.5 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
+        align_k_distance=2.5 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
         align_k_theta=10 * _Units.Energy.kcal_per_mol,
         align_k_psi=10 * _Units.Energy.kcal_per_mol,
         SC_umax=1000 * _Units.Energy.kcal_per_mol,
@@ -859,6 +863,15 @@ class AToMEquilibration(_AToM):
         core_alignment : bool
             Whether to use rigid core restraints to align the two ligands.
 
+        align_k_distance : int, float, str, :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>`
+            The force constant for the distance portion of the alignment restraint (kcal/(mol A^2).
+
+        align_k_theta : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
+            The force constant for the angular portion of the alignment restaint (kcal/mol).
+
+        align_k_psi : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
+            The force constant for the dihedral portion of the alignment restraint (kcal/mol).
+
         com_distance_restraint : bool
             Whether to use a center of mass distance restraint.
             This restraint applies to the protein/host and both ligands, and
@@ -894,15 +907,6 @@ class AToMEquilibration(_AToM):
 
         pos_restrained_atoms : [int]
             The atoms to be restrained.
-
-        align_kf_sep : int, float, str, :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>`
-            The force constant for the distance portion of the alignment restraint (kcal/(mol A^2).
-
-        align_k_theta : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
-            The force constant for the angular portion of the alignment restaint (kcal/mol).
-
-        align_k_psi : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
-            The force constant for the dihedral portion of the alignment restraint (kcal/mol).
 
         SC_umax : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
             The Umax value for the ATM softcore potential (kcal/mol).
@@ -948,7 +952,7 @@ class AToMEquilibration(_AToM):
             restraint=restraint,
             force_constant=force_constant,
             positional_restraint_width=positional_restraint_width,
-            align_kf_sep=align_kf_sep,
+            align_k_distance=align_k_distance,
             align_k_theta=align_k_theta,
             align_k_psi=align_k_psi,
             SC_umax=SC_umax,
@@ -1585,7 +1589,7 @@ class AToMAnnealing(_AToM):
         restraint=None,
         force_constant=10 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
         positional_restraint_width=0.5 * angstrom,
-        align_kf_sep=2.5 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
+        align_k_distance=2.5 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
         align_k_theta=10 * _Units.Energy.kcal_per_mol,
         align_k_psi=10 * _Units.Energy.kcal_per_mol,
         SC_umax=1000 * _Units.Energy.kcal_per_mol,
@@ -1635,6 +1639,15 @@ class AToMAnnealing(_AToM):
         core_alignment : bool
             Whether to use rigid core restraints to align the two ligands.
 
+        align_k_distance : int, float, str, :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>`
+            The force constant for the distance portion of the alignment restraint (kcal/(mol A^2)).
+
+        align_k_theta : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
+            The force constant for the angular portion of the alignment restaint (kcal/mol).
+
+        align_k_psi : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
+            The force constant for the dihedral portion of the alignment restraint (kcal/mol).
+
         com_distance_restraint : bool
             Whether to use a center of mass distance restraint.
             This restraint applies to the protein/host and both ligands, and
@@ -1672,15 +1685,6 @@ class AToMAnnealing(_AToM):
 
         pos_restrained_atoms : [int]
             The atoms to be restrained.
-
-        align_kf_sep : int, float, str, :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>`
-            The force constant for the distance portion of the alignment restraint (kcal/(mol A^2)).
-
-        align_k_theta : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
-            The force constant for the angular portion of the alignment restaint (kcal/mol).
-
-        align_k_psi : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
-            The force constant for the dihedral portion of the alignment restraint (kcal/mol).
 
         SC_umax : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
             The Umax value for the ATM softcore potential (kcal/mol).
@@ -1757,7 +1761,7 @@ class AToMAnnealing(_AToM):
             restraint=restraint,
             force_constant=force_constant,
             positional_restraint_width=positional_restraint_width,
-            align_kf_sep=align_kf_sep,
+            align_k_distance=align_k_distance,
             align_k_theta=align_k_theta,
             align_k_psi=align_k_psi,
             SC_umax=SC_umax,
@@ -2443,7 +2447,7 @@ class AToMProduction(_AToM):
         alpha=None,
         uh=None,
         W0=None,
-        align_kf_sep=2.5 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
+        align_k_distance=2.5 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
         align_k_theta=10 * _Units.Energy.kcal_per_mol,
         align_k_psi=10 * _Units.Energy.kcal_per_mol,
         SC_umax=100 * _Units.Energy.kcal_per_mol,
@@ -2486,6 +2490,15 @@ class AToMProduction(_AToM):
         core_alignment : bool
             Whether to use rigid core restraints to align the two ligands.
 
+        align_k_distance : int, float, str, :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>`
+            The force constant for the distance portion of the alignment restraint (kcal/(mol A^2)).
+
+        align_k_theta : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
+            The force constant for the angular portion of the alignment restaint (kcal/mol).
+
+        align_k_psi : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
+            The force constant for the dihedral portion of the alignment restraint (kcal/mol).
+
         com_distance_restraint : bool
             Whether to use a center of mass distance restraint.
             This restraint applies to the protein/host and both ligands, and
@@ -2523,15 +2536,6 @@ class AToMProduction(_AToM):
 
         pos_restrained_atoms : [int]
             The atoms to be restrained.
-
-        align_kf_sep : int, float, str, :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>`
-            The force constant for the distance portion of the alignment restraint (kcal/(mol A^2)).
-
-        align_k_theta : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
-            The force constant for the angular portion of the alignment restaint (kcal/mol).
-
-        align_k_psi : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
-            The force constant for the dihedral portion of the alignment restraint (kcal/mol).
 
         SC_umax : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
             The Umax value for the ATM softcore potential (kcal/mol).
@@ -2585,7 +2589,7 @@ class AToMProduction(_AToM):
             restraint=restraint,
             force_constant=force_constant,
             positional_restraint_width=positional_restraint_width,
-            align_kf_sep=align_kf_sep,
+            align_k_distance=align_k_distance,
             align_k_theta=align_k_theta,
             align_k_psi=align_k_psi,
             SC_umax=SC_umax,

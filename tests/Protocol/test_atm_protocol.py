@@ -17,7 +17,7 @@ def test_atm_minimisation(TEMOA_hostguest):
         restraint="all",
         force_constant=1.0 * (BSS.Units.Energy.kcal_per_mol / BSS.Units.Area.angstrom2),
         positional_restraint_width=0.1 * BSS.Units.Length.angstrom,
-        align_kf_sep=1.0 * BSS.Units.Energy.kcal_per_mol / BSS.Units.Area.angstrom2,
+        align_k_distance=1.0 * BSS.Units.Energy.kcal_per_mol / BSS.Units.Area.angstrom2,
         align_k_theta=1.0 * BSS.Units.Energy.kcal_per_mol,
         align_k_psi=1.0 * BSS.Units.Energy.kcal_per_mol,
         SC_umax=10.0 * BSS.Units.Energy.kcal_per_mol,
@@ -32,7 +32,7 @@ def test_atm_minimisation(TEMOA_hostguest):
         data=data,
         force_constant=1.0,
         positional_restraint_width=0.1,
-        align_kf_sep=1.0,
+        align_k_distance=1.0,
         align_k_theta=1.0,
         align_k_psi=1.0,
         SC_umax=10.0,
@@ -47,7 +47,7 @@ def test_atm_minimisation(TEMOA_hostguest):
         data=data,
         force_constant="1.0 kcal mol^-1 angstrom^-2",
         positional_restraint_width="0.1 angstrom",
-        align_kf_sep="1.0 kcal mol^-1 angstrom^-2",
+        align_k_distance="1.0 kcal mol^-1 angstrom^-2",
         align_k_theta="1.0 kcal mol^-1",
         align_k_psi="1.0 kcal mol^-1",
         SC_umax="10.0 kcal mol^-1",
@@ -64,9 +64,9 @@ def test_atm_minimisation(TEMOA_hostguest):
         == protocol_strings.getPosRestWidth()
     )
     assert (
-        protocol_units.getAlignKfSep()
-        == protocol_floats.getAlignKfSep()
-        == protocol_strings.getAlignKfSep()
+        protocol_units.getAlignKDistance()
+        == protocol_floats.getAlignKDistance()
+        == protocol_strings.getAlignKDistance()
     )
     assert (
         protocol_units.getAlignKTheta()

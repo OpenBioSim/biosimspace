@@ -426,7 +426,7 @@ def test_single_point_energies(TEMOA_host, TEMOA_lig1, TEMOA_lig2):
         force_constant=25.0,
         align_k_psi=10.0,
         align_k_theta=10.0,
-        align_kf_sep=2.5,
+        align_k_distance=2.5,
         runtime="100 ps",
         num_lambda=22,
         SC_umax=100.0,
