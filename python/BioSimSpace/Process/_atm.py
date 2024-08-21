@@ -202,7 +202,7 @@ class OpenMMAToM(_OpenMM):
             alignment = util.createAlignmentForce()
             self.addToConfig("\n# Add alignment force.")
             self.addToConfig(alignment)
-        if self._protocol.getCMCMRestraint():
+        if self._protocol.getCOMDistanceRestraint():
             CMCM = util.createCOMRestraint()
             self.addToConfig("\n# Add COM restraint.")
             self.addToConfig(CMCM)
@@ -266,7 +266,7 @@ class OpenMMAToM(_OpenMM):
             alignment = util.createAlignmentForce()
             self.addToConfig("\n# Add alignment force.")
             self.addToConfig(alignment)
-        if self._protocol.getCMCMRestraint():
+        if self._protocol.getCOMDistanceRestraint():
             CMCM = util.createCOMRestraint()
             self.addToConfig("\n# Add COM restraint.")
             self.addToConfig(CMCM)
@@ -363,7 +363,7 @@ class OpenMMAToM(_OpenMM):
                 self.addToConfig("    simulation.step(1)")
 
     def _generate_config_annealing(self):
-        self._protocol.set_current_index(0)
+        self._protocol._set_current_index(0)
         util = _AToMUtils(self._protocol)
         # Clear the existing configuration list.
         self._config = []
@@ -406,13 +406,13 @@ class OpenMMAToM(_OpenMM):
         disp = util.createDisplacement()
         self.addToConfig(disp)
         self.addToConfig("\n# Add AToM Force.")
-        self.addToConfig(util.createATMForce(self._protocol.get_window_index()))
+        self.addToConfig(util.createATMForce(self._protocol._get_window_index()))
         if self._protocol.getCoreAlignment():
             alignment = util.createAlignmentForce()
             self.addToConfig("\n# Add alignment force.")
             self.addToConfig(alignment)
 
-        if self._protocol.getCMCMRestraint():
+        if self._protocol.getCOMDistanceRestraint():
             CMCM = util.createCOMRestraint()
             self.addToConfig("\n# Add COM restraint.")
             self.addToConfig(CMCM)
@@ -558,7 +558,7 @@ class OpenMMAToM(_OpenMM):
             self.addToConfig("\n# Add alignment force.")
             self.addToConfig(alignment)
 
-        if self._protocol.getCMCMRestraint():
+        if self._protocol.getCOMDistanceRestraint():
             CMCM = util.createCOMRestraint()
             self.addToConfig("\n# Add COM restraint.")
             self.addToConfig(CMCM)
@@ -763,7 +763,7 @@ class OpenMMAToM(_OpenMM):
             self.addToConfig("\n# Add alignment force.")
             self.addToConfig(alignment)
 
-        if self._protocol.getCMCMRestraint():
+        if self._protocol.getCOMDistanceRestraint():
             CMCM = util.createCOMRestraint(force_group=9)
             self.addToConfig("\n# Add COM restraint.")
             self.addToConfig(CMCM)

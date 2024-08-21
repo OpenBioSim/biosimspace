@@ -48,8 +48,8 @@ class _AToMUtils:
         self.alignment_k_psi = self.protocol.getAlignKPsi().value()
 
     def getCMConstants(self):
-        self.cm_kf = self.protocol.getCMKf().value()
-        self.cm_tol = self.protocol.getCMTol().value()
+        self.cm_kf = self.protocol.getCOMk().value()
+        self.cm_tol = self.protocol.getCOMWidth().value()
 
     def findAbsoluteCoreIndices(self):
         import numpy as np
@@ -96,7 +96,7 @@ class _AToMUtils:
             self.uh = self.protocol.getUh()[index].value()
             self.w0 = self.protocol.getW0()[index].value()
             self.direction = self.protocol.getDirection()[index]
-            self.master_lambda = self.protocol.get_lambda_values()[index]
+            self.master_lambda = self.protocol._get_lambda_values()[index]
         elif isinstance(
             self.protocol, (_Protocol.AToMEquilibration, _Protocol.AToMAnnealing)
         ):
@@ -582,7 +582,7 @@ class _AToMUtils:
         output = ""
         output += "# Reporting for MBAR:\n"
         # round master lambda to 4 d.p. to avoid floating point errors
-        output += f"master_lambda_list = {[round(i,4) for i in self.protocol.get_lambda_values()]}\n"
+        output += f"master_lambda_list = {[round(i,4) for i in self.protocol._get_lambda_values()]}\n"
         output += f"master_lambda = master_lambda_list[window_index]\n"
 
         output += "if is_restart:\n"
@@ -782,7 +782,7 @@ class _AToMUtils:
 
         output += "# Reporting for MBAR:\n"
         # round master lambda to 4 d.p. to avoid floating point errors
-        output += f"master_lambda_list = {[round(i,4) for i in self.protocol.get_lambda_values()]}\n"
+        output += f"master_lambda_list = {[round(i,4) for i in self.protocol._get_lambda_values()]}\n"
         output += f"master_lambda = master_lambda_list[window_index]\n"
         output += "if is_restart:\n"
         output += "    try:\n"
@@ -917,7 +917,7 @@ class _AToMUtils:
         """Create a single point test for the ATM force"""
         output = ""
         output += "# Create the dictionary which will hold the energies\n"
-        output += f"master_lambda_list = {[round(i,4) for i in self.protocol.get_lambda_values()]}\n"
+        output += f"master_lambda_list = {[round(i,4) for i in self.protocol._get_lambda_values()]}\n"
         output += "energies = {}\n"
         output += f"for i in master_lambda_list[:{inflex_point}]:\n"
         output += "    energies[i] = []\n"

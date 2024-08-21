@@ -83,7 +83,7 @@ def test_run(TEMOA_hostguest):
     system, _ = TEMOA_hostguest
     production_atm = BSS.Protocol.AToMProduction(
         system=system,
-        CMCM_restraint=True,
+        com_distance_restraint=True,
         runtime="2 fs",
         report_interval=1,
         restart_interval=1,
@@ -92,7 +92,7 @@ def test_run(TEMOA_hostguest):
     )
     production_atm2 = BSS.Protocol.AToMProduction(
         system=system,
-        CMCM_restraint=True,
+        com_distance_restraint=True,
         runtime="4 fs",
         report_interval=1,
         restart_interval=1,
@@ -418,11 +418,11 @@ def test_single_point_energies(TEMOA_host, TEMOA_lig1, TEMOA_lig2):
 
     production_atm = BSS.Protocol.AToMProduction(
         system=system,
-        CMCM_restraint=True,
-        cm_kf=25.0,
-        cm_tol=5.0,
+        com_distance_restraint=True,
+        com_k=25.0,
+        com_restraint_width=5.0,
         restraint=pos_rst_atoms,
-        pos_rest_width=0.5,
+        positional_restraint_width=0.5,
         force_constant=25.0,
         align_k_psi=10.0,
         align_k_theta=10.0,

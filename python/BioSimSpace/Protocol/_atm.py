@@ -22,18 +22,18 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         system=None,
         data=None,
         core_alignment=True,
-        CMCM_restraint=True,
+        com_distance_restraint=True,
+        com_k=25.0 * kcal_per_mol / angstrom2,
+        com_restraint_width=5.0 * angstrom,
         restraint=None,
         force_constant=10 * kcal_per_mol / angstrom2,
-        pos_rest_width=0.5 * angstrom,
+        positional_restraint_width=0.5 * angstrom,
         align_kf_sep=2.5 * kcal_per_mol / angstrom2,
         align_k_theta=10.0 * kcal_per_mol,
         align_k_psi=10.0 * kcal_per_mol,
         SC_umax=1000.0 * kcal_per_mol,
         SC_u0=500.0 * kcal_per_mol,
         SC_a=0.0625,
-        cm_kf=25.0 * kcal_per_mol / angstrom2,
-        cm_tol=5.0 * angstrom,
     ):
         # Call the base class constructor.
         super().__init__()
@@ -78,10 +78,16 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         self.setCoreAlignment(core_alignment)
 
         # Whether or not to use the CMCM restraint.
-        self.setCMCMRestraint(CMCM_restraint)
+        self.setCOMDistanceRestraint(com_distance_restraint)
 
-        # Store the width of the coordinate retraint.
-        self.setPosRestWidth(pos_rest_width)
+        # Store com_k value.
+        self.setCOMk(com_k)
+
+        # Store com_restraint_width value.
+        self.setCOMWidth(com_restraint_width)
+
+        # Store the width of the coordinate restraint.
+        self.setPosRestWidth(positional_restraint_width)
 
         # Store the align_kf_sep value.
         self.setAlignKfSep(align_kf_sep)
@@ -100,12 +106,6 @@ class _AToM(_Protocol, _PositionRestraintMixin):
 
         # Store the SC_a value.
         self.setSCa(SC_a)
-
-        # Store cm_kf value.
-        self.setCMKf(cm_kf)
-
-        # Store cm_tol value.
-        self.setCMTol(cm_tol)
 
         # Set the postition restraint.
         _PositionRestraintMixin.__init__(self, restraint, force_constant)
@@ -173,33 +173,35 @@ class _AToM(_Protocol, _PositionRestraintMixin):
             _warnings.warn("Non-boolean core alignment flag. Defaulting to True!")
             self._core_alignment = True
 
-    def getCMCMRestraint(self):
+    def getCOMDistanceRestraint(self):
         """
         Return CMCM restraint boolean.
 
         Returns
         -------
 
-        CMCM_restraint : bool
+        com_distance_restraint : bool
             Whether to use the CMCM restraint.
         """
-        return self._CMCM_restraint
+        return self._com_distance_restraint
 
-    def setCMCMRestraint(self, CMCM_restraint):
+    def setCOMDistanceRestraint(self, com_distance_restraint):
         """
         Set the CMCM restraint flag.
 
         Parameters
         ----------
 
-        CMCM_restraint : bool
+        com_distance_restraint : bool
             Whether to use the CMCM restraint.
         """
-        if isinstance(CMCM_restraint, bool):
-            self._CMCM_restraint = CMCM_restraint
+        if isinstance(com_distance_restraint, bool):
+            self._com_distance_restraint = com_distance_restraint
         else:
-            _warnings.warn("Non-boolean CMCM restraint flag. Defaulting to True!")
-            self._CMCM_restraint = True
+            _warnings.warn(
+                "Non-boolean com distance restraint flag. Defaulting to True!"
+            )
+            self._com_distance_restraint = True
 
     def getPosRestWidth(self):
         """
@@ -208,50 +210,52 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         Returns
         -------
 
-        pos_rest_width : :class:`Length <BioSimSpace.Types.Length>`
+        positional_restraint_width : :class:`Length <BioSimSpace.Types.Length>`
             The width of the position restraint.
         """
-        return self._pos_rest_width
+        return self._positional_restraint_width
 
-    def setPosRestWidth(self, pos_rest_width):
+    def setPosRestWidth(self, positional_restraint_width):
         """
         Set the width of the position restraint.
 
         Parameters
         ----------
 
-        pos_rest_width : int, float, str, :class:`Length <BioSimSpace.Types.Length>`
+        positional_restraint_width : int, float, str, :class:`Length <BioSimSpace.Types.Length>`
             The width of the position restraint.
         """
         # Convert int to float.
-        if type(pos_rest_width) is int:
-            pos_rest_width = float(pos_rest_width)
+        if type(positional_restraint_width) is int:
+            positional_restraint_width = float(positional_restraint_width)
 
-        if isinstance(pos_rest_width, float):
+        if isinstance(positional_restraint_width, float):
             # Use default units.
-            pos_rest_width *= _Units.Length.angstrom
+            positional_restraint_width *= _Units.Length.angstrom
 
         else:
-            if isinstance(pos_rest_width, str):
+            if isinstance(positional_restraint_width, str):
                 try:
-                    pos_rest_width = _Types.Length(pos_rest_width)
+                    positional_restraint_width = _Types.Length(
+                        positional_restraint_width
+                    )
                 except Exception:
                     raise ValueError(
-                        "Unable to parse 'pos_rest_width' string."
+                        "Unable to parse 'positional_restraint_width' string."
                     ) from None
 
-            elif not isinstance(pos_rest_width, _Types.Length):
+            elif not isinstance(positional_restraint_width, _Types.Length):
                 raise TypeError(
-                    "'pos_rest_width' must be of type 'BioSimSpace.Types._GeneralUnit', 'str', or 'float'."
+                    "'positional_restraint_width' must be of type 'BioSimSpace.Types._GeneralUnit', 'str', or 'float'."
                 )
 
             # Validate the dimensions.
-            if pos_rest_width.dimensions() != (0, 1, 0, 0, 0, 0, 0):
+            if positional_restraint_width.dimensions() != (0, 1, 0, 0, 0, 0, 0):
                 raise ValueError(
-                    "'pos_rest_width' has invalid dimensions! "
-                    f"Expected dimensions of Length, found '{pos_rest_width.unit()}'"
+                    "'positional_restraint_width' has invalid dimensions! "
+                    f"Expected dimensions of Length, found '{positional_restraint_width.unit()}'"
                 )
-        self._pos_rest_width = pos_rest_width
+        self._positional_restraint_width = positional_restraint_width
 
     def getAlignKfSep(self):
         """
@@ -533,134 +537,107 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         else:
             raise TypeError("'SC_a' must be of type 'float'")
 
-    def getCMKf(self):
+    def getCOMk(self):
         """
-        Return the cm_kf value.
+        Return the com_k value.
 
         Returns
         -------
 
-        cm_kf : :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>`
-            The cm_kf value in kcal/mol A**2.
+        com_k : :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>`
+            The com_k value in kcal/mol A**2.
         """
-        return self._cm_kf
+        return self._com_k
 
-    def setCMKf(self, cm_kf):
+    def setCOMk(self, com_k):
         """
-        Set the cm_kf value.
+        Set the com_k value.
 
         Parameters
         ----------
 
-        cm_kf : int, float, str, :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>
+        com_k : int, float, str, :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>
             The force constant for the CM-CM force in kcal/mol A**2.
         """
         # Convert int to float.
-        if type(cm_kf) is int:
-            cm_kf = float(cm_kf)
+        if type(com_k) is int:
+            com_k = float(com_k)
 
-        if isinstance(cm_kf, float):
+        if isinstance(com_k, float):
             # Use default units.
-            cm_kf *= _Units.Energy.kcal_per_mol / _Units.Area.angstrom2
+            com_k *= _Units.Energy.kcal_per_mol / _Units.Area.angstrom2
 
         else:
-            if isinstance(cm_kf, str):
+            if isinstance(com_k, str):
                 try:
-                    cm_kf = _Types._GeneralUnit(cm_kf)
+                    com_k = _Types._GeneralUnit(com_k)
                 except Exception:
-                    raise ValueError("Unable to parse 'cm_kf' string.") from None
+                    raise ValueError("Unable to parse 'com_k' string.") from None
 
-            elif not isinstance(cm_kf, _Types._GeneralUnit):
+            elif not isinstance(com_k, _Types._GeneralUnit):
                 raise TypeError(
-                    "'cm_kf' must be of type 'BioSimSpace.Types._GeneralUnit', 'str', or 'float'."
+                    "'com_k' must be of type 'BioSimSpace.Types._GeneralUnit', 'str', or 'float'."
                 )
 
             # Validate the dimensions.
-            if cm_kf.dimensions() != (1, 0, -2, 0, 0, -1, 0):
+            if com_k.dimensions() != (1, 0, -2, 0, 0, -1, 0):
                 raise ValueError(
                     "'align_k_theta' has invalid dimensions! "
-                    f"Expected dimensions of energy density/area (e.g. kcal/molA^2), found '{cm_kf.unit()}'"
+                    f"Expected dimensions of energy density/area (e.g. kcal/molA^2), found '{com_k.unit()}'"
                 )
-        self._cm_kf = cm_kf
+        self._com_k = com_k
 
-    def getCMTol(self):
+    def getCOMWidth(self):
         """
-        Return the cm_tol value.
+        Return the com_restraint_width value.
 
         Returns
         -------
 
-        cm_tol : :class:`Length <BioSimSpace.Types.Length>`
-            The cm_tol value in angstroms.
+        com_restraint_width : :class:`Length <BioSimSpace.Types.Length>`
+            The com_restraint_width value in angstroms.
         """
-        return self._cm_tol
+        return self._com_restraint_width
 
-    def setCMTol(self, cm_tol):
+    def setCOMWidth(self, com_restraint_width):
         """
-        Set the cm_tol value.
+        Set the com_restraint_width value.
 
         Parameters
         ----------
 
-        cm_tol : int, float, str, :class:`Length <BioSimSpace.Types.Length>
-            The cm_tol value in angstroms.
+        com_restraint_width : int, float, str, :class:`Length <BioSimSpace.Types.Length>
+            The com_restraint_width value in angstroms.
         """
         # Convert int to float.
-        if type(cm_tol) is int:
-            cm_tol = float(cm_tol)
+        if type(com_restraint_width) is int:
+            com_restraint_width = float(com_restraint_width)
 
-        if isinstance(cm_tol, float):
+        if isinstance(com_restraint_width, float):
             # Use default units.
-            cm_tol *= _Units.Length.angstrom
+            com_restraint_width *= _Units.Length.angstrom
 
         else:
-            if isinstance(cm_tol, str):
+            if isinstance(com_restraint_width, str):
                 try:
-                    cm_tol = _Types.Length(cm_tol)
+                    com_restraint_width = _Types.Length(com_restraint_width)
                 except Exception:
-                    raise ValueError("Unable to parse 'cm_tol' string.") from None
+                    raise ValueError(
+                        "Unable to parse 'com_restraint_width' string."
+                    ) from None
 
-            elif not isinstance(cm_tol, _Types.Length):
+            elif not isinstance(com_restraint_width, _Types.Length):
                 raise TypeError(
-                    "'cm_tol' must be of type 'BioSimSpace.Types._GeneralUnit', 'str', or 'float'."
+                    "'com_restraint_width' must be of type 'BioSimSpace.Types._GeneralUnit', 'str', or 'float'."
                 )
 
             # Validate the dimensions.
-            if cm_tol.dimensions() != (0, 1, 0, 0, 0, 0, 0):
+            if com_restraint_width.dimensions() != (0, 1, 0, 0, 0, 0, 0):
                 raise ValueError(
                     "'align_k_theta' has invalid dimensions! "
-                    f"Expected dimensions of Length, found '{cm_tol.unit()}'"
+                    f"Expected dimensions of Length, found '{com_restraint_width.unit()}'"
                 )
-        self._cm_tol = cm_tol
-
-    def set_lambda_values(self):
-        # Internal function to set the 'master lambda'
-        # This lambda value serves as the master for all other window-dependent parameters
-        self._lambda_values = _np.linspace(0, 1, self._num_lambda).tolist()
-
-    def get_lambda_values(self):
-        # Internal function to get the 'master lambda'
-        # This lambda value serves as the master for all other window-dependent parameters
-        try:
-            return self._lambda_values
-        except:
-            return None
-
-    def set_current_index(self, index):
-        # Internal function to set index of the current simulation window
-        # set using the master lambda list
-        if index < 0:
-            raise ValueError("index must be positive")
-        if not isinstance(index, int):
-            raise TypeError("index must be an integer")
-        self._current_index = index
-
-    def get_window_index(self):
-        # Internal function to get the current window index
-        try:
-            return self._current_index
-        except:
-            return None
+        self._com_restraint_width = com_restraint_width
 
 
 class AToMMinimisation(_AToM):
@@ -674,18 +651,18 @@ class AToMMinimisation(_AToM):
         data=None,
         steps=10000,
         core_alignment=True,
-        CMCM_restraint=True,
+        com_distance_restraint=True,
         restraint=None,
         force_constant=10 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
-        pos_rest_width=0.5 * angstrom,
+        positional_restraint_width=0.5 * angstrom,
         align_kf_sep=2.5 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
         align_k_theta=10 * _Units.Energy.kcal_per_mol,
         align_k_psi=10 * _Units.Energy.kcal_per_mol,
         SC_umax=1000 * _Units.Energy.kcal_per_mol,
         SC_u0=500 * _Units.Energy.kcal_per_mol,
         SC_a=0.0625,
-        cm_kf=25 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
-        cm_tol=5 * _Units.Length.angstrom,
+        com_k=25 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
+        com_restraint_width=5 * _Units.Length.angstrom,
     ):
         """
         Parameters
@@ -699,8 +676,16 @@ class AToMMinimisation(_AToM):
         core_alignment : bool
             Whether to use rigid core restraints to align the two ligands.
 
-        CMCM_restraint : bool
+        com_distance_restraint : bool
             Whether to use a center of mass distance restraint.
+            This restraint applies to the protein/host and both ligands, and
+            is used to maintain the relative positions of all of them.
+
+        com_k : int, float, str, :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>`
+            The force constant for the center of mass distance restraint (kcal/mol/A^2).
+
+        com_restraint_width : int, float, str, :class:`Length <BioSimSpace.Types.Length>
+            The width (tolerance) of the center of mass distance restraint (A).
 
         restraint : str, [int]
             The type of restraint to perform. This should be one of the
@@ -723,7 +708,7 @@ class AToMMinimisation(_AToM):
             passed, then default units of 'kcal_per_mol / angstrom**2' will
             be used.
 
-        pos_rest_width : :class:`Length <BioSimSpace.Types.Length>`, float
+        positional_restraint_width : :class:`Length <BioSimSpace.Types.Length>`, float
                 The width of the flat-bottom potential used for coordinate restraint in Angstroms.
 
         pos_restrained_atoms : [int]
@@ -745,30 +730,24 @@ class AToMMinimisation(_AToM):
             The uh value for the ATM softcore potential (kcal/mol).
 
         SC_a : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
-            The a value for the ATM softcore potential.
-
-        cm_kf : int, float, str, :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>`
-            The force constant for the center of mass distance restraint (kcal/mol/A^2).
-
-        cm_tol : int, float, str, :class:`Length <BioSimSpace.Types.Length>`
-            The tolerance for the center of mass distance restraint (A)."""
+            The a value for the ATM softcore potential."""
 
         super().__init__(
             system,
             data,
             core_alignment,
-            CMCM_restraint,
+            com_distance_restraint,
+            com_k,
+            com_restraint_width,
             restraint,
             force_constant,
-            pos_rest_width,
+            positional_restraint_width,
             align_kf_sep,
             align_k_theta,
             align_k_psi,
             SC_umax,
             SC_u0,
             SC_a,
-            cm_kf,
-            cm_tol,
         )
         # Store the number of minimisation steps.
         self.setSteps(steps)
@@ -818,18 +797,18 @@ class AToMEquilibration(_AToM):
         report_interval=100,
         restart_interval=100,
         core_alignment=True,
-        CMCM_restraint=True,
+        com_distance_restraint=True,
+        com_k=25 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
+        com_restraint_width=5 * _Units.Length.angstrom,
         restraint=None,
         force_constant=10 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
-        pos_rest_width=0.5 * angstrom,
+        positional_restraint_width=0.5 * angstrom,
         align_kf_sep=2.5 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
         align_k_theta=10 * _Units.Energy.kcal_per_mol,
         align_k_psi=10 * _Units.Energy.kcal_per_mol,
         SC_umax=1000 * _Units.Energy.kcal_per_mol,
         SC_u0=500 * _Units.Energy.kcal_per_mol,
         SC_a=0.0625,
-        cm_kf=25 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
-        cm_tol=5 * _Units.Length.angstrom,
         use_atm_force=False,
         direction=1,
         lambda1=0.0,
@@ -880,8 +859,16 @@ class AToMEquilibration(_AToM):
         core_alignment : bool
             Whether to use rigid core restraints to align the two ligands.
 
-        CMCM_restraint : bool
+        com_distance_restraint : bool
             Whether to use a center of mass distance restraint.
+            This restraint applies to the protein/host and both ligands, and
+            is used to maintain the relative positions of all of them.
+
+        com_k : int, float, str, :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>`
+            The force constant for the center of mass distance restraint (kcal/mol/A^2).
+
+        com_restraint_width : int, float, str, :class:`Length <BioSimSpace.Types.Length>
+            The width (tolerance) of the center of mass distance restraint (A).
 
         restraint : str, [int]
             The type of restraint to perform. This should be one of the
@@ -902,7 +889,7 @@ class AToMEquilibration(_AToM):
         force_constant : float, :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>`
             The force constant for the restraint potential (kcal/(mol A^2).
 
-        pos_rest_width :  float, :class:`Length <BioSimSpace.Types.Length>`
+        positional_restraint_width :  float, :class:`Length <BioSimSpace.Types.Length>`
             The width of the flat-bottom potential used for coordinate restraint in Angstroms.
 
         pos_restrained_atoms : [int]
@@ -926,11 +913,6 @@ class AToMEquilibration(_AToM):
         SC_a : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
             The a value for the ATM softcore potential.
 
-        cm_kf : int, float, str, :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>`
-            The force constant for the center of mass distance restraint (kcal/mol/A^2).
-
-        cm_tol : int, float, str, :class:`Length <BioSimSpace.Types.Length>
-            The tolerance for the center of mass distance restraint (A).
 
         use_atm_force : bool
             Whether to apply the ATM force within the equilibration protocol.
@@ -957,21 +939,21 @@ class AToMEquilibration(_AToM):
             Value in kcal/mol.
         """
         super().__init__(
-            system,
-            data,
-            core_alignment,
-            CMCM_restraint,
-            restraint,
-            force_constant,
-            pos_rest_width,
-            align_kf_sep,
-            align_k_theta,
-            align_k_psi,
-            SC_umax,
-            SC_u0,
-            SC_a,
-            cm_kf,
-            cm_tol,
+            system=system,
+            data=data,
+            core_alignment=core_alignment,
+            com_distance_restraint=com_distance_restraint,
+            com_k=com_k,
+            com_restraint_width=com_restraint_width,
+            restraint=restraint,
+            force_constant=force_constant,
+            positional_restraint_width=positional_restraint_width,
+            align_kf_sep=align_kf_sep,
+            align_k_theta=align_k_theta,
+            align_k_psi=align_k_psi,
+            SC_umax=SC_umax,
+            SC_u0=SC_u0,
+            SC_a=SC_a,
         )
         # Store
         self.setTimestep(timestep)
@@ -1597,18 +1579,18 @@ class AToMAnnealing(_AToM):
         report_interval=100,
         restart_interval=100,
         core_alignment=True,
-        CMCM_restraint=True,
+        com_distance_restraint=True,
+        com_k=25 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
+        com_restraint_width=5 * _Units.Length.angstrom,
         restraint=None,
         force_constant=10 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
-        pos_rest_width=0.5 * angstrom,
+        positional_restraint_width=0.5 * angstrom,
         align_kf_sep=2.5 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
         align_k_theta=10 * _Units.Energy.kcal_per_mol,
         align_k_psi=10 * _Units.Energy.kcal_per_mol,
         SC_umax=1000 * _Units.Energy.kcal_per_mol,
         SC_u0=500 * _Units.Energy.kcal_per_mol,
         SC_a=0.0625,
-        cm_kf=25 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
-        cm_tol=5 * _Units.Length.angstrom,
         direction=1,
         lambda1=0.0,
         lambda2=0.0,
@@ -1653,8 +1635,16 @@ class AToMAnnealing(_AToM):
         core_alignment : bool
             Whether to use rigid core restraints to align the two ligands.
 
-        CMCM_restraint : bool
+        com_distance_restraint : bool
             Whether to use a center of mass distance restraint.
+            This restraint applies to the protein/host and both ligands, and
+            is used to maintain the relative positions of all of them.
+
+        com_k : int, float, str, :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>`
+            The force constant for the center of mass distance restraint (kcal/mol/A^2).
+
+        com_restraint_width : int, float, str, :class:`Length <BioSimSpace.Types.Length>
+            The width (tolerance) of the center of mass distance restraint (A).
 
         restraint : str, [int]
             The type of restraint to perform. This should be one of the
@@ -1677,7 +1667,7 @@ class AToMAnnealing(_AToM):
             passed, then default units of 'kcal_per_mol / angstrom**2' will
             be used.
 
-        pos_rest_width : float, :class:`Length <BioSimSpace.Types.Length>`
+        positional_restraint_width : float, :class:`Length <BioSimSpace.Types.Length>`
             The width of the flat-bottom potential used for coordinate restraint in Angstroms.
 
         pos_restrained_atoms : [int]
@@ -1700,12 +1690,6 @@ class AToMAnnealing(_AToM):
 
         SC_a : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
             The a value for the ATM softcore potential.
-
-        cm_kf : int, float, str, :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>`
-            The force constant for the center of mass distance restraint (kcal/mol/A^2).
-
-        cm_tol : int, float, str, :class:`Length <BioSimSpace.Types.Length>`
-            The tolerance for the center of mass distance restraint (A).
 
         direction : str
             The direction of the Annealing.
@@ -1764,21 +1748,21 @@ class AToMAnnealing(_AToM):
             The number of annealing cycles to perform, defines the rate at which values are incremented. Default 100.
         """
         super().__init__(
-            system,
-            data,
-            core_alignment,
-            CMCM_restraint,
-            restraint,
-            force_constant,
-            pos_rest_width,
-            align_kf_sep,
-            align_k_theta,
-            align_k_psi,
-            SC_umax,
-            SC_u0,
-            SC_a,
-            cm_kf,
-            cm_tol,
+            system=system,
+            data=data,
+            core_alignment=core_alignment,
+            com_distance_restraint=com_distance_restraint,
+            com_k=com_k,
+            com_restraint_width=com_restraint_width,
+            restraint=restraint,
+            force_constant=force_constant,
+            positional_restraint_width=positional_restraint_width,
+            align_kf_sep=align_kf_sep,
+            align_k_theta=align_k_theta,
+            align_k_psi=align_k_psi,
+            SC_umax=SC_umax,
+            SC_u0=SC_u0,
+            SC_a=SC_a,
         )
 
         self.setTimestep(timestep)
@@ -2399,6 +2383,36 @@ class AToMAnnealing(_AToM):
         else:
             raise TypeError("'anneal_numcycles' must be of type 'int'")
 
+    def _set_current_index(self, index):
+        """
+        The current index of the window.
+        In annealing protocols this should not be touched by the user.
+
+        Parameters
+        ----------
+        index : int
+            The index of the current lambda window.
+        """
+        if index < 0:
+            raise ValueError("index must be positive")
+        if not isinstance(index, int):
+            raise TypeError("index must be an integer")
+        self._current_index = index
+
+    def _get_window_index(self):
+        """
+        A function to get the index of the current lambda window.
+
+        Returns
+        -------
+        index : int
+            The index of the current lambda window.
+        """
+        try:
+            return self._current_index
+        except:
+            return None
+
 
 class AToMProduction(_AToM):
     """Production protocol for AToM simulations."""
@@ -2416,10 +2430,12 @@ class AToMProduction(_AToM):
         restart_interval=100,
         restart=False,
         core_alignment=True,
-        CMCM_restraint=True,
+        com_distance_restraint=True,
+        com_k=25 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
+        com_restraint_width=5 * _Units.Length.angstrom,
         restraint=None,
         force_constant=10 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
-        pos_rest_width=0.5 * angstrom,
+        positional_restraint_width=0.5 * angstrom,
         num_lambda=22,
         direction=None,
         lambda1=None,
@@ -2433,8 +2449,6 @@ class AToMProduction(_AToM):
         SC_umax=100 * _Units.Energy.kcal_per_mol,
         SC_u0=50 * _Units.Energy.kcal_per_mol,
         SC_a=0.0625,
-        cm_kf=25 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
-        cm_tol=5 * _Units.Length.angstrom,
         analysis_method="UWHAM",
     ):
         """
@@ -2472,8 +2486,16 @@ class AToMProduction(_AToM):
         core_alignment : bool
             Whether to use rigid core restraints to align the two ligands.
 
-        CMCM_restraint : bool
+        com_distance_restraint : bool
             Whether to use a center of mass distance restraint.
+            This restraint applies to the protein/host and both ligands, and
+            is used to maintain the relative positions of all of them.
+
+        com_k : int, float, str, :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>`
+            The force constant for the center of mass distance restraint (kcal/mol/A^2).
+
+        com_restraint_width : int, float, str, :class:`Length <BioSimSpace.Types.Length>
+            The width (tolerance) of the center of mass distance restraint (A).
 
         restraint : str, [int]
             The type of restraint to perform. This should be one of the
@@ -2496,7 +2518,7 @@ class AToMProduction(_AToM):
             passed, then default units of 'kcal_per_mol / angstrom**2' will
             be used.
 
-        pos_rest_width : :class:`Length <BioSimSpace.Types.Length>`, float
+        positional_restraint_width : :class:`Length <BioSimSpace.Types.Length>`, float
             The width of the flat-bottom potential used for coordinate restraint in Angstroms.
 
         pos_restrained_atoms : [int]
@@ -2519,12 +2541,6 @@ class AToMProduction(_AToM):
 
         SC_a : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
             The a value for the ATM softcore potential.
-
-        cm_kf : int, float, str, :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>`
-            The force constant for the center of mass distance restraint (kcal/mol/A^2).
-
-        cm_tol : int, float, str, :class:`Length <BioSimSpace.Types.Length>`
-            The tolerance for the center of mass distance restraint (A).
 
         restart : bool
             Whether this is a continuation of a previous simulation.
@@ -2560,21 +2576,21 @@ class AToMProduction(_AToM):
             USE of "UWHAM" is strongly recommended, "MBAR" analysis is still experimental.
         """
         super().__init__(
-            system,
-            data,
-            core_alignment,
-            CMCM_restraint,
-            restraint,
-            force_constant,
-            pos_rest_width,
-            align_kf_sep,
-            align_k_theta,
-            align_k_psi,
-            SC_umax,
-            SC_u0,
-            SC_a,
-            cm_kf,
-            cm_tol,
+            system=system,
+            data=data,
+            core_alignment=core_alignment,
+            com_distance_restraint=com_distance_restraint,
+            com_k=com_k,
+            com_restraint_width=com_restraint_width,
+            restraint=restraint,
+            force_constant=force_constant,
+            positional_restraint_width=positional_restraint_width,
+            align_kf_sep=align_kf_sep,
+            align_k_theta=align_k_theta,
+            align_k_psi=align_k_psi,
+            SC_umax=SC_umax,
+            SC_u0=SC_u0,
+            SC_a=SC_a,
         )
 
         self.setTimestep(timestep)
@@ -2620,7 +2636,7 @@ class AToMProduction(_AToM):
         # Store the W0 values.
         self.setW0(W0)
 
-        self.set_lambda_values()
+        self._set_lambda_values()
 
         self.setAnalysisMethod(analysis_method)
 
@@ -2916,7 +2932,7 @@ class AToMProduction(_AToM):
                     "Warning: The AToM protocol is optimised for an even number of lambda values. Unknown behaviour may occur if using an odd number of lambda values."
                 )
             self._num_lambda = num_lambda
-            self.set_lambda_values()
+            self._set_lambda_values()
         else:
             raise TypeError("'num_lambda' must be of type 'int'")
 
@@ -3059,7 +3075,7 @@ class AToMProduction(_AToM):
         Returns
         -------
 
-        alpha : list of :class:`Energy <BioSimSpace.Types.Energy>
+        alpha : [:class:`Energy <BioSimSpace.Types.Energy>]
             The alpha values in kcal/mol.
         """
         return self._alpha
@@ -3071,7 +3087,7 @@ class AToMProduction(_AToM):
         Parameters
         ----------
 
-        alpha : list of :class:`Energy <BioSimSpace.Types.Energy> or [int], float, str
+        alpha : [`Energy <BioSimSpace.Types.Energy>] or [int], [float], [str]
             The alpha values in kcal/mol.
         """
         if isinstance(alpha, list):
@@ -3122,7 +3138,7 @@ class AToMProduction(_AToM):
         Returns
         -------
 
-        uh : list of :class:`Energy <BioSimSpace.Types.Energy>
+        uh : [:class:`Energy <BioSimSpace.Types.Energy>]
             The uh values in kcal/mol.
         """
         return self._uh
@@ -3134,7 +3150,7 @@ class AToMProduction(_AToM):
         Parameters
         ----------
 
-        uh : list of :class:`Energy <BioSimSpace.Types.Energy>
+        uh : [:class:`Energy <BioSimSpace.Types.Energy>]
             The uh values in kcal/mol.
         """
         if isinstance(uh, list):
@@ -3185,7 +3201,7 @@ class AToMProduction(_AToM):
         Returns
         -------
 
-        W0 : list of :class:`Energy <BioSimSpace.Types.Energy>
+        W0 : [:class:`Energy <BioSimSpace.Types.Energy>]
             The W0 values in kcal/mol.
         """
         return self._W0
@@ -3197,7 +3213,7 @@ class AToMProduction(_AToM):
         Parameters
         ----------
 
-        W0 : list of :class:`Energy <BioSimSpace.Types.Energy>
+        W0 : [:class:`Energy <BioSimSpace.Types.Energy>] or [int], [float], [str]
             The W0 values in kcal/mol.
         """
         if isinstance(W0, list):
@@ -3241,12 +3257,12 @@ class AToMProduction(_AToM):
         else:
             raise TypeError("'W0' must be of type 'list'")
 
-    def set_lambda_values(self):
+    def _set_lambda_values(self):
         # Internal function to set the 'master lambda'
         # This lambda value serves as the master for all other window-dependent parameters
         self._lambda_values = _np.linspace(0, 1, self._num_lambda).tolist()
 
-    def get_lambda_values(self):
+    def _get_lambda_values(self):
         # Internal function to get the 'master lambda'
         # This lambda value serves as the master for all other window-dependent parameters
         try:
@@ -3256,7 +3272,15 @@ class AToMProduction(_AToM):
 
     def setAnalysisMethod(self, analysis_method):
         """Set the method that will be used for analysis of the simulation results.
-        This will change the output files that are generated."""
+        This will change the output files that are generated.
+
+        Parameters
+        ----------
+        analysis_method : str
+            The method to use for analysis. Options are "UWHAM", "MBAR" or "both"
+            This affects the output files and the analysis that is performed.
+            USE of "UWHAM" is strongly recommended, "MBAR" analysis is still experimental.
+        """
         allowed_methods = ["UWHAM", "MBAR", "both"]
         if analysis_method in allowed_methods:
             self._analysis_method = analysis_method
@@ -3267,8 +3291,16 @@ class AToMProduction(_AToM):
         return self._analysis_method
 
     def set_current_index(self, index):
-        # Internal function to set index of the current simulation window
-        # set using the master lambda list
+        """
+        A function to set the index of the current lambda window.
+        Used internally to set the values for all lambda-dependent parameters.
+        Take care when using this function as it can lead to unexpected behaviour if not used correctly.
+
+        Parameters
+        ----------
+        index : int
+            The index of the current lambda window.
+        """
         if index < 0:
             raise ValueError("index must be positive")
         if index >= len(self._lambda1):
@@ -3280,7 +3312,14 @@ class AToMProduction(_AToM):
         self._current_index = index
 
     def get_window_index(self):
-        # Internal function to get the current window index
+        """
+        A function to get the index of the current lambda window.
+
+        Returns
+        -------
+        index : int
+            The index of the current lambda window.
+        """
         try:
             return self._current_index
         except:

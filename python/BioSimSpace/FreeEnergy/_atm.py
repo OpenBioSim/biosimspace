@@ -1295,7 +1295,7 @@ class _relativeATM:
         processes = []
         # Get the list of lambda1 values so that the total number of simulations can
         # be asserted
-        lambda_list = self._protocol.get_lambda_values()
+        lambda_list = self._protocol._get_lambda_values()
         # Set index of current simulation to 0
         self._protocol.set_current_index(0)
         lam = lambda_list[0]

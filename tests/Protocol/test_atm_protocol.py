@@ -13,48 +13,48 @@ def test_atm_minimisation(TEMOA_hostguest):
     protocol_units = BSS.Protocol.AToMMinimisation(
         data=data,
         core_alignment=False,
-        CMCM_restraint=False,
+        com_distance_restraint=False,
         restraint="all",
         force_constant=1.0 * (BSS.Units.Energy.kcal_per_mol / BSS.Units.Area.angstrom2),
-        pos_rest_width=0.1 * BSS.Units.Length.angstrom,
+        positional_restraint_width=0.1 * BSS.Units.Length.angstrom,
         align_kf_sep=1.0 * BSS.Units.Energy.kcal_per_mol / BSS.Units.Area.angstrom2,
         align_k_theta=1.0 * BSS.Units.Energy.kcal_per_mol,
         align_k_psi=1.0 * BSS.Units.Energy.kcal_per_mol,
         SC_umax=10.0 * BSS.Units.Energy.kcal_per_mol,
         SC_u0=1.0 * BSS.Units.Energy.kcal_per_mol,
         SC_a=0.01,
-        cm_kf=1.0 * BSS.Units.Energy.kcal_per_mol / BSS.Units.Area.angstrom2,
-        cm_tol=1.0 * BSS.Units.Length.angstrom,
+        com_k=1.0 * BSS.Units.Energy.kcal_per_mol / BSS.Units.Area.angstrom2,
+        com_restraint_width=1.0 * BSS.Units.Length.angstrom,
     )
 
     # Now test parsing options as floats
     protocol_floats = BSS.Protocol.AToMMinimisation(
         data=data,
         force_constant=1.0,
-        pos_rest_width=0.1,
+        positional_restraint_width=0.1,
         align_kf_sep=1.0,
         align_k_theta=1.0,
         align_k_psi=1.0,
         SC_umax=10.0,
         SC_u0=1.0,
         SC_a=0.01,
-        cm_kf=1.0,
-        cm_tol=1.0,
+        com_k=1.0,
+        com_restraint_width=1.0,
     )
 
     # Finally try parsing strings
     protocol_strings = BSS.Protocol.AToMMinimisation(
         data=data,
         force_constant="1.0 kcal mol^-1 angstrom^-2",
-        pos_rest_width="0.1 angstrom",
+        positional_restraint_width="0.1 angstrom",
         align_kf_sep="1.0 kcal mol^-1 angstrom^-2",
         align_k_theta="1.0 kcal mol^-1",
         align_k_psi="1.0 kcal mol^-1",
         SC_umax="10.0 kcal mol^-1",
         SC_u0="1.0 kcal mol^-1",
         SC_a=0.01,
-        cm_kf="1.0 kcal mol^-1 angstrom^-2",
-        cm_tol="1.0 angstrom",
+        com_k="1.0 kcal mol^-1 angstrom^-2",
+        com_restraint_width="1.0 angstrom",
     )
     # using getters, check that all protocols have the same values
     # (skip force constant and as it is not atm exclusive)
@@ -92,14 +92,14 @@ def test_atm_minimisation(TEMOA_hostguest):
         protocol_units.getSCa() == protocol_floats.getSCa() == protocol_strings.getSCa()
     )
     assert (
-        protocol_units.getCMKf()
-        == protocol_floats.getCMKf()
-        == protocol_strings.getCMKf()
+        protocol_units.getCOMk()
+        == protocol_floats.getCOMk()
+        == protocol_strings.getCOMk()
     )
     assert (
-        protocol_units.getCMTol()
-        == protocol_floats.getCMTol()
-        == protocol_strings.getCMTol()
+        protocol_units.getCOMWidth()
+        == protocol_floats.getCOMWidth()
+        == protocol_strings.getCOMWidth()
     )
 
 
