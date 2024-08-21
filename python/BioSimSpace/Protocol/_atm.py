@@ -31,9 +31,9 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         restraint=None,
         force_constant=10 * kcal_per_mol / angstrom2,
         positional_restraint_width=0.5 * angstrom,
-        SC_umax=1000.0 * kcal_per_mol,
-        SC_u0=500.0 * kcal_per_mol,
-        SC_a=0.0625,
+        soft_core_umax=1000.0 * kcal_per_mol,
+        soft_core_u0=500.0 * kcal_per_mol,
+        soft_core_a=0.0625,
     ):
         # Call the base class constructor.
         super().__init__()
@@ -98,14 +98,14 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         # Store the width of the coordinate restraint.
         self.setPosRestWidth(positional_restraint_width)
 
-        # Store the SC_umax value.
-        self.setSCUmax(SC_umax)
+        # Store the soft_core_umax value.
+        self.setSoftCoreUmax(soft_core_umax)
 
-        # Store the SC_u0 value.
-        self.setSCU0(SC_u0)
+        # Store the soft_core_u0 value.
+        self.setSoftCoreU0(soft_core_u0)
 
-        # Store the SC_a value.
-        self.setSCa(SC_a)
+        # Store the soft_core_a value.
+        self.setSoftCoreA(soft_core_a)
 
         # Set the postition restraint.
         _PositionRestraintMixin.__init__(self, restraint, force_constant)
@@ -412,132 +412,134 @@ class _AToM(_Protocol, _PositionRestraintMixin):
                 )
         self._align_k_psi = align_k_psi
 
-    def getSCUmax(self):
+    def getSoftCoreUmax(self):
         """
-        Return the SC_umax value.
+        Return the soft_core_umax value.
 
         Returns
         -------
 
-        SC_umax : :class:`Energy <BioSimSpace.Types.Energy>`
-            The SC_umax value in kcal/mol.
+        soft_core_umax : :class:`Energy <BioSimSpace.Types.Energy>`
+            The soft_core_umax value in kcal/mol.
         """
-        return self._SC_umax
+        return self._soft_core_umax
 
-    def setSCUmax(self, SC_umax):
+    def setSoftCoreUmax(self, soft_core_umax):
         """
-        Set the SC_umax value.
+        Set the soft_core_umax value.
 
         Parameters
         ----------
 
-        SC_umax : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
+        soft_core_umax : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
             The softcore Umax value in kcal/mol.
         """
         # Convert int to float.
-        if type(SC_umax) is int:
-            SC_umax = float(SC_umax)
+        if type(soft_core_umax) is int:
+            soft_core_umax = float(soft_core_umax)
 
-        if isinstance(SC_umax, float):
+        if isinstance(soft_core_umax, float):
             # Use default units.
-            SC_umax *= _Units.Energy.kcal_per_mol
+            soft_core_umax *= _Units.Energy.kcal_per_mol
 
         else:
-            if isinstance(SC_umax, str):
+            if isinstance(soft_core_umax, str):
                 try:
-                    SC_umax = _Types._GeneralUnit(SC_umax)
+                    soft_core_umax = _Types._GeneralUnit(soft_core_umax)
                 except Exception:
-                    raise ValueError("Unable to parse 'SC_umax' string.") from None
+                    raise ValueError(
+                        "Unable to parse 'soft_core_umax' string."
+                    ) from None
 
-            elif not isinstance(SC_umax, _Types.Energy):
+            elif not isinstance(soft_core_umax, _Types.Energy):
                 raise TypeError(
-                    "'SC_umax' must be of type 'BioSimSpace.Types._GeneralUnit', 'str', or 'float'."
+                    "'soft_core_umax' must be of type 'BioSimSpace.Types._GeneralUnit', 'str', or 'float'."
                 )
 
             # Validate the dimensions.
-            if SC_umax.dimensions() != (1, 2, -2, 0, 0, -1, 0):
+            if soft_core_umax.dimensions() != (1, 2, -2, 0, 0, -1, 0):
                 raise ValueError(
                     "'align_k_theta' has invalid dimensions! "
-                    f"Expected dimensions of energy density (e.g. kcal/mol), found '{SC_umax.unit()}'"
+                    f"Expected dimensions of energy density (e.g. kcal/mol), found '{soft_core_umax.unit()}'"
                 )
-        self._SC_umax = SC_umax
+        self._soft_core_umax = soft_core_umax
 
-    def getSCU0(self):
+    def getSoftCoreU0(self):
         """
-        Return the SC_u0 value.
+        Return the soft_core_u0 value.
 
         Returns
         -------
 
-        SC_u0 : :class:`Energy <BioSimSpace.Types.Energy>`
-            The SC_u0 value in kcal/mol.
+        soft_core_u0 : :class:`Energy <BioSimSpace.Types.Energy>`
+            The soft_core_u0 value in kcal/mol.
         """
-        return self._SC_u0
+        return self._soft_core_u0
 
-    def setSCU0(self, SC_u0):
+    def setSoftCoreU0(self, soft_core_u0):
         """
-        Set the SC_u0 value.
+        Set the soft_core_u0 value.
 
         Parameters
         ----------
 
-        SC_u0 : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
+        soft_core_u0 : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
             The softcore u0 value in kcal/mol.
         """
         # Convert int to float.
-        if type(SC_u0) is int:
-            SC_u0 = float(SC_u0)
+        if type(soft_core_u0) is int:
+            soft_core_u0 = float(soft_core_u0)
 
-        if isinstance(SC_u0, float):
+        if isinstance(soft_core_u0, float):
             # Use default units.
-            SC_u0 *= _Units.Energy.kcal_per_mol
+            soft_core_u0 *= _Units.Energy.kcal_per_mol
 
         else:
-            if isinstance(SC_u0, str):
+            if isinstance(soft_core_u0, str):
                 try:
-                    SC_u0 = _Types._GeneralUnit(SC_u0)
+                    soft_core_u0 = _Types._GeneralUnit(soft_core_u0)
                 except Exception:
-                    raise ValueError("Unable to parse 'SC_u0' string.") from None
+                    raise ValueError("Unable to parse 'soft_core_u0' string.") from None
 
-            elif not isinstance(SC_u0, _Types.Energy):
+            elif not isinstance(soft_core_u0, _Types.Energy):
                 raise TypeError(
-                    "'SC_u0' must be of type 'BioSimSpace.Types._GeneralUnit', 'str', or 'float'."
+                    "'soft_core_u0' must be of type 'BioSimSpace.Types._GeneralUnit', 'str', or 'float'."
                 )
 
             # Validate the dimensions.
-            if SC_u0.dimensions() != (1, 2, -2, 0, 0, -1, 0):
+            if soft_core_u0.dimensions() != (1, 2, -2, 0, 0, -1, 0):
                 raise ValueError(
                     "'align_k_theta' has invalid dimensions! "
-                    f"Expected dimensions of energy density (e.g. kcal/mol), found '{SC_u0.unit()}'"
+                    f"Expected dimensions of energy density (e.g. kcal/mol), found '{soft_core_u0.unit()}'"
                 )
-        self._SC_u0 = SC_u0
+        self._soft_core_u0 = soft_core_u0
 
-    def getSCa(self):
+    def getSoftCoreA(self):
         """
-        Return the SC_a value.
+        Return the soft_core_a value.
 
         Returns
         -------
 
-        SC_a : float
-            The SC_a value.
+        soft_core_a : float
+            The soft_core_a value.
         """
-        return self._SC_a
+        return self._soft_core_a
 
-    def setSCa(self, SC_a):
+    def setSoftCoreA(self, soft_core_a):
         """
-        Set the SC_a value.
+        Set the soft_core_a value.
 
         Parameters
         ----------
 
-        SC_a : float
+        soft_core_a : float
             The softcore a value.
         """
-        if isinstance(SC_a, (int, float)):
-            self._SC_a = float(SC_a)
+        if isinstance(soft_core_a, (int, float)):
+            self._soft_core_a = float(soft_core_a)
         else:
-            raise TypeError("'SC_a' must be of type 'float'")
+            raise TypeError("'soft_core_a' must be of type 'float'")
 
     def getCOMk(self):
         """
@@ -660,9 +662,9 @@ class AToMMinimisation(_AToM):
         align_k_distance=2.5 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
         align_k_theta=10 * _Units.Energy.kcal_per_mol,
         align_k_psi=10 * _Units.Energy.kcal_per_mol,
-        SC_umax=1000 * _Units.Energy.kcal_per_mol,
-        SC_u0=500 * _Units.Energy.kcal_per_mol,
-        SC_a=0.0625,
+        soft_core_umax=1000 * _Units.Energy.kcal_per_mol,
+        soft_core_u0=500 * _Units.Energy.kcal_per_mol,
+        soft_core_a=0.0625,
         com_k=25 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
         com_restraint_width=5 * _Units.Length.angstrom,
     ):
@@ -727,13 +729,13 @@ class AToMMinimisation(_AToM):
 
 
 
-        SC_umax : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
+        soft_core_umax : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
             The Umax value for the ATM softcore potential (kcal/mol).
 
-        SC_u0 : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
+        soft_core_u0 : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
             The uh value for the ATM softcore potential (kcal/mol).
 
-        SC_a : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
+        soft_core_a : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
             The a value for the ATM softcore potential."""
 
         super().__init__(
@@ -749,9 +751,9 @@ class AToMMinimisation(_AToM):
             restraint=restraint,
             force_constant=force_constant,
             positional_restraint_width=positional_restraint_width,
-            SC_umax=SC_umax,
-            SC_u0=SC_u0,
-            SC_a=SC_a,
+            soft_core_umax=soft_core_umax,
+            soft_core_u0=soft_core_u0,
+            soft_core_a=soft_core_a,
         )
         # Store the number of minimisation steps.
         self.setSteps(steps)
@@ -810,9 +812,9 @@ class AToMEquilibration(_AToM):
         align_k_distance=2.5 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
         align_k_theta=10 * _Units.Energy.kcal_per_mol,
         align_k_psi=10 * _Units.Energy.kcal_per_mol,
-        SC_umax=1000 * _Units.Energy.kcal_per_mol,
-        SC_u0=500 * _Units.Energy.kcal_per_mol,
-        SC_a=0.0625,
+        soft_core_umax=1000 * _Units.Energy.kcal_per_mol,
+        soft_core_u0=500 * _Units.Energy.kcal_per_mol,
+        soft_core_a=0.0625,
         use_atm_force=False,
         direction=1,
         lambda1=0.0,
@@ -908,13 +910,13 @@ class AToMEquilibration(_AToM):
         pos_restrained_atoms : [int]
             The atoms to be restrained.
 
-        SC_umax : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
+        soft_core_umax : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
             The Umax value for the ATM softcore potential (kcal/mol).
 
-        SC_u0 : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
+        soft_core_u0 : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
             The uh value for the ATM softcore potential (kcal/mol).
 
-        SC_a : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
+        soft_core_a : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
             The a value for the ATM softcore potential.
 
 
@@ -955,9 +957,9 @@ class AToMEquilibration(_AToM):
             align_k_distance=align_k_distance,
             align_k_theta=align_k_theta,
             align_k_psi=align_k_psi,
-            SC_umax=SC_umax,
-            SC_u0=SC_u0,
-            SC_a=SC_a,
+            soft_core_umax=soft_core_umax,
+            soft_core_u0=soft_core_u0,
+            soft_core_a=soft_core_a,
         )
         # Store
         self.setTimestep(timestep)
@@ -1592,9 +1594,9 @@ class AToMAnnealing(_AToM):
         align_k_distance=2.5 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
         align_k_theta=10 * _Units.Energy.kcal_per_mol,
         align_k_psi=10 * _Units.Energy.kcal_per_mol,
-        SC_umax=1000 * _Units.Energy.kcal_per_mol,
-        SC_u0=500 * _Units.Energy.kcal_per_mol,
-        SC_a=0.0625,
+        soft_core_umax=1000 * _Units.Energy.kcal_per_mol,
+        soft_core_u0=500 * _Units.Energy.kcal_per_mol,
+        soft_core_a=0.0625,
         direction=1,
         lambda1=0.0,
         lambda2=0.0,
@@ -1686,13 +1688,13 @@ class AToMAnnealing(_AToM):
         pos_restrained_atoms : [int]
             The atoms to be restrained.
 
-        SC_umax : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
+        soft_core_umax : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
             The Umax value for the ATM softcore potential (kcal/mol).
 
-        SC_u0 : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
+        soft_core_u0 : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
             The uh value for the ATM softcore potential (kcal/mol).
 
-        SC_a : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
+        soft_core_a : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
             The a value for the ATM softcore potential.
 
         direction : str
@@ -1764,9 +1766,9 @@ class AToMAnnealing(_AToM):
             align_k_distance=align_k_distance,
             align_k_theta=align_k_theta,
             align_k_psi=align_k_psi,
-            SC_umax=SC_umax,
-            SC_u0=SC_u0,
-            SC_a=SC_a,
+            soft_core_umax=soft_core_umax,
+            soft_core_u0=soft_core_u0,
+            soft_core_a=soft_core_a,
         )
 
         self.setTimestep(timestep)
@@ -2450,9 +2452,9 @@ class AToMProduction(_AToM):
         align_k_distance=2.5 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
         align_k_theta=10 * _Units.Energy.kcal_per_mol,
         align_k_psi=10 * _Units.Energy.kcal_per_mol,
-        SC_umax=100 * _Units.Energy.kcal_per_mol,
-        SC_u0=50 * _Units.Energy.kcal_per_mol,
-        SC_a=0.0625,
+        soft_core_umax=100 * _Units.Energy.kcal_per_mol,
+        soft_core_u0=50 * _Units.Energy.kcal_per_mol,
+        soft_core_a=0.0625,
         analysis_method="UWHAM",
     ):
         """
@@ -2537,13 +2539,13 @@ class AToMProduction(_AToM):
         pos_restrained_atoms : [int]
             The atoms to be restrained.
 
-        SC_umax : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
+        soft_core_umax : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
             The Umax value for the ATM softcore potential (kcal/mol).
 
-        SC_u0 : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
+        soft_core_u0 : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
             The uh value for the ATM softcore potential (kcal/mol).
 
-        SC_a : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
+        soft_core_a : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
             The a value for the ATM softcore potential.
 
         restart : bool
@@ -2592,9 +2594,9 @@ class AToMProduction(_AToM):
             align_k_distance=align_k_distance,
             align_k_theta=align_k_theta,
             align_k_psi=align_k_psi,
-            SC_umax=SC_umax,
-            SC_u0=SC_u0,
-            SC_a=SC_a,
+            soft_core_umax=soft_core_umax,
+            soft_core_u0=soft_core_u0,
+            soft_core_a=soft_core_a,
         )
 
         self.setTimestep(timestep)

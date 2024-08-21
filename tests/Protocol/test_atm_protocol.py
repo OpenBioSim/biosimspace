@@ -20,9 +20,9 @@ def test_atm_minimisation(TEMOA_hostguest):
         align_k_distance=1.0 * BSS.Units.Energy.kcal_per_mol / BSS.Units.Area.angstrom2,
         align_k_theta=1.0 * BSS.Units.Energy.kcal_per_mol,
         align_k_psi=1.0 * BSS.Units.Energy.kcal_per_mol,
-        SC_umax=10.0 * BSS.Units.Energy.kcal_per_mol,
-        SC_u0=1.0 * BSS.Units.Energy.kcal_per_mol,
-        SC_a=0.01,
+        soft_core_umax=10.0 * BSS.Units.Energy.kcal_per_mol,
+        soft_core_u0=1.0 * BSS.Units.Energy.kcal_per_mol,
+        soft_core_a=0.01,
         com_k=1.0 * BSS.Units.Energy.kcal_per_mol / BSS.Units.Area.angstrom2,
         com_restraint_width=1.0 * BSS.Units.Length.angstrom,
     )
@@ -35,9 +35,9 @@ def test_atm_minimisation(TEMOA_hostguest):
         align_k_distance=1.0,
         align_k_theta=1.0,
         align_k_psi=1.0,
-        SC_umax=10.0,
-        SC_u0=1.0,
-        SC_a=0.01,
+        soft_core_umax=10.0,
+        soft_core_u0=1.0,
+        soft_core_a=0.01,
         com_k=1.0,
         com_restraint_width=1.0,
     )
@@ -50,9 +50,9 @@ def test_atm_minimisation(TEMOA_hostguest):
         align_k_distance="1.0 kcal mol^-1 angstrom^-2",
         align_k_theta="1.0 kcal mol^-1",
         align_k_psi="1.0 kcal mol^-1",
-        SC_umax="10.0 kcal mol^-1",
-        SC_u0="1.0 kcal mol^-1",
-        SC_a=0.01,
+        soft_core_umax="10.0 kcal mol^-1",
+        soft_core_u0="1.0 kcal mol^-1",
+        soft_core_a=0.01,
         com_k="1.0 kcal mol^-1 angstrom^-2",
         com_restraint_width="1.0 angstrom",
     )
@@ -79,17 +79,19 @@ def test_atm_minimisation(TEMOA_hostguest):
         == protocol_strings.getAlignKPsi()
     )
     assert (
-        protocol_units.getSCUmax()
-        == protocol_floats.getSCUmax()
-        == protocol_strings.getSCUmax()
+        protocol_units.getSoftCoreUmax()
+        == protocol_floats.getSoftCoreUmax()
+        == protocol_strings.getSoftCoreUmax()
     )
     assert (
-        protocol_units.getSCU0()
-        == protocol_floats.getSCU0()
-        == protocol_strings.getSCU0()
+        protocol_units.getSoftCoreU0()
+        == protocol_floats.getSoftCoreU0()
+        == protocol_strings.getSoftCoreU0()
     )
     assert (
-        protocol_units.getSCa() == protocol_floats.getSCa() == protocol_strings.getSCa()
+        protocol_units.getSoftCoreA()
+        == protocol_floats.getSoftCoreA()
+        == protocol_strings.getSoftCoreA()
     )
     assert (
         protocol_units.getCOMk()

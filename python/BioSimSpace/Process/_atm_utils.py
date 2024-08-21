@@ -84,9 +84,9 @@ class _AToMUtils:
     def getATMForceConstants(self, index=None):
         self.lig1_atoms = self.getLigand1AtomsAsList()
         self.lig2_atoms = self.getLigand2AtomsAsList()
-        self.SCUmax = self.protocol.getSCUmax().value()
-        self.SCU0 = self.protocol.getSCU0().value()
-        self.SCa = self.protocol.getSCa()
+        self.SCUmax = self.protocol.getSoftCoreUmax().value()
+        self.SCU0 = self.protocol.getSoftCoreU0().value()
+        self.SCa = self.protocol.getSoftCoreA()
         if isinstance(self.protocol, _Protocol.AToMProduction):
             if index is None:
                 raise ValueError("Index must be set for AToMProduction protocol")

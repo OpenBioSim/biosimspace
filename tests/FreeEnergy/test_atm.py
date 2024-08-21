@@ -429,9 +429,9 @@ def test_single_point_energies(TEMOA_host, TEMOA_lig1, TEMOA_lig2):
         align_k_distance=2.5,
         runtime="100 ps",
         num_lambda=22,
-        SC_umax=100.0,
-        SC_a=0.0625,
-        SC_u0=50.0,
+        soft_core_umax=100.0,
+        soft_core_a=0.0625,
+        soft_core_u0=50.0,
     )
 
     with tempfile.TemporaryDirectory() as tmpdirname:
