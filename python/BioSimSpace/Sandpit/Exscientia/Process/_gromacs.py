@@ -2180,15 +2180,17 @@ class Gromacs(_process.Process):
                     for idx, mol_idx in enumerate(mol_idxs):
                         # Get the indices of any restrained atoms in this molecule,
                         # making sure that indices are relative to the molecule.
-                        if restraint is not None:
+                        if restraint is None:
+                            atom_idxs = []
+                        elif self._system.getMolecule(mol_idx).isLipid():
+                            atom_idxs = []
+                        else:
                             atom_idxs = self._system.getRestraintAtoms(
                                 restraint,
                                 mol_index=mol_idx,
                                 is_absolute=False,
                                 allow_zero_matches=True,
                             )
-                        else:
-                            atom_idxs = []
 
                         if self._system.getMolecule(mol_idx).isAlchemicalIon():
                             alch_ion = self._system.getMolecule(mol_idx).getAtoms()
