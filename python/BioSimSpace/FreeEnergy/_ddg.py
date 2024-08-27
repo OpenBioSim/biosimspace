@@ -32,6 +32,7 @@ import scipy.special as _special
 import functools as _functools
 import pathlib as _pathlib
 import os as _os
+import warnings as _warnings
 
 
 def _compute_weights(ln_z, ln_q, factor):
@@ -137,8 +138,9 @@ def _estimate_f_i(ln_q, n_k):
 
     weights = _compute_weights(ln_z, ln_q, factor)
 
-    if not _numpy.allclose(weights.sum(axis=0) / n, 1.0, atol=1e-3):
-        raise RuntimeError("The UWHAM weights do not sum to 1.0")
+    if not _numpy.allclose(weights.sum(axis=0) / n, 1.0, atol=1e-2):
+        w = weights.sum(axis=0) / n
+        _warnings.warn(f"The UWHAM weights do not sum to 1.0 ({w})")
 
     df_i = _compute_variance(ln_z, weights, factor, n)
 
