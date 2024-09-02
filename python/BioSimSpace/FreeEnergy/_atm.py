@@ -33,7 +33,7 @@ from ..Types import Coordinate as _Coordinate
 from ..Align import matchAtoms as _matchAtoms
 from ..Align import rmsdAlign as _rmsdAlign
 from ..Notebook import View as _View
-from ..Process import OpenMM as OMMprocess
+from ..Process import OpenMM as _OpenMM
 from ..Process import ProcessRunner as _ProcessRunner
 
 import warnings as _warnings
@@ -1303,7 +1303,7 @@ class _relativeATM:
         first_dir = "%s/lambda_%5.4f" % (self._work_dir, lam)
 
         # Create the first simulation, which will be copied and used for future simulations.
-        first_process = OMMprocess(
+        first_process = _OpenMM(
             system=system,
             protocol=self._protocol,
             platform=self._platform,
