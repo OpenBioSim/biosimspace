@@ -53,7 +53,7 @@ class AToM:
     def __init__(
         self,
         system=None,
-        protein=None,
+        receptor=None,
         ligand1=None,
         ligand2=None,
         protein_index=0,
@@ -67,8 +67,8 @@ class AToM:
         system : :class:`System <BioSimSpace._SireWrappers.System>`
             A pre-prepared AToM system containing protein and ligands placed in their correct positions.
             If provided takes precedence over protein, ligand1 and ligand2.
-        protein : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
-            A protein molecule. Will be used along with ligand1 and ligand2 to create a system.
+        receptor : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
+            A receptor molecule. Will be used along with ligand1 and ligand2 to create a system.
         ligand1 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
             The bound ligand. Will be used along with protein and ligand2 to create a system.
         ligand2 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
@@ -82,7 +82,7 @@ class AToM:
         """
         # make sure that either system or protein, ligand1 and ligand2 are given
         if system is None and not all(
-            x is not None for x in [protein, ligand1, ligand2]
+            x is not None for x in [receptor, ligand1, ligand2]
         ):
             raise ValueError(
                 "Either a pre-prepared system or protein, bound ligand and free ligand must be given."
@@ -93,7 +93,7 @@ class AToM:
             raise ValueError("The system must be a BioSimSpace System object.")
         elif not all(
             isinstance(x, _Molecule)
-            for x in [protein, ligand1, ligand2]
+            for x in [receptor, ligand1, ligand2]
             if x is not None
         ):
             raise ValueError(
@@ -102,7 +102,7 @@ class AToM:
         self._is_prepared = False
         self._setSystem(system)
         if not self._is_prepared:
-            self._setProtein(protein)
+            self._setProtein(receptor)
             self._setLigand1(ligand1)
             self._setLigand2(ligand2)
         else:

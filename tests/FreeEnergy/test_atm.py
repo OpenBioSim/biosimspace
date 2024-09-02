@@ -13,7 +13,7 @@ import BioSimSpace as BSS
 def test_makeSystem(TEMOA_host, TEMOA_lig1, TEMOA_lig2):
 
     atm_generator = BSS.FreeEnergy.AToM(
-        protein=TEMOA_host, ligand1=TEMOA_lig1, ligand2=TEMOA_lig2
+        receptor=TEMOA_host, ligand1=TEMOA_lig1, ligand2=TEMOA_lig2
     )
     # check that an error is thrown in the rigid core atoms are not given to prepare
     with pytest.raises(TypeError):
@@ -362,7 +362,7 @@ def test_single_point_energies(TEMOA_host, TEMOA_lig1, TEMOA_lig2):
         195,
     ]
     atm_generator = BSS.FreeEnergy.AToM(
-        protein=TEMOA_host, ligand1=TEMOA_lig1, ligand2=TEMOA_lig2
+        receptor=TEMOA_host, ligand1=TEMOA_lig1, ligand2=TEMOA_lig2
     )
     system, data = atm_generator.prepare(
         displacement=[22, 22, 22],
