@@ -887,14 +887,14 @@ class System(_SireWrapper):
             else:
                 raise ValueError(f"System doesn't contain molecule: {mol}")
 
-        # Update the Sire object.
-        self._sire_object = system
+            # Update the Sire object.
+            self._sire_object = system
 
-        # Reset the index mappings.
-        self._reset_mappings()
+            # Reset the index mappings.
+            self._reset_mappings()
 
-        # Update the molecule numbers.
-        self._mol_nums = self._sire_object.molNums()
+            # Update the molecule numbers.
+            self._mol_nums = self._sire_object.molNums()
 
     def getMolecule(self, index):
         """
