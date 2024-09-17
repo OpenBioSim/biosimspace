@@ -23,7 +23,6 @@
 __all__ = ["AToM"]
 
 
-from .. import _is_notebook
 from .._SireWrappers import Molecule as _Molecule
 from .._SireWrappers import System as _System
 from .. import _Utils
@@ -33,17 +32,17 @@ from ..Types import Coordinate as _Coordinate
 from ..Align import matchAtoms as _matchAtoms
 from ..Align import rmsdAlign as _rmsdAlign
 from ..Notebook import View as _View
+from .. import _isVerbose
 from ..Process import OpenMM as _OpenMM
 from ..Process import ProcessRunner as _ProcessRunner
+
+from sire.legacy import IO as _SireIO
 
 import warnings as _warnings
 import json as _json
 import copy as _copy
 import os as _os
 import shutil as _shutil
-import pathlib as _pathlib
-import pandas as _pd
-import numpy as _np
 
 
 class AToM:
@@ -848,6 +847,8 @@ class AToM:
         ligand2_rigid_core=None,
     ):
         """View the rigid cores of the ligands.
+        Carbon atoms of the bound ligand are coloured green, while those of the free ligand are coloured orange.
+        Rigid core atoms are colour coded and labelled.
 
         Parameters
         ----------
@@ -903,6 +904,21 @@ class AToM:
                 return (0, 0, 0)
 
             return (dx / magnitude, dy / magnitude, dz / magnitude)
+
+        def find_carbons(ligand):
+            # Adding logic to find carbon atosm in sire becuase its easier than trying
+            # to find them in nglview
+            return [
+                i.index().value()
+                for i in ligand._sire_object[f"(atom mass > 12) and (atom mass < 13)"]
+            ]
+
+        def make_amber_list(l, offset=0):
+            # take a list of ints and return a string that is "@<int1>,<int2>,<int3>"
+            return "@" + ",".join([str(i + offset) for i in l])
+
+        def _count_num_atoms(ligand):
+            return ligand._sire_object.nAtoms()
 
         # if a system is provided, check that it has the "atom_data" property
         if system is not None:
@@ -969,9 +985,9 @@ class AToM:
         # Translate ligand2 so they don't overlap
         ligand2.translate(
             [
-                lig1_distance * 2 * vector[0],
-                lig1_distance * 2 * vector[1],
-                lig1_distance * 2 * vector[2],
+                -1.0 * lig1_distance * 2 * vector[0],
+                -1.0 * lig1_distance * 2 * vector[1],
+                -1.0 * lig1_distance * 2 * vector[2],
             ]
         )
         # Get coords of rigid core atoms
@@ -986,25 +1002,51 @@ class AToM:
         mol = ligand1 + ligand2
 
         # Create view
-        view = _View(mol)
+        view = _View_AtoM(mol)
 
         # Create nglview object
         ngl = view.system(mol)
+        ngl.add_ball_and_stick("all")
+        ngl.add_ball_and_stick(make_amber_list(find_carbons(ligand1)), color="green")
+        ngl.add_ball_and_stick(
+            make_amber_list(find_carbons(ligand2), offset=_count_num_atoms(ligand1)),
+            color="orange",
+        )
+        #
         colours = [[1, 1, 0], [1, 0, 1], [0, 1, 1]]
         # Add spheres to rigid core locations
-        for coord1, coord2, colour in zip(
-            ligand1_core_coords, ligand2_core_coords, colours
+        for coord1, coord2, colour, core_atom_1, core_atom_2 in zip(
+            ligand1_core_coords,
+            ligand2_core_coords,
+            colours,
+            ligand1_rigid_core,
+            ligand2_rigid_core,
         ):
             ngl.shape.add_sphere(
                 [coord1.x().value(), coord1.y().value(), coord1.z().value()],
                 colour,
-                0.7,
+                0.45,
+            )
+            ngl.shape.add(
+                "text",
+                [coord1.x().value(), coord1.y().value(), coord1.z().value() - 0.5],
+                [0, 0, 0],
+                2.5,
+                f"{core_atom_1}",
             )
             ngl.shape.add_sphere(
                 [coord2.x().value(), coord2.y().value(), coord2.z().value()],
                 colour,
-                0.7,
+                0.45,
             )
+            ngl.shape.add(
+                "text",
+                [coord2.x().value(), coord2.y().value(), coord2.z().value() - 0.5],
+                [0, 0, 0],
+                2.5,
+                f"{core_atom_2}",
+            )
+
         if system is not None:
             del local_s
         return ngl
@@ -1391,3 +1433,59 @@ class _relativeATM:
         if not self._setup_only:
             # Initialise process runner.
             self._runner = _ProcessRunner(processes)
+
+
+class _View_AtoM(_View):
+    """Overloads regular view class
+    needed to pass default_representation=False into show_file"""
+
+    # Initialise super
+    def __init__(self, handle, property_map={}, is_lambda1=False):
+        super().__init__(handle, property_map, is_lambda1)
+
+    def _create_view(self, system=None, view=None, gui=True, **kwargs):
+
+        if system is None and view is None:
+            raise ValueError("Both 'system' and 'view' cannot be 'None'.")
+
+        elif system is not None and view is not None:
+            raise ValueError("One of 'system' or 'view' must be 'None'.")
+
+        # Make sure gui flag is valid.
+        if gui not in [True, False]:
+            gui = True
+
+        # Default to the most recent view.
+        if view is None:
+            index = self._num_views
+        else:
+            index = view
+
+        # Create the file name.
+        filename = "%s/view_%04d.pdb" % (self._work_dir, index)
+
+        # Increment the number of views.
+        if view is None:
+            self._num_views += 1
+
+        # Create a PDB object and write to file.
+        if system is not None:
+            try:
+                pdb = _SireIO.PDB2(system, self._property_map)
+                pdb.writeToFile(filename)
+            except Exception as e:
+                msg = "Failed to write system to 'PDB' format."
+                if _isVerbose():
+                    print(msg)
+                    raise IOError(e) from None
+                else:
+                    raise IOError(msg) from None
+
+        # Import NGLView when it is used for the first time.
+        import nglview as _nglview
+
+        # Create the NGLview object.
+        view = _nglview.show_file(filename, default_representation=False)
+
+        # Return the view and display it.
+        return view.display(gui=gui)
