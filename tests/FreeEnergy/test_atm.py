@@ -13,7 +13,7 @@ import BioSimSpace as BSS
 def test_makeSystem(TEMOA_host, TEMOA_lig1, TEMOA_lig2):
 
     atm_generator = BSS.FreeEnergy.AToM(
-        receptor=TEMOA_host, ligand1=TEMOA_lig1, ligand2=TEMOA_lig2
+        receptor=TEMOA_host, ligand_bound=TEMOA_lig1, ligand_free=TEMOA_lig2
     )
     # check that an error is thrown in the rigid core atoms are not given to prepare
     with pytest.raises(TypeError):
@@ -22,7 +22,7 @@ def test_makeSystem(TEMOA_host, TEMOA_lig1, TEMOA_lig2):
     rigid_core = [1, 2, 3]
 
     atm_system, atm_data = atm_generator.prepare(
-        ligand1_rigid_core=rigid_core, ligand2_rigid_core=rigid_core
+        ligand_bound_rigid_core=rigid_core, ligand_free_rigid_core=rigid_core
     )
 
     # Check that the system contains an atm data property
@@ -37,21 +37,21 @@ def test_makeSystem(TEMOA_host, TEMOA_lig1, TEMOA_lig2):
         ]
     )
 
-    # check that data[ligand1_rigid_core] and data[ligand2_rigid_core] are the same as the input
-    assert data_from_system["ligand1_rigid_core"] == rigid_core
-    assert data_from_system["ligand2_rigid_core"] == rigid_core
+    # check that data[ligand_bound_rigid_core] and data[ligand_free_rigid_core] are the same as the input
+    assert data_from_system["ligand_bound_rigid_core"] == rigid_core
+    assert data_from_system["ligand_free_rigid_core"] == rigid_core
 
     # get the coordinates of the ligands
-    lig1_coords = atm_system[atm_data["ligand1_index"]]._sire_object.coordinates()
-    lig2_coords = atm_system[atm_data["ligand2_index"]]._sire_object.coordinates()
+    lig1_coords = atm_system[atm_data["ligand_bound_index"]]._sire_object.coordinates()
+    lig2_coords = atm_system[atm_data["ligand_free_index"]]._sire_object.coordinates()
     # make sure the displacement is correct for the default value of 20A
     assert pytest.approx((lig2_coords - lig1_coords).length().value(), rel=1) == 20.0
 
     vector = BSS.Types.Vector(10.0, 10.0, 10.0)
 
     system_withvec, data_withvec = atm_generator.prepare(
-        ligand1_rigid_core=rigid_core,
-        ligand2_rigid_core=rigid_core,
+        ligand_bound_rigid_core=rigid_core,
+        ligand_free_rigid_core=rigid_core,
         displacement=vector,
     )
 
@@ -64,10 +64,10 @@ def test_makeSystem(TEMOA_host, TEMOA_lig1, TEMOA_lig2):
         vector.z(),
     ]
     lig1_coords = system_withvec[
-        data_withvec["ligand1_index"]
+        data_withvec["ligand_bound_index"]
     ]._sire_object.coordinates()
     lig2_coords = system_withvec[
-        data_withvec["ligand2_index"]
+        data_withvec["ligand_free_index"]
     ]._sire_object.coordinates()
 
     d = lig2_coords - lig1_coords
@@ -362,14 +362,14 @@ def test_single_point_energies(TEMOA_host, TEMOA_lig1, TEMOA_lig2):
         195,
     ]
     atm_generator = BSS.FreeEnergy.AToM(
-        receptor=TEMOA_host, ligand1=TEMOA_lig1, ligand2=TEMOA_lig2
+        receptor=TEMOA_host, ligand_bound=TEMOA_lig1, ligand_free=TEMOA_lig2
     )
     system, data = atm_generator.prepare(
         displacement=[22, 22, 22],
-        ligand1_rigid_core=[8, 6, 4],
-        ligand2_rigid_core=[3, 5, 1],
-        ligand1_com_atoms=lig1_cm_rel,
-        ligand2_com_atoms=lig2_cm_rel,
+        ligand_bound_rigid_core=[8, 6, 4],
+        ligand_free_rigid_core=[3, 5, 1],
+        ligand_bound_com_atoms=lig1_cm_rel,
+        ligand_free_com_atoms=lig2_cm_rel,
         protein_com_atoms=prot_cm_atoms,
     )
 

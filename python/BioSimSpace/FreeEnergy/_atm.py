@@ -53,11 +53,11 @@ class AToM:
         self,
         system=None,
         receptor=None,
-        ligand1=None,
-        ligand2=None,
+        ligand_bound=None,
+        ligand_free=None,
         protein_index=0,
-        ligand1_index=1,
-        ligand2_index=2,
+        ligand_bound_index=1,
+        ligand_free_index=2,
     ):
         """Constructor for the AToM class.
 
@@ -65,23 +65,23 @@ class AToM:
         ----------
         system : :class:`System <BioSimSpace._SireWrappers.System>`
             A pre-prepared AToM system containing protein and ligands placed in their correct positions.
-            If provided takes precedence over protein, ligand1 and ligand2.
+            If provided takes precedence over protein, ligand_bound and ligand_free.
         receptor : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
-            A receptor molecule. Will be used along with ligand1 and ligand2 to create a system.
-        ligand1 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
-            The bound ligand. Will be used along with protein and ligand2 to create a system.
-        ligand2 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
-            The free ligand. Will be used along with protein and ligand1 to create a system.
+            A receptor molecule. Will be used along with ligand_bound and ligand_free to create a system.
+        ligand_bound : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
+            The bound ligand. Will be used along with protein and ligand_free to create a system.
+        ligand_free : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
+            The free ligand. Will be used along with protein and ligand_bound to create a system.
         protein_index : int, [int]
             If passing a pre-prepared system, the index (or indices) of the protein molecule in the system (Default 0).
-        ligand1_index : int
+        ligand_bound_index : int
             If passing a pre-prepared system, the index of the bound ligand molecule in the system (Default 1).
-        ligand2_index : int
+        ligand_free_index : int
             If passing a pre-prepared system, the index of the free ligand molecule in the system (Default 2).
         """
-        # make sure that either system or protein, ligand1 and ligand2 are given
+        # make sure that either system or protein, ligand_bound and ligand_free are given
         if system is None and not all(
-            x is not None for x in [receptor, ligand1, ligand2]
+            x is not None for x in [receptor, ligand_bound, ligand_free]
         ):
             raise ValueError(
                 "Either a pre-prepared system or protein, bound ligand and free ligand must be given."
@@ -92,7 +92,7 @@ class AToM:
             raise ValueError("The system must be a BioSimSpace System object.")
         elif not all(
             isinstance(x, _Molecule)
-            for x in [receptor, ligand1, ligand2]
+            for x in [receptor, ligand_bound, ligand_free]
             if x is not None
         ):
             raise ValueError(
@@ -102,12 +102,12 @@ class AToM:
         self._setSystem(system)
         if not self._is_prepared:
             self._setProtein(receptor)
-            self._setLigand1(ligand1)
-            self._setLigand2(ligand2)
+            self._setLigandBound(ligand_bound)
+            self._setLigandFree(ligand_free)
         else:
             self._setProteinIndex(protein_index)
-            self._setLigand1Index(ligand1_index)
-            self._setLigand2Index(ligand2_index)
+            self._setLigandBoundIndex(ligand_bound_index)
+            self._setLigandFreeIndex(ligand_free_index)
 
     def _setSystem(self, system, is_prepped=True):
         """Set the system for the AToM simulation.
@@ -169,25 +169,25 @@ class AToM:
         """
         return self._protein
 
-    def _setLigand1(self, ligand1):
+    def _setLigandBound(self, ligand_bound):
         """Set the bound ligand for the AToM simulation.
 
         Parameters
         ----------
-        ligand1 : BioSimSpace._SireWrappers.Molecule
+        ligand_bound : BioSimSpace._SireWrappers.Molecule
             The bound ligand for the AToM simulation.
         """
-        if ligand1 is not None:
-            if not isinstance(ligand1, _Molecule):
+        if ligand_bound is not None:
+            if not isinstance(ligand_bound, _Molecule):
                 raise ValueError(
                     "The bound ligand must be a BioSimSpace Molecule object."
                 )
             else:
-                self._ligand1 = ligand1
+                self._ligand_bound = ligand_bound
         else:
-            self._ligand1 = None
+            self._ligand_bound = None
 
-    def _getLigand1(self):
+    def _getLigandBound(self):
         """Get the bound ligand for the AToM simulation.
 
         Returns
@@ -195,27 +195,27 @@ class AToM:
         BioSimSpace._SireWrappers.Molecule
             The bound ligand for the AToM simulation.
         """
-        return self._ligand1
+        return self._ligand_bound
 
-    def _setLigand2(self, ligand2):
+    def _setLigandFree(self, ligand_free):
         """Set the free ligand for the AToM simulation.
 
         Parameters
         ----------
-        ligand2 : BioSimSpace._SireWrappers.Molecule
+        ligand_free : BioSimSpace._SireWrappers.Molecule
             The free ligand for the AToM simulation.
         """
-        if ligand2 is not None:
-            if not isinstance(ligand2, _Molecule):
+        if ligand_free is not None:
+            if not isinstance(ligand_free, _Molecule):
                 raise ValueError(
                     "The free ligand must be a BioSimSpace Molecule object."
                 )
             else:
-                self._ligand2 = ligand2
+                self._ligand_free = ligand_free
         else:
-            self._ligand2 = None
+            self._ligand_free = None
 
-    def _getLigand2(self):
+    def _getLigandFree(self):
         """Get the free ligand for the AToM simulation.
 
         Returns
@@ -223,7 +223,7 @@ class AToM:
         BioSimSpace._SireWrappers.Molecule
             The free ligand for the AToM simulation.
         """
-        return self._ligand2
+        return self._ligand_free
 
     def _setDisplacement(self, displacement):
         """Set the displacement of the free ligand along the normal vector."""
@@ -267,31 +267,31 @@ class AToM:
         """
         return self.displacement
 
-    def _setLigand1RigidCore(self, ligand1_rigid_core):
+    def _setLigandBoundRigidCore(self, ligand_bound_rigid_core):
         """Set the indices for the rigid core atoms of ligand 1.
 
         Parameters
         ----------
-        ligand1_rigid_core : BioSimSpace._SireWrappers.Molecule
+        ligand_bound_rigid_core : BioSimSpace._SireWrappers.Molecule
             The rigid core of the bound ligand for the AToM simulation.
         """
-        if ligand1_rigid_core is None:
-            self.ligand1_rigid_core = None
+        if ligand_bound_rigid_core is None:
+            self.ligand_bound_rigid_core = None
         else:
-            if not isinstance(ligand1_rigid_core, list):
-                raise TypeError("ligand1_rigid_core must be a list")
-            if len(ligand1_rigid_core) != 3:
-                raise ValueError("ligand1_rigid_core must have length 3")
+            if not isinstance(ligand_bound_rigid_core, list):
+                raise TypeError("ligand_bound_rigid_core must be a list")
+            if len(ligand_bound_rigid_core) != 3:
+                raise ValueError("ligand_bound_rigid_core must have length 3")
             # make sure all indices are ints
-            if not all(isinstance(x, int) for x in ligand1_rigid_core):
-                raise TypeError("ligand1_rigid_core must contain only integers")
-            if any(x >= self.ligand1_atomcount for x in ligand1_rigid_core):
+            if not all(isinstance(x, int) for x in ligand_bound_rigid_core):
+                raise TypeError("ligand_bound_rigid_core must contain only integers")
+            if any(x >= self.ligand_bound_atomcount for x in ligand_bound_rigid_core):
                 raise ValueError(
-                    "ligand1_rigid_core contains an index that is greater than the number of atoms in the ligand"
+                    "ligand_bound_rigid_core contains an index that is greater than the number of atoms in the ligand"
                 )
-            self.ligand1_rigid_core = ligand1_rigid_core
+            self.ligand_bound_rigid_core = ligand_bound_rigid_core
 
-    def _getLigand1RigidCore(self):
+    def _getLigandBoundRigidCore(self):
         """Get the indices for the rigid core atoms of ligand 1.
 
         Returns
@@ -299,33 +299,33 @@ class AToM:
         list
             The indices for the rigid core atoms of ligand 1.
         """
-        return self.ligand1_rigid_core
+        return self.ligand_bound_rigid_core
 
-    def _setLigand2RigidCore(self, ligand2_rigid_core):
+    def _setLigandFreeRigidCore(self, ligand_free_rigid_core):
         """Set the indices for the rigid core atoms of ligand 2.
 
         Parameters
         ----------
-        ligand2_rigid_core : BioSimSpace._SireWrappers.Molecule
+        ligand_free_rigid_core : BioSimSpace._SireWrappers.Molecule
             The rigid core of the free ligand for the AToM simulation.
         """
-        if ligand2_rigid_core is None:
-            self.ligand2_rigid_core = None
+        if ligand_free_rigid_core is None:
+            self.ligand_free_rigid_core = None
         else:
-            if not isinstance(ligand2_rigid_core, list):
-                raise TypeError("ligand2_rigid_core must be a list")
-            if len(ligand2_rigid_core) != 3:
-                raise ValueError("ligand2_rigid_core must have length 3")
+            if not isinstance(ligand_free_rigid_core, list):
+                raise TypeError("ligand_free_rigid_core must be a list")
+            if len(ligand_free_rigid_core) != 3:
+                raise ValueError("ligand_free_rigid_core must have length 3")
             # make sure all indices are ints
-            if not all(isinstance(x, int) for x in ligand2_rigid_core):
-                raise TypeError("ligand2_rigid_core must contain only integers")
-            if any(x >= self.ligand2_atomcount for x in ligand2_rigid_core):
+            if not all(isinstance(x, int) for x in ligand_free_rigid_core):
+                raise TypeError("ligand_free_rigid_core must contain only integers")
+            if any(x >= self.ligand_free_atomcount for x in ligand_free_rigid_core):
                 raise ValueError(
-                    "ligand2_rigid_core contains an index that is greater than the number of atoms in the ligand"
+                    "ligand_free_rigid_core contains an index that is greater than the number of atoms in the ligand"
                 )
-            self.ligand2_rigid_core = ligand2_rigid_core
+            self.ligand_free_rigid_core = ligand_free_rigid_core
 
-    def _getLigand2RigidCore(self):
+    def _getLigandFreeRigidCore(self):
         """Get the indices for the rigid core atoms of ligand 2.
 
         Returns
@@ -333,7 +333,7 @@ class AToM:
         list
             The indices for the rigid core atoms of ligand 2.
         """
-        return self.ligand2_rigid_core
+        return self.ligand_free_rigid_core
 
     def _setProteinIndex(self, protein_index):
         """
@@ -371,26 +371,26 @@ class AToM:
         """
         return self.protein_index
 
-    def _setLigand1Index(self, ligand1_index):
+    def _setLigandBoundIndex(self, ligand_bound_index):
         """Set the index of the bound ligand molecule in the system.
 
         Parameters
         ----------
-        ligand1_index : int
+        ligand_bound_index : int
             The index of the bound ligand molecule in the system.
         """
-        if not isinstance(ligand1_index, int):
-            raise ValueError("ligand1_index must be an integer.")
+        if not isinstance(ligand_bound_index, int):
+            raise ValueError("ligand_bound_index must be an integer.")
         else:
-            if ligand1_index < 0:
-                raise ValueError("ligand1_index must be a positive integer")
-            if self._system[ligand1_index].isWater():
+            if ligand_bound_index < 0:
+                raise ValueError("ligand_bound_index must be a positive integer")
+            if self._system[ligand_bound_index].isWater():
                 _warnings.warn(
-                    f"The molecule at index {ligand1_index} is a water molecule, check your ligand1_index."
+                    f"The molecule at index {ligand_bound_index} is a water molecule, check your ligand_bound_index."
                 )
-            self.ligand1_index = ligand1_index
+            self.ligand_bound_index = ligand_bound_index
 
-    def _getLigand1Index(self):
+    def _getLigandBoundIndex(self):
         """Get the index of the bound ligand molecule in the system.
 
         Returns
@@ -398,28 +398,28 @@ class AToM:
         int
             The index of the bound ligand molecule in the system.
         """
-        return self.ligand1_index
+        return self.ligand_bound_index
 
-    def _setLigand2Index(self, ligand2_index):
+    def _setLigandFreeIndex(self, ligand_free_index):
         """Set the index of the free ligand molecule in the system.
 
         Parameters
         ----------
-        ligand2_index : int
+        ligand_free_index : int
             The index of the free ligand molecule in the system.
         """
-        if not isinstance(ligand2_index, int):
-            raise ValueError("ligand2_index must be an integer.")
+        if not isinstance(ligand_free_index, int):
+            raise ValueError("ligand_free_index must be an integer.")
         else:
-            if ligand2_index < 0:
-                raise ValueError("ligand2_index must be a positive integer")
-            if self._system[ligand2_index].isWater():
+            if ligand_free_index < 0:
+                raise ValueError("ligand_free_index must be a positive integer")
+            if self._system[ligand_free_index].isWater():
                 _warnings.warn(
-                    f"The molecule at index {ligand2_index} is a water molecule, check your ligand2_index."
+                    f"The molecule at index {ligand_free_index} is a water molecule, check your ligand_free_index."
                 )
-            self.ligand2_index = ligand2_index
+            self.ligand_free_index = ligand_free_index
 
-    def _getLigand2Index(self):
+    def _getLigandFreeIndex(self):
         """Get the index of the free ligand molecule in the system.
 
         Returns
@@ -427,25 +427,25 @@ class AToM:
         int
             The index of the free ligand molecule in the system.
         """
-        return self.ligand2_index
+        return self.ligand_free_index
 
     def prepare(
         self,
-        ligand1_rigid_core,
-        ligand2_rigid_core,
+        ligand_bound_rigid_core,
+        ligand_free_rigid_core,
         displacement="20A",
         protein_com_atoms=None,
-        ligand1_com_atoms=None,
-        ligand2_com_atoms=None,
+        ligand_bound_com_atoms=None,
+        ligand_free_com_atoms=None,
     ):
         """Prepare the system for the AToM simulation.
 
         Parameters
         ----------
-        ligand1_rigid_core : [int]
+        ligand_bound_rigid_core : [int]
             A list of three atom indices that define the rigid core of the bound ligand.
             Indices are set relative to the ligand, not the system and are 0-indexed.
-        ligand2_rigid_core : [int]
+        ligand_free_rigid_core : [int]
             A list of three atom indices that define the rigid core of the free ligand.
             Indices are set relative to the ligand, not the system and are 0-indexed.
         displacement : float, string, [float, float, float]
@@ -457,10 +457,10 @@ class AToM:
         protein_com_atoms : [int]
             A list of atom indices that define the center of mass of the protein.
             If None, the center of mass of the protein will be found automatically.
-        ligand1_com_atoms : [int]
+        ligand_bound_com_atoms : [int]
             A list of atom indices that define the center of mass of the bound ligand.
             If None, the center of mass of the bound ligand will be found automatically.
-        ligand2_com_atoms : [int]
+        ligand_free_com_atoms : [int]
             A list of atom indices that define the center of mass of the free ligand.
             If None, the center of mass of the free ligand will be found automatically.
 
@@ -474,12 +474,12 @@ class AToM:
         """
         if self._is_prepared:
             self._systemInfo()
-            self._setLigand1RigidCore(ligand1_rigid_core)
-            self._setLigand2RigidCore(ligand2_rigid_core)
+            self._setLigandBoundRigidCore(ligand_bound_rigid_core)
+            self._setLigandFreeRigidCore(ligand_free_rigid_core)
             self._setDisplacement(displacement)
             self._setProtComAtoms(protein_com_atoms)
-            self._setLig1ComAtoms(ligand1_com_atoms)
-            self._setLig2ComAtoms(ligand2_com_atoms)
+            self._setLig1ComAtoms(ligand_bound_com_atoms)
+            self._setLig2ComAtoms(ligand_free_com_atoms)
 
             self._findAtomIndices()
             self._makeData()
@@ -498,19 +498,19 @@ class AToM:
             # the final value will be set after the system is made, but the initial value is needed to make the system
             self._setDisplacement(displacement)
             system, prot_ind, lig1_ind, lig2_ind, dis_vec = self._makeSystemFromThree(
-                self._protein, self._ligand1, self._ligand2, self.displacement
+                self._protein, self._ligand_bound, self._ligand_free, self.displacement
             )
             self._setSystem(system, is_prepped=False)
             self._setDisplacement(dis_vec)
             self._setProteinIndex(prot_ind)
-            self._setLigand1Index(lig1_ind)
-            self._setLigand2Index(lig2_ind)
+            self._setLigandBoundIndex(lig1_ind)
+            self._setLigandFreeIndex(lig2_ind)
             self._systemInfo()
-            self._setLigand1RigidCore(ligand1_rigid_core)
-            self._setLigand2RigidCore(ligand2_rigid_core)
+            self._setLigandBoundRigidCore(ligand_bound_rigid_core)
+            self._setLigandFreeRigidCore(ligand_free_rigid_core)
             self._setProtComAtoms(protein_com_atoms)
-            self._setLig1ComAtoms(ligand1_com_atoms)
-            self._setLig2ComAtoms(ligand2_com_atoms)
+            self._setLig1ComAtoms(ligand_bound_com_atoms)
+            self._setLig2ComAtoms(ligand_free_com_atoms)
             self._findAtomIndices()
             self._makeData()
             serialisable_disp = [
@@ -525,16 +525,16 @@ class AToM:
             return self._system, self.data
 
     @staticmethod
-    def _makeSystemFromThree(protein, ligand1, ligand2, displacement):
+    def _makeSystemFromThree(protein, ligand_bound, ligand_free, displacement):
         """Create a system for AToM simulations.
 
         Parameters
         ----------
         protein : BioSimSpace._SireWrappers.Molecule
             The protein for the AToM simulation.
-        ligand1 : BioSimSpace._SireWrappers.Molecule
+        ligand_bound : BioSimSpace._SireWrappers.Molecule
             The bound ligand for the AToM simulation.
-        ligand2 : BioSimSpace._SireWrappers.Molecule
+        ligand_free : BioSimSpace._SireWrappers.Molecule
             The free ligand for the AToM simulation.
         displacement : BioSimSpace.Types.Length
             The displacement of the ligand along the normal vector.
@@ -625,23 +625,23 @@ class AToM:
             out_of_protein = displacement.value() * initial_normal_vector
             return out_of_protein
 
-        mapping = _matchAtoms(ligand2, ligand1)
-        ligand2_aligned = _rmsdAlign(ligand2, ligand1, mapping)
-        prot_lig1 = (protein + ligand1).toSystem()
+        mapping = _matchAtoms(ligand_free, ligand_bound)
+        ligand_free_aligned = _rmsdAlign(ligand_free, ligand_bound, mapping)
+        prot_lig1 = (protein + ligand_bound).toSystem()
 
         if isinstance(displacement, _Vector):
-            ligand2_aligned.translate(
+            ligand_free_aligned.translate(
                 [displacement.x(), displacement.y(), displacement.z()]
             )
             vec = displacement
         else:
-            vec = _findTranslationVector(prot_lig1, displacement, protein, ligand1)
-            ligand2_aligned.translate([vec.x(), vec.y(), vec.z()])
+            vec = _findTranslationVector(prot_lig1, displacement, protein, ligand_bound)
+            ligand_free_aligned.translate([vec.x(), vec.y(), vec.z()])
 
-        sys = (protein + ligand1 + ligand2_aligned).toSystem()
+        sys = (protein + ligand_bound + ligand_free_aligned).toSystem()
         prot_ind = sys.getIndex(protein)
-        lig1_ind = sys.getIndex(ligand1)
-        lig2_ind = sys.getIndex(ligand2_aligned)
+        lig1_ind = sys.getIndex(ligand_bound)
+        lig2_ind = sys.getIndex(ligand_free_aligned)
         return sys, prot_ind, lig1_ind, lig2_ind, vec
 
     def _systemInfo(self):
@@ -654,21 +654,21 @@ class AToM:
                     f"The molecule at index {self.protein_index} appears to be a water molecule."
                     " This should be a protein."
                 )
-        if self._system[self.ligand1_index].isWater():
+        if self._system[self.ligand_bound_index].isWater():
             _warnings.warn(
-                f"The molecule at index {self.ligand1_index} appears to be a water molecule."
+                f"The molecule at index {self.ligand_bound_index} appears to be a water molecule."
                 " This should be the bound ligand."
             )
-        if self._system[self.ligand2_index].isWater():
+        if self._system[self.ligand_free_index].isWater():
             _warnings.warn(
-                f"The molecule at index {self.ligand2_index} appears to be a water molecule."
+                f"The molecule at index {self.ligand_free_index} appears to be a water molecule."
                 " This should be the free ligand."
             )
         self._protein_atomcount = sum(
             self._system[i].nAtoms() for i in self.protein_index
         )
-        self.ligand1_atomcount = self._system[self.ligand1_index].nAtoms()
-        self.ligand2_atomcount = self._system[self.ligand2_index].nAtoms()
+        self.ligand_bound_atomcount = self._system[self.ligand_bound_index].nAtoms()
+        self.ligand_free_atomcount = self._system[self.ligand_free_index].nAtoms()
 
     def _findAtomIndices(self):
         """
@@ -684,15 +684,15 @@ class AToM:
         self.first_protein_atom_index = self._system.getIndex(protein_atom_start)
         self.last_protein_atom_index = self._system.getIndex(protein_atom_end)
 
-        ligand1_atom_start = self._system[self.ligand1_index].getAtoms()[0]
-        ligand1_atom_end = self._system[self.ligand1_index].getAtoms()[-1]
-        self.first_ligand1_atom_index = self._system.getIndex(ligand1_atom_start)
-        self.last_ligand1_atom_index = self._system.getIndex(ligand1_atom_end)
+        ligand_bound_atom_start = self._system[self.ligand_bound_index].getAtoms()[0]
+        ligand_bound_atom_end = self._system[self.ligand_bound_index].getAtoms()[-1]
+        self.first_ligand_bound_atom_index = self._system.getIndex(ligand_bound_atom_start)
+        self.last_ligand_bound_atom_index = self._system.getIndex(ligand_bound_atom_end)
 
-        ligand2_atom_start = self._system[self.ligand2_index].getAtoms()[0]
-        ligand2_atom_end = self._system[self.ligand2_index].getAtoms()[-1]
-        self.first_ligand2_atom_index = self._system.getIndex(ligand2_atom_start)
-        self.last_ligand2_atom_index = self._system.getIndex(ligand2_atom_end)
+        ligand_free_atom_start = self._system[self.ligand_free_index].getAtoms()[0]
+        ligand_free_atom_end = self._system[self.ligand_free_index].getAtoms()[-1]
+        self.first_ligand_free_atom_index = self._system.getIndex(ligand_free_atom_start)
+        self.last_ligand_free_atom_index = self._system.getIndex(ligand_free_atom_end)
 
     def _getProtComAtoms(self):
         """
@@ -768,13 +768,13 @@ class AToM:
         else:
             # Find com of the ligand
             if self._is_prepared:
-                ligand1 = self._system[self.ligand1_index]
+                ligand_bound = self._system[self.ligand_bound_index]
             else:
-                ligand1 = self._ligand1
-            com = ligand1._sire_object.coordinates()
+                ligand_bound = self._ligand_bound
+            com = ligand_bound._sire_object.coordinates()
             self._lig1_com_atoms = [
                 a.index().value()
-                for a in ligand1._sire_object[f"atoms within 11 angstrom of {com}"]
+                for a in ligand_bound._sire_object[f"atoms within 11 angstrom of {com}"]
             ]
 
     def _getLig2ComAtoms(self):
@@ -805,13 +805,13 @@ class AToM:
         else:
             # Find com of the ligand
             if self._is_prepared:
-                ligand2 = self._system[self.ligand2_index]
+                ligand_free = self._system[self.ligand_free_index]
             else:
-                ligand2 = self._ligand2
-            com = ligand2._sire_object.coordinates()
+                ligand_free = self._ligand_free
+            com = ligand_free._sire_object.coordinates()
             self._lig2_com_atoms = [
                 a.index().value()
-                for a in ligand2._sire_object[f"atoms within 11 angstrom of {com}"]
+                for a in ligand_free._sire_object[f"atoms within 11 angstrom of {com}"]
             ]
 
     def _makeData(self):
@@ -821,30 +821,30 @@ class AToM:
         self.data = {}
         self.data["displacement"] = self._getDisplacement()
         self.data["protein_index"] = self._getProteinIndex()
-        self.data["ligand1_index"] = self._getLigand1Index()
-        self.data["ligand2_index"] = self._getLigand2Index()
-        self.data["ligand1_rigid_core"] = self._getLigand1RigidCore()
-        self.data["ligand2_rigid_core"] = self._getLigand2RigidCore()
+        self.data["ligand_bound_index"] = self._getLigandBoundIndex()
+        self.data["ligand_free_index"] = self._getLigandFreeIndex()
+        self.data["ligand_bound_rigid_core"] = self._getLigandBoundRigidCore()
+        self.data["ligand_free_rigid_core"] = self._getLigandFreeRigidCore()
         self.data["mol1_atomcount"] = self._protein_atomcount
-        self.data["ligand1_atomcount"] = self.ligand1_atomcount
-        self.data["ligand2_atomcount"] = self.ligand2_atomcount
+        self.data["ligand_bound_atomcount"] = self.ligand_bound_atomcount
+        self.data["ligand_free_atomcount"] = self.ligand_free_atomcount
         self.data["first_protein_atom_index"] = self.first_protein_atom_index
         self.data["last_protein_atom_index"] = self.last_protein_atom_index
-        self.data["first_ligand1_atom_index"] = self.first_ligand1_atom_index
-        self.data["last_ligand1_atom_index"] = self.last_ligand1_atom_index
-        self.data["first_ligand2_atom_index"] = self.first_ligand2_atom_index
-        self.data["last_ligand2_atom_index"] = self.last_ligand2_atom_index
+        self.data["first_ligand_bound_atom_index"] = self.first_ligand_bound_atom_index
+        self.data["last_ligand_bound_atom_index"] = self.last_ligand_bound_atom_index
+        self.data["first_ligand_free_atom_index"] = self.first_ligand_free_atom_index
+        self.data["last_ligand_free_atom_index"] = self.last_ligand_free_atom_index
         self.data["protein_com_atoms"] = self._mol1_com_atoms
-        self.data["ligand1_com_atoms"] = self._lig1_com_atoms
-        self.data["ligand2_com_atoms"] = self._lig2_com_atoms
+        self.data["ligand_bound_com_atoms"] = self._lig1_com_atoms
+        self.data["ligand_free_com_atoms"] = self._lig2_com_atoms
 
     @staticmethod
     def viewRigidCores(
         system=None,
-        ligand1=None,
-        ligand2=None,
-        ligand1_rigid_core=None,
-        ligand2_rigid_core=None,
+        ligand_bound=None,
+        ligand_free=None,
+        ligand_bound_rigid_core=None,
+        ligand_free_rigid_core=None,
     ):
         """View the rigid cores of the ligands.
         Carbon atoms of the bound ligand are coloured green, while those of the free ligand are coloured orange.
@@ -855,13 +855,13 @@ class AToM:
         system : :class:`System <BioSimSpace._SireWrappers.System>`
             The system for the AToM simulation that has been prepared AToM.prepare().
             All other arguments are ignored if this is provided.
-        ligand1 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
+        ligand_bound : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
             The bound ligand.
-        ligand2 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
+        ligand_free : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
             The free ligand.
-        ligand1_rigid_core : list
+        ligand_bound_rigid_core : list
             The indices for the rigid core atoms of the bound ligand.
-        ligand2_rigid_core : list
+        ligand_free_rigid_core : list
             The indices for the rigid core atoms of the free ligand.
         """
         import math as _math
@@ -924,57 +924,57 @@ class AToM:
         if system is not None:
             sdata = _json.loads(system._sire_object.property("atom_data").value())
             local_s = system.copy()
-            ligand1 = local_s[sdata["ligand1_index"]]
-            move_to_origin(ligand1)
-            ligand2 = local_s[sdata["ligand2_index"]]
-            move_to_origin(ligand2)
-            ligand1_rigid_core = sdata["ligand1_rigid_core"]
-            ligand2_rigid_core = sdata["ligand2_rigid_core"]
+            ligand_bound = local_s[sdata["ligand_bound_index"]]
+            move_to_origin(ligand_bound)
+            ligand_free = local_s[sdata["ligand_free_index"]]
+            move_to_origin(ligand_free)
+            ligand_bound_rigid_core = sdata["ligand_bound_rigid_core"]
+            ligand_free_rigid_core = sdata["ligand_free_rigid_core"]
 
         # if not system provided, ALL other parameters must be provided
         else:
-            if ligand1 is None:
-                raise ValueError("ligand1 must be provided")
-            if ligand2 is None:
-                raise ValueError("ligand2 must be provided")
-            if ligand1_rigid_core is None:
-                raise ValueError("ligand1_rigid_core must be provided")
-            if ligand2_rigid_core is None:
-                raise ValueError("ligand2_rigid_core must be provided")
+            if ligand_bound is None:
+                raise ValueError("ligand_bound must be provided")
+            if ligand_free is None:
+                raise ValueError("ligand_free must be provided")
+            if ligand_bound_rigid_core is None:
+                raise ValueError("ligand_bound_rigid_core must be provided")
+            if ligand_free_rigid_core is None:
+                raise ValueError("ligand_free_rigid_core must be provided")
 
-            if not isinstance(ligand1, _Molecule):
-                raise TypeError("ligand1 must be a BioSimSpace molecule")
-            if not isinstance(ligand2, _Molecule):
-                raise TypeError("ligand2 must be a BioSimSpace molecule")
-            if not isinstance(ligand1_rigid_core, list):
-                raise TypeError("ligand1_rigid_core must be a list")
-            elif not len(ligand1_rigid_core) == 3:
-                raise ValueError("ligand1_rigid_core must have length 3")
-            if not isinstance(ligand2_rigid_core, list):
-                raise TypeError("ligand2_rigid_core must be a list")
-            elif not len(ligand2_rigid_core) == 3:
-                raise ValueError("ligand2_rigid_core must have length 3")
+            if not isinstance(ligand_bound, _Molecule):
+                raise TypeError("ligand_bound must be a BioSimSpace molecule")
+            if not isinstance(ligand_free, _Molecule):
+                raise TypeError("ligand_free must be a BioSimSpace molecule")
+            if not isinstance(ligand_bound_rigid_core, list):
+                raise TypeError("ligand_bound_rigid_core must be a list")
+            elif not len(ligand_bound_rigid_core) == 3:
+                raise ValueError("ligand_bound_rigid_core must have length 3")
+            if not isinstance(ligand_free_rigid_core, list):
+                raise TypeError("ligand_free_rigid_core must be a list")
+            elif not len(ligand_free_rigid_core) == 3:
+                raise ValueError("ligand_free_rigid_core must have length 3")
 
             # copy the ligands
-            ligand1 = ligand1.copy()
-            move_to_origin(ligand1)
-            ligand2 = ligand2.copy()
-            move_to_origin(ligand2)
+            ligand_bound = ligand_bound.copy()
+            move_to_origin(ligand_bound)
+            ligand_free = ligand_free.copy()
+            move_to_origin(ligand_free)
 
         pre_translation_lig1_core_coords = []
 
-        for i in ligand1_rigid_core:
-            x = ligand1.getAtoms()[i].coordinates().x().value()
-            y = ligand1.getAtoms()[i].coordinates().y().value()
-            z = ligand1.getAtoms()[i].coordinates().z().value()
+        for i in ligand_bound_rigid_core:
+            x = ligand_bound.getAtoms()[i].coordinates().x().value()
+            y = ligand_bound.getAtoms()[i].coordinates().y().value()
+            z = ligand_bound.getAtoms()[i].coordinates().z().value()
             pre_translation_lig1_core_coords.append((x, y, z))
 
         point1, point2, distance = furthest_points(pre_translation_lig1_core_coords)
         vector = vector_from_points(point1, point2)
 
-        # need to know the size of ligand1
+        # need to know the size of ligand_bound
         lig1_coords = []
-        for i in ligand1.getAtoms():
+        for i in ligand_bound.getAtoms():
             x = i.coordinates().x().value()
             y = i.coordinates().y().value()
             z = i.coordinates().z().value()
@@ -982,8 +982,8 @@ class AToM:
 
         lig1_point1, lig1_point2, lig1_distance = furthest_points(lig1_coords)
 
-        # Translate ligand2 so they don't overlap
-        ligand2.translate(
+        # Translate ligand_free so they don't overlap
+        ligand_free.translate(
             [
                 -1.0 * lig1_distance * 2 * vector[0],
                 -1.0 * lig1_distance * 2 * vector[1],
@@ -991,36 +991,37 @@ class AToM:
             ]
         )
         # Get coords of rigid core atoms
-        ligand1_core_coords = []
-        ligand2_core_coords = []
-        for i in ligand1_rigid_core:
-            ligand1_core_coords.append(ligand1.getAtoms()[i].coordinates())
-        for i in ligand2_rigid_core:
-            ligand2_core_coords.append(ligand2.getAtoms()[i].coordinates())
+        ligand_bound_core_coords = []
+        ligand_free_core_coords = []
+        for i in ligand_bound_rigid_core:
+            ligand_bound_core_coords.append(ligand_bound.getAtoms()[i].coordinates())
+        for i in ligand_free_rigid_core:
+            ligand_free_core_coords.append(ligand_free.getAtoms()[i].coordinates())
 
         # Create molecule containing both ligands
-        mol = ligand1 + ligand2
+        mol = ligand_bound + ligand_free
 
         # Create view
         view = _View_AtoM(mol)
 
         # Create nglview object
         ngl = view.system(mol)
+
         ngl.add_ball_and_stick("all")
-        ngl.add_ball_and_stick(make_amber_list(find_carbons(ligand1)), color="green")
+        ngl.add_ball_and_stick(make_amber_list(find_carbons(ligand_bound)), color="green")
         ngl.add_ball_and_stick(
-            make_amber_list(find_carbons(ligand2), offset=_count_num_atoms(ligand1)),
+            make_amber_list(find_carbons(ligand_free), offset=_count_num_atoms(ligand_bound)),
             color="orange",
         )
         #
         colours = [[1, 1, 0], [1, 0, 1], [0, 1, 1]]
         # Add spheres to rigid core locations
         for coord1, coord2, colour, core_atom_1, core_atom_2 in zip(
-            ligand1_core_coords,
-            ligand2_core_coords,
+            ligand_bound_core_coords,
+            ligand_free_core_coords,
             colours,
-            ligand1_rigid_core,
-            ligand2_rigid_core,
+            ligand_bound_rigid_core,
+            ligand_free_rigid_core,
         ):
             ngl.shape.add_sphere(
                 [coord1.x().value(), coord1.y().value(), coord1.z().value()],

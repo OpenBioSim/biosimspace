@@ -121,8 +121,8 @@ class _AToM(_Protocol, _PositionRestraintMixin):
             string += ", pressure=%s, " % self.getPressure()
         string += ", lambda1=%s " % self.getLambda1()
         string += ", lambda2=%s " % self.getLambda2()
-        string += ", ligand1 core atoms=%s" % d["ligand1_rigid_core"]
-        string += ", ligand2 core atoms=%s" % d["ligand2_rigid_core"]
+        string += ", ligand_bound core atoms=%s" % d["ligand_bound_rigid_core"]
+        string += ", ligand_free core atoms=%s" % d["ligand_free_rigid_core"]
         string += ", report_interval=%s " % self.getReportInterval()
         string += ", restart_interval=%s " % self.getRestartInterval()
         string += ">"

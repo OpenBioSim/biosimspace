@@ -47,13 +47,13 @@ class _AToMUtils:
     def findAbsoluteCoreIndices(self):
         import numpy as np
 
-        self.lig1_first_atomnum = self.data["first_ligand1_atom_index"]
+        self.lig1_first_atomnum = self.data["first_ligand_bound_atom_index"]
         self.lig1_rigid_atoms = list(
-            np.add(self.lig1_first_atomnum, self.data["ligand1_rigid_core"])
+            np.add(self.lig1_first_atomnum, self.data["ligand_bound_rigid_core"])
         )
-        self.lig2_first_atomnum = self.data["first_ligand2_atom_index"]
+        self.lig2_first_atomnum = self.data["first_ligand_free_atom_index"]
         self.lig2_rigid_atoms = list(
-            np.add(self.lig2_first_atomnum, self.data["ligand2_rigid_core"])
+            np.add(self.lig2_first_atomnum, self.data["ligand_free_rigid_core"])
         )
 
     def findAbsoluteCOMAtoms(self):
@@ -64,19 +64,19 @@ class _AToMUtils:
             np.add(self.protein_first_atomnum, self.data["protein_com_atoms"])
         )
 
-        self.lig1_first_atomnum = self.data["first_ligand1_atom_index"]
+        self.lig1_first_atomnum = self.data["first_ligand_bound_atom_index"]
         self.lig1_com_atoms = list(
-            np.add(self.lig1_first_atomnum, self.data["ligand1_com_atoms"])
+            np.add(self.lig1_first_atomnum, self.data["ligand_bound_com_atoms"])
         )
 
-        self.lig2_first_atomnum = self.data["first_ligand2_atom_index"]
+        self.lig2_first_atomnum = self.data["first_ligand_free_atom_index"]
         self.lig2_com_atoms = list(
-            np.add(self.lig2_first_atomnum, self.data["ligand2_com_atoms"])
+            np.add(self.lig2_first_atomnum, self.data["ligand_free_com_atoms"])
         )
 
     def getATMForceConstants(self, index=None):
-        self.lig1_atoms = self.getLigand1AtomsAsList()
-        self.lig2_atoms = self.getLigand2AtomsAsList()
+        self.lig1_atoms = self.getLigandBoundAtomsAsList()
+        self.lig2_atoms = self.getLigandFreeAtomsAsList()
         self.SCUmax = self.protocol.getSoftCoreUmax().value()
         self.SCU0 = self.protocol.getSoftCoreU0().value()
         self.SCa = self.protocol.getSoftCoreA()
@@ -293,23 +293,23 @@ class _AToMUtils:
         output += "system.addForce(dihedral_force)\n\n"
         return output
 
-    def getLigand1AtomsAsList(self):
+    def getLigandBoundAtomsAsList(self):
         import numpy as np
 
         return list(
             np.arange(
-                self.data["first_ligand1_atom_index"],
-                self.data["last_ligand1_atom_index"] + 1,
+                self.data["first_ligand_bound_atom_index"],
+                self.data["last_ligand_bound_atom_index"] + 1,
             )
         )
 
-    def getLigand2AtomsAsList(self):
+    def getLigandFreeAtomsAsList(self):
         import numpy as np
 
         return list(
             np.arange(
-                self.data["first_ligand2_atom_index"],
-                self.data["last_ligand2_atom_index"] + 1,
+                self.data["first_ligand_free_atom_index"],
+                self.data["last_ligand_free_atom_index"] + 1,
             )
         )
 
