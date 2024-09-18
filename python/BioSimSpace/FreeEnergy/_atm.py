@@ -686,12 +686,16 @@ class AToM:
 
         ligand_bound_atom_start = self._system[self.ligand_bound_index].getAtoms()[0]
         ligand_bound_atom_end = self._system[self.ligand_bound_index].getAtoms()[-1]
-        self.first_ligand_bound_atom_index = self._system.getIndex(ligand_bound_atom_start)
+        self.first_ligand_bound_atom_index = self._system.getIndex(
+            ligand_bound_atom_start
+        )
         self.last_ligand_bound_atom_index = self._system.getIndex(ligand_bound_atom_end)
 
         ligand_free_atom_start = self._system[self.ligand_free_index].getAtoms()[0]
         ligand_free_atom_end = self._system[self.ligand_free_index].getAtoms()[-1]
-        self.first_ligand_free_atom_index = self._system.getIndex(ligand_free_atom_start)
+        self.first_ligand_free_atom_index = self._system.getIndex(
+            ligand_free_atom_start
+        )
         self.last_ligand_free_atom_index = self._system.getIndex(ligand_free_atom_end)
 
     def _getProtComAtoms(self):
@@ -1008,9 +1012,13 @@ class AToM:
         ngl = view.system(mol)
 
         ngl.add_ball_and_stick("all")
-        ngl.add_ball_and_stick(make_amber_list(find_carbons(ligand_bound)), color="green")
         ngl.add_ball_and_stick(
-            make_amber_list(find_carbons(ligand_free), offset=_count_num_atoms(ligand_bound)),
+            make_amber_list(find_carbons(ligand_bound)), color="green"
+        )
+        ngl.add_ball_and_stick(
+            make_amber_list(
+                find_carbons(ligand_free), offset=_count_num_atoms(ligand_bound)
+            ),
             color="orange",
         )
         #
