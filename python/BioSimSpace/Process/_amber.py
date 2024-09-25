@@ -304,6 +304,7 @@ class Amber(_process.Process):
 
                     # Set the simulation box.
                     system.setBox(*_cubic(box_length))
+                    reference_system.setBox(*_cubic(box_length))
 
             # Apply SOMD1 compatibility to the perturbation.
             if (
@@ -322,6 +323,7 @@ class Amber(_process.Process):
         else:
             # Check for perturbable molecules and convert to the chosen end state.
             system = self._checkPerturbable(system)
+            reference_system = self._checkPerturbable(self._reference_system)
 
         # RST file (coordinates).
         try:
