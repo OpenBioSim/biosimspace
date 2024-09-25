@@ -111,6 +111,16 @@ def test_parmed_triclinic():
     run_process(system, protocol)
 
 
+def test_perturbable_restraint(perturbable_system):
+    """Test a free energy perturbation protocol."""
+
+    # Create a short minimisation prototocol with a restraint.
+    protocol = BSS.Protocol.Minimisation(steps=100, restraint="heavy")
+
+    # Run the process, check that it finished without error, and returns a system.
+    run_process(perturbable_system, protocol)
+
+
 def run_process(system, protocol):
     """Helper function to run various simulation protocols."""
 
