@@ -254,6 +254,7 @@ class OpenMM(_process.Process):
 
         # Check for perturbable molecules and convert to the chosen end state.
         system = self._checkPerturbable(system)
+        reference_system = self._checkPerturbable(self._reference_system)
 
         # Create the input files...
 
@@ -274,7 +275,7 @@ class OpenMM(_process.Process):
                 file = _os.path.splitext(self._ref_file)[0]
                 _IO.saveMolecules(
                     file,
-                    self._reference_system,
+                    reference_system,
                     "rst7",
                     property_map=self._property_map,
                 )
