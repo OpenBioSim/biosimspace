@@ -943,11 +943,10 @@ class AToM:
             return (dx / magnitude, dy / magnitude, dz / magnitude)
 
         def find_carbons(ligand):
-            # Adding logic to find carbon atosm in sire becuase its easier than trying
+            # Adding logic to find carbon atom in sire becuase its easier than trying
             # to find them in nglview
             return [
-                i.index().value()
-                for i in ligand._sire_object[f"(atom mass > 12) and (atom mass < 13)"]
+                i.index().value() for i in ligand._sire_object[f"element C"].atoms()
             ]
 
         def make_amber_list(l, offset=0):
