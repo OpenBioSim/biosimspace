@@ -117,7 +117,7 @@ class AToM:
             self._setLigandBoundIndex(ligand_bound_index)
             self._setLigandFreeIndex(ligand_free_index)
 
-    def _setSystem(self, system, is_prepped=True):
+    def _setSystem(self, system, is_prepared=True):
         """Set the system for the AToM simulation.
 
         Parameters
@@ -137,7 +137,7 @@ class AToM:
                 )
             else:
                 self._system = system
-                self._is_prepared = is_prepped
+                self._is_prepared = is_prepared
         else:
             self._system = None
             self._is_prepared = False
@@ -523,7 +523,7 @@ class AToM:
             system, prot_ind, lig1_ind, lig2_ind, dis_vec = self._makeSystemFromThree(
                 self._protein, self._ligand_bound, self._ligand_free, self.displacement
             )
-            self._setSystem(system, is_prepped=False)
+            self._setSystem(system, is_prepared=False)
             self._setDisplacement(dis_vec)
             self._setProteinIndex(prot_ind)
             self._setLigandBoundIndex(lig1_ind)
