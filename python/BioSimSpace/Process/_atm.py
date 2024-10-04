@@ -1,9 +1,10 @@
 ######################################################################
 # BioSimSpace: Making biomolecular simulation a breeze!
 #
-# Copyright: 2017-2023
+# Copyright: 2017-2024
 #
-# Authors: Lester Hedges <lester.hedges@gmail.com>, Matthew Burman <matthew@openbiosim.org>
+# Authors: Lester Hedges <lester.hedges@gmail.com>
+#          Matthew Burman <matthew@openbiosim.org>
 #
 # BioSimSpace is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,18 +20,20 @@
 # along with BioSimSpace. If not, see <http://www.gnu.org/licenses/>.
 ######################################################################
 
-from ._atm_utils import _AToMUtils
-import warnings as _warnings
 import math as _math
+import warnings as _warnings
+
 from .._Exceptions import IncompatibleError as _IncompatibleError
 from .. import Protocol as _Protocol
+from ._atm_utils import _AToMUtils
 from ._openmm import OpenMM as _OpenMM
 
 
 class OpenMMAToM(_OpenMM):
-    """config generator functions for AToM simulations using OpenMM.
-    Designed to overload the _generate_config() method of the OpenMM class
-    to introduce AToM-specific methods."""
+    """
+    Derived class for running AToM simulations using OpenMM. Overloads the
+    _generate_config() to introduce AToM-specific methods.
+    """
 
     def __init__(
         self,

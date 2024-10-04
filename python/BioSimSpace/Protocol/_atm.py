@@ -1,15 +1,35 @@
-from BioSimSpace.Units.Area import angstrom2
-from BioSimSpace.Units.Energy import kcal_per_mol
-from BioSimSpace.Units.Length import angstrom
+######################################################################
+# BioSimSpace: Making biomolecular simulation a breeze!
+#
+# Copyright: 2017-2024
+#
+# Authors: Lester Hedges <lester.hedges@gmail.com>
+#          Matthew Burman <matthew@openbiosim.org>
+#
+# BioSimSpace is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# BioSimSpace is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with BioSimSpace. If not, see <http://www.gnu.org/licenses/>.
+#####################################################################
+
+import json as _json
+import math as _math
+import numpy as _np
+import warnings as _warnings
+
 from .._SireWrappers import System as _System
 from .. import Types as _Types
 from ._protocol import Protocol as _Protocol
 from ._position_restraint_mixin import _PositionRestraintMixin
 from .. import Units as _Units
-import math as _math
-import numpy as _np
-import warnings as _warnings
-import json as _json
 from ..Types import Vector as _Vector
 
 __all__ = ["AToMMinimisation", "AToMEquilibration", "AToMAnnealing", "AToMProduction"]
@@ -22,17 +42,17 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         system=None,
         data=None,
         core_alignment=True,
-        align_k_distance=2.5 * kcal_per_mol / angstrom2,
-        align_k_theta=10.0 * kcal_per_mol,
-        align_k_psi=10.0 * kcal_per_mol,
+        align_k_distance=2.5 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
+        align_k_theta=10.0 * _Units.Energy.kcal_per_mol,
+        align_k_psi=10.0 * _Units.Energy.kcal_per_mol,
         com_distance_restraint=True,
-        com_k=25.0 * kcal_per_mol / angstrom2,
-        com_restraint_width=5.0 * angstrom,
+        com_k=25.0 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
+        com_restraint_width=5.0 * _Units.Length.angstrom,
         restraint=None,
-        force_constant=10 * kcal_per_mol / angstrom2,
-        positional_restraint_width=0.5 * angstrom,
-        soft_core_umax=1000.0 * kcal_per_mol,
-        soft_core_u0=500.0 * kcal_per_mol,
+        force_constant=10 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
+        positional_restraint_width=0.5 * _Units.Length.angstrom,
+        soft_core_umax=1000.0 * _Units.Energy.kcal_per_mol,
+        soft_core_u0=500.0 * _Units.Energy.kcal_per_mol,
         soft_core_a=0.0625,
     ):
         # Call the base class constructor.
@@ -658,7 +678,7 @@ class AToMMinimisation(_AToM):
         com_distance_restraint=True,
         restraint=None,
         force_constant=10 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
-        positional_restraint_width=0.5 * angstrom,
+        positional_restraint_width=0.5 * _Units.Length.angstrom,
         align_k_distance=2.5 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
         align_k_theta=10 * _Units.Energy.kcal_per_mol,
         align_k_psi=10 * _Units.Energy.kcal_per_mol,
@@ -808,7 +828,7 @@ class AToMEquilibration(_AToM):
         com_restraint_width=5 * _Units.Length.angstrom,
         restraint=None,
         force_constant=10 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
-        positional_restraint_width=0.5 * angstrom,
+        positional_restraint_width=0.5 * _Units.Length.angstrom,
         align_k_distance=2.5 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
         align_k_theta=10 * _Units.Energy.kcal_per_mol,
         align_k_psi=10 * _Units.Energy.kcal_per_mol,
@@ -1590,7 +1610,7 @@ class AToMAnnealing(_AToM):
         com_restraint_width=5 * _Units.Length.angstrom,
         restraint=None,
         force_constant=10 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
-        positional_restraint_width=0.5 * angstrom,
+        positional_restraint_width=0.5 * _Units.Length.angstrom,
         align_k_distance=2.5 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
         align_k_theta=10 * _Units.Energy.kcal_per_mol,
         align_k_psi=10 * _Units.Energy.kcal_per_mol,
@@ -2441,7 +2461,7 @@ class AToMProduction(_AToM):
         com_restraint_width=5 * _Units.Length.angstrom,
         restraint=None,
         force_constant=10 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
-        positional_restraint_width=0.5 * angstrom,
+        positional_restraint_width=0.5 * _Units.Length.angstrom,
         num_lambda=22,
         direction=None,
         lambda1=None,

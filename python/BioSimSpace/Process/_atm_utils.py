@@ -18,11 +18,14 @@
 # You should have received a copy of the GNU General Public License
 # along with BioSimSpace. If not, see <http://www.gnu.org/licenses/>.
 #####################################################################
+
 __all__ = ["_AToMUtils"]
-from .. import Protocol as _Protocol
-from ..Types import Vector as _Vector
+
 import math as _math
 import warnings as _warnings
+
+from .. import Protocol as _Protocol
+from ..Types import Vector as _Vector
 from ..Protocol._atm import _AToM
 
 
@@ -159,8 +162,9 @@ class _AToMUtils:
         """
         Create the alignment force that keeps the ligands co-planar.
 
-        parameters
+        Parameters
         ----------
+
         force_group : None or list
             Group of the force to be added to the system. If none defined then no force group will be set
             (therefore it will default to 0). Only tested for single-point energies.
@@ -319,14 +323,18 @@ class _AToMUtils:
         force_group=None,
     ):
         """
-        Create a string which can be added directly to an openmm script to add an ATM force to the system.
+        Create a string which can be added directly to an openmm script to add
+        an ATM force to the system.
 
         Parameters
         ----------
+
         index : int
             Index of current window - used to set window-dependent variables.
+
         force_group : int
-            Group of the force to be added to the system. Shuld only be needed when testing single-point energies.
+            Group of the force to be added to the system. Shuld only be
+            needed when testing single-point energies.
         """
         self.findDisplacement()
         self.getATMForceConstants(index)
@@ -367,7 +375,7 @@ class _AToMUtils:
         output += "    atm_force.addParticle(Vec3(0.0,0.0,0.0))"
         output += "\n"
         # TODO: add offset - check convesion of a list to a Vec3
-        # Assuming that offset is the 3-vector which deifnes the ligand displacement
+        # Assuming that offset is the 3-vector which defines the ligand displacement
         # need to convert displacement to nm
         output += "for i in lig1_atoms:\n"
         output += "    atm_force.setParticleParameters(i, Vec3(*displacement))\n"
@@ -389,11 +397,14 @@ class _AToMUtils:
         In most cases these will be some combination of protein and ligand atoms.
         Constants for the force are set in the protocol.
 
-        parameters
+        Parameters
         ----------
+
         force_group : None or int
-            Group of the force to be added to the system. If none defined then no force group will be set
-            (therefore it will default to 0). Only tested for single-point energies."""
+            Group of the force to be added to the system. If None defined then
+            no force group will be set (therefore it will default to 0).
+            Only tested for single-point energies.
+        """
 
         self.findAbsoluteCOMAtoms()
         # Groups contained within the constraint
@@ -458,12 +469,15 @@ class _AToMUtils:
 
         Parameters
         ----------
+
         restrained_atoms : list
-            List of atom indices to be restrained. Need to be explicitly given due to the ability to parse strings in the protocol.
+            List of atom indices to be restrained. Need to be explicitly given
+            due to the ability to parse strings in the protocol.
 
         force_group : None or int
-            Group of the force to be added to the system. If none defined then no force group will be set
-            (therefore it will default to 0). Only tested for single-point energies.
+            Group of the force to be added to the system. If none defined then no
+            force group will be set (therefore it will default to 0). Only tested
+            for single-point energies.
         """
         # Still using the position restraint mixin, get the values of the relevant constants
         pos_const = self.protocol.getForceConstant().value()
@@ -559,16 +573,22 @@ class _AToMUtils:
 
         Parameters
         ----------
+
         cycles : int
             Number of cycles to run the simulation for.
+
         steps_per_cycle : int
             Number of steps to run the simulation for in each cycle.
+
         report_interval : int (in ps)
             Interval at which to report the potential energies.
+
         timestep : float (in ps)
             Timestep used in the simulation.
+
         steps : int
             Total number of steps that have been performed so far (Default 0).
+
         inflex_point : int
             The index at which the protocol changes direction. Potentials only need to be calculated for each half of the protocol.
         """
@@ -914,7 +934,8 @@ class _AToMUtils:
         output += "energies = {}\n"
         output += f"for i in master_lambda_list[:{inflex_point}]:\n"
         output += "    energies[i] = []\n"
-        # First we can check the potential of forces that are not lambda-dependent, this will only work if the ATMforce is in its own group
+        # First we can check the potential of forces that are not lambda-dependent,
+        # this will only work if the ATMforce is in its own group
 
         if (
             (position_restraint_force_group is not None)

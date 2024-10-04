@@ -1,9 +1,10 @@
 ######################################################################
 # BioSimSpace: Making biomolecular simulation a breeze!
 #
-# Copyright: 2017-2023
+# Copyright: 2017-2024
 #
-# Authors: Lester Hedges <lester.hedges@gmail.com>, Matthew Burman <matthew@openbiosim.org>
+# Authors: Lester Hedges <lester.hedges@gmail.com>
+#          Matthew Burman <matthew@openbiosim.org>
 #
 # BioSimSpace is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,14 +25,14 @@
 # both the `femto` and `AToM-openmm` packages.
 __all__ = ["analyse_UWHAM", "analyse_MBAR"]
 
-import pandas as _pd
 
+import functools as _functools
 import numpy as _numpy
+import os as _os
+import pandas as _pd
+import pathlib as _pathlib
 import scipy.optimize as _optimize
 import scipy.special as _special
-import functools as _functools
-import pathlib as _pathlib
-import os as _os
 import warnings as _warnings
 
 
@@ -152,11 +153,13 @@ def _sort_folders(work_dir):
 
     Parameters
     ----------
+
     work_dir : str
         The directory containing the simulation data.
 
     Returns
     -------
+
     folders : dict
         A dictionary of folder names and their corresponding lambda values.
     """
@@ -202,12 +205,16 @@ def analyse_UWHAM(work_dir, ignore_lower, ignore_upper, inflection_indices=None)
 
     Parameters
     ----------
+
     work_dir : str
         The directory containing the simulation data.
+
     ignore_lower : int
         The number of rows to ignore at the start of each file.
+
     ignore_upper : int
         The number of rows to ignore at the end of each file.
+
     inflection_indices : tuple, optional
         The point at which 'direction' changes.
         Should be (last index of direction 1, first index of direction 2).
@@ -215,11 +222,12 @@ def analyse_UWHAM(work_dir, ignore_lower, ignore_upper, inflection_indices=None)
 
     Returns
     -------
+
     ddg_total : :class:`BioSimSpace.Types.Energy`
         The free energy.
+
     ddg_total_error : :class:`BioSimSpace.Types.Energy`
         The error in the free energy.
-
     """
     # NOTE: This code is not designed to work with repex
     # It always assumes that each window is at the same temperature

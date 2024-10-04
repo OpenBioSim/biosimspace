@@ -149,7 +149,7 @@ BioSimSpace.FreeEnergy.AToM
 ----------------------------
 The *FreeEnergy.AToM* package contains tools to configure, run, and analyse *relative*
 free energy simulations using the *alchemical transfer method*, developed by the 
-`Gallachio lab <https://www.compmolbiophysbc.org/atom-openmm>`.
+`Gallicchio lab <https://www.compmolbiophysbc.org/atom-openmm>`.
 
 Only available in the *OpenMM* engine, the *alchemical transfer method* replaces the 
 conventional notion of perturbing between two end states with a single system containing

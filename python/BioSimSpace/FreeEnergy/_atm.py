@@ -1,9 +1,10 @@
 ######################################################################
 # BioSimSpace: Making biomolecular simulation a breeze!
 #
-# Copyright: 2017-2023
+# Copyright: 2017-2024
 #
-# Authors: Lester Hedges <lester.hedges@gmail.com>, Matthew Burman <matthew@openbiosim.org>
+# Authors: Lester Hedges <lester.hedges@gmail.com>
+#          Matthew Burman <matthew@openbiosim.org>
 #
 # BioSimSpace is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,8 +21,16 @@
 ######################################################################
 
 # Functionality for creating and viewing systems for Atomic transfer.
+
 __all__ = ["AToM"]
 
+import copy as _copy
+import json as _json
+import os as _os
+import shutil as _shutil
+import warnings as _warnings
+
+from sire.legacy import IO as _SireIO
 
 from .._SireWrappers import Molecule as _Molecule
 from .._SireWrappers import System as _System
@@ -35,14 +44,6 @@ from ..Notebook import View as _View
 from .. import _isVerbose
 from ..Process import OpenMM as _OpenMM
 from ..Process import ProcessRunner as _ProcessRunner
-
-from sire.legacy import IO as _SireIO
-
-import warnings as _warnings
-import json as _json
-import copy as _copy
-import os as _os
-import shutil as _shutil
 
 
 class AToM:
@@ -63,19 +64,26 @@ class AToM:
 
         Parameters
         ----------
+
         system : :class:`System <BioSimSpace._SireWrappers.System>`
             A pre-prepared AToM system containing protein and ligands placed in their correct positions.
             If provided takes precedence over protein, ligand_bound and ligand_free.
+
         receptor : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
             A receptor molecule. Will be used along with ligand_bound and ligand_free to create a system.
+
         ligand_bound : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
             The bound ligand. Will be used along with protein and ligand_free to create a system.
+
         ligand_free : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
             The free ligand. Will be used along with protein and ligand_bound to create a system.
+
         protein_index : int, [int]
             If passing a pre-prepared system, the index (or indices) of the protein molecule in the system (Default 0).
+
         ligand_bound_index : int
             If passing a pre-prepared system, the index of the bound ligand molecule in the system (Default 1).
+
         ligand_free_index : int
             If passing a pre-prepared system, the index of the free ligand molecule in the system (Default 2).
         """
@@ -114,6 +122,7 @@ class AToM:
 
         Parameters
         ----------
+
         system : BioSimSpace._SireWrappers.System
             The system for the AToM simulation.
         """
@@ -148,6 +157,7 @@ class AToM:
 
         Parameters
         ----------
+
         protein : BioSimSpace._SireWrappers.Molecule
             The protein for the AToM simulation.
         """
@@ -174,6 +184,7 @@ class AToM:
 
         Parameters
         ----------
+
         ligand_bound : BioSimSpace._SireWrappers.Molecule
             The bound ligand for the AToM simulation.
         """
@@ -202,6 +213,7 @@ class AToM:
 
         Parameters
         ----------
+
         ligand_free : BioSimSpace._SireWrappers.Molecule
             The free ligand for the AToM simulation.
         """
@@ -272,6 +284,7 @@ class AToM:
 
         Parameters
         ----------
+
         ligand_bound_rigid_core : BioSimSpace._SireWrappers.Molecule
             The rigid core of the bound ligand for the AToM simulation.
         """
@@ -306,6 +319,7 @@ class AToM:
 
         Parameters
         ----------
+
         ligand_free_rigid_core : BioSimSpace._SireWrappers.Molecule
             The rigid core of the free ligand for the AToM simulation.
         """
@@ -341,6 +355,7 @@ class AToM:
 
         Parameters
         ----------
+
         protein_index : list
             The index or indices of the protein in the system.
         """
@@ -376,6 +391,7 @@ class AToM:
 
         Parameters
         ----------
+
         ligand_bound_index : int
             The index of the bound ligand molecule in the system.
         """
@@ -405,6 +421,7 @@ class AToM:
 
         Parameters
         ----------
+
         ligand_free_index : int
             The index of the free ligand molecule in the system.
         """
@@ -442,24 +459,29 @@ class AToM:
 
         Parameters
         ----------
+
         ligand_bound_rigid_core : [int]
             A list of three atom indices that define the rigid core of the bound ligand.
             Indices are set relative to the ligand, not the system and are 0-indexed.
+
         ligand_free_rigid_core : [int]
             A list of three atom indices that define the rigid core of the free ligand.
             Indices are set relative to the ligand, not the system and are 0-indexed.
+
         displacement : float, string, [float, float, float]
             The diplacement between the bound and free ligands.
-            If a float or string is given, BioSimSpace will attempt to find the ideal vector along which to displace the ligand by the given magnitude.
-            If a list is given, the vector will be used directly.
-            Lengths should always be given in angstroms.
-            Default is 20A.
+            If a float or string is given, BioSimSpace will attempt to find the ideal
+            vector along which to displace the ligand by the given magnitude. If a list
+            is given, the vector will be used directly.
+
         protein_com_atoms : [int]
             A list of atom indices that define the center of mass of the protein.
             If None, the center of mass of the protein will be found automatically.
+
         ligand_bound_com_atoms : [int]
             A list of atom indices that define the center of mass of the bound ligand.
             If None, the center of mass of the bound ligand will be found automatically.
+
         ligand_free_com_atoms : [int]
             A list of atom indices that define the center of mass of the free ligand.
             If None, the center of mass of the free ligand will be found automatically.
@@ -469,6 +491,7 @@ class AToM:
 
         System : :class:`System <BioSimSpace._SireWrappers.System>`
             The prepared system, including protein and ligands in their correct positions.
+
         Data : dict
             A dictionary containing the data needed for the AToM simulation.
         """
@@ -530,17 +553,22 @@ class AToM:
 
         Parameters
         ----------
+
         protein : BioSimSpace._SireWrappers.Molecule
             The protein for the AToM simulation.
+
         ligand_bound : BioSimSpace._SireWrappers.Molecule
             The bound ligand for the AToM simulation.
+
         ligand_free : BioSimSpace._SireWrappers.Molecule
             The free ligand for the AToM simulation.
+
         displacement : BioSimSpace.Types.Length
             The displacement of the ligand along the normal vector.
 
         Returns
         -------
+
         BioSimSpace._SireWrappers.System
             The system for the AToM simulation.
         """
@@ -856,15 +884,20 @@ class AToM:
 
         Parameters
         ----------
+
         system : :class:`System <BioSimSpace._SireWrappers.System>`
             The system for the AToM simulation that has been prepared AToM.prepare().
             All other arguments are ignored if this is provided.
+
         ligand_bound : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
             The bound ligand.
+
         ligand_free : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
             The free ligand.
+
         ligand_bound_rigid_core : list
             The indices for the rigid core atoms of the bound ligand.
+
         ligand_free_rigid_core : list
             The indices for the rigid core atoms of the free ligand.
         """
@@ -1006,7 +1039,7 @@ class AToM:
         mol = ligand_bound + ligand_free
 
         # Create view
-        view = _View_AtoM(mol)
+        view = _ViewAtoM(mol)
 
         # Create nglview object
         ngl = view.system(mol)
@@ -1124,12 +1157,16 @@ class AToM:
 
         Parameters
         ----------
+
         work_dir : str
             The working directory where the AToM simulation is located.
+
         method : str
             The method to use for the analysis. Currently only UWHAM is supported.
+
         ignore_lower : int
             Ignore the first N samples when analysing.
+
         inflex_indices : [int]
             The indices at which the direction changes. For example, if direction=[1,1,-1,-1],
             then inflex_indices=[1,2].
@@ -1137,8 +1174,10 @@ class AToM:
 
         Returns
         -------
+
         ddg : :class:`BioSimSpace.Types.Energy`
             The free energy difference between the two ligands.
+
         ddg_err :class:`BioSimSpace.Types.Energy`
             The error in the free energy difference.
         """
@@ -1237,6 +1276,7 @@ class _relativeATM:
 
         Parameters
         ----------
+
         system : BioSimSpace._SireWrappers.System
             A prepared AToM system containing a protein and two ligands, one bound and one free.
             Assumed to already be equilibrated.
@@ -1444,9 +1484,11 @@ class _relativeATM:
             self._runner = _ProcessRunner(processes)
 
 
-class _View_AtoM(_View):
-    """Overloads regular view class
-    needed to pass default_representation=False into show_file"""
+class _ViewAtoM(_View):
+    """
+    Overloads regular view class needed to pass default_representation=False
+    into show_file.
+    """
 
     # Initialise super
     def __init__(self, handle, property_map={}, is_lambda1=False):
