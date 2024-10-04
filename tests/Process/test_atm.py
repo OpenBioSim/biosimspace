@@ -3,7 +3,7 @@ import pytest
 import BioSimSpace as BSS
 
 
-def test_ATM_min(TEMOA_hostguest):
+def test_atm_minimisation(TEMOA_hostguest):
     # First get a system with data
     system, data = TEMOA_hostguest
     # Generate a minimisation protocol
@@ -13,14 +13,15 @@ def test_ATM_min(TEMOA_hostguest):
     del system, data
 
 
-def test_ATM_equil_noATMForce(TEMOA_hostguest):
+@pytest.mark.parametrize("use_atm_force", [True, False])
+def test_atm_equilibration(TEMOA_hostguest, use_atm_force):
     # First get a system with data
     system, data = TEMOA_hostguest
     # Generate an equilibration protocol
     prot_equil = BSS.Protocol.AToMEquilibration(
         data=data,
         runtime="4 fs",
-        use_atm_force=False,
+        use_atm_force=use_atm_force,
         report_interval=1,
         restart_interval=1,
     )
@@ -29,23 +30,7 @@ def test_ATM_equil_noATMForce(TEMOA_hostguest):
     del system, data
 
 
-def test_ATM_equil_withATMForce(TEMOA_hostguest):
-    # First get a system with data
-    system, data = TEMOA_hostguest
-    # Generate an equilibration protocol
-    prot_equil = BSS.Protocol.AToMEquilibration(
-        data=data,
-        runtime="4 fs",
-        use_atm_force=True,
-        report_interval=1,
-        restart_interval=1,
-    )
-
-    run_process(system, prot_equil)
-    del system, data
-
-
-def test_ATM_anneal(TEMOA_hostguest):
+def test_atm_anneal(TEMOA_hostguest):
     # First get a system with data
     system, data = TEMOA_hostguest
     # Generate an annealing protocol
@@ -61,7 +46,7 @@ def test_ATM_anneal(TEMOA_hostguest):
     del system, data
 
 
-def test_custom_ATM_anneal(TEMOA_hostguest):
+def test_custom_atm_anneal(TEMOA_hostguest):
     # First get a system with data
     system, data = TEMOA_hostguest
     # now test passing a valid dictionary
@@ -88,7 +73,7 @@ def test_custom_ATM_anneal(TEMOA_hostguest):
     run_process(system, protocol)
 
 
-def test_ATM_production(TEMOA_hostguest):
+def test_atm_production(TEMOA_hostguest):
     # First get a system with data
     system, data = TEMOA_hostguest
     # Generate a production protocol

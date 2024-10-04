@@ -12,7 +12,7 @@ import BioSimSpace as BSS
 
 def test_makeSystem(TEMOA_host, TEMOA_lig1, TEMOA_lig2):
 
-    atm_generator = BSS.FreeEnergy.AToM(
+    atm_generator = BSS.FreeEnergy.AToMSetup(
         receptor=TEMOA_host, ligand_bound=TEMOA_lig1, ligand_free=TEMOA_lig2
     )
     # check that an error is thrown in the rigid core atoms are not given to prepare
@@ -76,7 +76,7 @@ def test_makeSystem(TEMOA_host, TEMOA_lig1, TEMOA_lig2):
     assert pytest.approx(d.z().value(), 1) == vector.z()
 
     # make a new atm_generator and check the parsing of a full system
-    atm_generator = BSS.FreeEnergy.AToM(system=atm_system)
+    atm_generator = BSS.FreeEnergy.AToMSetup(system=atm_system)
 
 
 def test_run(TEMOA_hostguest):
@@ -100,17 +100,15 @@ def test_run(TEMOA_hostguest):
         analysis_method="UWHAM",
     )
     with tempfile.TemporaryDirectory() as tmpdirname:
-        production = BSS.FreeEnergy.AToM.run(
-            system, production_atm, work_dir=tmpdirname
-        )
+        production = BSS.FreeEnergy.AToM(system, production_atm, work_dir=tmpdirname)
+        production.run()
         production.wait()
         # read openmm.csv and make sure it has a single row
         df = pd.read_csv(os.path.join(tmpdirname, "lambda_0.0000/openmm.csv"))
         assert len(df) == 1
 
-        production2 = BSS.FreeEnergy.AToM.run(
-            system, production_atm2, work_dir=tmpdirname
-        )
+        production2 = BSS.FreeEnergy.AToM(system, production_atm2, work_dir=tmpdirname)
+        production2.run()
         production2.wait()
         df = pd.read_csv(os.path.join(tmpdirname, "lambda_0.0000/openmm.csv"))
         assert len(df) == 2
@@ -361,7 +359,7 @@ def test_single_point_energies(TEMOA_host, TEMOA_lig1, TEMOA_lig2):
         194,
         195,
     ]
-    atm_generator = BSS.FreeEnergy.AToM(
+    atm_generator = BSS.FreeEnergy.AToMSetup(
         receptor=TEMOA_host, ligand_bound=TEMOA_lig1, ligand_free=TEMOA_lig2
     )
     system, data = atm_generator.prepare(

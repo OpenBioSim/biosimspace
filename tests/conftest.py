@@ -114,7 +114,7 @@ def TEMOA_lig2():
 
 @pytest.fixture(scope="session")
 def TEMOA_hostguest(TEMOA_host, TEMOA_lig1, TEMOA_lig2):
-    atm_generator = BSS.FreeEnergy.AToM(
+    atm_generator = BSS.FreeEnergy.AToMSetup(
         receptor=TEMOA_host, ligand_bound=TEMOA_lig1, ligand_free=TEMOA_lig2
     )
     rigid_core = [1, 2, 3]
