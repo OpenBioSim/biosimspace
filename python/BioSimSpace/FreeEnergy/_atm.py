@@ -66,26 +66,33 @@ class AToM:
         ----------
 
         system : :class:`System <BioSimSpace._SireWrappers.System>`
-            A pre-prepared AToM system containing protein and ligands placed in their correct positions.
-            If provided takes precedence over protein, ligand_bound and ligand_free.
+            A pre-prepared AToM system containing protein and ligands placed
+            in their correct positions. If provided takes precedence over
+            protein, ligand_bound and ligand_free.
 
         receptor : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
-            A receptor molecule. Will be used along with ligand_bound and ligand_free to create a system.
+            A receptor molecule. Will be used along with ligand_bound and
+            ligand_free to create a system.
 
         ligand_bound : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
-            The bound ligand. Will be used along with protein and ligand_free to create a system.
+            The bound ligand. Will be used along with protein and ligand_free
+            to create a system.
 
         ligand_free : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
-            The free ligand. Will be used along with protein and ligand_bound to create a system.
+            The free ligand. Will be used along with protein and ligand_bound
+            to create a system.
 
         protein_index : int, [int]
-            If passing a pre-prepared system, the index (or indices) of the protein molecule in the system (Default 0).
+            If passing a pre-prepared system, the index (or indices) of the
+            protein molecule in the system (Default 0).
 
         ligand_bound_index : int
-            If passing a pre-prepared system, the index of the bound ligand molecule in the system (Default 1).
+            If passing a pre-prepared system, the index of the bound ligand
+            molecule in the system (Default 1).
 
         ligand_free_index : int
-            If passing a pre-prepared system, the index of the free ligand molecule in the system (Default 2).
+            If passing a pre-prepared system, the index of the free ligand
+            molecule in the system (Default 2).
         """
         # make sure that either system or protein, ligand_bound and ligand_free are given
         if system is None and not all(
