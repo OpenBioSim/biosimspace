@@ -1151,14 +1151,8 @@ def rmsdAlign(molecule0, molecule1, mapping=None, property_map0={}, property_map
     # Convert the mapping to AtomIdx key:value pairs.
     sire_mapping = _to_sire_mapping(mapping)
 
-    # Do we have a monatomic ion?
-    if (molecule0.nAtoms() == 1) or (molecule1.nAtoms() == 1):
-        is_ion = True
-    else:
-        is_ion = False
-
     # Perform the alignment, mol0 to mol1.
-    if len(mapping) == 1 and is_ion:
+    if len(mapping) == 1:
         idx0 = list(mapping.keys())[0]
         idx1 = list(mapping.values())[0]
         # Replace the coordinates of the mapped atom with those of the reference.
@@ -1785,12 +1779,6 @@ def _score_rdkit_mappings(
             .commit()
         )
 
-    # Do we have a monatomic ion?
-    if (molecule0.nAtoms() == 1) or (molecule1.nAtoms() == 1):
-        is_ion = True
-    else:
-        is_ion = False
-
     # Get the set of matching substructures in each molecule. For some reason
     # setting uniquify to True removes valid matches, in some cases even the
     # best match! As such, we set uniquify to False and account for duplicate
@@ -1859,7 +1847,7 @@ def _score_rdkit_mappings(
                 if is_valid:
                     # If there is only a single atom in the mapping and one molecule
                     # has one atom, e.g. an ion, then skip the alignment.
-                    if len(mapping) == 1 and is_ion:
+                    if len(mapping) == 1:
                         mappings.append(mapping)
                         scores.append(0.0)
                     else:
@@ -2021,12 +2009,6 @@ def _score_sire_mappings(
             .commit()
         )
 
-    # Do we have a monatomic ion?
-    if (molecule0.nAtoms() == 1) or (molecule1.nAtoms() == 1):
-        is_ion = True
-    else:
-        is_ion = False
-
     # Initialise a list to hold the mappings.
     mappings = []
 
@@ -2048,7 +2030,7 @@ def _score_sire_mappings(
         if is_valid:
             # If there is only a single atom in the mapping and one molecule
             # has one atom, e.g. an ion, then skip the alignment.
-            if len(mapping) == 1 and is_ion:
+            if len(mapping) == 1:
                 mappings.append(mapping)
                 scores.append(0.0)
             else:

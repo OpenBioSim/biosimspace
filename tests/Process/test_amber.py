@@ -243,6 +243,17 @@ def test_backbone_restraint_mask_rna(rna_system):
     assert "   restraintmask=\"@P,C5',C3',O3',O5'\"," in config
 
 
+@pytest.mark.skipif(has_amber is False, reason="Requires AMBER to be installed.")
+def test_perturbable_restraint(perturbable_system):
+    """Test a free energy perturbation protocol."""
+
+    # Create a short minimisation prototocol with a restraint.
+    protocol = BSS.Protocol.Minimisation(steps=100, restraint="heavy")
+
+    # Run the process, check that it finished without error, and returns a system.
+    run_process(perturbable_system, protocol)
+
+
 def run_process(system, protocol, check_data=False):
     """Helper function to run various simulation protocols."""
 

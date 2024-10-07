@@ -887,14 +887,14 @@ class System(_SireWrapper):
             else:
                 raise ValueError(f"System doesn't contain molecule: {mol}")
 
-        # Update the Sire object.
-        self._sire_object = system
+            # Update the Sire object.
+            self._sire_object = system
 
-        # Reset the index mappings.
-        self._reset_mappings()
+            # Reset the index mappings.
+            self._reset_mappings()
 
-        # Update the molecule numbers.
-        self._mol_nums = self._sire_object.molNums()
+            # Update the molecule numbers.
+            self._mol_nums = self._sire_object.molNums()
 
     def getMolecule(self, index):
         """
@@ -1587,6 +1587,9 @@ class System(_SireWrapper):
         if len(box) != 3:
             raise ValueError("'angles' must contain three items.")
 
+        if not isinstance(property_map, dict):
+            raise TypeError("'property_map' must be of type 'dict'")
+
         # Convert sizes to Anstrom.
         vec = [x.angstroms().value() for x in box]
 
@@ -1637,6 +1640,9 @@ class System(_SireWrapper):
             The box vector angles: yz, xz, and xy.
         """
 
+        if not isinstance(property_map, dict):
+            raise TypeError("'property_map' must be of type 'dict'")
+
         # Get the "space" property and convert to a list of BioSimSpace.Type.Length
         # objects.
         try:
@@ -1667,6 +1673,28 @@ class System(_SireWrapper):
             angles = None
 
         return box, angles
+
+    def removeBox(self, property_map={}):
+        """
+        Remove the simulation box from the system.
+
+        Parameters
+        ----------
+
+        property_map : dict
+            A dictionary that maps system "properties" to their user defined
+            values. This allows the user to refer to properties with their
+            own naming scheme, e.g. { "charge" : "my-charge" }
+        """
+
+        if not isinstance(property_map, dict):
+            raise TypeError("'property_map' must be of type 'dict'")
+
+        # Remove the "space" property.
+        try:
+            self._sire_object.removeProperty(property_map.get("space", "space"))
+        except:
+            pass
 
     def makeWhole(self, property_map={}):
         """

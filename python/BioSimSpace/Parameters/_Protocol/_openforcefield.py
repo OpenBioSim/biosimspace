@@ -115,7 +115,9 @@ from sire.legacy import Mol as _SireMol
 from sire.legacy import System as _SireSystem
 
 from ... import _isVerbose
+from ... import Convert as _Convert
 from ... import IO as _IO
+from ..._Exceptions import ConversionError as _ConversionError
 from ..._Exceptions import IncompatibleError as _IncompatibleError
 from ..._Exceptions import ThirdPartyError as _ThirdPartyError
 from ..._SireWrappers import Molecule as _Molecule
@@ -214,118 +216,43 @@ class OpenForceField(_protocol.Protocol):
         if work_dir is None:
             work_dir = _os.getcwd()
 
-        # Flag whether the molecule is a SMILES string.
+        # Try to create BioSimSpace molecule from the SMILES string.
         if isinstance(molecule, str):
             is_smiles = True
-        else:
-            is_smiles = False
-
-        if is_smiles:
-            # Convert SMILES string to an OpenFF molecule.
             try:
-                off_molecule = _OpenFFMolecule.from_smiles(molecule)
+                smiles = molecule
+                molecule = _Convert.smiles(molecule)
             except Exception as e:
-                msg = "Failed to convert SMILES to Open Force Field Molecule."
-                if _isVerbose():
-                    msg += ": " + getattr(e, "message", repr(e))
-                    raise IOError(msg) from e
-                else:
-                    raise IOError(msg) from None
-
-            # Generate a single conformer.
-            try:
-                off_molecule.generate_conformers(n_conformers=1)
-            except Exception as e:
-                msg = "Unable to generate conformer from Open Force Field molecule."
-                if _isVerbose():
-                    msg += ": " + getattr(e, "message", repr(e))
-                    raise IOError(msg) from e
-                else:
-                    raise IOError(msg) from None
-        else:
-            # If the molecule was originally loaded from an SDF format file,
-            # then write back to the same format.
-            fileformat_prop = self._property_map.get("fileformat", "fileformat")
-            if (
-                molecule._sire_object.hasProperty(fileformat_prop)
-                and "SDF" in molecule._sire_object.property("fileformat").value()
-            ):
-                # Write the molecule to SDF format.
-                try:
-                    _IO.saveMolecules(
-                        _os.path.join(str(work_dir), "molecule"),
-                        molecule,
-                        "sdf",
-                        property_map=self._property_map,
-                    )
-                except Exception as e:
-                    msg = "Failed to write the molecule to 'SDF' format."
-                    if _isVerbose():
-                        msg += ": " + getattr(e, "message", repr(e))
-                        raise IOError(msg) from e
-                    else:
-                        raise IOError(msg) from None
-
-            # Otherwise, go via an intermediate PDB file and use RDKit to try
-            # to recover stereochemistry.
-            else:
-                # Write the molecule to a PDB file.
-                try:
-                    _IO.saveMolecules(
-                        _os.path.join(str(work_dir), "molecule"),
-                        molecule,
-                        "pdb",
-                        property_map=self._property_map,
-                    )
-                except Exception as e:
-                    msg = "Failed to write the molecule to 'PDB' format."
-                    if _isVerbose():
-                        msg += ": " + getattr(e, "message", repr(e))
-                        raise IOError(msg) from e
-                    else:
-                        raise IOError(msg) from None
-
-                # Create an RDKit molecule from the PDB file.
-                try:
-                    rdmol = _Chem.MolFromPDBFile(
-                        _os.path.join(str(work_dir), "molecule.pdb"), removeHs=False
-                    )
-                except Exception as e:
-                    msg = "RDKit was unable to read the molecular PDB file!"
-                    if _isVerbose():
-                        msg += ": " + getattr(e, "message", repr(e))
-                        raise _ThirdPartyError(msg) from e
-                    else:
-                        raise _ThirdPartyError(msg) from None
-
-                # Use RDKit to write back to SDF format.
-                try:
-                    writer = _Chem.SDWriter(
-                        _os.path.join(str(work_dir), "molecule.sdf")
-                    )
-                    writer.write(rdmol)
-                    writer.close()
-                except Exception as e:
-                    msg = "RDKit was unable to write the molecular SDF file!"
-                    if _isVerbose():
-                        msg += ": " + getattr(e, "message", repr(e))
-                        raise _ThirdPartyError(msg) from e
-                    else:
-                        raise _ThirdPartyError(msg) from None
-
-            # Create the Open Forcefield Molecule from the intermediate SDF file,
-            # as recommended by @j-wags and @mattwthompson.
-            try:
-                off_molecule = _OpenFFMolecule.from_file(
-                    _os.path.join(str(work_dir), "molecule.sdf")
-                )
-            except Exception as e:
-                msg = "Unable to create OpenFF Molecule!"
+                msg = "Unable to convert SMILES to Molecule using RDKit."
                 if _isVerbose():
                     msg += ": " + getattr(e, "message", repr(e))
                     raise _ThirdPartyError(msg) from e
                 else:
                     raise _ThirdPartyError(msg) from None
+        else:
+            is_smiles = False
+
+        # Try converting to RDKit format.
+        try:
+            rdmol = _Convert.toRDKit(molecule, property_map=self._property_map)
+        except Exception as e:
+            msg = "Failed to convert molecule to RDKit format."
+            if _isVerbose():
+                msg += ": " + getattr(e, "message", repr(e))
+                raise (msg) from e
+            else:
+                raise _ConversionError(msg) from None
+
+        # Create the Open Forcefield Molecule from the RDKit molecule.
+        try:
+            off_molecule = _OpenFFMolecule.from_rdkit(rdmol)
+        except Exception as e:
+            msg = "Unable to create OpenFF Molecule!"
+            if _isVerbose():
+                msg += ": " + getattr(e, "message", repr(e))
+                raise _ThirdPartyError(msg) from e
+            else:
+                raise _ThirdPartyError(msg) from None
 
         # Apply AM1-BCC charges using NAGL.
         if _has_nagl and self._use_nagl:
@@ -413,50 +340,32 @@ class OpenForceField(_protocol.Protocol):
             else:
                 raise IOError(msg) from None
 
-        # Make the parameterised molecule compatible with the original topology.
+        # Make sure we retain stereochemistry information from the SMILES string.
         if is_smiles:
-            new_mol = par_mol
-
-            # We'll now add MolName and ResName info to the molecule, since
-            # this will be missing.
-
-            # Rename the molecule with the original SMILES string.
-            # Since the name is written to topology file formats, we
-            # need to ensure that it doesn't start with an [ character,
-            # which would break GROMACS.
-            name = molecule
-            if name.startswith("["):
-                name = f"smiles:{name}"
-
+            new_mol = _Convert.smiles(smiles)
             edit_mol = new_mol._sire_object.edit()
-            edit_mol = edit_mol.rename(name).molecule()
-
-            # Rename the residue LIG.
-            resname = _SireMol.ResName("LIG")
-            edit_mol = edit_mol.residue(_SireMol.ResIdx(0)).rename(resname).molecule()
-
-            # Commit the changes.
+            edit_mol = edit_mol.rename(f"smiles:{smiles}").molecule()
             new_mol._sire_object = edit_mol.commit()
 
+        # Make the parameterised molecule compatible with the original topology.
+        if self._ensure_compatible:
+            new_mol = molecule.copy()
+            new_mol.makeCompatibleWith(
+                par_mol,
+                property_map=self._property_map,
+                overwrite=True,
+                verbose=False,
+            )
         else:
-            if self._ensure_compatible:
-                new_mol = molecule.copy()
+            try:
                 new_mol.makeCompatibleWith(
                     par_mol,
                     property_map=self._property_map,
                     overwrite=True,
                     verbose=False,
                 )
-            else:
-                try:
-                    new_mol.makeCompatibleWith(
-                        par_mol,
-                        property_map=self._property_map,
-                        overwrite=True,
-                        verbose=False,
-                    )
-                except:
-                    new_mol = par_mol
+            except:
+                new_mol = par_mol
 
         # Record the forcefield used to parameterise the molecule.
         new_mol._forcefield = self._forcefield

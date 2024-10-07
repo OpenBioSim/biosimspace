@@ -137,3 +137,33 @@ def test_leap_commands(molecule0):
             assert line_pre[-1] < line_post[0]
             for x in range(len(line_post) - 1):
                 assert line_post[x] < line_post[x + 1]
+
+
+@pytest.mark.skipif(
+    has_antechamber is False or has_tleap is False,
+    reason="Requires AmberTools/antechamber and tLEaP to be installed.",
+)
+def test_smiles_stereo():
+    """
+    Test that SMILES string stereochemistry is correctly preserved when
+    parameterising a molecule.
+    """
+
+    from rdkit import Chem
+
+    # Define the SMILES string.
+    smiles = "CC[C@@H](O)C"
+
+    # Create the parameterised molecule.
+    mol = BSS.Parameters.gaff(smiles).getMolecule()
+
+    # Convert to RDKit format.
+    rdmol0 = Chem.MolFromSmiles(smiles)
+    rdmol1 = BSS.Convert.toRDKit(mol)
+
+    # Get the SMILES string.
+    rdmol0_smiles = Chem.MolToSmiles(rdmol0)
+    rdmol1_smiles = Chem.MolToSmiles(Chem.RemoveHs(rdmol1))
+
+    # Make sure the SMILES strings are the same.
+    assert rdmol0_smiles == rdmol1_smiles

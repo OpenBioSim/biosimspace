@@ -1162,8 +1162,13 @@ def merge(
                             "perturbation will likely be unstable."
                         )
 
-    # Set the "connectivity" property.
-    edit_mol.setProperty("connectivity", conn)
+    # Set the "connectivity" property. If the end state connectivity is the same,
+    # then we can just set the "connectivity" property.
+    if conn0 == conn1:
+        edit_mol.setProperty("connectivity", conn0)
+    else:
+        edit_mol.setProperty("connectivity0", conn0)
+        edit_mol.setProperty("connectivity1", conn1)
 
     # Create the CLJNBPairs matrices.
     ff = molecule0.property(ff0)
