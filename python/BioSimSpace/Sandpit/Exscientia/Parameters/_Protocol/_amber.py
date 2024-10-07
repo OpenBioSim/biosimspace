@@ -310,15 +310,24 @@ class AmberProtein(_protocol.Protocol):
         if work_dir is None:
             work_dir = _os.getcwd()
 
-        # Flag whether the molecule is a SMILES string.
+        # Try to create a molecule from the SMILES string.
         if isinstance(molecule, str):
-            is_smiles = True
-        else:
-            is_smiles = False
+            try:
+                smiles = molecule
+                molecule = _smiles(molecule)
+                edit_mol = molecule._sire_object.edit()
+                edit_mol = edit_mol.rename(f"smiles:{smiles}").molecule()
+                molecule._sire_object = edit_mol.commit()
+            except Exception as e:
+                msg = "Unable to convert SMILES to Molecule using RDKit."
+                if _isVerbose():
+                    msg += ": " + getattr(e, "message", repr(e))
+                    raise _ThirdPartyError(msg) from e
+                else:
+                    raise _ThirdPartyError(msg) from None
 
-        if not is_smiles:
-            # Create a copy of the molecule.
-            new_mol = molecule.copy()
+        # Create a copy of the molecule.
+        new_mol = molecule.copy()
 
         # Choose the program to run with depending on the force field compatibility.
         # If tLEaP and pdb2gmx are supported, default to tLEaP, then use pdb2gmx if
@@ -328,8 +337,7 @@ class AmberProtein(_protocol.Protocol):
         if self._tleap:
             if _tleap_exe is not None:
                 output = self._run_tleap(molecule, str(work_dir))
-                if not is_smiles:
-                    new_mol._ion_water_model = self._water_model
+                new_mol._ion_water_model = self._water_model
             # Otherwise, try using pdb2gmx.
             elif self._pdb2gmx:
                 if _gmx_exe is not None:
@@ -371,41 +379,23 @@ class AmberProtein(_protocol.Protocol):
         # Make the molecule 'mol' compatible with 'par_mol'. This will create
         # a mapping between atom indices in the two molecules and add all of
         # the new properties from 'par_mol' to 'mol'.
-        if is_smiles:
-            new_mol = par_mol
-
-            # We'll now add MolName and ResName info to the molecule, since
-            # this will be missing.
-
-            # Rename the molecule with the original SMILES string.
-            edit_mol = new_mol._sire_object.edit()
-            edit_mol = edit_mol.rename(molecule).molecule()
-
-            # Rename the residue LIG.
-            resname = _SireMol.ResName("LIG")
-            edit_mol = edit_mol.residue(_SireMol.ResIdx(0)).rename(resname).molecule()
-
-            # Commit the changes.
-            new_mol._sire_object = edit_mol.commit()
-
+        if self._ensure_compatible:
+            new_mol.makeCompatibleWith(
+                par_mol,
+                property_map=self._property_map,
+                overwrite=True,
+                verbose=False,
+            )
         else:
-            if self._ensure_compatible:
+            try:
                 new_mol.makeCompatibleWith(
                     par_mol,
                     property_map=self._property_map,
                     overwrite=True,
                     verbose=False,
                 )
-            else:
-                try:
-                    new_mol.makeCompatibleWith(
-                        par_mol,
-                        property_map=self._property_map,
-                        overwrite=True,
-                        verbose=False,
-                    )
-                except:
-                    new_mol = par_mol
+            except:
+                new_mol = par_mol
 
         # Record the forcefield used to parameterise the molecule.
         new_mol._forcefield = self._forcefield
@@ -421,33 +411,18 @@ class AmberProtein(_protocol.Protocol):
         Parameters
         ----------
 
-        molecule : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`, str
-            The molecule to parameterise, either as a Molecule object or SMILES
-            string.
+        molecule : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
+            The molecule to parameterise.
 
         work_dir : str
             The working directory.
         """
 
-        # Convert SMILES to a molecule.
-        if isinstance(molecule, str):
-            try:
-                _molecule = _smiles(molecule)
-            except Exception as e:
-                msg = "Unable to convert SMILES to Molecule using RDKit."
-                if _isVerbose():
-                    msg += ": " + getattr(e, "message", repr(e))
-                    raise _ThirdPartyError(msg) from e
-                else:
-                    raise _ThirdPartyError(msg) from None
-        else:
-            _molecule = molecule
-
         # Write the system to a PDB file.
         try:
             # LEaP expects residue numbering to be ascending and continuous.
             renumbered_molecule = _SireIO.renumberConstituents(
-                _molecule.toSystem()._sire_object
+                molecule.toSystem()._sire_object
             )[0]
             renumbered_molecule = _Molecule(renumbered_molecule)
             _IO.saveMolecules(
@@ -570,9 +545,8 @@ class AmberProtein(_protocol.Protocol):
         Parameters
         ----------
 
-        molecule : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`, str
-            The molecule to parameterise, either as a Molecule object or SMILES
-            string.
+        molecule : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
+            The molecule to parameterise.
 
         work_dir : str
             The working directory.
@@ -587,25 +561,11 @@ class AmberProtein(_protocol.Protocol):
                 "'pdb2gmx' does not support the '%s' force field." % self._forcefield
             )
 
-        # Convert SMILES to a molecule.
-        if isinstance(molecule, str):
-            try:
-                _molecule = _smiles(molecule)
-            except Exception as e:
-                msg = "Unable to convert SMILES to Molecule using RDKit."
-                if _isVerbose():
-                    msg += ": " + getattr(e, "message", repr(e))
-                    raise _ThirdPartyError(msg) from e
-                else:
-                    raise _ThirdPartyError(msg) from None
-        else:
-            _molecule = molecule
-
         # Write the system to a PDB file.
         try:
             _IO.saveMolecules(
                 _os.path.join(str(work_dir), "input"),
-                _molecule,
+                molecule,
                 "pdb",
                 property_map=self._property_map,
             )
@@ -1007,11 +967,14 @@ class GAFF(_protocol.Protocol):
         if work_dir is None:
             work_dir = _os.getcwd()
 
-        # Convert SMILES to a molecule.
+        # Try to create a molecule from the SMILES string.
         if isinstance(molecule, str):
-            is_smiles = True
             try:
-                new_mol = _smiles(molecule)
+                smiles = molecule
+                molecule = _smiles(molecule)
+                edit_mol = molecule._sire_object.edit()
+                edit_mol = edit_mol.rename(f"smiles:{smiles}").molecule()
+                molecule._sire_object = edit_mol.commit()
             except Exception as e:
                 msg = "Unable to convert SMILES to Molecule using RDKit."
                 if _isVerbose():
@@ -1019,9 +982,9 @@ class GAFF(_protocol.Protocol):
                     raise _ThirdPartyError(msg) from e
                 else:
                     raise _ThirdPartyError(msg) from None
-        else:
-            is_smiles = False
-            new_mol = molecule.copy()
+
+        # Create a copy of the molecule.
+        new_mol = molecule.copy()
 
         # Use the net molecular charge passed as an option.
         if self._net_charge is not None:
@@ -1251,45 +1214,23 @@ class GAFF(_protocol.Protocol):
                     # Make the molecule 'mol' compatible with 'par_mol'. This will create
                     # a mapping between atom indices in the two molecules and add all of
                     # the new properties from 'par_mol' to 'mol'.
-                    if is_smiles:
-                        new_mol = par_mol
-
-                        # We'll now add MolName and ResName info to the molecule, since
-                        # this will be missing.
-
-                        # Rename the molecule with the original SMILES string.
-                        edit_mol = new_mol._sire_object.edit()
-                        edit_mol = edit_mol.rename(molecule).molecule()
-
-                        # Rename the residue LIG.
-                        resname = _SireMol.ResName("LIG")
-                        edit_mol = (
-                            edit_mol.residue(_SireMol.ResIdx(0))
-                            .rename(resname)
-                            .molecule()
+                    if self._ensure_compatible:
+                        new_mol.makeCompatibleWith(
+                            par_mol,
+                            property_map=self._property_map,
+                            overwrite=True,
+                            verbose=False,
                         )
-
-                        # Commit the changes.
-                        new_mol._sire_object = edit_mol.commit()
-
                     else:
-                        if self._ensure_compatible:
+                        try:
                             new_mol.makeCompatibleWith(
                                 par_mol,
                                 property_map=self._property_map,
                                 overwrite=True,
                                 verbose=False,
                             )
-                        else:
-                            try:
-                                new_mol.makeCompatibleWith(
-                                    par_mol,
-                                    property_map=self._property_map,
-                                    overwrite=True,
-                                    verbose=False,
-                                )
-                            except:
-                                new_mol = par_mol
+                        except:
+                            new_mol = par_mol
 
                     # Record the forcefield used to parameterise the molecule.
                     new_mol._forcefield = ff
