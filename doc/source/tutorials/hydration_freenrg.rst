@@ -53,9 +53,8 @@ possible to visualise the mapping:
 
 >>> BSS.Align.viewMapping(ethane, methanol, mapping)
 
-The two molecules are displayed side-by-side with numbers used to indicate
-which atoms map to each other. For eample, the carbon indexed 0 in the ethane
-molecule maps to a hydrogen indexed 4 in the methanol.
+Perturbed bonds and elements are shown in blue. Red atoms are those that are unique to
+a particular end state.
 
 .. image:: images/ethane_methanol_mapping.png
    :alt: Mapping between atoms in ethane (left) and methanol (right) for an alchemical transformation.
