@@ -896,9 +896,9 @@ class AToMSetup:
         ligand_bound_rigid_core=None,
         ligand_free_rigid_core=None,
     ):
-        """View the rigid cores of the ligands.
-        Carbon atoms of the bound ligand are coloured green, while those of the free ligand are coloured orange.
-        Rigid core atoms are colour coded and labelled.
+        """
+        View the rigid cores of the ligands.
+        Rigid core atoms within the bound ligand are shown in green, those within the free ligand are shown in red.
 
         Parameters
         ----------
@@ -960,19 +960,32 @@ class AToMSetup:
 
             return (dx / magnitude, dy / magnitude, dz / magnitude)
 
-        def find_carbons(ligand):
-            # Adding logic to find carbon atom in sire becuase its easier than trying
-            # to find them in nglview
-            return [
-                i.index().value() for i in ligand._sire_object[f"element C"].atoms()
-            ]
+        def find_arrow_points(center1, center2, diameter1, diameter2):
+            import numpy as np
 
-        def make_amber_list(l, offset=0):
-            # take a list of ints and return a string that is "@<int1>,<int2>,<int3>"
-            return "@" + ",".join([str(i + offset) for i in l])
+            # logic to make sure arrows pointing from spheres start on their edge, not centre.
+            # Convert the points to numpy arrays
+            p1 = np.array(center1)
+            p2 = np.array(center2)
 
-        def _count_num_atoms(ligand):
-            return ligand._sire_object.nAtoms()
+            # Calculate the radii from the diameters
+            radius1 = diameter1 / 2
+            radius2 = diameter2 / 2
+
+            # Calculate the vector between the two centers
+            v = p2 - p1
+
+            # Calculate the magnitude (distance between the two centers)
+            dist = np.linalg.norm(v)
+
+            # Normalize the vector
+            v_norm = v / dist
+
+            # Calculate the start and end points of the arrow
+            start_point = p1 + radius1 * v_norm  # From the surface of Sphere 1
+            end_point = p2 - radius2 * v_norm  # To the surface of Sphere 2
+
+            return start_point, end_point
 
         # if a system is provided, check that it has the "atom_data" property
         if system is not None:
@@ -1061,49 +1074,66 @@ class AToMSetup:
         # Create nglview object
         ngl = view.system(mol)
 
-        ngl.add_ball_and_stick("all")
-        ngl.add_ball_and_stick(
-            make_amber_list(find_carbons(ligand_bound)), color="green"
-        )
-        ngl.add_ball_and_stick(
-            make_amber_list(
-                find_carbons(ligand_free), offset=_count_num_atoms(ligand_bound)
-            ),
-            color="orange",
-        )
-        #
-        colours = [[1, 1, 0], [1, 0, 1], [0, 1, 1]]
-        # Add spheres to rigid core locations
-        for coord1, coord2, colour, core_atom_1, core_atom_2 in zip(
+        ngl.add_ball_and_stick("all", opacity=0.5)
+
+        # Add spheres to rigid core locations - first the obund ligand with red spheres
+        for coord1, core_atom_1 in zip(
             ligand_bound_core_coords,
-            ligand_free_core_coords,
-            colours,
             ligand_bound_rigid_core,
-            ligand_free_rigid_core,
         ):
             ngl.shape.add_sphere(
                 [coord1.x().value(), coord1.y().value(), coord1.z().value()],
-                colour,
+                [0, 1, 0],
                 0.45,
             )
             ngl.shape.add(
                 "text",
-                [coord1.x().value(), coord1.y().value(), coord1.z().value() - 0.5],
+                [coord1.x().value(), coord1.y().value(), coord1.z().value() - 0.9],
                 [0, 0, 0],
                 2.5,
                 f"{core_atom_1}",
             )
+
+        # now the free ligand with black spheres
+        for coord1, core_atom_1 in zip(
+            ligand_free_core_coords,
+            ligand_free_rigid_core,
+        ):
             ngl.shape.add_sphere(
-                [coord2.x().value(), coord2.y().value(), coord2.z().value()],
-                colour,
+                [coord1.x().value(), coord1.y().value(), coord1.z().value()],
+                [1, 0, 0],
                 0.45,
             )
             ngl.shape.add(
                 "text",
-                [coord2.x().value(), coord2.y().value(), coord2.z().value() - 0.5],
+                [coord1.x().value(), coord1.y().value(), coord1.z().value() - 0.9],
                 [0, 0, 0],
                 2.5,
-                f"{core_atom_2}",
+                f"{core_atom_1}",
+            )
+
+        for i in range(2):
+            c00 = ligand_bound_core_coords[i]
+            coord00 = [c00.x().value(), c00.y().value(), c00.z().value()]
+            c01 = ligand_bound_core_coords[i + 1]
+            coord01 = [c01.x().value(), c01.y().value(), c01.z().value()]
+            start, end = find_arrow_points(coord00, coord01, 0.9, 0.9)
+            ngl.shape.add_arrow(
+                start,
+                end,
+                [0, 0, 0],
+                0.1,
+            )
+            c10 = ligand_free_core_coords[i]
+            coord10 = [c10.x().value(), c10.y().value(), c10.z().value()]
+            c11 = ligand_free_core_coords[i + 1]
+            coord11 = [c11.x().value(), c11.y().value(), c11.z().value()]
+            start, end = find_arrow_points(coord10, coord11, 0.9, 0.9)
+            ngl.shape.add_arrow(
+                start,
+                end,
+                [0, 0, 0],
+                0.1,
             )
 
         if system is not None:
