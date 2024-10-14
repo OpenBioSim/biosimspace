@@ -1,6 +1,7 @@
 ==========================
 Alchemical Transfer Method
 ==========================
+
 In this tutorial, you will use BioSimSpace to set up and run a Relative Binding
 Free Energy (RBFE) calculation using the `alchemical transfer method
 <https://www.compmolbiophysbc.org/atom-openmm>`__ (ATM) on a pair of ligands bound to
@@ -10,16 +11,16 @@ Free Energy (RBFE) calculation using the `alchemical transfer method
    ATM calculations are currently only available in OpenMM. As such, an environment
    containing OpenMM is required to run this tutorial.
 
-
---------------------------
+------------
 System Setup
---------------------------
-Import :mod:`BioSimSpace` using
+------------
+
+Import :mod:`BioSimSpace` using:
 
 >>> import BioSimSpace as BSS
 
-Now load the set of molecules from a URL, via
-:func:`BioSimSpace.IO.readMolecules` NEED TO UPLOAD THE MOLECULES:
+Now load the set of example molecules from a URL, via
+:func:`BioSimSpace.IO.readMolecules`:
 
 >>> url = BSS.tutorialUrl()
 >>> protein = BSS.IO.readMolecules([f"{url}/tyk2.prm7", f"{url}/tyk2.rst7"])[0]
@@ -42,7 +43,7 @@ here simply defines the initial state of the system, and by extension the
 First, create an :class:`AToMSetup` object, which will be used to create the
 system.
 
->>> AToM_factory = BSS.FreeEnergy.AToMSetup(receptor=protein, ligand_bound=lig1, ligand_free=lig2)
+>>> atm_setup = BSS.FreeEnergy.AToMSetup(receptor=protein, ligand_bound=lig1, ligand_free=lig2)
 
 Before an AToM-ready system can be created there are decisions to be made
 regarding the system setup, namely which atoms will be used to
@@ -51,22 +52,26 @@ make up the centre of mass of each molecule.
 
 The choice of rigid core atoms is vital to the success of an ATM RBFE
 calculation, and as such BioSimSpace provides a helper function to visualise the
-choice made by the user. 
+choice made by the user.
 
->>> BSS.FreeEnergy.AToMSetup.viewRigidCores(ligand_bound=lig1, ligand_free=lig2, ligand_bound_rigid_core=[14, 11, 15], ligand_free_rigid_core=[14, 11, 15])
+>>> BSS.FreeEnergy.AToMSetup.viewRigidCores(
+...     ligand_bound=lig1,
+...     ligand_free=lig2,
+...     ligand_bound_rigid_core=[14, 11, 15],
+...     ligand_free_rigid_core=[14, 11, 15]
+... )
 
 .. image:: images/alignment_visualisation.png
    :alt: Visualisation of the rigid cores of the ligands.
 
 .. note ::
 
-    In this case the choice of rigid core atoms is the same for both ligands, 
-    but this is not always the case. The choice of these atoms should be made 
-    on a ligand to ligand basis. 
+    In this case the choice of rigid core atoms is the same for both ligands,
+    but this is not always the case. The choice of these atoms should be made
+    on a ligand to ligand basis.
 
     For help in choosing the correct atoms, see the `Gallichio lab tutorial
     <https://www.compmolbiophysbc.org/atom-openmm>`__.
-
 
 Now that a sensible choice of rigid core atoms has been made, there are a few
 more choices to be made before the system can be prepared. The most important of
@@ -84,11 +89,14 @@ there if needed and can be set using the ``ligand_bound_com_atoms`` and
 
 Now that all the choices have been made, the system can be prepared
 
->>> system, AToMdata = AToM_factory.prepare(ligand_bound_rigid_core=[14, 11, 15], ligand_free_rigid_core=[14, 11, 15])
+>>> system, atm_data = atm_setup.prepare(
+...     ligand_bound_rigid_core=[14, 11, 15],
+...     ligand_free_rigid_core=[14, 11, 15]
+... )
 
 The ``prepare`` function returns a pair of objects, the first is the prepared
 protein-ligand-ligand system, and the second is a dictionary containing the
-choices made during the setup process. This ``AToMdata`` object will be passed to
+choices made during the setup process. This ``atm_data`` object will be passed to
 protocols for minimisation, equilibration and production in order to ensure that
 the system is correctly set up.
 
@@ -104,9 +112,9 @@ Now all that remains is to solvate the system.
 
 >>> solvated = BSS.Solvent.tip3p(molecule=system, box=3 * [7 * BSS.Units.Length.nanometer])
 
---------------------------
+------------------------------
 Minimisation and Equilibration
---------------------------
+------------------------------
 
 Now that the system is fully prepared, the next step is to minimise and
 equilibrate it. The minimisation and equilibration of systems using alchemical
@@ -117,7 +125,7 @@ ATM calculations, the decision of which atoms to restrain must be made. A
 good choice for these atoms are the alpha carbons of the protein. These can be
 found using BioSimSpace search syntax.
 
->>> CA = [atom.index() for atom in solvated.search("atomname CA")]
+>>> ca = [atom.index() for atom in solvated.search("atomname CA")]
 
 The system can now be minimised. Unlike standard minimisation, the minimisation
 of an ATM system requires that several restraints be applied from the start.
@@ -132,7 +140,12 @@ set to a set of default values that are generally suitable for most systems, but
 can also be set manually by passing the relevant arguments to
 :data:`BioSimSpace.Protocol.AToMMinimisation`.
 
->>> minimisation = BSS.Protocol.AToMMinimisation(data=AToMdata, core_alignment=True, restraint=CA, com_distance_restraint=True)
+>>> minimisation = BSS.Protocol.AToMMinimisation(
+...     data=atm_data,
+...     core_alignment=True,
+...     restraint=ca,
+...     com_distance_restraint=True
+... )
 
 This minimisation protocol can now be run as a standard BioSimSpace OpenMM
 process.
@@ -143,12 +156,12 @@ process.
 >>> minimised = minimisation_process.getSystem(block=True)
 
 Now the first equilibration can be run. Similar to the minimisation, this
-protocol has several restraints that are applied from the start. 
+protocol has several restraints that are applied from the start.
 
 >>> equilibration = BSS.Protocol.AToMEquilibration(
-...    data=AToMdata, 
-...    core_alignment=True, 
-...    restraint=CA, 
+...    data=atm_data,
+...    core_alignment=True,
+...    restraint=ca,
 ...    com_distance_restraint=True,
 ...    runtime="100ps"
 ...)
@@ -171,9 +184,9 @@ introduction is annealing, which by default will gradually increase the value of
 from 0 to 0.5 over a number of cycles.
 
 >>> annealing = BSS.Protocol.AToMAnnealing(
-...    data=AToMdata,
+...    data=atm_data,
 ...    core_alignment=True,
-...    restraint=CA,
+...    restraint=ca,
 ...    com_distance_restraint=True,
 ...    runtime="100ps"
 ...    anneal_numcycles=10
@@ -191,30 +204,34 @@ The final stage of the ATM minimisation and equilibration protocol is a
 post-annealing equilibration run, this time with the ATMForce present at λ=0.5.
 
 >>> post_anneal_equilibration = BSS.Protocol.AToMEquilibration(
-...    data=AToMdata,
+...    data=atm_data,
 ...    core_alignment=True,
-...    restraint=CA,
+...    restraint=ca,
 ...    com_distance_restraint=True,
 ...    use_atm_force=True,
 ...    lambda_1 = 0.5,
 ...    lambda_2 = 0.5,
 ...    runtime="100ps"
 ...)
->>> post_anneal_equilibration_process = BSS.Process.OpenMM(annealed, post_anneal_equilibration, platform="CUDA")
+>>> post_anneal_equilibration_process = BSS.Process.OpenMM(
+...     annealed,
+...     post_anneal_equilibration,
+...     platform="CUDA"
+... )
 >>> post_anneal_equilibration_process.start()
 >>> post_anneal_equilibration_process.wait()
 >>> min_eq_final = post_anneal_equilibration_process.getSystem(block=True)
 
 .. note ::
-   A frequent soource of instability in ATM production runs is an overlap between the 
-   bound ligand and the protein after a swap in direction. If this is encountered 
+   A frequent soource of instability in ATM production runs is an overlap between the
+   bound ligand and the protein after a swap in direction. If this is encountered
    the first step taken should be to increase the runtime of the post-annealing equilibration.
-   This gives the system time to adjust to the presence of the new ligand, without the 
+   This gives the system time to adjust to the presence of the new ligand, without the
    reduced stability associated with a swap in direction.
 
---------------------------
+-----------------------
 Production and Analysis
---------------------------
+-----------------------
 
 The system is now ready for production. The key decision to be made before
 beginning is the number of lambda windows, set using the ``num_lambda``
@@ -240,9 +257,9 @@ this case.
 >>> uh = 22 * [110.0]
 >>> output_directory = "tyk2_atm"
 >>> production_atm = BSS.Protocol.AToMProduction(
-...    data=AToMdata,
+...    data=atm_data,
 ...    core_alignment=True,
-...    restraint=CA,
+...    restraint=ca,
 ...    com_distance_restraint=True,
 ...    runtime = "1ns",
 ...    num_lambda=22,
@@ -270,7 +287,7 @@ BioSimSpace UWHAM analysis tool.
 >>> BSS.FreeEnergy.AToM.analyse(output_directory)
 
 This will give the ΔΔG value for the perturbation, as well as the error (both in
-kcal/mol). 
+kcal/mol).
 
 That concludes the tutorial on setting up and running an ATM RBFE calculation!
 For further information please visit the :data:`API documentation
