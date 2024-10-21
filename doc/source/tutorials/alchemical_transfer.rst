@@ -11,6 +11,12 @@ Free Energy (RBFE) calculation using the `alchemical transfer method
    ATM calculations are currently only available in OpenMM. As such, an environment
    containing OpenMM is required to run this tutorial.
 
+This tutorial assumes that you are familiar with the concepts of the Alchemical
+Transfer Method. If you are not, please see the `Gallichio lab website
+<https://www.compmolbiophysbc.org/atom-openmm>`__ as well as the corresponding
+publications for an in-depth explanation of the method, as well as the
+intricacies involved in setting up an ATM calculation.
+
 ------------
 System Setup
 ------------
@@ -27,28 +33,32 @@ Now load the set of example molecules from a URL, via
 >>> lig1 = BSS.IO.readMolecules([f"{url}/ejm_31.prm7", f"{url}/ejm_31.rst7"])[0]
 >>> lig2 = BSS.IO.readMolecules([f"{url}/ejm_43.prm7", f"{url}/ejm_43.rst7"])[0]
 
-In order to run an ATM calculation a single system, containing both ligands and
-the protein in their correct positions, is required. This can be created using
+In order to run an ATM calculation, a single system containing both ligands and
+the protein in their correct positions is needed. This can be created using
 functionality provided in :func:`BioSimSpace.FreeEnergy.AToMSetup`.
 
-ATM calculation require that both ligands be present in the
+ATM calculations require that both ligands be present in the
 system simultaneously, with one ligand bound to the receptor and the other free
 in the solvent. As such, the first decision to be made when setting up an ATM
-calculation is which ligand will be bound and which will be free. It is
-important to note that, while one ligand is chosen to be bound, `both` ligands
-will bound to the receptor at some point during the calculation, the choice made
-here simply defines the initial state of the system, and by extension the
-`direction` of the calculation.
+calculation is which ligand will be bound and which will be free. 
 
-First, create an :class:`AToMSetup` object, which will be used to create the
-system.
+It is important to note that, while one ligand is chosen to be bound, `both`
+ligands will bound to the receptor at some point during the calculation, the
+choice made here simply defines the initial state of the system, and by
+extension the `direction` of the calculation.
 
->>> atm_setup = BSS.FreeEnergy.AToMSetup(receptor=protein, ligand_bound=lig1, ligand_free=lig2)
+The first step in creating an ATM-compatible system in BioSimSpace is to create
+an :class:`AToMSetup` object, which will be used to prepare the system:
 
-Before an AToM-ready system can be created there are decisions to be made
-regarding the system setup, namely which atoms will be used to
-define the rigid cores of the ligands, as well as the indices of the atoms that
-make up the centre of mass of each molecule.
+>>> atm_setup = BSS.FreeEnergy.AToMSetup(receptor=protein, 
+...     ligand_bound=lig1, 
+...     ligand_free=lig2
+... )
+
+Before an AToM-ready system can be prepared there are decisions to be made
+regarding the system setup, namely which atoms will be used to define the rigid
+cores of the ligands, as well those that make up the centre of mass of each
+molecule.
 
 The choice of rigid core atoms is vital to the success of an ATM RBFE
 calculation, and as such BioSimSpace provides a helper function to visualise the
@@ -87,7 +97,7 @@ should not be necessary to change the default choice of atoms, but the option is
 there if needed and can be set using the ``ligand_bound_com_atoms`` and
 ``ligand_free_com_atoms`` arguments.
 
-Now that all the choices have been made, the system can be prepared
+Now that all the choices have been made, the system can be prepared:
 
 >>> system, atm_data = atm_setup.prepare(
 ...     ligand_bound_rigid_core=[14, 11, 15],
@@ -98,9 +108,10 @@ The ``prepare`` function returns a pair of objects, the first is the prepared
 protein-ligand-ligand system, and the second is a dictionary containing the
 choices made during the setup process. This ``atm_data`` object will be passed to
 protocols for minimisation, equilibration and production in order to ensure that
-the system is correctly set up.
+options chosen during setup are properly carried through.
 
 The prepared system can be visualised using BioSimSpace's built in visualisation
+functionality:
 
 >>> v = BSS.Notebook.View(system)
 >>> v.system()
@@ -117,28 +128,28 @@ Minimisation and Equilibration
 ------------------------------
 
 Now that the system is fully prepared, the next step is to minimise and
-equilibrate it. The minimisation and equilibration of systems using alchemical
+equilibrate. The minimisation and equilibration of systems using alchemical
 transfer is more complex than standard systems, and is a multi-stage process.
 
 First, if positional restraints are needed, which is generally recommended for
 ATM calculations, the decision of which atoms to restrain must be made. A
 good choice for these atoms are the alpha carbons of the protein. These can be
-found using BioSimSpace search syntax.
+found using BioSimSpace search syntax:
 
 >>> ca = [atom.index() for atom in solvated.search("atomname CA")]
 
 The system can now be minimised. Unlike standard minimisation, the minimisation
 of an ATM system requires that several restraints be applied from the start.
-These restraints are: core alignment, applied to atoms determined earlier, which
-can be turned on or off by passing the ``core_alignment`` argument; positional
-restraints applied to the alpha carbons listed above, set using the
-``restraint`` argument; and a centre of mass distance restraint, which maintains
+These restraints are: **core alignment**, applied to atoms determined earlier, which
+can be turned on or off by passing the ``core_alignment`` argument; **positional
+restraints** applied to the alpha carbons listed above, set using the
+``restraint`` argument; and a **centre of mass distance restraint**, which maintains
 the distance between the centre of masses of the ligands, as well as the
 distance between the centre of mass of the protein and ligands, set using the
 ``com_distance_restraint`` argument. The strength of these restraints is automatically
 set to a set of default values that are generally suitable for most systems, but
 can also be set manually by passing the relevant arguments to
-:data:`BioSimSpace.Protocol.AToMMinimisation`.
+:data:`BioSimSpace.Protocol.AToMMinimisation`:
 
 >>> minimisation = BSS.Protocol.AToMMinimisation(
 ...     data=atm_data,
@@ -148,15 +159,15 @@ can also be set manually by passing the relevant arguments to
 ... )
 
 This minimisation protocol can now be run as a standard BioSimSpace OpenMM
-process.
+process:
 
 >>> minimisation_process = BSS.Process.OpenMM(solvated, minimisation)
 >>> minimisation_process.start()
 >>> minimisation_process.wait()
 >>> minimised = minimisation_process.getSystem(block=True)
 
-Now the first equilibration can be run. Similar to the minimisation, this
-protocol has several restraints that are applied from the start.
+Now the first stage of equilibration can be run. Similar to the minimisation,
+this protocol has several restraints that are applied from the start:
 
 >>> equilibration = BSS.Protocol.AToMEquilibration(
 ...    data=atm_data,
@@ -164,7 +175,7 @@ protocol has several restraints that are applied from the start.
 ...    restraint=ca,
 ...    com_distance_restraint=True,
 ...    runtime="100ps"
-...)
+... )
 >>> equilibrate_process = BSS.Process.OpenMM(minimised, equilibration, platform="CUDA")
 >>> equilibrate_process.start()
 >>> equilibrate_process.wait()
@@ -179,18 +190,18 @@ protocol has several restraints that are applied from the start.
    computationally expensive.
 
 Now that the system has been minimised and equilibrated without the ATMForce
-being present, it needs to be added to the system. The first stage of this
-introduction is annealing, which by default will gradually increase the value of λ
-from 0 to 0.5 over a number of cycles.
+present, it needs to be added to the system. The first stage of this
+introduction is annealing, which by default will gradually increase the value of
+λ from 0 to 0.5 over a number of cycles:
 
 >>> annealing = BSS.Protocol.AToMAnnealing(
 ...    data=atm_data,
 ...    core_alignment=True,
 ...    restraint=ca,
 ...    com_distance_restraint=True,
-...    runtime="100ps"
+...    runtime="100ps",
 ...    anneal_numcycles=10
-...)
+... )
 >>> annealing_process = BSS.Process.OpenMM(equilibrated, annealing, platform="CUDA")
 >>> annealing_process.start()
 >>> annealing_process.wait()
@@ -201,7 +212,7 @@ can be annealed. See :data:`BioSimSpace.Protocol.AToMAnnealing` for full the
 full list of annealing options.
 
 The final stage of the ATM minimisation and equilibration protocol is a
-post-annealing equilibration run, this time with the ATMForce present at λ=0.5.
+post-annealing equilibration run, this time with the ATMForce present at λ=0.5:
 
 >>> post_anneal_equilibration = BSS.Protocol.AToMEquilibration(
 ...    data=atm_data,
@@ -209,10 +220,10 @@ post-annealing equilibration run, this time with the ATMForce present at λ=0.5.
 ...    restraint=ca,
 ...    com_distance_restraint=True,
 ...    use_atm_force=True,
-...    lambda_1 = 0.5,
-...    lambda_2 = 0.5,
+...    lambda1 = 0.5,
+...    lambda2 = 0.5,
 ...    runtime="100ps"
-...)
+... )
 >>> post_anneal_equilibration_process = BSS.Process.OpenMM(
 ...     annealed,
 ...     post_anneal_equilibration,
@@ -223,7 +234,7 @@ post-annealing equilibration run, this time with the ATMForce present at λ=0.5.
 >>> min_eq_final = post_anneal_equilibration_process.getSystem(block=True)
 
 .. note ::
-   A frequent soource of instability in ATM production runs is an overlap between the
+   A frequent source of instability in ATM production runs is an overlap between the
    bound ligand and the protein after a swap in direction. If this is encountered
    the first step taken should be to increase the runtime of the post-annealing equilibration.
    This gives the system time to adjust to the presence of the new ligand, without the
@@ -250,8 +261,7 @@ provided are all of the same length, specifically they must have length equal to
 of options.
 
 In the case of this TYK2 perturbation, the default values for ``alpha`` and
-``uh`` will need to be set manually, as the default values are not suitable in
-this case.
+``uh`` will need to be set manually, as the default values are not suitable.
 
 >>> alpha = 22 * [0.1]
 >>> uh = 22 * [110.0]
@@ -265,21 +275,22 @@ this case.
 ...    num_lambda=22,
 ...    alpha=alpha,
 ...    uh=uh,
-)
+... )
 >>> production_process = BSS.FreeEnergy.AToM(
 ...    system=min_eq_final,
 ...    protocol=production_atm,
 ...    work_dir=output_directory,
-...    platform="CUDA"
+...    platform="CUDA",
 ...    setup_only=True
-)
+... )
 
 The ``setup_only`` flag is set to ``True`` here, this means that all input files
 will be created, but nothing will be run. It is recommended to run production
 protocols on HPC resources where multiple GPUs are available, as the calculations
-can be very computationally expensive. Running the generated inputs is as simple
-as running the ``OpenMM.py`` script contained in each of the labelled ``lambda``
-folders of the output directory.
+can be very computationally expensive. 
+
+Running the generated inputs is as simple as running the ``OpenMM.py`` script
+contained in each of the labelled ``lambda`` folders of the output directory.
 
 Once production is complete, the results can be analysed using the built-in
 BioSimSpace UWHAM analysis tool.
