@@ -130,8 +130,8 @@ def test_extract(system):
 
 @pytest.mark.parametrize("lipid", [True, False])
 @pytest.mark.skipif(
-    has_openff is False,
-    reason="Requires OpenFF to be installed.",
+    has_amber is False or has_openff is False,
+    reason="Requires AMBER and OpenFF to be installed.",
 )
 def test_lipid(lipid):
     ff = "openff_unconstrained-2.0.0"
