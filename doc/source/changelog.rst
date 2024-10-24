@@ -9,6 +9,22 @@ company supporting open-source development of fostering academic/industrial coll
 within the biomolecular simulation community. Our software is hosted via the `OpenBioSim`
 `GitHub <https://github.com/OpenBioSim/biosimspace>`__ organisation.
 
+`2024.3.0 <https://github.com/openbiosim/biosimspace/compare/2024.2.0...2024.3.0>`_ - Oct 24 2024
+-------------------------------------------------------------------------------------------------
+
+* Fixed link in protein free-energy perturbation tutorial (`#310 <https://github.com/OpenBioSim/biosimspace/pull/310>`__).
+* Fixed alignment of monatomic molecules (`#313 <https://github.com/OpenBioSim/biosimspace/pull/313>`__ and (`#333 <https://github.com/OpenBioSim/biosimspace/pull/333>`__).
+* Expose missing ``extra_args`` keyword argument for the :class:`Process.Somd <BioSimSpace.Process.Somd>` class (`#319 <https://github.com/OpenBioSim/biosimspace/pull/319>`__).
+* Add support for the Alchemical Transfer Method (ATM) (`@mb2055 <https://github.com/mb2055>`_) (`#327 <https://github.com/OpenBioSim/biosimspace/pull/327>`__).
+* Fixed :meth:`system.updateMolecules <BioSimSpace._SireWrappers.System.updateMolecules>` method when updating multiple molecules at once (`#336 <https://github.com/OpenBioSim/biosimspace/pull/336>`__).
+* Added a new :meth:`system.removeBox <BioSimSpace._SireWrappers.System.removeBox>` method to remove the box from a system (`#338 <https://github.com/OpenBioSim/biosimspace/pull/338>`__).
+* Fixed bug when using position restraints with OpenMM for perturbable systems (`#341 <https://github.com/OpenBioSim/biosimspace/pull/341>`__).
+* Include both end states in the GROMACS restraint file when using position restraints with perturbable systems (`#342 <https://github.com/OpenBioSim/biosimspace/pull/342>`__).
+* Set end state connectivity properties when a perturbation involves a change in connectivity (`#345 <https://github.com/OpenBioSim/biosimspace/pull/345>`__).
+* Use direct Sire-to-RDKit conversion when parameterising with OpenFF to avoid issues with intermediate file formats (`#349 <https://github.com/OpenBioSim/biosimspace/pull/349>`__).
+* Preserve SMILES based molecular properties during parameterisation (`#352 <https://github.com/OpenBioSim/biosimspace/pull/352>`__).
+* Rotate perturbable and non-perturbable molecules independently when rotating box vectors (`#355 <https://github.com/OpenBioSim/biosimspace/pull/355>`__).
+
 `2024.2.0 <https://github.com/openbiosim/biosimspace/compare/2024.1.0...2024.2.0>`_ - Jul 09 2024
 -------------------------------------------------------------------------------------------------
 
@@ -34,7 +50,6 @@ within the biomolecular simulation community. Our software is hosted via the `Op
 * Make sure the ``fileformat`` property is preserved when creating single molecule systems (`#276 <https://github.com/OpenBioSim/biosimspace/pull/276>`__).
 * Add a ``getRestraintType`` method to the base protocol that returns ``None`` (`#276 <https://github.com/OpenBioSim/biosimspace/pull/276>`__).
 * Add missing ``themostat_time_constant`` kwarg to the :class:`Metadynamics <BioSimSpace.Protocol.Metdynamics>` protocol (`#276 <https://github.com/OpenBioSim/biosimspace/pull/276>`__).
-
 
 `2023.5.1 <https://github.com/openbiosim/biosimspace/compare/2023.5.0...2023.5.1>`_ - Mar 20 2024
 -------------------------------------------------------------------------------------------------
@@ -72,7 +87,6 @@ within the biomolecular simulation community. Our software is hosted via the `Op
 * Make sure AMBER restraint mask matches all hydrogen atoms (`#222 <https://github.com/OpenBioSim/biosimspace/pull/222>`__).
 * Ensure all searches for disulphide bonds are convert to a ``SelectorBond`` object (`#224 <https://github.com/OpenBioSim/biosimspace/pull/224>`__).
 * Fix injection of custom commands into ``LEaP`` script (`#226 <https://github.com/OpenBioSim/biosimspace/pull/226>`__).
-
 
 `2023.4.0 <https://github.com/openbiosim/biosimspace/compare/2023.3.1...2023.4.0>`_ - Oct 13 2023
 -------------------------------------------------------------------------------------------------
