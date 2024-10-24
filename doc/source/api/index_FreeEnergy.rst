@@ -6,6 +6,13 @@ BioSimSpace.FreeEnergy
 The *FreeEnergy* package contains tools to configure, run, and analyse
 *relative* free energy simulations.
 
+.. automodule:: BioSimSpace.FreeEnergy
+
+.. toctree::
+   :maxdepth: 1
+
+As well as the :class:`protocol <BioSimSpace.Protocol.FreeEnergy>` used for production
+
 Free-energy perturbation simulations require a
 :class:`System <BioSimSpace._SireWrappers.System>` containing a *merged*
 molecule that can be *perturbed* between two molecular end states by use
@@ -27,6 +34,9 @@ perturbable molecule created by merging two ligands, ``ligA`` and ``ligB``,
 ``complex_sol`` is a solvated protein-ligand complex containing the same
 perturbable molecule. We assume that each molecule/system has been
 appropriately minimised and equlibrated.
+
+Relative binding free-energy (RBFE)
+-----------------------------------
 
 To setup, run, and analyse a binding free-energy calculation:
 
@@ -130,12 +140,6 @@ the path to a working directory to :class:`FreeEnergy.Relative.analyse <BioSimSp
 
    pmf_vacuum, overlap_vacuum = BSS.FreeEnergy.Relative.analyse("ligA_ligB/vacuum")
 
-.. automodule:: BioSimSpace.FreeEnergy
-
-.. toctree::
-   :maxdepth: 1
-
-As well as the :class:`protocol <BioSimSpace.Protocol.FreeEnergy>` used for production
 simulations, it is also possible to use
 :class:`FreeEnergy.Relative <BioSimSpace.FreeEnergy.Relative>` to setup and run simulations
 for minimising or equilibrating structures for each lambda window. See the
@@ -143,3 +147,73 @@ for minimising or equilibrating structures for each lambda window. See the
 :class:`FreeEnergyEquilibration <BioSimSpace.Protocol.FreeEnergyEquilibration>`
 protocols for details. At present, these protocols are only supported when not
 using :class:`SOMD <BioSimSpace.Process.Somd>` as the simulation engine.
+
+Alchemical Transfer Method (ATM)
+--------------------------------
+
+This package contains tools to configure, run, and analyse *relative* free
+energy simulations using the *alchemical transfer method*  developed by the
+`Gallicchio lab <https://www.compmolbiophysbc.org/atom-openmm>`.
+
+Only available in the *OpenMM* engine, the *alchemical transfer method*
+replaces the conventional notion of perturbing between two end states with
+a single system containing both the free and bound ligand. The relative free
+energy of binding is then associated with the swapping of the bound and free
+ligands.
+
+The *alchemical transfer method* has a few advantages over the conventional
+approach, mainly arising from its relative simplicity and flexibility. The
+method is particularly well-suited to the study of difficult ligand
+transformations, such as scaffold-hopping and charge change perturbations.
+The presence of both ligands in the same system also replaces the conventional
+idea of _legs_, combining free, bound, forward and reverse legs into a
+single simulation.
+
+In order to perform a relative free energy calculation using the
+*alchemical transfer method*, the user requires a protein and two ligands, as
+well as knowledge of any common core shared between the two ligands.
+ATM-compatible systems can be created from these elements using the
+:class:`FreeEnergy.ATM <BioSimSpace.FreeEnergy.ATMSetup>` class.
+
+.. code-block:: python
+
+   from BioSimSpace.FreeEnergy import ATMSetup
+
+   ...
+
+   # Create an ATM setup object. 'protein', 'ligand1' and 'ligand2' must be
+   # BioSimSpace Molecule objects.
+   # 'ligand1' is bound in the lambda=0 state, 'ligand2' is bound in the lambda=1 state.
+   atm_setup = ATMSetup(protein=protein, ligand1=ligand1, ligand2=ligand2)
+
+   # Now create the BioSimSpace system. Here is where knowledge of the common core is required.
+   # ligand1_rigid_core and ligand2_rigid_core are lists of integers, each of length three,
+   # which define the indices of the common core atoms in the ligands.
+   # Displacement is the desired distance between the centre of masses of the two ligands.
+   system, data = atm_setup.prepare(
+         ligand1_rigid_core=[1, 2, 3],
+         ligand2_rigid_core=[1, 2, 3],
+         displacement=22.0
+   )
+
+   # The prepare function returns two objects: a prepared BioSimSpace system that is ready
+   # for ATM simulation, and a data dictionary containing information relevant to ATM calculations.
+   # This dictionary does not need to be kept, as the information is also encoded in the system
+   # object, but it may be useful for debugging.
+
+
+Preparing the system for production runs is slightly more complex than in
+the conventional approach, as the system will need to be annealed to an
+intermediate lambda value, and then equilibrated at that value. The
+:ref:`protocol <ref_protocols>` sub-module contains functionality for
+equilibrating and annealing systems for ATM simulations.
+
+Once the production simulations have been completed, the user can analyse
+the data using the :func:`analyse <BioSimSpace.FreeEnergy.ATM.analyse>` function.
+
+.. code-block:: python
+
+   from BioSimSpace.FreeEnergy import ATM
+
+   # Analyse the simulation data to get the free energy difference and associated error.
+   ddg, error = ATM.analyse("path/to/working/directory")

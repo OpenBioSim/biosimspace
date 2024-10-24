@@ -47,6 +47,10 @@ Classes
     Metadynamics
     Steering
     Custom
+    ATMMinimisation
+    ATMEquilibration
+    ATMAnnealing
+    ATMProduction
 
 Examples
 ========
@@ -105,3 +109,4 @@ from ._minimisation import *
 from ._production import *
 from ._steering import *
 from ._utils import *
+from ._atm import *

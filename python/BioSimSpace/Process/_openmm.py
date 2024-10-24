@@ -49,7 +49,6 @@ from .._SireWrappers import System as _System
 from ..Metadynamics import CollectiveVariable as _CollectiveVariable
 from ..Protocol._position_restraint_mixin import _PositionRestraintMixin
 from ..Types._type import Type as _Type
-
 from .. import IO as _IO
 from .. import Protocol as _Protocol
 from .. import Trajectory as _Trajectory
@@ -67,6 +66,29 @@ class OpenMM(_process.Process):
 
     # Dictionary of platforms and their OpenMM keyword.
     _platforms = {"CPU": "CPU", "CUDA": "CUDA", "OPENCL": "OpenCL"}
+
+    # Special cases for generate config when using ATM protocols.
+    def __new__(
+        cls,
+        system=None,
+        protocol=None,
+        reference_system=None,
+        exe=None,
+        name="openmm",
+        platform="CPU",
+        work_dir=None,
+        seed=None,
+        property_map={},
+        **kwargs,
+    ):
+        from ._atm import OpenMMATM
+        from ..Protocol._atm import _ATM
+
+        # would like to use issubclass but _Protocol._ATM is not exposed
+        if isinstance(protocol, _ATM):
+            return super().__new__(OpenMMATM)
+        else:
+            return super().__new__(cls)
 
     def __init__(
         self,
@@ -1319,7 +1341,9 @@ class OpenMM(_process.Process):
         # Try to get the most recent trajectory frame.
         try:
             # Handle minimisation protocols separately.
-            if isinstance(self._protocol, _Protocol.Minimisation):
+            if isinstance(
+                self._protocol, (_Protocol.Minimisation, _Protocol.ATMMinimisation)
+            ):
                 # Do we need to get coordinates for the lambda=1 state.
                 if "is_lambda1" in self._property_map:
                     is_lambda1 = True
@@ -1372,22 +1396,18 @@ class OpenMM(_process.Process):
                     (self._protocol.getRunTime() / self._protocol.getTimeStep())
                     / self._protocol.getRestartInterval()
                 )
-
                 # Work out the fraction of the simulation that has been completed.
                 frac_complete = self._protocol.getRunTime() / self.getTime()
-
                 # Make sure the fraction doesn't exceed one. OpenMM can report
                 # time values that are larger than the number of integration steps
                 # multiplied by the time step.
                 if frac_complete > 1:
                     frac_complete = 1
-
                 # Work out the trajectory frame index, rounding down.
                 # Remember that frames in MDTraj are zero indexed, like Python.
                 index = int(frac_complete * num_frames)
                 if index > 0:
                     index -= 1
-
                 # Return the most recent frame.
                 return self.getFrame(index)
 
@@ -1468,7 +1488,6 @@ class OpenMM(_process.Process):
 
         if not type(index) is int:
             raise TypeError("'index' must be of type 'int'")
-
         max_index = (
             int(
                 (self._protocol.getRunTime() / self._protocol.getTimeStep())
@@ -1476,7 +1495,6 @@ class OpenMM(_process.Process):
             )
             - 1
         )
-
         if index < 0 or index > max_index:
             raise ValueError(f"'index' must be in range [0, {max_index}].")
 
@@ -1496,7 +1514,6 @@ class OpenMM(_process.Process):
 
             # Get the latest trajectory frame.
             new_system = _Trajectory.getFrame(self._traj_file, self._top_file, index)
-
             # Update the coordinates and velocities and return a mapping between
             # the molecule indices in the two systems.
             sire_system, mapping = _SireIO.updateCoordinatesAndVelocities(
@@ -2120,7 +2137,9 @@ class OpenMM(_process.Process):
         )
 
         # Disable specific state information for minimisation protocols.
-        if isinstance(self._protocol, _Protocol.Minimisation):
+        if isinstance(
+            self._protocol, (_Protocol.Minimisation, _Protocol.ATMMinimisation)
+        ):
             is_step = False
             is_time = False
             is_temperature = False
@@ -2130,7 +2149,9 @@ class OpenMM(_process.Process):
             is_temperature = True
 
         # Work out the total number of steps.
-        if isinstance(self._protocol, _Protocol.Minimisation):
+        if isinstance(
+            self._protocol, (_Protocol.Minimisation, _Protocol.ATMMinimisation)
+        ):
             total_steps = 1
         else:
             total_steps = _math.ceil(
