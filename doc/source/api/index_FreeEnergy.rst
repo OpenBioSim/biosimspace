@@ -6,6 +6,13 @@ BioSimSpace.FreeEnergy
 The *FreeEnergy* package contains tools to configure, run, and analyse
 *relative* free energy simulations.
 
+.. automodule:: BioSimSpace.FreeEnergy
+
+.. toctree::
+   :maxdepth: 1
+
+As well as the :class:`protocol <BioSimSpace.Protocol.FreeEnergy>` used for production
+
 Free-energy perturbation simulations require a
 :class:`System <BioSimSpace._SireWrappers.System>` containing a *merged*
 molecule that can be *perturbed* between two molecular end states by use
@@ -130,12 +137,6 @@ the path to a working directory to :class:`FreeEnergy.Relative.analyse <BioSimSp
 
    pmf_vacuum, overlap_vacuum = BSS.FreeEnergy.Relative.analyse("ligA_ligB/vacuum")
 
-.. automodule:: BioSimSpace.FreeEnergy
-
-.. toctree::
-   :maxdepth: 1
-
-As well as the :class:`protocol <BioSimSpace.Protocol.FreeEnergy>` used for production
 simulations, it is also possible to use
 :class:`FreeEnergy.Relative <BioSimSpace.FreeEnergy.Relative>` to setup and run simulations
 for minimising or equilibrating structures for each lambda window. See the
