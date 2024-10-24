@@ -256,30 +256,30 @@ class ATMSetup:
         """Set the displacement of the free ligand along the normal vector."""
         if isinstance(displacement, str):
             try:
-                self.displacement = _Length(displacement)
+                self._displacement = _Length(displacement)
             except Exception as e:
                 raise ValueError(
                     f"Could not convert {displacement} to a BSS length, due to the following error: {e}"
                 )
         elif isinstance(displacement, _Length):
-            self.displacement = displacement
+            self._displacement = displacement
         elif isinstance(displacement, list):
             if len(displacement) != 3:
                 raise ValueError("displacement must have length 3")
             if all(isinstance(x, (float, int)) for x in displacement):
-                self.displacement = _Vector(*displacement)
+                self._displacement = _Vector(*displacement)
             elif all(isinstance(x, _Length) for x in displacement):
-                self.displacement = _Vector([x.value() for x in displacement])
+                self._displacement = _Vector([x.value() for x in displacement])
             else:
                 raise TypeError("displacement must be a list of floats or BSS lengths")
         elif isinstance(displacement, _Vector):
-            self.displacement = displacement
+            self._displacement = displacement
         else:
             raise TypeError(
                 f"displacement must be a string, BSS length or list. It is currently {type(displacement)}."
             )
         if self._is_prepared:
-            if not isinstance(self.displacement, _Vector):
+            if not isinstance(self._displacement, _Vector):
                 raise ValueError(
                     "Displacement must be a vector or list if a pre-prepared system is given"
                 )
@@ -292,7 +292,7 @@ class ATMSetup:
         BioSimSpace.Types.Length
             The displacement of the free ligand along the normal vector.
         """
-        return self.displacement
+        return self._displacement
 
     def _setLigandBoundRigidCore(self, ligand_bound_rigid_core):
         """Set the indices for the rigid core atoms of ligand 1.
@@ -304,7 +304,7 @@ class ATMSetup:
             The rigid core of the bound ligand for the ATM simulation.
         """
         if ligand_bound_rigid_core is None:
-            self.ligand_bound_rigid_core = None
+            self._ligand_bound_rigid_core = None
         else:
             if not isinstance(ligand_bound_rigid_core, list):
                 raise TypeError("ligand_bound_rigid_core must be a list")
@@ -313,11 +313,11 @@ class ATMSetup:
             # make sure all indices are ints
             if not all(isinstance(x, int) for x in ligand_bound_rigid_core):
                 raise TypeError("ligand_bound_rigid_core must contain only integers")
-            if any(x >= self.ligand_bound_atomcount for x in ligand_bound_rigid_core):
+            if any(x >= self._ligand_bound_atomcount for x in ligand_bound_rigid_core):
                 raise ValueError(
                     "ligand_bound_rigid_core contains an index that is greater than the number of atoms in the ligand"
                 )
-            self.ligand_bound_rigid_core = ligand_bound_rigid_core
+            self._ligand_bound_rigid_core = ligand_bound_rigid_core
 
     def _getLigandBoundRigidCore(self):
         """Get the indices for the rigid core atoms of ligand 1.
@@ -327,7 +327,7 @@ class ATMSetup:
         list
             The indices for the rigid core atoms of ligand 1.
         """
-        return self.ligand_bound_rigid_core
+        return self._ligand_bound_rigid_core
 
     def _setLigandFreeRigidCore(self, ligand_free_rigid_core):
         """Set the indices for the rigid core atoms of ligand 2.
@@ -339,7 +339,7 @@ class ATMSetup:
             The rigid core of the free ligand for the ATM simulation.
         """
         if ligand_free_rigid_core is None:
-            self.ligand_free_rigid_core = None
+            self._ligand_free_rigid_core = None
         else:
             if not isinstance(ligand_free_rigid_core, list):
                 raise TypeError("ligand_free_rigid_core must be a list")
@@ -348,11 +348,11 @@ class ATMSetup:
             # make sure all indices are ints
             if not all(isinstance(x, int) for x in ligand_free_rigid_core):
                 raise TypeError("ligand_free_rigid_core must contain only integers")
-            if any(x >= self.ligand_free_atomcount for x in ligand_free_rigid_core):
+            if any(x >= self._ligand_free_atomcount for x in ligand_free_rigid_core):
                 raise ValueError(
                     "ligand_free_rigid_core contains an index that is greater than the number of atoms in the ligand"
                 )
-            self.ligand_free_rigid_core = ligand_free_rigid_core
+            self._ligand_free_rigid_core = ligand_free_rigid_core
 
     def _getLigandFreeRigidCore(self):
         """Get the indices for the rigid core atoms of ligand 2.
@@ -362,7 +362,7 @@ class ATMSetup:
         list
             The indices for the rigid core atoms of ligand 2.
         """
-        return self.ligand_free_rigid_core
+        return self._ligand_free_rigid_core
 
     def _setProteinIndex(self, protein_index):
         """
@@ -419,7 +419,7 @@ class ATMSetup:
                 _warnings.warn(
                     f"The molecule at index {ligand_bound_index} is a water molecule, check your ligand_bound_index."
                 )
-            self.ligand_bound_index = ligand_bound_index
+            self._ligand_bound_index = ligand_bound_index
 
     def _getLigandBoundIndex(self):
         """Get the index of the bound ligand molecule in the system.
@@ -429,7 +429,7 @@ class ATMSetup:
         int
             The index of the bound ligand molecule in the system.
         """
-        return self.ligand_bound_index
+        return self._ligand_bound_index
 
     def _setLigandFreeIndex(self, ligand_free_index):
         """Set the index of the free ligand molecule in the system.
@@ -449,7 +449,7 @@ class ATMSetup:
                 _warnings.warn(
                     f"The molecule at index {ligand_free_index} is a water molecule, check your ligand_free_index."
                 )
-            self.ligand_free_index = ligand_free_index
+            self._ligand_free_index = ligand_free_index
 
     def _getLigandFreeIndex(self):
         """Get the index of the free ligand molecule in the system.
@@ -459,7 +459,7 @@ class ATMSetup:
         int
             The index of the free ligand molecule in the system.
         """
-        return self.ligand_free_index
+        return self._ligand_free_index
 
     def prepare(
         self,
@@ -525,9 +525,9 @@ class ATMSetup:
             self._findAtomIndices()
             self._makeData()
             serialisable_disp = [
-                self.displacement.x(),
-                self.displacement.y(),
-                self.displacement.z(),
+                self._displacement.x(),
+                self._displacement.y(),
+                self._displacement.z(),
             ]
             temp_data = self.data.copy()
             temp_data["displacement"] = serialisable_disp
@@ -539,7 +539,7 @@ class ATMSetup:
             # the final value will be set after the system is made, but the initial value is needed to make the system
             self._setDisplacement(displacement)
             system, prot_ind, lig1_ind, lig2_ind, dis_vec = self._makeSystemFromThree(
-                self._protein, self._ligand_bound, self._ligand_free, self.displacement
+                self._protein, self._ligand_bound, self._ligand_free, self._displacement
             )
             self._setSystem(system, is_prepared=False)
             self._setDisplacement(dis_vec)
@@ -555,9 +555,9 @@ class ATMSetup:
             self._findAtomIndices()
             self._makeData()
             serialisable_disp = [
-                self.displacement.x(),
-                self.displacement.y(),
-                self.displacement.z(),
+                self._displacement.x(),
+                self._displacement.y(),
+                self._displacement.z(),
             ]
             temp_data = self.data.copy()
             temp_data["displacement"] = serialisable_disp
@@ -700,21 +700,21 @@ class ATMSetup:
                     f"The molecule at index {self.protein_index} appears to be a water molecule."
                     " This should be a protein."
                 )
-        if self._system[self.ligand_bound_index].isWater():
+        if self._system[self._ligand_bound_index].isWater():
             _warnings.warn(
-                f"The molecule at index {self.ligand_bound_index} appears to be a water molecule."
+                f"The molecule at index {self._ligand_bound_index} appears to be a water molecule."
                 " This should be the bound ligand."
             )
-        if self._system[self.ligand_free_index].isWater():
+        if self._system[self._ligand_free_index].isWater():
             _warnings.warn(
-                f"The molecule at index {self.ligand_free_index} appears to be a water molecule."
+                f"The molecule at index {self._ligand_free_index} appears to be a water molecule."
                 " This should be the free ligand."
             )
         self._protein_atomcount = sum(
             self._system[i].nAtoms() for i in self.protein_index
         )
-        self.ligand_bound_atomcount = self._system[self.ligand_bound_index].nAtoms()
-        self.ligand_free_atomcount = self._system[self.ligand_free_index].nAtoms()
+        self._ligand_bound_atomcount = self._system[self._ligand_bound_index].nAtoms()
+        self._ligand_free_atomcount = self._system[self._ligand_free_index].nAtoms()
 
     def _findAtomIndices(self):
         """
@@ -727,22 +727,22 @@ class ATMSetup:
         """
         protein_atom_start = self._system[self.protein_index[0]].getAtoms()[0]
         protein_atom_end = self._system[self.protein_index[-1]].getAtoms()[-1]
-        self.first_protein_atom_index = self._system.getIndex(protein_atom_start)
-        self.last_protein_atom_index = self._system.getIndex(protein_atom_end)
+        self._first_protein_atom_index = self._system.getIndex(protein_atom_start)
+        self._last_protein_atom_index = self._system.getIndex(protein_atom_end)
 
-        ligand_bound_atom_start = self._system[self.ligand_bound_index].getAtoms()[0]
-        ligand_bound_atom_end = self._system[self.ligand_bound_index].getAtoms()[-1]
-        self.first_ligand_bound_atom_index = self._system.getIndex(
+        ligand_bound_atom_start = self._system[self._ligand_bound_index].getAtoms()[0]
+        ligand_bound_atom_end = self._system[self._ligand_bound_index].getAtoms()[-1]
+        self._first_ligand_bound_atom_index = self._system.getIndex(
             ligand_bound_atom_start
         )
-        self.last_ligand_bound_atom_index = self._system.getIndex(ligand_bound_atom_end)
+        self._last_ligand_bound_atom_index = self._system.getIndex(ligand_bound_atom_end)
 
-        ligand_free_atom_start = self._system[self.ligand_free_index].getAtoms()[0]
-        ligand_free_atom_end = self._system[self.ligand_free_index].getAtoms()[-1]
-        self.first_ligand_free_atom_index = self._system.getIndex(
+        ligand_free_atom_start = self._system[self._ligand_free_index].getAtoms()[0]
+        ligand_free_atom_end = self._system[self._ligand_free_index].getAtoms()[-1]
+        self._first_ligand_free_atom_index = self._system.getIndex(
             ligand_free_atom_start
         )
-        self.last_ligand_free_atom_index = self._system.getIndex(ligand_free_atom_end)
+        self._last_ligand_free_atom_index = self._system.getIndex(ligand_free_atom_end)
 
     def _getProtComAtoms(self):
         """
@@ -818,7 +818,7 @@ class ATMSetup:
         else:
             # Find com of the ligand
             if self._is_prepared:
-                ligand_bound = self._system[self.ligand_bound_index]
+                ligand_bound = self._system[self._ligand_bound_index]
             else:
                 ligand_bound = self._ligand_bound
             com = ligand_bound._sire_object.coordinates()
@@ -855,7 +855,7 @@ class ATMSetup:
         else:
             # Find com of the ligand
             if self._is_prepared:
-                ligand_free = self._system[self.ligand_free_index]
+                ligand_free = self._system[self._ligand_free_index]
             else:
                 ligand_free = self._ligand_free
             com = ligand_free._sire_object.coordinates()
@@ -876,14 +876,14 @@ class ATMSetup:
         self.data["ligand_bound_rigid_core"] = self._getLigandBoundRigidCore()
         self.data["ligand_free_rigid_core"] = self._getLigandFreeRigidCore()
         self.data["mol1_atomcount"] = self._protein_atomcount
-        self.data["ligand_bound_atomcount"] = self.ligand_bound_atomcount
-        self.data["ligand_free_atomcount"] = self.ligand_free_atomcount
-        self.data["first_protein_atom_index"] = self.first_protein_atom_index
-        self.data["last_protein_atom_index"] = self.last_protein_atom_index
-        self.data["first_ligand_bound_atom_index"] = self.first_ligand_bound_atom_index
-        self.data["last_ligand_bound_atom_index"] = self.last_ligand_bound_atom_index
-        self.data["first_ligand_free_atom_index"] = self.first_ligand_free_atom_index
-        self.data["last_ligand_free_atom_index"] = self.last_ligand_free_atom_index
+        self.data["ligand_bound_atomcount"] = self._ligand_bound_atomcount
+        self.data["ligand_free_atomcount"] = self._ligand_free_atomcount
+        self.data["first_protein_atom_index"] = self._first_protein_atom_index
+        self.data["last_protein_atom_index"] = self._last_protein_atom_index
+        self.data["first_ligand_bound_atom_index"] = self._first_ligand_bound_atom_index
+        self.data["last_ligand_bound_atom_index"] = self._last_ligand_bound_atom_index
+        self.data["first_ligand_free_atom_index"] = self._first_ligand_free_atom_index
+        self.data["last_ligand_free_atom_index"] = self._last_ligand_free_atom_index
         self.data["protein_com_atoms"] = self._mol1_com_atoms
         self.data["ligand_bound_com_atoms"] = self._lig1_com_atoms
         self.data["ligand_free_com_atoms"] = self._lig2_com_atoms
