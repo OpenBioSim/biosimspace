@@ -1151,12 +1151,6 @@ def rmsdAlign(molecule0, molecule1, mapping=None, property_map0={}, property_map
     # Convert the mapping to AtomIdx key:value pairs.
     sire_mapping = _to_sire_mapping(mapping)
 
-    # Do we have a monatomic ion?
-    if (molecule0.nAtoms() == 1) or (molecule1.nAtoms() == 1):
-        is_ion = True
-    else:
-        is_ion = False
-
     # Perform the alignment, mol0 to mol1.
     if len(mapping) == 1:
         idx0 = list(mapping.keys())[0]
@@ -1785,12 +1779,6 @@ def _score_rdkit_mappings(
             .commit()
         )
 
-    # Do we have a monatomic ion?
-    if (molecule0.nAtoms() == 1) or (molecule1.nAtoms() == 1):
-        is_ion = True
-    else:
-        is_ion = False
-
     # Get the set of matching substructures in each molecule. For some reason
     # setting uniquify to True removes valid matches, in some cases even the
     # best match! As such, we set uniquify to False and account for duplicate
@@ -2020,12 +2008,6 @@ def _score_sire_mappings(
             .setProperty("coordinates", molecule1.property(prop1))
             .commit()
         )
-
-    # Do we have a monatomic ion?
-    if (molecule0.nAtoms() == 1) or (molecule1.nAtoms() == 1):
-        is_ion = True
-    else:
-        is_ion = False
 
     # Initialise a list to hold the mappings.
     mappings = []
