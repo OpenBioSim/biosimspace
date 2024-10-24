@@ -47,6 +47,7 @@ from sire.legacy import Maths as _SireMaths
 from sire.legacy import Units as _SireUnits
 from sire.legacy import Vol as _SireVol
 
+from ..Units.Length import angstrom
 from .._Utils import _assert_imported, _have_imported, _try_import
 
 # alchemlyb isn't available on all variants of Python that we support, so we
@@ -355,7 +356,13 @@ class Gromacs(_process.Process):
         # For now, we'll not attempt to generate a box if the system property
         # is missing. If no box is present, we'll assume a non-periodic simulation.
         if "space" in system._sire_object.propertyKeys():
-            has_box = True
+            try:
+                # Make sure that we have a periodic box. The system will now have
+                # a default cartesian space.
+                box = system._sire_object.property("space")
+                has_box = box.isPeriodic()
+            except:
+                has_box = False
         else:
             _warnings.warn("No simulation box found. Assuming gas phase simulation.")
             has_box = False
@@ -2174,15 +2181,17 @@ class Gromacs(_process.Process):
                     for idx, mol_idx in enumerate(mol_idxs):
                         # Get the indices of any restrained atoms in this molecule,
                         # making sure that indices are relative to the molecule.
-                        if restraint is not None:
+                        if restraint is None:
+                            atom_idxs = []
+                        elif self._system.getMolecule(mol_idx).isLipid():
+                            atom_idxs = []
+                        else:
                             atom_idxs = self._system.getRestraintAtoms(
                                 restraint,
                                 mol_index=mol_idx,
                                 is_absolute=False,
                                 allow_zero_matches=True,
                             )
-                        else:
-                            atom_idxs = []
 
                         if self._system.getMolecule(mol_idx).isAlchemicalIon():
                             alch_ion = self._system.getMolecule(mol_idx).getAtoms()
@@ -2696,8 +2705,22 @@ class Gromacs(_process.Process):
                     )
 
             # If this is a vacuum simulation, then translate the centre of mass
-            # of the system back to the origin.
-            if not space_prop in old_system._sire_object.propertyKeys():
+            # of the system back to the middle of the box to preserve PBC.
+            if old_system.getBox() == (None, None):
+                try:
+                    old_box = old_system._sire_object.property(space_prop)
+                except:
+                    old_box = None
+                box = _SireVol.PeriodicBox(_SireMaths.Vector(9999, 9999, 9999))
+                old_system._sire_object.setProperty(space_prop, box)
+                com = [angstrom * 9999 / 2 for _ in range(3)]
+                old_system.translate([x for x in com])
+                old_system._sire_object.make_whole()
+                old_system.translate([-x for x in com])
+                if old_box is None:
+                    old_system._sire_object.removeProperty(space_prop)
+                else:
+                    old_system._sire_object.setProperty(space_prop, old_box)
                 com = old_system._getCenterOfMass()
                 old_system.translate([-x for x in com])
 
@@ -2813,9 +2836,23 @@ class Gromacs(_process.Process):
                             )
 
                 # If this is a vacuum simulation, then translate the centre of mass
-                # of the system back to the origin.
-                if not space_prop in old_system._sire_object.propertyKeys():
-                    com = new_system._getCenterOfMass()
+                # of the system back to the middle of the box to preserve PBC.
+                if old_system.getBox() == (None, None):
+                    try:
+                        old_box = old_system._sire_object.property(space_prop)
+                    except:
+                        old_box = None
+                    box = _SireVol.PeriodicBox(_SireMaths.Vector(9999, 9999, 9999))
+                    old_system._sire_object.setProperty(space_prop, box)
+                    com = [angstrom * 9999 / 2 for _ in range(3)]
+                    old_system.translate([x for x in com])
+                    old_system._sire_object.make_whole()
+                    old_system.translate([-x for x in com])
+                    if old_box is None:
+                        old_system._sire_object.removeProperty(space_prop)
+                    else:
+                        old_system._sire_object.setProperty(space_prop, old_box)
+                    com = old_system._getCenterOfMass()
                     old_system.translate([-x for x in com])
 
                 return old_system

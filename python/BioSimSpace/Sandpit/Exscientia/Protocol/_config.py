@@ -189,7 +189,7 @@ class ConfigFactory:
 
         # Define some miscellaneous defaults.
         protocol_dict = {
-            "ntpr": 200,  # Interval between reporting energies.
+            "ntpr": self._report_interval,  # Interval between reporting energies.
             "ntwr": self._restart_interval,  # Interval between saving restart files.
             "ntwx": self._restart_interval,  # Trajectory sampling frequency.
             "ntxo": 2,  # Output coordinates as NetCDF.
