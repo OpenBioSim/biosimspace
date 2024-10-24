@@ -172,19 +172,19 @@ single simulation.
 In order to perform a relative free energy calculation using the
 *alchemical transfer method*, the user requires a protein and two ligands, as
 well as knowledge of any common core shared between the two ligands.
-AToM-compatible systems can be created from these elements using the
-:class:`FreeEnergy.AToM <BioSimSpace.FreeEnergy.AToMSetup>` class.
+ATM-compatible systems can be created from these elements using the
+:class:`FreeEnergy.ATM <BioSimSpace.FreeEnergy.ATMSetup>` class.
 
 .. code-block:: python
 
-   from BioSimSpace.FreeEnergy import AToMSetup
+   from BioSimSpace.FreeEnergy import ATMSetup
 
    ...
 
-   # Create an AToM setup object. 'protein', 'ligand1' and 'ligand2' must be
+   # Create an ATM setup object. 'protein', 'ligand1' and 'ligand2' must be
    # BioSimSpace Molecule objects.
    # 'ligand1' is bound in the lambda=0 state, 'ligand2' is bound in the lambda=1 state.
-   atm_setup = AToMSetup(protein=protein, ligand1=ligand1, ligand2=ligand2)
+   atm_setup = ATMSetup(protein=protein, ligand1=ligand1, ligand2=ligand2)
 
    # Now create the BioSimSpace system. Here is where knowledge of the common core is required.
    # ligand1_rigid_core and ligand2_rigid_core are lists of integers, each of length three,
@@ -197,7 +197,7 @@ AToM-compatible systems can be created from these elements using the
    )
 
    # The prepare function returns two objects: a prepared BioSimSpace system that is ready
-   # for AToM simulation, and a data dictionary containing information relevant to AToM calculations.
+   # for ATM simulation, and a data dictionary containing information relevant to ATM calculations.
    # This dictionary does not need to be kept, as the information is also encoded in the system
    # object, but it may be useful for debugging.
 
@@ -206,14 +206,14 @@ Preparing the system for production runs is slightly more complex than in
 the conventional approach, as the system will need to be annealed to an
 intermediate lambda value, and then equilibrated at that value. The
 :ref:`protocol <ref_protocols>` sub-module contains functionality for
-equilibrating and annealing systems for AToM simulations.
+equilibrating and annealing systems for ATM simulations.
 
 Once the production simulations have been completed, the user can analyse
-the data using the :func:`analyse <BioSimSpace.FreeEnergy.AToM.analyse>` function.
+the data using the :func:`analyse <BioSimSpace.FreeEnergy.ATM.analyse>` function.
 
 .. code-block:: python
 
-   from BioSimSpace.FreeEnergy import AToM
+   from BioSimSpace.FreeEnergy import ATM
 
    # Analyse the simulation data to get the free energy difference and associated error.
-   ddg, error = AToM.analyse("path/to/working/directory")
+   ddg, error = ATM.analyse("path/to/working/directory")

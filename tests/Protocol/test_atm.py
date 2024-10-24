@@ -7,10 +7,10 @@ def test_atm_minimisation(TEMOA_hostguest):
 
     # First need to test that both forms of the `data` input work
     system, data = TEMOA_hostguest
-    BSS.Protocol.AToMMinimisation(data=data)
-    BSS.Protocol.AToMMinimisation(system=system)
+    BSS.Protocol.ATMMinimisation(data=data)
+    BSS.Protocol.ATMMinimisation(system=system)
     # Now test the optional inputs, first using biosimspace Units
-    protocol_units = BSS.Protocol.AToMMinimisation(
+    protocol_units = BSS.Protocol.ATMMinimisation(
         data=data,
         core_alignment=False,
         com_distance_restraint=False,
@@ -28,7 +28,7 @@ def test_atm_minimisation(TEMOA_hostguest):
     )
 
     # Now test parsing options as floats
-    protocol_floats = BSS.Protocol.AToMMinimisation(
+    protocol_floats = BSS.Protocol.ATMMinimisation(
         data=data,
         force_constant=1.0,
         positional_restraint_width=0.1,
@@ -43,7 +43,7 @@ def test_atm_minimisation(TEMOA_hostguest):
     )
 
     # Finally try parsing strings
-    protocol_strings = BSS.Protocol.AToMMinimisation(
+    protocol_strings = BSS.Protocol.ATMMinimisation(
         data=data,
         force_constant="1.0 kcal mol^-1 angstrom^-2",
         positional_restraint_width="0.1 angstrom",
@@ -109,7 +109,7 @@ def test_atm_equilibration(TEMOA_hostguest):
     # Testing equilibration-specific inputs
     system, data = TEMOA_hostguest
 
-    protocol_units = BSS.Protocol.AToMEquilibration(
+    protocol_units = BSS.Protocol.ATMEquilibration(
         data=data,
         timestep=1 * BSS.Units.Time.femtosecond,
         runtime=0.1 * BSS.Units.Time.nanosecond,
@@ -129,7 +129,7 @@ def test_atm_equilibration(TEMOA_hostguest):
     )
 
     # test setting alpha,uh and w0 as floats
-    protocol_floats = BSS.Protocol.AToMEquilibration(
+    protocol_floats = BSS.Protocol.ATMEquilibration(
         data=data,
         alpha=0.1,
         uh=0.1,
@@ -137,7 +137,7 @@ def test_atm_equilibration(TEMOA_hostguest):
     )
 
     # test setting alpha,uh and w0 as strings
-    protocol_strings = BSS.Protocol.AToMEquilibration(
+    protocol_strings = BSS.Protocol.ATMEquilibration(
         data=data,
         timestep="1 fs",
         runtime="0.1 ns",
@@ -184,7 +184,7 @@ def test_atm_annealing(TEMOA_hostguest):
         "invalid_key": 0.0,
     }
     with pytest.raises(ValueError):
-        BSS.Protocol.AToMAnnealing(data=data, anneal_values=annealing_dict)
+        BSS.Protocol.ATMAnnealing(data=data, anneal_values=annealing_dict)
 
     # now test passing a valid dictionary
     annealing_dict = {
@@ -199,7 +199,7 @@ def test_atm_annealing(TEMOA_hostguest):
         "W0_start": 0.0,
         "W0_end": 0.5,
     }
-    protocol = BSS.Protocol.AToMAnnealing(
+    protocol = BSS.Protocol.ATMAnnealing(
         data=data,
         anneal_values=annealing_dict,
         anneal_numcycles=10,
@@ -214,7 +214,7 @@ def test_atm_production(TEMOA_hostguest):
     system, data = TEMOA_hostguest
 
     # fist create a production protocol with num_lambda=6
-    protocol = BSS.Protocol.AToMProduction(
+    protocol = BSS.Protocol.ATMProduction(
         data=data,
         num_lambda=6,
     )
@@ -251,7 +251,7 @@ def test_atm_production(TEMOA_hostguest):
         1,
     ]
 
-    protocol = BSS.Protocol.AToMProduction(
+    protocol = BSS.Protocol.ATMProduction(
         data=data,
         num_lambda=6,
         alpha=list_of_units,
@@ -266,19 +266,19 @@ def test_atm_production(TEMOA_hostguest):
     assert protocol.getW0() == end_product
 
     # now check that all of the allowed analysis options can be set
-    protocol = BSS.Protocol.AToMProduction(
+    protocol = BSS.Protocol.ATMProduction(
         data=data,
         num_lambda=6,
         analysis_method="UWHAM",
     )
 
-    protocol = BSS.Protocol.AToMProduction(
+    protocol = BSS.Protocol.ATMProduction(
         data=data,
         num_lambda=6,
         analysis_method="MBAR",
     )
 
-    protocol = BSS.Protocol.AToMProduction(
+    protocol = BSS.Protocol.ATMProduction(
         data=data,
         num_lambda=6,
         analysis_method="both",

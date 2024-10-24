@@ -81,12 +81,12 @@ class OpenMM(_process.Process):
         property_map={},
         **kwargs,
     ):
-        from ._atm import OpenMMAToM
-        from ..Protocol._atm import _AToM
+        from ._atm import OpenMMATM
+        from ..Protocol._atm import _ATM
 
-        # would like to use issubclass but _Protocol._AToM is not exposed
-        if isinstance(protocol, _AToM):
-            return super().__new__(OpenMMAToM)
+        # would like to use issubclass but _Protocol._ATM is not exposed
+        if isinstance(protocol, _ATM):
+            return super().__new__(OpenMMATM)
         else:
             return super().__new__(cls)
 
@@ -1342,7 +1342,7 @@ class OpenMM(_process.Process):
         try:
             # Handle minimisation protocols separately.
             if isinstance(
-                self._protocol, (_Protocol.Minimisation, _Protocol.AToMMinimisation)
+                self._protocol, (_Protocol.Minimisation, _Protocol.ATMMinimisation)
             ):
                 # Do we need to get coordinates for the lambda=1 state.
                 if "is_lambda1" in self._property_map:
@@ -2138,7 +2138,7 @@ class OpenMM(_process.Process):
 
         # Disable specific state information for minimisation protocols.
         if isinstance(
-            self._protocol, (_Protocol.Minimisation, _Protocol.AToMMinimisation)
+            self._protocol, (_Protocol.Minimisation, _Protocol.ATMMinimisation)
         ):
             is_step = False
             is_time = False
@@ -2150,7 +2150,7 @@ class OpenMM(_process.Process):
 
         # Work out the total number of steps.
         if isinstance(
-            self._protocol, (_Protocol.Minimisation, _Protocol.AToMMinimisation)
+            self._protocol, (_Protocol.Minimisation, _Protocol.ATMMinimisation)
         ):
             total_steps = 1
         else:

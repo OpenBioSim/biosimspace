@@ -29,8 +29,8 @@ Classes
     :toctree: generated/
 
     Relative
-    AToMSetup
-    AToM
+    ATMSetup
+    ATM
 
 Functions
 =========

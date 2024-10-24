@@ -19,22 +19,22 @@
 # along with BioSimSpace. If not, see <http://www.gnu.org/licenses/>.
 #####################################################################
 
-__all__ = ["_AToMUtils"]
+__all__ = ["_ATMUtils"]
 
 import math as _math
 import warnings as _warnings
 
 from .. import Protocol as _Protocol
 from ..Types import Vector as _Vector
-from ..Protocol._atm import _AToM
+from ..Protocol._atm import _ATM
 
 
-class _AToMUtils:
-    # Internal class for creating openmm forces within an AToM process.
+class _ATMUtils:
+    # Internal class for creating openmm forces within an ATM process.
     def __init__(self, protocol):
         # Check for proper typing
-        if not isinstance(protocol, _AToM):
-            raise TypeError("Protocol must be an AToM protocol")
+        if not isinstance(protocol, _ATM):
+            raise TypeError("Protocol must be an ATM protocol")
         self.protocol = protocol
         self.data = self.protocol.getData()
 
@@ -83,9 +83,9 @@ class _AToMUtils:
         self.SCUmax = self.protocol.getSoftCoreUmax().value()
         self.SCU0 = self.protocol.getSoftCoreU0().value()
         self.SCa = self.protocol.getSoftCoreA()
-        if isinstance(self.protocol, _Protocol.AToMProduction):
+        if isinstance(self.protocol, _Protocol.ATMProduction):
             if index is None:
-                raise ValueError("Index must be set for AToMProduction protocol")
+                raise ValueError("Index must be set for ATMProduction protocol")
             self.lambda1 = self.protocol.getLambda1()[index]
             self.lambda2 = self.protocol.getLambda2()[index]
             self.alpha = self.protocol.getAlpha()[index].value()
@@ -94,7 +94,7 @@ class _AToMUtils:
             self.direction = self.protocol.getDirection()[index]
             self.master_lambda = self.protocol._get_lambda_values()[index]
         elif isinstance(
-            self.protocol, (_Protocol.AToMEquilibration, _Protocol.AToMAnnealing)
+            self.protocol, (_Protocol.ATMEquilibration, _Protocol.ATMAnnealing)
         ):
             self.lambda1 = self.protocol.getLambda1()
             self.lambda2 = self.protocol.getLambda2()
@@ -342,7 +342,7 @@ class _AToMUtils:
         output += "#Parameters for ATM force in  original units\n"
         output += "lig1_atoms = {}\n".format(self.lig1_atoms)
         output += "lig2_atoms = {}\n".format(self.lig2_atoms)
-        if isinstance(self.protocol, _Protocol.AToMProduction):
+        if isinstance(self.protocol, _Protocol.ATMProduction):
             output += "window_index = {}\n".format(index)
         output += "lambda1 = {}\n".format(self.lambda1)
         output += "lambda2 = {}\n".format(self.lambda2)
@@ -354,7 +354,7 @@ class _AToMUtils:
         output += "sc_U0 = {} * kilocalories_per_mole\n".format(self.SCU0)
         output += "sc_a = {}\n".format(self.SCa)
 
-        if isinstance(self.protocol, _Protocol.AToMProduction):
+        if isinstance(self.protocol, _Protocol.ATMProduction):
             output += self._dump_atm_constants_to_dict()
 
         output += "\n\n #Define ATM force\n"

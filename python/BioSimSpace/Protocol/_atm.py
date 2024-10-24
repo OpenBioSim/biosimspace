@@ -32,11 +32,11 @@ from ._position_restraint_mixin import _PositionRestraintMixin
 from .. import Units as _Units
 from ..Types import Vector as _Vector
 
-__all__ = ["AToMMinimisation", "AToMEquilibration", "AToMAnnealing", "AToMProduction"]
+__all__ = ["ATMMinimisation", "ATMEquilibration", "ATMAnnealing", "ATMProduction"]
 
 
-# When placed in to BSS this needs to be AToM_protocol(protocol):
-class _AToM(_Protocol, _PositionRestraintMixin):
+# When placed in to BSS this needs to be ATM_protocol(protocol):
+class _ATM(_Protocol, _PositionRestraintMixin):
     def __init__(
         self,
         system=None,
@@ -61,7 +61,7 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         # first check that EITHER system or data is passed
         if system is None and data is None:
             raise ValueError(
-                "Either 'system' or 'data' must be passed to the AToM protocol."
+                "Either 'system' or 'data' must be passed to the ATM protocol."
             )
 
         if system is not None and not isinstance(system, _System):
@@ -75,7 +75,7 @@ class _AToM(_Protocol, _PositionRestraintMixin):
                 sdata = _json.loads(system._sire_object.property("atom_data").value())
             except Exception as e:
                 raise ValueError(
-                    f"Unable to extract AToM data from the system object. The following error was raised: {e}."
+                    f"Unable to extract ATM data from the system object. The following error was raised: {e}."
                 )
             # convert the "displacement" key back to a vector
             d = sdata["displacement"]
@@ -88,7 +88,7 @@ class _AToM(_Protocol, _PositionRestraintMixin):
                 "Both 'system' and 'data' were passed. Using 'data' and ignoring data from 'system'."
             )
 
-        # Store the AToM system.
+        # Store the ATM system.
         if isinstance(data, dict):
             self._system_data = data
         elif data is not None:
@@ -133,7 +133,7 @@ class _AToM(_Protocol, _PositionRestraintMixin):
     def __str__(self):
         d = self.getData()
         """Return a string representation of the protocol."""
-        string = "<BioSimSpace.Protocol.AToM>: "
+        string = "<BioSimSpace.Protocol.ATM>: "
         string += "timestep=%s " % self.getTimeStep()
         string += ", runtime=%s " % self.getRunTime()
         string += ", temperature=%s " % self.getTemperature()
@@ -155,13 +155,13 @@ class _AToM(_Protocol, _PositionRestraintMixin):
 
     def getData(self):
         """
-        Return the AToM data dictionary.
+        Return the ATM data dictionary.
 
         Returns
         -------
 
         data : dict
-            The AToM data dictionary.
+            The ATM data dictionary.
         """
         return self._system_data
 
@@ -664,9 +664,9 @@ class _AToM(_Protocol, _PositionRestraintMixin):
         self._com_restraint_width = com_restraint_width
 
 
-class AToMMinimisation(_AToM):
+class ATMMinimisation(_ATM):
     """
-    Minimisation protocol for AToM simulations.
+    Minimisation protocol for ATM simulations.
     """
 
     def __init__(
@@ -693,9 +693,9 @@ class AToMMinimisation(_AToM):
         ----------
 
         system : :class:`System <BioSimSpace._SireWrappers.System>`
-                A prepared AToM system.
+                A prepared ATM system.
         data : dict
-            The AToM data dictionary.
+            The ATM data dictionary.
 
         core_alignment : bool
             Whether to use rigid core restraints to align the two ligands.
@@ -806,8 +806,8 @@ class AToMMinimisation(_AToM):
             raise TypeError("'steps' must be of type 'int'")
 
 
-class AToMEquilibration(_AToM):
-    """Equilibration protocol for AToM simulations."""
+class ATMEquilibration(_ATM):
+    """Equilibration protocol for ATM simulations."""
 
     def __init__(
         self,
@@ -850,10 +850,10 @@ class AToMEquilibration(_AToM):
         ----------
 
         system : :class:`System <BioSimSpace._SireWrappers.System>``
-            A prepared AToM system.
+            A prepared ATM system.
 
         data : dict
-            The AToM data dictionary.
+            The ATM data dictionary.
 
         timestep : str, :class:`Time <BioSimSpace.Types.Time>`
             The integration timestep.
@@ -1590,8 +1590,8 @@ class AToMEquilibration(_AToM):
         return cls._restraints.copy()
 
 
-class AToMAnnealing(_AToM):
-    """Annealing protocol for AToM simulations."""
+class ATMAnnealing(_ATM):
+    """Annealing protocol for ATM simulations."""
 
     def __init__(
         self,
@@ -1632,10 +1632,10 @@ class AToMAnnealing(_AToM):
         Parameters
         ----------
         system : :class:`System <BioSimSpace._SireWrappers.System>`
-            A prepared AToM system.
+            A prepared ATM system.
 
         data : dict
-            The AToM data dictionary.
+            The ATM data dictionary.
 
         timestep : str, :class:`Time <BioSimSpace.Types.Time>`
             The integration timestep.
@@ -2440,8 +2440,8 @@ class AToMAnnealing(_AToM):
             return None
 
 
-class AToMProduction(_AToM):
-    """Production protocol for AToM simulations."""
+class ATMProduction(_ATM):
+    """Production protocol for ATM simulations."""
 
     def __init__(
         self,
@@ -2483,10 +2483,10 @@ class AToMProduction(_AToM):
         Parameters
         ----------
         system : :class:`System <BioSimSpace._SireWrappers.System>`
-            A prepared AToM system.
+            A prepared ATM system.
 
         data : dict
-            The AToM data dictionary.
+            The ATM data dictionary.
 
         timestep : str, :class:`Time <BioSimSpace.Types.Time>`
             The integration timestep.
@@ -2573,7 +2573,7 @@ class AToMProduction(_AToM):
 
         num_lambda : int
             The number of lambda values. This will be used to set the window-dependent
-            AToM parameters, unless they are explicitly set by the user.
+            ATM parameters, unless they are explicitly set by the user.
 
         lambdas : [float]
             The lambda values.
@@ -2955,7 +2955,8 @@ class AToMProduction(_AToM):
         if isinstance(num_lambda, int) and num_lambda > 0:
             if num_lambda % 2 != 0:
                 _warnings.warn(
-                    "Warning: The AToM protocol is optimised for an even number of lambda values. Unknown behaviour may occur if using an odd number of lambda values."
+                    "Warning: The ATM protocol is optimised for an even number of lambda values. "
+                    "Unknown behaviour may occur if using an odd number of lambda values."
                 )
             self._num_lambda = num_lambda
             self._set_lambda_values()

@@ -7,7 +7,7 @@ def test_atm_minimisation(TEMOA_hostguest):
     # First get a system with data
     system, data = TEMOA_hostguest
     # Generate a minimisation protocol
-    prot_min = BSS.Protocol.AToMMinimisation(data=data, steps=1)
+    prot_min = BSS.Protocol.ATMMinimisation(data=data, steps=1)
 
     run_process(system, prot_min)
     del system, data
@@ -18,7 +18,7 @@ def test_atm_equilibration(TEMOA_hostguest, use_atm_force):
     # First get a system with data
     system, data = TEMOA_hostguest
     # Generate an equilibration protocol
-    prot_equil = BSS.Protocol.AToMEquilibration(
+    prot_equil = BSS.Protocol.ATMEquilibration(
         data=data,
         runtime="4 fs",
         use_atm_force=use_atm_force,
@@ -34,7 +34,7 @@ def test_atm_anneal(TEMOA_hostguest):
     # First get a system with data
     system, data = TEMOA_hostguest
     # Generate an annealing protocol
-    prot_anneal = BSS.Protocol.AToMAnnealing(
+    prot_anneal = BSS.Protocol.ATMAnnealing(
         data=data,
         runtime="4 fs",
         report_interval=1,
@@ -62,7 +62,7 @@ def test_custom_atm_anneal(TEMOA_hostguest):
         "W0_start": 0.0,
         "W0_end": 0.5,
     }
-    protocol = BSS.Protocol.AToMAnnealing(
+    protocol = BSS.Protocol.ATMAnnealing(
         data=data,
         anneal_values=annealing_dict,
         anneal_numcycles=1,
@@ -77,7 +77,7 @@ def test_atm_production(TEMOA_hostguest):
     # First get a system with data
     system, data = TEMOA_hostguest
     # Generate a production protocol
-    prot_prod = BSS.Protocol.AToMProduction(
+    prot_prod = BSS.Protocol.ATMProduction(
         data=data,
         runtime="2 fs",
         report_interval=1,
@@ -87,7 +87,7 @@ def test_atm_production(TEMOA_hostguest):
     run_process(system, prot_prod)
 
     # now test "MBAR" analysis method
-    prot_prod = BSS.Protocol.AToMProduction(
+    prot_prod = BSS.Protocol.ATMProduction(
         data=data,
         runtime="2 fs",
         analysis_method="MBAR",
@@ -97,7 +97,7 @@ def test_atm_production(TEMOA_hostguest):
     run_process(system, prot_prod)
 
     # finally, test the "both" analysis method
-    prot_prod = BSS.Protocol.AToMProduction(
+    prot_prod = BSS.Protocol.ATMProduction(
         data=data,
         runtime="2 fs",
         analysis_method="both",

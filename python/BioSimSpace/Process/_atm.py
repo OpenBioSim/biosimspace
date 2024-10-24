@@ -25,14 +25,14 @@ import warnings as _warnings
 
 from .._Exceptions import IncompatibleError as _IncompatibleError
 from .. import Protocol as _Protocol
-from ._atm_utils import _AToMUtils
+from ._atm_utils import _ATMUtils
 from ._openmm import OpenMM as _OpenMM
 
 
-class OpenMMAToM(_OpenMM):
+class OpenMMATM(_OpenMM):
     """
-    Derived class for running AToM simulations using OpenMM. Overloads the
-    _generate_config() to introduce AToM-specific methods.
+    Derived class for running ATM simulations using OpenMM. Overloads the
+    _generate_config() to introduce ATM-specific methods.
     """
 
     def __init__(
@@ -69,15 +69,15 @@ class OpenMMAToM(_OpenMM):
         )
 
     def _generate_config(self):
-        if isinstance(self._protocol, _Protocol.AToMMinimisation):
+        if isinstance(self._protocol, _Protocol.ATMMinimisation):
             self._generate_config_minimisation()
-        elif isinstance(self._protocol, _Protocol.AToMEquilibration):
+        elif isinstance(self._protocol, _Protocol.ATMEquilibration):
             self._generate_config_equilibration()
-        elif isinstance(self._protocol, _Protocol.AToMAnnealing):
+        elif isinstance(self._protocol, _Protocol.ATMAnnealing):
             self._generate_config_annealing()
-        elif isinstance(self._protocol, _Protocol.AToMProduction) and self._is_testing:
+        elif isinstance(self._protocol, _Protocol.ATMProduction) and self._is_testing:
             self._generate_config_single_point_testing()
-        elif isinstance(self._protocol, _Protocol.AToMProduction):
+        elif isinstance(self._protocol, _Protocol.ATMProduction):
             self._generate_config_production()
 
     def _check_space(self):
@@ -173,7 +173,7 @@ class OpenMMAToM(_OpenMM):
         self.addToConfig("    simulation.context.setPeriodicBoxVectors(*box_vectors)")
 
     def _generate_config_minimisation(self):
-        util = _AToMUtils(self._protocol)
+        util = _ATMUtils(self._protocol)
         # Clear the existing configuration list.
         self._config = []
 
@@ -229,7 +229,7 @@ class OpenMMAToM(_OpenMM):
         self._protocol._setCustomised(False)
 
     def _generate_config_equilibration(self):
-        util = _AToMUtils(self._protocol)
+        util = _ATMUtils(self._protocol)
         # Clear the existing configuration list.
         self._config = []
 
@@ -367,7 +367,7 @@ class OpenMMAToM(_OpenMM):
 
     def _generate_config_annealing(self):
         self._protocol._set_current_index(0)
-        util = _AToMUtils(self._protocol)
+        util = _ATMUtils(self._protocol)
         # Clear the existing configuration list.
         self._config = []
 
@@ -404,11 +404,11 @@ class OpenMMAToM(_OpenMM):
             frc = util.create_flat_bottom_restraint(restrained_atoms)
             self.addToConfig(frc)
 
-        # Use utils to create AToM-specific forces
+        # Use utils to create ATM-specific forces
         # Atom force is the only window-dependent force
         disp = util.createDisplacement()
         self.addToConfig(disp)
-        self.addToConfig("\n# Add AToM Force.")
+        self.addToConfig("\n# Add ATM Force.")
         self.addToConfig(util.createATMForce(self._protocol._get_window_index()))
         if self._protocol.getCoreAlignment():
             alignment = util.createAlignmentForce()
@@ -501,7 +501,7 @@ class OpenMMAToM(_OpenMM):
     def _generate_config_production(self):
         self._protocol.set_current_index(0)
         analysis_method = self._protocol.getAnalysisMethod()
-        util = _AToMUtils(self._protocol)
+        util = _ATMUtils(self._protocol)
         # Clear the existing configuration list.
         self._config = []
 
@@ -510,7 +510,7 @@ class OpenMMAToM(_OpenMM):
         # TODO: check extra_options, extra_lines and property_map
         if self._protocol.get_window_index() is None:
             raise _IncompatibleError(
-                "AToM protocol requires the current window index to be set."
+                "ATM protocol requires the current window index to be set."
             )
 
         # Write the OpenMM import statements.
@@ -550,11 +550,11 @@ class OpenMMAToM(_OpenMM):
             frc = util.create_flat_bottom_restraint(restrained_atoms)
             self.addToConfig(frc)
 
-        # Use utils to create AToM-specific forces
+        # Use utils to create ATM-specific forces
         # Atom force is the only window-dependent force
         disp = util.createDisplacement()
         self.addToConfig(disp)
-        self.addToConfig("\n# Add AToM Force.")
+        self.addToConfig("\n# Add ATM Force.")
         self.addToConfig(util.createATMForce(self._protocol.get_window_index()))
         if self._protocol.getCoreAlignment():
             alignment = util.createAlignmentForce()
@@ -702,11 +702,11 @@ class OpenMMAToM(_OpenMM):
         # calculate single point energies for each lambda window
         # quite hacky, but not designed to be exposed to the user anyway
         self._protocol.set_current_index(0)
-        if not isinstance(self._protocol, _Protocol.AToMProduction):
+        if not isinstance(self._protocol, _Protocol.ATMProduction):
             raise _IncompatibleError(
-                "Single point testing requires an AToMProduction protocol."
+                "Single point testing requires an ATMProduction protocol."
             )
-        util = _AToMUtils(self._protocol)
+        util = _ATMUtils(self._protocol)
         # Clear the existing configuration list.
         self._config = []
 
@@ -715,7 +715,7 @@ class OpenMMAToM(_OpenMM):
         # TODO: check extra_options, extra_lines and property_map
         if self._protocol.get_window_index() is None:
             raise _IncompatibleError(
-                "AToM protocol requires the current window index to be set."
+                "ATM protocol requires the current window index to be set."
             )
 
         # Write the OpenMM import statements.
@@ -753,11 +753,11 @@ class OpenMMAToM(_OpenMM):
             frc = util.create_flat_bottom_restraint(restrained_atoms, force_group=5)
             self.addToConfig(frc)
 
-        # Use utils to create AToM-specific forces
+        # Use utils to create ATM-specific forces
         # Atom force is the only window-dependent force
         disp = util.createDisplacement()
         self.addToConfig(disp)
-        self.addToConfig("\n# Add AToM Force.")
+        self.addToConfig("\n# Add ATM Force.")
         self.addToConfig(
             util.createATMForce(self._protocol.get_window_index(), force_group=10)
         )

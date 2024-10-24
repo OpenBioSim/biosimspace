@@ -22,7 +22,7 @@
 
 
 # Alchemical transfer analysis methods. UWHAM implementation adapted from
-# both the `femto` and `AToM-openmm` packages.
+# both the `femto` and `ATM-openmm` packages.
 __all__ = ["analyse_UWHAM", "analyse_MBAR"]
 
 
@@ -201,7 +201,7 @@ def _get_inflection_indices(folders):
 
 def analyse_UWHAM(work_dir, ignore_lower, ignore_upper, inflection_indices=None):
     """
-    Analyse the output of BioSimSpace AToM simulations.
+    Analyse the output of BioSimSpace ATM simulations.
 
     Parameters
     ----------

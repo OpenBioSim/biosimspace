@@ -22,7 +22,7 @@
 
 # Functionality for creating and viewing systems for Atomic transfer.
 
-__all__ = ["AToMSetup", "AToM"]
+__all__ = ["ATMSetup", "ATM"]
 
 import copy as _copy
 import json as _json
@@ -52,9 +52,9 @@ if _is_notebook:
     from IPython.display import FileLink as _FileLink
 
 
-class AToMSetup:
+class ATMSetup:
     """
-    A class for setting up a system for AToM simulations.
+    A class for setting up a system for ATM simulations.
     """
 
     def __init__(
@@ -67,13 +67,13 @@ class AToMSetup:
         ligand_bound_index=1,
         ligand_free_index=2,
     ):
-        """Constructor for the AToM class.
+        """Constructor for the ATM class.
 
         Parameters
         ----------
 
         system : :class:`System <BioSimSpace._SireWrappers.System>`
-            A pre-prepared AToM system containing protein and ligands placed
+            A pre-prepared ATM system containing protein and ligands placed
             in their correct positions. If provided takes precedence over
             protein, ligand_bound and ligand_free.
 
@@ -133,13 +133,13 @@ class AToMSetup:
 
     def _setSystem(self, system, is_prepared=True):
         """
-        Set the system for the AToM simulation.
+        Set the system for the ATM simulation.
 
         Parameters
         ----------
 
         system : BioSimSpace._SireWrappers.System
-            The system for the AToM simulation.
+            The system for the ATM simulation.
         """
         if system is not None:
             if not isinstance(system, _System):
@@ -158,23 +158,23 @@ class AToMSetup:
             self._is_prepared = False
 
     def _getSystem(self):
-        """Get the system for the AToM simulation.
+        """Get the system for the ATM simulation.
 
         Returns
         -------
         BioSimSpace._SireWrappers.System
-            The system for the AToM simulation.
+            The system for the ATM simulation.
         """
         return self._system
 
     def _setProtein(self, protein):
-        """Set the protein for the AToM simulation.
+        """Set the protein for the ATM simulation.
 
         Parameters
         ----------
 
         protein : BioSimSpace._SireWrappers.Molecule
-            The protein for the AToM simulation.
+            The protein for the ATM simulation.
         """
         if protein is not None:
             if not isinstance(protein, _Molecule):
@@ -185,23 +185,23 @@ class AToMSetup:
             self._protein = None
 
     def _getProtein(self):
-        """Get the protein for the AToM simulation.
+        """Get the protein for the ATM simulation.
 
         Returns
         -------
         BioSimSpace._SireWrappers.Molecule
-            The protein for the AToM simulation.
+            The protein for the ATM simulation.
         """
         return self._protein
 
     def _setLigandBound(self, ligand_bound):
-        """Set the bound ligand for the AToM simulation.
+        """Set the bound ligand for the ATM simulation.
 
         Parameters
         ----------
 
         ligand_bound : BioSimSpace._SireWrappers.Molecule
-            The bound ligand for the AToM simulation.
+            The bound ligand for the ATM simulation.
         """
         if ligand_bound is not None:
             if not isinstance(ligand_bound, _Molecule):
@@ -214,23 +214,23 @@ class AToMSetup:
             self._ligand_bound = None
 
     def _getLigandBound(self):
-        """Get the bound ligand for the AToM simulation.
+        """Get the bound ligand for the ATM simulation.
 
         Returns
         -------
         BioSimSpace._SireWrappers.Molecule
-            The bound ligand for the AToM simulation.
+            The bound ligand for the ATM simulation.
         """
         return self._ligand_bound
 
     def _setLigandFree(self, ligand_free):
-        """Set the free ligand for the AToM simulation.
+        """Set the free ligand for the ATM simulation.
 
         Parameters
         ----------
 
         ligand_free : BioSimSpace._SireWrappers.Molecule
-            The free ligand for the AToM simulation.
+            The free ligand for the ATM simulation.
         """
         if ligand_free is not None:
             if not isinstance(ligand_free, _Molecule):
@@ -243,12 +243,12 @@ class AToMSetup:
             self._ligand_free = None
 
     def _getLigandFree(self):
-        """Get the free ligand for the AToM simulation.
+        """Get the free ligand for the ATM simulation.
 
         Returns
         -------
         BioSimSpace._SireWrappers.Molecule
-            The free ligand for the AToM simulation.
+            The free ligand for the ATM simulation.
         """
         return self._ligand_free
 
@@ -301,7 +301,7 @@ class AToMSetup:
         ----------
 
         ligand_bound_rigid_core : BioSimSpace._SireWrappers.Molecule
-            The rigid core of the bound ligand for the AToM simulation.
+            The rigid core of the bound ligand for the ATM simulation.
         """
         if ligand_bound_rigid_core is None:
             self.ligand_bound_rigid_core = None
@@ -336,7 +336,7 @@ class AToMSetup:
         ----------
 
         ligand_free_rigid_core : BioSimSpace._SireWrappers.Molecule
-            The rigid core of the free ligand for the AToM simulation.
+            The rigid core of the free ligand for the ATM simulation.
         """
         if ligand_free_rigid_core is None:
             self.ligand_free_rigid_core = None
@@ -471,7 +471,7 @@ class AToMSetup:
         ligand_free_com_atoms=None,
     ):
         """
-        Prepare the system for an AToM simulation.
+        Prepare the system for an ATM simulation.
 
         Parameters
         ----------
@@ -509,7 +509,7 @@ class AToMSetup:
             The prepared system, including protein and ligands in their correct positions.
 
         data : dict
-            A dictionary containing the data needed for the AToM simulation. This is
+            A dictionary containing the data needed for the ATM simulation. This is
             also encoded in the system for consistency, but is returned so that the
             user can easily query and validate the data.
         """
@@ -567,19 +567,19 @@ class AToMSetup:
 
     @staticmethod
     def _makeSystemFromThree(protein, ligand_bound, ligand_free, displacement):
-        """Create a system for AToM simulations.
+        """Create a system for ATM simulations.
 
         Parameters
         ----------
 
         protein : BioSimSpace._SireWrappers.Molecule
-            The protein for the AToM simulation.
+            The protein for the ATM simulation.
 
         ligand_bound : BioSimSpace._SireWrappers.Molecule
-            The bound ligand for the AToM simulation.
+            The bound ligand for the ATM simulation.
 
         ligand_free : BioSimSpace._SireWrappers.Molecule
-            The free ligand for the AToM simulation.
+            The free ligand for the ATM simulation.
 
         displacement : BioSimSpace.Types.Length
             The displacement of the ligand along the normal vector.
@@ -588,7 +588,7 @@ class AToMSetup:
         -------
 
         BioSimSpace._SireWrappers.System
-            The system for the AToM simulation.
+            The system for the ATM simulation.
         """
 
         def _findTranslationVector(system, displacement, protein, ligand):
@@ -692,7 +692,7 @@ class AToMSetup:
 
     def _systemInfo(self):
         """
-        If the user gives a pre-prepared AToM system, extract the needed information.
+        If the user gives a pre-prepared ATM system, extract the needed information.
         """
         for p in self.protein_index:
             if self._system[p].isWater():
@@ -866,7 +866,7 @@ class AToMSetup:
 
     def _makeData(self):
         """
-        Make the data dictionary for the AToM system
+        Make the data dictionary for the ATM system
         """
         self.data = {}
         self.data["displacement"] = self._getDisplacement()
@@ -904,7 +904,7 @@ class AToMSetup:
         ----------
 
         system : :class:`System <BioSimSpace._SireWrappers.System>`
-            The system for the AToM simulation that has been prepared AToM.prepare().
+            The system for the ATM simulation that has been prepared ATM.prepare().
             All other arguments are ignored if this is provided.
 
         ligand_bound : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
@@ -1141,7 +1141,7 @@ class AToMSetup:
         return ngl
 
 
-class AToM:
+class ATM:
     """
     A class for setting up, running, and analysis RBFE calculations using the
     Alchemical Transfer Method.
@@ -1163,11 +1163,11 @@ class AToM:
         ----------
 
         system : BioSimSpace._SireWrappers.System
-            A prepared AToM system containing a protein and two ligands, one bound and one free.
+            A prepared ATM system containing a protein and two ligands, one bound and one free.
             Assumed to already be equilibrated.
 
-        protocol : BioSimSpace.Protocol.AToM
-            The AToM protocol to use for the simulation.
+        protocol : BioSimSpace.Protocol.ATM
+            The ATM protocol to use for the simulation.
 
         platform : str
             The platform for the simulation: “CPU”, “CUDA”, or “OPENCL”.
@@ -1196,11 +1196,11 @@ class AToM:
 
         # Validate the protocol.
         if protocol is not None:
-            from ..Protocol._atm import AToMProduction as _Production
+            from ..Protocol._atm import ATMProduction as _Production
 
             if not isinstance(protocol, _Production):
                 raise TypeError(
-                    "'protocol' must be of type 'BioSimSpace.Protocol.AToMProduction'"
+                    "'protocol' must be of type 'BioSimSpace.Protocol.ATMProduction'"
                 )
             else:
                 self._protocol = protocol
@@ -1466,8 +1466,8 @@ class AToM:
                 process._system = first_process._system.copy()
                 process._protocol = self._protocol
                 process._work_dir = new_dir
-                process._stdout_file = new_dir + "/AToM.out"
-                process._stderr_file = new_dir + "/AToM.err"
+                process._stdout_file = new_dir + "/ATM.out"
+                process._stderr_file = new_dir + "/ATM.err"
                 process._rst_file = new_dir + "/openmm.rst7"
                 process._top_file = new_dir + "/openmm.prm7"
                 process._traj_file = new_dir + "/openmm.dcd"
@@ -1491,13 +1491,13 @@ class AToM:
         ignore_upper=None,
         inflex_indices=None,
     ):
-        """Analyse the AToM simulation.
+        """Analyse the ATM simulation.
 
         Parameters
         ----------
 
         work_dir : str
-            The working directory where the AToM simulation is located.
+            The working directory where the ATM simulation is located.
 
         method : str
             The method to use for the analysis. Currently only UWHAM is supported.
@@ -1540,7 +1540,7 @@ class AToM:
             if not len(inflex_indices) == 2:
                 raise ValueError("'inflex_indices' must have length 2.")
         if method == "UWHAM":
-            total_ddg, total_ddg_err = AToM._analyse_UWHAM(
+            total_ddg, total_ddg_err = ATM._analyse_UWHAM(
                 work_dir, ignore_lower, ignore_upper, inflex_indices
             )
             return total_ddg, total_ddg_err
@@ -1548,7 +1548,7 @@ class AToM:
             from ._relative import Relative as _Relative
 
             # temporary version to check that things are working
-            ddg_forward, ddg_reverse = AToM._analyse_MBAR(work_dir)
+            ddg_forward, ddg_reverse = ATM._analyse_MBAR(work_dir)
             ddg_forward = _Relative.difference(ddg_forward)
             ddg_reverse = _Relative.difference(ddg_reverse)
             return ddg_forward, ddg_reverse
@@ -1558,7 +1558,7 @@ class AToM:
     @staticmethod
     def _analyse_UWHAM(work_dir, ignore_lower, ignore_upper, inflex_indices=None):
         """
-        Analyse the UWHAM results from the AToM simulation.
+        Analyse the UWHAM results from the ATM simulation.
         """
         from ._ddg import analyse_UWHAM as _UWHAM
 
@@ -1570,7 +1570,7 @@ class AToM:
     @staticmethod
     def _analyse_MBAR(work_dir):
         """
-        Analyse the MBAR results from the AToM simulation.
+        Analyse the MBAR results from the ATM simulation.
         """
         from ._ddg import analyse_MBAR as _MBAR
 
@@ -1580,7 +1580,7 @@ class AToM:
     @staticmethod
     def _analyse_test(work_dir):
         """
-        Analyse the test results from the AToM simulation.
+        Analyse the test results from the ATM simulation.
         """
         from ._ddg import new_MBAR as _test
 

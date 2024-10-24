@@ -35,7 +35,7 @@ Now load the set of example molecules from a URL, via
 
 In order to run an ATM calculation, a single system containing both ligands and
 the protein in their correct positions is needed. This can be created using
-functionality provided in :func:`BioSimSpace.FreeEnergy.AToMSetup`.
+functionality provided in :func:`BioSimSpace.FreeEnergy.ATMSetup`.
 
 ATM calculations require that both ligands be present in the
 system simultaneously, with one ligand bound to the receptor and the other free
@@ -48,14 +48,14 @@ choice made here simply defines the initial state of the system, and by
 extension the `direction` of the calculation.
 
 The first step in creating an ATM-compatible system in BioSimSpace is to create
-an :class:`AToMSetup` object, which will be used to prepare the system:
+an :class:`ATMSetup` object, which will be used to prepare the system:
 
->>> atm_setup = BSS.FreeEnergy.AToMSetup(receptor=protein, 
+>>> atm_setup = BSS.FreeEnergy.ATMSetup(receptor=protein, 
 ...     ligand_bound=lig1, 
 ...     ligand_free=lig2
 ... )
 
-Before an AToM-ready system can be prepared there are decisions to be made
+Before an ATM-ready system can be prepared there are decisions to be made
 regarding the system setup, namely which atoms will be used to define the rigid
 cores of the ligands, as well those that make up the centre of mass of each
 molecule.
@@ -64,7 +64,7 @@ The choice of rigid core atoms is vital to the success of an ATM RBFE
 calculation, and as such BioSimSpace provides a helper function to visualise the
 choice made by the user.
 
->>> BSS.FreeEnergy.AToMSetup.viewRigidCores(
+>>> BSS.FreeEnergy.ATMSetup.viewRigidCores(
 ...     ligand_bound=lig1,
 ...     ligand_free=lig2,
 ...     ligand_bound_rigid_core=[14, 11, 15],
@@ -149,9 +149,9 @@ distance between the centre of mass of the protein and ligands, set using the
 ``com_distance_restraint`` argument. The strength of these restraints is automatically
 set to a set of default values that are generally suitable for most systems, but
 can also be set manually by passing the relevant arguments to
-:data:`BioSimSpace.Protocol.AToMMinimisation`:
+:data:`BioSimSpace.Protocol.ATMMinimisation`:
 
->>> minimisation = BSS.Protocol.AToMMinimisation(
+>>> minimisation = BSS.Protocol.ATMMinimisation(
 ...     data=atm_data,
 ...     core_alignment=True,
 ...     restraint=ca,
@@ -169,7 +169,7 @@ process:
 Now the first stage of equilibration can be run. Similar to the minimisation,
 this protocol has several restraints that are applied from the start:
 
->>> equilibration = BSS.Protocol.AToMEquilibration(
+>>> equilibration = BSS.Protocol.ATMEquilibration(
 ...    data=atm_data,
 ...    core_alignment=True,
 ...    restraint=ca,
@@ -194,7 +194,7 @@ present, it needs to be added to the system. The first stage of this
 introduction is annealing, which by default will gradually increase the value of
 λ from 0 to 0.5 over a number of cycles:
 
->>> annealing = BSS.Protocol.AToMAnnealing(
+>>> annealing = BSS.Protocol.ATMAnnealing(
 ...    data=atm_data,
 ...    core_alignment=True,
 ...    restraint=ca,
@@ -208,13 +208,13 @@ introduction is annealing, which by default will gradually increase the value of
 >>> annealed = annealing_process.getSystem(block=True)
 
 The annealing process is fully customisable, and any number of λ-specific values
-can be annealed. See :data:`BioSimSpace.Protocol.AToMAnnealing` for full the
+can be annealed. See :data:`BioSimSpace.Protocol.ATMAnnealing` for full the
 full list of annealing options.
 
 The final stage of the ATM minimisation and equilibration protocol is a
 post-annealing equilibration run, this time with the ATMForce present at λ=0.5:
 
->>> post_anneal_equilibration = BSS.Protocol.AToMEquilibration(
+>>> post_anneal_equilibration = BSS.Protocol.ATMEquilibration(
 ...    data=atm_data,
 ...    core_alignment=True,
 ...    restraint=ca,
@@ -257,7 +257,7 @@ argument. If this value is not set, a default of 22 will be set by BioSimSpace.
 In addition to setting the number of lambdas, any or all of the λ-specific
 values can be manually set, with the only condition being that the lists
 provided are all of the same length, specifically they must have length equal to
-``num_lambda``. See :data:`BioSimSpace.Protocol.AToMProduction` for a full list
+``num_lambda``. See :data:`BioSimSpace.Protocol.ATMProduction` for a full list
 of options.
 
 In the case of this TYK2 perturbation, the default values for ``alpha`` and
@@ -266,7 +266,7 @@ In the case of this TYK2 perturbation, the default values for ``alpha`` and
 >>> alpha = 22 * [0.1]
 >>> uh = 22 * [110.0]
 >>> output_directory = "tyk2_atm"
->>> production_atm = BSS.Protocol.AToMProduction(
+>>> production_atm = BSS.Protocol.ATMProduction(
 ...    data=atm_data,
 ...    core_alignment=True,
 ...    restraint=ca,
@@ -276,7 +276,7 @@ In the case of this TYK2 perturbation, the default values for ``alpha`` and
 ...    alpha=alpha,
 ...    uh=uh,
 ... )
->>> production_process = BSS.FreeEnergy.AToM(
+>>> production_process = BSS.FreeEnergy.ATM(
 ...    system=min_eq_final,
 ...    protocol=production_atm,
 ...    work_dir=output_directory,
@@ -295,7 +295,7 @@ contained in each of the labelled ``lambda`` folders of the output directory.
 Once production is complete, the results can be analysed using the built-in
 BioSimSpace UWHAM analysis tool.
 
->>> BSS.FreeEnergy.AToM.analyse(output_directory)
+>>> BSS.FreeEnergy.ATM.analyse(output_directory)
 
 This will give the ΔΔG value for the perturbation, as well as the error (both in
 kcal/mol).
