@@ -518,6 +518,22 @@ class Molecule(_SireWrapper):
         else:
             return False
 
+    def isLipid(self):
+        """
+        Whether this molecule is decoupled, i.e. it can be used in a
+        free-energy decoupling simulation.
+
+        Returns
+        -------
+
+        is_decoupled : bool
+            Whether the molecule is decoupled.
+        """
+        if self._sire_object.hasProperty("lipid"):
+            return True
+        else:
+            return False
+
     def isML(self):
         """
         Whether this molecule is marked as ML molecule, i.e. it can be used in a

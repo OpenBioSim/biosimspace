@@ -168,6 +168,37 @@ def test_gromacs(protocol, system, ref_system, tmp_path):
 
 
 @pytest.mark.skipif(
+    has_gromacs is False or has_openff is False,
+    reason="Requires GROMACS and openff to be installed",
+)
+@pytest.mark.parametrize("lipid", [True, False])
+def test_gromacs_lipid(system, tmp_path, lipid):
+    protocol = BSS.Protocol.Minimisation(restraint="heavy")
+    if lipid:
+        molecule = system.getMolecule(0)
+        sire_obj = molecule._sire_object
+        c = sire_obj.cursor()
+        c["lipid"] = True
+        molecule._sire_object = c.commit()
+        system.updateMolecule(0, molecule)
+    BSS.Process.Gromacs(
+        system,
+        protocol,
+        reference_system=system,
+        work_dir=str(tmp_path),
+        ignore_warnings=True,
+    )
+    if lipid is False:
+        assert (tmp_path / "posre_0001.itp").is_file()
+        with open(tmp_path / "gromacs.top", "r") as f:
+            assert "posre_0001.itp" in f.read()
+    else:
+        assert not (tmp_path / "posre_0001.itp").is_file()
+        with open(tmp_path / "gromacs.top", "r") as f:
+            assert not "posre_0001.itp" in f.read()
+
+
+@pytest.mark.skipif(
     has_amber is False or has_openff is False,
     reason="Requires AMBER and openff to be installed",
 )

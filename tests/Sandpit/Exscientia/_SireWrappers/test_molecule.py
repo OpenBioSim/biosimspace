@@ -126,3 +126,16 @@ def test_extract(system):
 
     # Make sure the numbers are different.
     assert partial_mol.number() != mol.number()
+
+
+@pytest.mark.parametrize("lipid", [True, False])
+def test_lipid(lipid):
+    ff = "openff_unconstrained-2.0.0"
+    mol = BSS.Parameters.parameterise("c1ccccc1C", ff).getMolecule()
+    if lipid:
+        sire_obj = mol._sire_object
+        c = sire_obj.cursor()
+        c["lipid"] = lipid
+        mol._sire_object = c.commit()
+
+    assert mol.isLipid() is lipid
