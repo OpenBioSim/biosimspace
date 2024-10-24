@@ -35,6 +35,9 @@ perturbable molecule created by merging two ligands, ``ligA`` and ``ligB``,
 perturbable molecule. We assume that each molecule/system has been
 appropriately minimised and equlibrated.
 
+Relative binding free-energy (RBFE)
+-----------------------------------
+
 To setup, run, and analyse a binding free-energy calculation:
 
 .. code-block:: python
@@ -145,9 +148,8 @@ for minimising or equilibrating structures for each lambda window. See the
 protocols for details. At present, these protocols are only supported when not
 using :class:`SOMD <BioSimSpace.Process.Somd>` as the simulation engine.
 
-
-BioSimSpace.FreeEnergy.AToM
-----------------------------
+Alchemical Transfer Method (ATM)
+--------------------------------
 
 This package contains tools to configure, run, and analyse *relative* free
 energy simulations using the *alchemical transfer method*  developed by the
