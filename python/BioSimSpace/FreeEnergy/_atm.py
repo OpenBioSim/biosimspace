@@ -735,7 +735,9 @@ class ATMSetup:
         self._first_ligand_bound_atom_index = self._system.getIndex(
             ligand_bound_atom_start
         )
-        self._last_ligand_bound_atom_index = self._system.getIndex(ligand_bound_atom_end)
+        self._last_ligand_bound_atom_index = self._system.getIndex(
+            ligand_bound_atom_end
+        )
 
         ligand_free_atom_start = self._system[self._ligand_free_index].getAtoms()[0]
         ligand_free_atom_end = self._system[self._ligand_free_index].getAtoms()[-1]
