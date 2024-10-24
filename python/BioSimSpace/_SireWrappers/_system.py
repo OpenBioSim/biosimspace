@@ -1186,8 +1186,9 @@ class System(_SireWrapper):
 
         from sire.system import System
 
-        # Create a cursor.
-        cursor = System(self._sire_object).cursor()
+        # Create a cursor for the non-perturbable molecules.
+        system = System(self._sire_object)
+        cursor = system["not property is_perturbable"].cursor()
 
         # Rotate all vector properties.
 
@@ -1215,8 +1216,15 @@ class System(_SireWrapper):
         except:
             pass
 
+        # Update the molecules in the system.
+        system.update(cursor.commit())
+        self._sire_object = system._system
+
         # Now deal with any perturbable molecules.
         if self.nPerturbableMolecules() > 0:
+            # Create a cursor for the perturbable molecules.
+            cursor = system["property is_perturbable"].cursor()
+
             # Coordinates.
             try:
                 prop_name = property_map.get("coordinates", "coordinates") + "0"
@@ -1255,8 +1263,9 @@ class System(_SireWrapper):
             except:
                 pass
 
-        # Commit the changes.
-        self._sire_object = cursor.commit()._system
+            # Update the perturbable molecules in the system.
+            system.update(cursor.commit())
+            self._sire_object = system._system
 
     def reduceBoxVectors(self, bias=0, property_map={}):
         """
@@ -1587,6 +1596,9 @@ class System(_SireWrapper):
         if len(box) != 3:
             raise ValueError("'angles' must contain three items.")
 
+        if not isinstance(property_map, dict):
+            raise TypeError("'property_map' must be of type 'dict'")
+
         # Convert sizes to Anstrom.
         vec = [x.angstroms().value() for x in box]
 
@@ -1637,6 +1649,9 @@ class System(_SireWrapper):
             The box vector angles: yz, xz, and xy.
         """
 
+        if not isinstance(property_map, dict):
+            raise TypeError("'property_map' must be of type 'dict'")
+
         # Get the "space" property and convert to a list of BioSimSpace.Type.Length
         # objects.
         try:
@@ -1667,6 +1682,28 @@ class System(_SireWrapper):
             angles = None
 
         return box, angles
+
+    def removeBox(self, property_map={}):
+        """
+        Remove the simulation box from the system.
+
+        Parameters
+        ----------
+
+        property_map : dict
+            A dictionary that maps system "properties" to their user defined
+            values. This allows the user to refer to properties with their
+            own naming scheme, e.g. { "charge" : "my-charge" }
+        """
+
+        if not isinstance(property_map, dict):
+            raise TypeError("'property_map' must be of type 'dict'")
+
+        # Remove the "space" property.
+        try:
+            self._sire_object.removeProperty(property_map.get("space", "space"))
+        except:
+            pass
 
     def makeWhole(self, property_map={}):
         """

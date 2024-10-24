@@ -63,7 +63,7 @@ Tutorials
 =========
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    tutorials/index
 
@@ -71,7 +71,7 @@ Detailed Guides
 ===============
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    guides/index
 
@@ -93,7 +93,7 @@ Support
 Contributing
 ============
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    contributing/index
    contributors

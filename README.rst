@@ -113,20 +113,20 @@ Conda environment.
 
    git clone https://github.com/openbiosim/biosimspace
    cd biosimspace/python
-   python setup.py install
+   pip install .
 
 If you plan to develop and want an editable install, use:
 
 .. code-block:: bash
 
-   python setup.py develop
+   pip install -e .
 
 If you want to skip the installation of BioSimSpace dependencies, e.g. if they
 are already installed, then you can use:
 
 .. code-block:: bash
 
-   BSS_SKIP_DEPENDENCIES=1 python setup.py develop
+   BSS_SKIP_DEPENDENCIES=1 pip install -e .
 
 Once finished, you can test the installation by running:
 
@@ -150,7 +150,7 @@ latest development code into that.
    conda activate openbiosim-dev
    git clone https://github.com/openbiosim/biosimspace
    cd biosimspace/python
-   BSS_SKIP_DEPENDENCIES=1 python setup.py develop
+   BSS_SKIP_DEPENDENCIES=1 pip install -e .
 
 (You may also want to install optional dependencies, such as ``ambertools`` and
 ``gromacs`` into your environment.)

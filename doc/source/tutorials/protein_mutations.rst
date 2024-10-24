@@ -1,5 +1,9 @@
+============================
 Alchemical Protein Mutations
 ============================
+
+Introduction
+============
 
 In this tutorial you will learn how to use BioSimSpace’s mapping
 functionality to set up alchemical calculations in order to compute the
