@@ -251,24 +251,6 @@ finally:
         if sys.platform == "win32":
             bin_dir = os.path.join(bin_dir, "Scripts")
 
-        command = (
-            "%s/jupyter-nbextension install nglview --py --sys-prefix --log-level=0"
-            % bin_dir
-        )
-        subprocess.run(
-            shlex.split(command, posix=posix),
-            shell=False,
-            stdout=stdout,
-            stderr=stderr,
-        )
-        command = "%s/jupyter-nbextension enable nglview --py --sys-prefix" % bin_dir
-        subprocess.run(
-            shlex.split(command, posix=posix),
-            shell=False,
-            stdout=stdout,
-            stderr=stderr,
-        )
-
         print("Cleaning conda environment")
         command = "%s clean --all --yes --quiet" % conda_exe
         subprocess.run(

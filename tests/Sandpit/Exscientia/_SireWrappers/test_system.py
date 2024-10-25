@@ -494,3 +494,17 @@ def test_set_water_property_preserve(system):
 
     # Make sure the property is preserved.
     assert system[-1]._sire_object.hasProperty("test")
+
+
+def test_remove_box(system):
+    # Make a copy of the system.
+    system = system.copy()
+
+    # Make sure the box is present.
+    assert "space" in system._sire_object.propertyKeys()
+
+    # Remove the box.
+    system.removeBox()
+
+    # Make sure the box is removed.
+    assert not "space" in system._sire_object.propertyKeys()

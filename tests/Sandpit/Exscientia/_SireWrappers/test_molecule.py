@@ -2,7 +2,7 @@ import pytest
 
 import BioSimSpace.Sandpit.Exscientia as BSS
 
-from tests.Sandpit.Exscientia.conftest import url, has_amber, has_pyarrow
+from tests.Sandpit.Exscientia.conftest import url, has_amber, has_openff, has_pyarrow
 from tests.conftest import root_fp
 
 
@@ -129,6 +129,10 @@ def test_extract(system):
 
 
 @pytest.mark.parametrize("lipid", [True, False])
+@pytest.mark.skipif(
+    has_amber is False or has_openff is False,
+    reason="Requires AMBER and OpenFF to be installed.",
+)
 def test_lipid(lipid):
     ff = "openff_unconstrained-2.0.0"
     mol = BSS.Parameters.parameterise("c1ccccc1C", ff).getMolecule()

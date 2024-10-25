@@ -725,3 +725,28 @@ def test_hydrogen_mass_repartitioning():
         assert mass0 == masses1[idx]
     for idx, mass1 in dummy_masses1:
         assert mass1 == masses0[idx]
+
+
+def test_ion_merge():
+    from sire.legacy.IO import createSodiumIon
+    from tests.conftest import root_fp
+
+    # Extract a water molecule from the system.
+    water = BSS.IO.readMolecules(
+        [f"{root_fp}/input/ala.crd", f"{root_fp}/input/ala.top"]
+    )[-1]
+
+    # Create a sodium ion using the water coordinates.
+    ion = createSodiumIon(
+        water.getAtoms()[0]._sire_object.property("coordinates"), "tip3p"
+    )
+
+    # Merge the water and ion.
+    merged = BSS.Align.merge(water, BSS._SireWrappers.Molecule(ion))
+
+    # Make sure the ion has the coordintes of the oxygen atom.
+    coords0 = merged._sire_object.property("coordinates0").toVector()[0]
+    coords1 = merged._sire_object.property("coordinates1").toVector()[0]
+    water_coords = water._sire_object.property("coordinates").toVector()[0]
+    assert coords0 == coords1
+    assert coords0 == water_coords

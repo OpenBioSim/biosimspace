@@ -2115,6 +2115,9 @@ class Namd(_process.Process):
         # Copy the original system.
         s = system.copy()
 
+        # Convert to the chosen end state.
+        s = self._checkPerturbable(s)
+
         # Keyword restraint.
         if isinstance(restraint, str):
             # Loop over all molecules by number.

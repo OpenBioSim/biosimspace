@@ -262,12 +262,11 @@ class Amber(_process.Process):
 
         # Create a copy of the system.
         system = self._system.copy()
+        reference_system = self._reference_system.copy()
 
         # Convert the water model topology so that it matches the AMBER naming convention.
         system._set_water_topology("AMBER", property_map=self._property_map)
-        self._reference_system._set_water_topology(
-            "AMBER", property_map=self._property_map
-        )
+        reference_system._set_water_topology("AMBER", property_map=self._property_map)
 
         # Create the squashed system.
         if isinstance(self._protocol, _FreeEnergyMixin):
@@ -304,6 +303,7 @@ class Amber(_process.Process):
 
                     # Set the simulation box.
                     system.setBox(*_cubic(box_length))
+                    reference_system.setBox(*_cubic(box_length))
 
             # Apply SOMD1 compatibility to the perturbation.
             if (
@@ -322,6 +322,7 @@ class Amber(_process.Process):
         else:
             # Check for perturbable molecules and convert to the chosen end state.
             system = self._checkPerturbable(system)
+            reference_system = self._checkPerturbable(reference_system)
 
         # RST file (coordinates).
         try:
@@ -338,7 +339,7 @@ class Amber(_process.Process):
         try:
             file = _os.path.splitext(self._ref_file)[0]
             _IO.saveMolecules(
-                file, self._reference_system, "rst7", property_map=self._property_map
+                file, reference_system, "rst7", property_map=self._property_map
             )
         except Exception as e:
             msg = "Failed to write reference system to 'RST7' format."

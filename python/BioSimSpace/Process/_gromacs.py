@@ -2131,15 +2131,30 @@ class Gromacs(_process.Process):
                         )
 
                         with open(restraint_file, "w") as file:
-                            # Write the header.
-                            file.write("[ position_restraints ]\n")
-                            file.write(";  i funct       fcx        fcy        fcz\n")
-
-                            # Write restraints for each atom.
-                            for atom_idx in restrained_atoms:
+                            if isinstance(self._protocol, _FreeEnergyMixin):
+                                # Write the header.
+                                file.write("[ position_restraints ]\n")
                                 file.write(
-                                    f"{atom_idx+1:4}    1       {force_constant}       {force_constant}       {force_constant}\n"
+                                    ";  i funct       fcx_A       fcy_A       fcz_A       fcx_B       fcy_B       fcz_B\n"
                                 )
+                                # Write restraints for each atom.
+                                for atom_idx in restrained_atoms:
+                                    file.write(
+                                        f"{atom_idx+1:4}    1       {force_constant}       {force_constant}       {force_constant}       {force_constant}       {force_constant}       {force_constant}\n"
+                                    )
+
+                            else:
+                                # Write the header.
+                                file.write("[ position_restraints ]\n")
+                                file.write(
+                                    ";  i funct       fcx        fcy        fcz\n"
+                                )
+
+                                # Write restraints for each atom.
+                                for atom_idx in restrained_atoms:
+                                    file.write(
+                                        f"{atom_idx+1:4}    1       {force_constant}       {force_constant}       {force_constant}\n"
+                                    )
 
                         # Work out the offset.
                         offset = num_restraint - 1

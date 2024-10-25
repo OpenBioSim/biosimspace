@@ -24,3 +24,4 @@ please :doc:`ask for support. <../support>`
    hydration_freenrg
    metadynamics
    protein_mutations
+   alchemical_transfer
