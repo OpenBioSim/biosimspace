@@ -1488,7 +1488,7 @@ class RestraintSearch:
                             dtheta = abs(val - circmean)
                             corrected_values.append(min(dtheta, 2 * _np.pi - dtheta))
                         corrected_values = _np.array(corrected_values)
-                        boresch_dof_data[pair][dof]["var"] = corrected_values.var()
+                        boresch_dof_data[pair][dof]["var"] = _np.mean(corrected_values ** 2)
 
                     # Assume Gaussian distributions and calculate force constants for harmonic potentials
                     # so as to reproduce these distributions at 298 K
