@@ -1039,8 +1039,9 @@ class RestraintSearch:
         shared_atoms = [atom for atom in lig_selection if atom in all_possible_receptor_selection]
         if shared_atoms:
             raise _AnalysisError(
-                f"Shared atoms between ligand and receptor selections detected. "
-                f"Please ensure that the ligand and receptor selections are mutually exclusive. "
+                "Shared atoms between ligand and receptor selections detected. "
+                "Please ensure that you are decoupling the intended molecule and that "
+                "the ligand and receptor selections are mutually exclusive. "
                 f"Shared atoms: {shared_atoms}"
             )
 
