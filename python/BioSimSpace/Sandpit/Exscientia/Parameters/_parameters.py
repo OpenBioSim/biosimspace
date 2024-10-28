@@ -362,6 +362,7 @@ def gaff(
         charge_method=charge_method,
         ensure_compatible=ensure_compatible,
         property_map=property_map,
+        **kwargs,
     )
 
     # Run the parameterisation protocol in the background and return
@@ -460,6 +461,7 @@ def gaff2(
         charge_method=charge_method,
         ensure_compatible=ensure_compatible,
         property_map=property_map,
+        **kwargs,
     )
 
     # Run the parameterisation protocol in the background and return
