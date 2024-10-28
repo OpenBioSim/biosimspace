@@ -2,6 +2,8 @@ import pytest
 
 import numpy as np
 
+from functools import partial
+
 import BioSimSpace.Sandpit.Exscientia as BSS
 from BioSimSpace.Sandpit.Exscientia.Align import decouple
 from BioSimSpace.Sandpit.Exscientia._Exceptions import AnalysisError
@@ -134,7 +136,6 @@ class TestMDRestraintsGenerator_analysis:
         with open(outdir / "BoreschRestraint.top", "r") as f:
             assert "intermolecular_interactions" in f.read()
 
-
 @pytest.mark.skipif(
     (has_gromacs is False or has_mdanalysis is False),
     reason="Requires MDAnalysis and Gromacs to be installed.",
@@ -143,8 +144,7 @@ class TestBSS_analysis:
     """Test selection of restraints using the inbuilt BSS method."""
 
     @staticmethod
-    @pytest.fixture(scope="class")
-    def _restraint_search(tmp_path_factory):
+    def _restraint_search_general(tmp_path_factory, ligand_idx=1):
         outdir = tmp_path_factory.mktemp("out")
         system = BSS.IO.readMolecules(
             [
@@ -152,9 +152,12 @@ class TestBSS_analysis:
                 f"{url}/complex.top.bz2",
             ]
         )
-        ligand = system.getMolecule(1)
-        decoupled_ligand = decouple(ligand)
         protein = system.getMolecule(0)
+        if ligand_idx == 0:
+            ligand = protein.copy()
+        else:
+            ligand = system.getMolecule(ligand_idx)
+        decoupled_ligand = decouple(ligand)
         new_system = (protein + decoupled_ligand).toSystem()
 
         protocol = BSS.Protocol.Production()
@@ -166,6 +169,15 @@ class TestBSS_analysis:
             trajectory=traj, topology=top
         )
         return restraint_search, outdir
+
+    @pytest.fixture(scope="class")
+    def _restraint_search(self, tmp_path_factory):
+        return partial(self._restraint_search_general, tmp_path_factory, ligand_idx=1)()
+
+    @pytest.fixture(scope="class")
+    def _restraint_search_protein(self, tmp_path_factory):
+        # Select the protein as the ligand.
+        return partial(self._restraint_search_general, tmp_path_factory,ligand_idx=0)()
 
     @staticmethod
     @pytest.fixture(scope="class")
@@ -266,6 +278,20 @@ class TestBSS_analysis:
                 restraint_type="Boresch",
                 block=False,
                 cutoff=0.1 * angstrom,
+            )
+
+    def test_non_overlapping_anchor_selections_forbidden(self, _restraint_search_protein):
+        """
+        Ensure that anchor atoms cannot be in the same molecule
+        (the protein has been selected as the ligand, so we are
+        guaranteed that anchor atoms will be in the same molecule).
+        """
+        restraint_search, _ = _restraint_search_protein
+        with pytest.raises(AnalysisError):
+            restraint = restraint_search.analyse(
+                method="BSS",
+                restraint_type="Boresch",
+                block=False,
             )
 
     def test_plots_mdr(self, multiple_distance_restraint):
