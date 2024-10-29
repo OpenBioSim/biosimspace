@@ -590,6 +590,14 @@ class RestraintSearch:
                 f"traj {type(traj)} must be of type 'BioSimSpace.Trajectory._trajectory.Trajectory'"
             )
 
+        n_frames = traj.nFrames()
+        if not n_frames >= 50:
+            _warnings.warn(
+                f"The trajectory for restraint selection has less than 50 frames ({n_frames} frames). "
+                "This may result in poor restraint selection with excessively high force constants. "
+                "Consider running a longer simulation or saving more frames."
+            )
+
         if not isinstance(temperature, _Temperature):
             raise ValueError(
                 f"temperature {type(temperature)} must be of type 'BioSimSpace.Types.Temperature'"
@@ -666,6 +674,18 @@ class RestraintSearch:
         # Find decoupled molecule and use it to create ligand selection
         decoupled_mol = _system.getDecoupledMolecules()[0]
         decoupled_resname = decoupled_mol.getResidues()[0].name()
+
+        # Warn the user if the decoupled molecule is water or a macromoelcule
+        if decoupled_mol.isWater():
+            _warnings.warn(
+                "The decoupled molecule is water. Ensure that this is intended. Using constrained water hydrogens as anchor "
+                "points may produce instabilities."
+            )
+
+        if decoupled_mol.nResidues() > 1:
+            _warnings.warn(
+                "The decoupled molecule has more than one residue and is likely a macromolecule. Ensure that this is intended."
+            )
 
         ligand_selection_str = f"((resname {decoupled_resname}) and (not name H*))"
         if append_to_ligand_selection:
@@ -1012,6 +1032,20 @@ class RestraintSearch:
         """
 
         lig_selection = u.select_atoms(ligand_selection_str)
+
+        # Ensure that there are no shared atoms between the ligand selection and all possible receptor selections.
+        all_possible_receptor_selection = u.select_atoms(receptor_selection_str)
+        shared_atoms = [
+            atom for atom in lig_selection if atom in all_possible_receptor_selection
+        ]
+        if shared_atoms:
+            raise _AnalysisError(
+                "Shared atoms between ligand and receptor selections detected. "
+                "Please ensure that you are decoupling the intended molecule and that "
+                "the ligand and receptor selections are mutually exclusive. "
+                f"Shared atoms: {shared_atoms}"
+            )
+
         pair_variance_dict = {}
 
         # Get all receptor atoms within specified distance of cutoff
@@ -1488,7 +1522,9 @@ class RestraintSearch:
                             dtheta = abs(val - circmean)
                             corrected_values.append(min(dtheta, 2 * _np.pi - dtheta))
                         corrected_values = _np.array(corrected_values)
-                        boresch_dof_data[pair][dof]["var"] = corrected_values.var()
+                        boresch_dof_data[pair][dof]["var"] = _np.mean(
+                            corrected_values**2
+                        )
 
                     # Assume Gaussian distributions and calculate force constants for harmonic potentials
                     # so as to reproduce these distributions at 298 K
