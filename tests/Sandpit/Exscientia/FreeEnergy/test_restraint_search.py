@@ -136,6 +136,7 @@ class TestMDRestraintsGenerator_analysis:
         with open(outdir / "BoreschRestraint.top", "r") as f:
             assert "intermolecular_interactions" in f.read()
 
+
 @pytest.mark.skipif(
     (has_gromacs is False or has_mdanalysis is False),
     reason="Requires MDAnalysis and Gromacs to be installed.",
@@ -177,7 +178,7 @@ class TestBSS_analysis:
     @pytest.fixture(scope="class")
     def _restraint_search_protein(self, tmp_path_factory):
         # Select the protein as the ligand.
-        return partial(self._restraint_search_general, tmp_path_factory,ligand_idx=0)()
+        return partial(self._restraint_search_general, tmp_path_factory, ligand_idx=0)()
 
     @staticmethod
     @pytest.fixture(scope="class")
@@ -280,7 +281,9 @@ class TestBSS_analysis:
                 cutoff=0.1 * angstrom,
             )
 
-    def test_non_overlapping_anchor_selections_forbidden(self, _restraint_search_protein):
+    def test_non_overlapping_anchor_selections_forbidden(
+        self, _restraint_search_protein
+    ):
         """
         Ensure that anchor atoms cannot be in the same molecule
         (the protein has been selected as the ligand, so we are

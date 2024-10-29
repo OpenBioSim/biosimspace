@@ -687,7 +687,6 @@ class RestraintSearch:
                 "The decoupled molecule has more than one residue and is likely a macromolecule. Ensure that this is intended."
             )
 
-
         ligand_selection_str = f"((resname {decoupled_resname}) and (not name H*))"
         if append_to_ligand_selection:
             ligand_selection_str += " and "
@@ -1033,10 +1032,12 @@ class RestraintSearch:
         """
 
         lig_selection = u.select_atoms(ligand_selection_str)
-        
+
         # Ensure that there are no shared atoms between the ligand selection and all possible receptor selections.
         all_possible_receptor_selection = u.select_atoms(receptor_selection_str)
-        shared_atoms = [atom for atom in lig_selection if atom in all_possible_receptor_selection]
+        shared_atoms = [
+            atom for atom in lig_selection if atom in all_possible_receptor_selection
+        ]
         if shared_atoms:
             raise _AnalysisError(
                 "Shared atoms between ligand and receptor selections detected. "
@@ -1521,7 +1522,9 @@ class RestraintSearch:
                             dtheta = abs(val - circmean)
                             corrected_values.append(min(dtheta, 2 * _np.pi - dtheta))
                         corrected_values = _np.array(corrected_values)
-                        boresch_dof_data[pair][dof]["var"] = _np.mean(corrected_values ** 2)
+                        boresch_dof_data[pair][dof]["var"] = _np.mean(
+                            corrected_values**2
+                        )
 
                     # Assume Gaussian distributions and calculate force constants for harmonic potentials
                     # so as to reproduce these distributions at 298 K
