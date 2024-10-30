@@ -88,8 +88,9 @@ more choices to be made before the system can be prepared. The most important of
 these is the choice of displacement vector, which defines the direction and
 distance at which the free ligand will be placed relative to the bound ligand.
 It is generally recommended that this displacement be at least 3 layers of water
-molecules (> 10 Å) thick. If no displacement is provided a default choice of
-[20Å, 20Å, 20Å] will be used.
+molecules (> 10 Å) thick. If no displacement is provided BioSimSpace will find a
+best guess translation vector based on the relative positions of the protein and
+bound ligands and translate the free ligand 20 Å along this vector.
 
 This is also the point at which a custom set of atoms can be chosen to define the
 centre of mass of both the ligands and the protein. In the majority of cases it
