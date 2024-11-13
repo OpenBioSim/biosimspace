@@ -163,7 +163,7 @@ class Relative:
 
         engine : str
             The molecular dynamics engine used to run the simulation. Available
-            options are "GROMACS", or "SOMD". If this argument is omitted then
+            options are "AMBER", "GROMACS", or "SOMD". If this argument is omitted then
             BioSimSpace will choose an appropriate engine for you.
 
         setup_only : bool
@@ -1158,8 +1158,8 @@ class Relative:
         # Assign defaults in case not passed via kwargs.
         auto_eq = False
         stat_ineff = False
-        truncate = False
-        truncate_keep = "start"
+        truncate_upper = 100
+        truncate_lower = 0
 
         # Parse kwargs.
         for key, value in kwargs.items():
@@ -1168,35 +1168,31 @@ class Relative:
                 auto_eq = value
             if key == "STATISTICALINEFFICIENCY":
                 stat_ineff = value
-            if key == "TRUNCATEPERCENTAGE":
-                truncate = value
-            if key == "TRUNCATEKEEP":
-                truncate_keep = value
+            if key == "TRUNCATEUPPER":
+                truncate_upper = value
+            if key == "TRUNCATELOWER":
+                truncate_lower = value
 
-        # First truncate data.
+        # Copy the data.
         raw_data = data
-        if truncate:
-            # Get the upper and lower bounds for truncate.
-            data_len = len(data[0])
-            data_step = round((data[0].index[-1][0] - data[0].index[-2][0]), 1)
-            data_kept = data_len * (truncate / 100)
-            data_time = data_kept * data_step
-            if truncate_keep == "start":
-                truncate_lower = 0
-                truncate_upper = data_time - data_step
-            if truncate_keep == "end":
-                truncate_lower = (data_len * data_step) - data_time
-                truncate_upper = (data_len * data_step) - data_step
 
-            try:
-                data = [
-                    _slicing(i, lower=truncate_lower, upper=truncate_upper)
-                    for i in raw_data
-                ]
-            except:
-                _warnings.warn("Could not truncate data.")
-                data = raw_data
-        else:
+        # Data length.
+        data_len = len(data[0])
+
+        # Step size.
+        data_step = round((data[0].index[-1][0] - data[0].index[-2][0]), 1)
+
+        # Get the upper and lower bounds for truncate.
+        truncate_lower = (data_len * (truncate_lower / 100)) * data_step
+        truncate_upper = (data_len * (truncate_upper / 100)) * data_step
+
+        try:
+            data = [
+                _slicing(i, lower=truncate_lower, upper=truncate_upper)
+                for i in raw_data
+            ]
+        except:
+            _warnings.warn("Could not truncate data.")
             data = raw_data
 
         # The decorrelate function calls either autoequilibration or statistical_inefficiency
@@ -1230,10 +1226,7 @@ class Relative:
                 )
             sampled_data = data
 
-        # Concatanate in alchemlyb format.
-        processed_data = _alchemlyb.concat(sampled_data)
-
-        return processed_data
+        return sampled_data
 
     @staticmethod
     def _analyse_internal(files, temperatures, lambdas, engine, estimator, **kwargs):
@@ -1319,6 +1312,7 @@ class Relative:
         # Preprocess the data.
         try:
             processed_data = Relative._preprocess_data(data, estimator, **kwargs)
+            processed_data = _alchemlyb.concat(processed_data)
         except:
             _warnings.warn("Could not preprocess the data!")
             processed_data = _alchemlyb.concat(data)
