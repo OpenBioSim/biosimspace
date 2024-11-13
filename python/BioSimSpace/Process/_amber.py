@@ -277,6 +277,14 @@ class Amber(_process.Process):
                     "perturbable molecule!"
                 )
 
+            # Make sure the protocol is valid.
+            if self._protocol.getPerturbationType() != "full":
+                raise NotImplementedError(
+                    "AMBER currently only supports the 'full' perturbation "
+                    "type. Please use engine='SOMD' when running multistep "
+                    "perturbation types."
+                )
+
             # If this is vacuum simulation with pmemd.cuda then
             # we need to add a simulation box.
             if self._is_vacuum and self._is_pmemd_cuda:
