@@ -725,6 +725,8 @@ def matchAtoms(
     complete_rings_only=True,
     max_scoring_matches=1000,
     roi=None,
+    prune_perturbed_constraints=False,
+    prune_crossing_constraints=False,
     property_map0={},
     property_map1={},
 ):
@@ -786,6 +788,16 @@ def matchAtoms(
     roi : list
         The region of interest to match.
         Consists of a list of ROI residue indices.
+
+    prune_perturbed_constraints : bool
+        Whether to remove hydrogen atoms that are perturbed to heavy atoms
+        from the mapping. This option should be True when creating mappings
+        to use with the AMBER engine.
+
+    prune_crossing_constraints : bool
+        Whether to remove atoms from the mapping such that there are no
+        constraints between dummy and non-dummy atoms. This option should
+        be True when creating mappings to use with the AMBER engine.
 
     property_map0 : dict
         A dictionary that maps "properties" in molecule0 to their user
@@ -859,6 +871,8 @@ def matchAtoms(
             timeout=timeout,
             complete_rings_only=complete_rings_only,
             max_scoring_matches=max_scoring_matches,
+            prune_perturbed_constraints=prune_perturbed_constraints,
+            prune_crossing_constraints=prune_crossing_constraints,
             property_map0=property_map0,
             property_map1=property_map1,
         )
@@ -867,6 +881,8 @@ def matchAtoms(
             molecule0=molecule0,
             molecule1=molecule1,
             roi=roi,
+            prune_perturbed_constraints=prune_perturbed_constraints,
+            prune_crossing_constraints=prune_crossing_constraints,
             use_kartograf=False,
             kartograf_kwargs={},
         )
@@ -875,15 +891,18 @@ def matchAtoms(
 def _matchAtoms(
     molecule0,
     molecule1,
-    scoring_function,
-    matches,
-    return_scores,
-    prematch,
-    timeout,
-    complete_rings_only,
-    max_scoring_matches,
-    property_map0,
-    property_map1,
+    scoring_function="rmsd_align",
+    matches=1,
+    return_scores=False,
+    prematch={},
+    timeout=5 * _Units.Time.second,
+    complete_rings_only=True,
+    max_scoring_matches=1000,
+    roi=None,
+    prune_perturbed_constraints=False,
+    prune_crossing_constraints=False,
+    property_map0={},
+    property_map1={},
 ):
     # A list of supported scoring functions.
     scoring_functions = ["RMSD", "RMSDALIGN", "RMSDFLEXALIGN"]
@@ -935,11 +954,20 @@ def _matchAtoms(
     if not isinstance(timeout, _Units.Time._Time):
         raise TypeError("'timeout' must be of type 'BioSimSpace.Types.Time'")
 
+    if not isinstance(complete_rings_only, bool):
+        raise TypeError("'complete_rings_only' must be of type 'bool'")
+
     if not type(max_scoring_matches) is int:
         raise TypeError("'max_scoring_matches' must be of type 'int'")
 
     if max_scoring_matches <= 0:
         raise ValueError("'max_scoring_matches' must be >= 1.")
+
+    if not isinstance(prune_perturbed_constraints, bool):
+        raise TypeError("'prune_perturbed_constraints' must be of type 'bool'")
+
+    if not isinstance(prune_crossing_constraints, bool):
+        raise TypeError("'prune_crossing_constraints' must be of type 'bool'")
 
     if not isinstance(property_map0, dict):
         raise TypeError("'property_map0' must be of type 'dict'")
@@ -1069,6 +1097,18 @@ def _matchAtoms(
             property_map1,
         )
 
+    # Optionally post-process the MCS for use with AMBER.
+    if prune_perturbed_constraints:
+        mappings = [
+            _prune_perturbed_constraints(molecule0, molecule1, mapping)
+            for mapping in mappings
+        ]
+    if prune_crossing_constraints:
+        mappings = [
+            _prune_crossing_constraints(molecule0, molecule1, mapping)
+            for mapping in mappings
+        ]
+
     if matches == 1:
         if return_scores:
             return (mappings[0], scores[0])
@@ -1107,7 +1147,7 @@ def _kartograf_map(molecule0, molecule1, kartograf_kwargs):
         The kartograf mapping object.
 
     """
-    # try to import kartograf
+    # Try to import kartograf.
     try:
         from kartograf.atom_aligner import align_mol_shape as _align_mol_shape
         from kartograf.atom_mapping_scorer import (
@@ -1138,22 +1178,21 @@ def _kartograf_map(molecule0, molecule1, kartograf_kwargs):
     rdkit_mol1 = _toRDKit(molecule1)
     rdkit_mols = [rdkit_mol0, rdkit_mol1]
 
-    # build small molecule components
+    # Build small molecule components.
     mol0, mol1 = [_SmallMoleculeComponent.from_rdkit(m) for m in rdkit_mols]
 
-    # align molecules first
+    # Align molecules first.
     a_mol1 = _align_mol_shape(mol1, ref_mol=mol0)
 
-    # build Kartograf Atom Mapper
+    # Build Kartograf Atom Mapper.
     mapper = KartografAtomMapper(**kartograf_kwargs)
 
-    # get the mapping
+    # Get the mapping.
     kartograf_mapping = next(mapper.suggest_mappings(mol0, a_mol1))
 
-    # score the mapping
+    # Score the mapping.
     rmsd_scorer = _MappingRMSDScorer()
     score = rmsd_scorer(mapping=kartograf_mapping)
-    print(f"RMSD score: {score:.2f}")
 
     return kartograf_mapping
 
@@ -1162,6 +1201,8 @@ def _roiMatch(
     molecule0,
     molecule1,
     roi,
+    prune_perturbed_constraints=False,
+    prune_crossing_constraints=False,
     **kwargs,
 ):
     """
@@ -1183,6 +1224,16 @@ def _roiMatch(
     roi : list
         The region of interest to match.
         Consists of a list of ROI residue indices
+
+    prune_perturbed_constraints : bool
+        Whether to remove hydrogen atoms that are perturbed to heavy atoms
+        from the mapping. This option should be True when creating mappings
+        to use with the AMBER engine.
+
+    prune_crossing_constraints : bool
+        Whether to remove atoms from the mapping such that there are no
+        constraints between dummy and non-dummy atoms. This option should
+        be True when creating mappings to use with the AMBER engine.
 
     use_kartograf : bool, optional, default=False
         If set to True, will use the kartograf algorithm to match the
@@ -1255,7 +1306,13 @@ def _roiMatch(
     else:
         _validate_roi([molecule0, molecule1], roi)
 
-    # Check kwargs
+    if not isinstance(prune_perturbed_constraints, bool):
+        raise TypeError("'prune_perturbed_constraints' must be of type 'bool'")
+
+    if not isinstance(prune_crossing_constraints, bool):
+        raise TypeError("'prune_crossing_constraints' must be of type 'bool'")
+
+    # Check kwargs.
     use_kartograf = kwargs.get("use_kartograf", False)
     kartograf_kwargs = kwargs.get("kartograf_kwargs", {})
 
@@ -1324,7 +1381,7 @@ def _roiMatch(
         res0_idx = [a.index() for a in molecule0_roi]
         res1_idx = [a.index() for a in molecule1_roi]
 
-        # Extract the residues of interest from the molecules
+        # Extract the residues of interest from the molecules.
         res0_extracted = molecule0.extract(res0_idx)
         res1_extracted = molecule1.extract(res1_idx)
 
@@ -1414,12 +1471,19 @@ def _roiMatch(
         )
     )
 
-    # Combine the dictionaries to get the full mapping
+    # Combine the dictionaries to get the full mapping.
     full_mapping = {
         **pre_roi_mapping,
         **absolute_roi_mapping,
         **after_roi_mapping,
     }
+
+    # Optionally post-process the MCS for use with AMBER.
+    if prune_perturbed_constraints:
+        full_mapping = _prune_perturbed_constraints(molecule0, molecule1, full_mapping)
+
+    if prune_crossing_constraints:
+        full_mapping = _prune_crossing_constraints(molecule0, molecule1, full_mapping)
 
     return full_mapping
 
@@ -2905,12 +2969,11 @@ def _validate_roi(molecules, roi):
     Parameters
     ----------
 
-    molecules : list
-        Consits of a list of :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`.
+    molecules : list[:class:`Molecule <BioSimSpace._SireWrappers.Molecule>`]
+        A list of molecules.
 
     roi : list
-        The region of interest.
-        Consists of a list of ROI residue indices.
+        A list of residue indices.
     """
 
     if not isinstance(roi, list):
@@ -2982,5 +3045,130 @@ def _from_sire_mapping(sire_mapping):
             return sire_mapping
         else:
             mapping[idx0.value()] = idx1.value()
+
+    return mapping
+
+
+def _prune_perturbed_constraints(molecule0, molecule1, mapping):
+    """
+    Prunes the maximum common substructure (MCS) so that no hydrogen
+    bond constraints are perturbed.
+
+    Parameters
+    ----------
+
+    molecule0 : class:`Molecule <BioSimSpace._SireWrappers.Molecule>
+        The first molecule (used at lambda = 0).
+
+    molecule1 : class:`Molecule <BioSimSpace._SireWrappers.Molecule>
+        The second molecule (used at lambda = 1).
+
+    mapping : dict(int, int)
+        A maximum common substructure mapping between both molecules, as
+        generated by e.g.  BioSimSpace.Align.matchAtoms().
+
+    Returns
+    -------
+
+    new_mapping : dict(int, int)
+        The pruned MCS.
+    """
+    new_mapping = {}
+
+    # Store a hydrogen element.
+    hydrogen = _SireMol.Element("H")
+
+    for idx0, idx1 in mapping.items():
+        atom0 = molecule0.getAtoms()[idx0]
+        atom1 = molecule1.getAtoms()[idx1]
+        elem0 = atom0._sire_object.property("element")
+        elem1 = atom1._sire_object.property("element")
+        elems = {elem0, elem1}
+
+        # Make sure we are not matching a hydrogen to a non-hydrogen.
+        if not (hydrogen in elems and len(elems) > 1):
+            new_mapping[idx0] = idx1
+
+    return new_mapping
+
+
+def _prune_crossing_constraints(molecule0, molecule1, mapping):
+    """
+    Prunes the maximum common substructure (MCS) mapping so that there are no
+    constrained bonds between a common core and a softcore atom.
+
+    Parameters
+    ----------
+
+    molecule0 : class:`Molecule <BioSimSpace._SireWrappers.Molecule>
+        The first molecule (used at lambda = 0).
+
+    molecule1 : class:`Molecule <BioSimSpace._SireWrappers.Molecule>
+        The second molecule (used at lambda = 1).
+
+    mapping : dict(int, int)
+        A maximum common substructure mapping between both molecules, as
+        generated by e.g.  BioSimSpace.Align.matchAtoms().
+
+    Returns
+    -------
+
+    new_mapping : dict(int, int)
+        The pruned mapping.
+    """
+
+    # Get the connectivity of the molecules.
+    connectivity0 = _SireMol.Connectivity(
+        molecule0._sire_object, _SireMol.CovalentBondHunter()
+    )
+    connectivity1 = _SireMol.Connectivity(
+        molecule1._sire_object, _SireMol.CovalentBondHunter()
+    )
+
+    # Store a hydrogen element.
+    hydrogen = _SireMol.Element("H")
+
+    while True:
+        new_mapping = {}
+
+        for idx0, idx1 in mapping.items():
+            # Get the relevant atom and whether it's a hydrogen.
+            atom0 = molecule0._sire_object.atom(_SireMol.AtomIdx(idx0))
+            atom1 = molecule1._sire_object.atom(_SireMol.AtomIdx(idx1))
+            is_H0 = atom0.property("element") == hydrogen
+            is_H1 = atom1.property("element") == hydrogen
+
+            # Get the neighbours to the atom
+            neighbours0 = [
+                molecule0._sire_object.atom(i)
+                for i in connectivity0.connectionsTo(_SireMol.AtomIdx(idx0))
+            ]
+            neighbours1 = [
+                molecule1._sire_object.atom(i)
+                for i in connectivity1.connectionsTo(_SireMol.AtomIdx(idx1))
+            ]
+
+            # Determine whether there are any constrained bonds between the
+            # MCS and softcore part.
+            any_Hdummies0 = any(
+                (atom.property("element") == hydrogen or is_H0)
+                and atom.index().value() not in mapping.keys()
+                for atom in neighbours0
+            )
+            any_Hdummies1 = any(
+                (atom.property("element") == hydrogen or is_H1)
+                and atom.index().value() not in mapping.values()
+                for atom in neighbours1
+            )
+
+            if not any_Hdummies0 and not any_Hdummies1:
+                new_mapping[idx0] = idx1
+
+        # We stop iterating if the pruned mapping is the same as the input one.
+        if new_mapping == mapping:
+            mapping = new_mapping
+            break
+        else:
+            mapping = new_mapping
 
     return mapping
