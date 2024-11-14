@@ -1488,13 +1488,12 @@ class OpenMM(_process.Process):
 
         if not type(index) is int:
             raise TypeError("'index' must be of type 'int'")
-        max_index = (
-            int(
-                (self._protocol.getRunTime() / self._protocol.getTimeStep())
-                / self._protocol.getRestartInterval()
-            )
-            - 1
+
+        max_index = int(
+            (self._protocol.getRunTime() / self._protocol.getTimeStep())
+            / self._protocol.getRestartInterval()
         )
+
         if index < 0 or index > max_index:
             raise ValueError(f"'index' must be in range [0, {max_index}].")
 
