@@ -100,23 +100,12 @@ class Gromacs(_Config):
             if not all(isinstance(line, str) for line in extra_lines):
                 raise TypeError("Lines in 'extra_lines' must be of type 'str'.")
 
-        # Make sure the report interval is a multiple of nstcalcenergy.
-        if isinstance(self._protocol, _FreeEnergyMixin):
-            nstcalcenergy = 250
-        else:
-            nstcalcenergy = 100
-        report_interval = self.reportInterval()
-        if report_interval % nstcalcenergy != 0:
-            report_interval = nstcalcenergy * _math.ceil(
-                report_interval / nstcalcenergy
-            )
-
         # Define some miscellaneous defaults.
         protocol_dict = {
             # Interval between writing to the log file.
-            "nstlog": report_interval,
+            "nstlog": self.reportInterval(),
             # Interval between writing to the energy file.
-            "nstenergy": report_interval,
+            "nstenergy": self.reportInterval(),
             # Interval between writing to the trajectory file.
             "nstxout-compressed": self.restartInterval(),
         }
@@ -300,10 +289,10 @@ class Gromacs(_Config):
             protocol_dict["couple-lambda1"] = "vdw-q"
             # Write all lambda values.
             protocol_dict["calc-lambda-neighbors"] = -1
-            # Calculate energies every 250 steps.
-            protocol_dict["nstcalcenergy"] = 250
-            # Write gradients every 250 steps.
-            protocol_dict["nstdhdl"] = 250
+            # Calculate energies at the report interval.
+            protocol_dict["nstcalcenergy"] = self.reportInterval()
+            # Write gradients at the report interval.
+            protocol_dict["nstdhdl"] = self.reportInterval()
             # Soft-core parameters.
             protocol_dict["sc-alpha"] = "0.30"
             protocol_dict["sc-sigma"] = "0.25"
