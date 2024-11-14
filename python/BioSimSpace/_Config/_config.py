@@ -213,6 +213,6 @@ class Config:
             steps = self._protocol.getSteps()
         else:
             steps = _math.ceil(
-                self._protocol.getRunTime() / self._protocol.getTimeStep()
+                round(self._protocol.getRunTime() / self._protocol.getTimeStep(), 6)
             )
         return steps
