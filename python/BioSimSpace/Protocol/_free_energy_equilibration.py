@@ -44,7 +44,7 @@ class FreeEnergyEquilibration(_Equilibration, _FreeEnergyMixin):
         max_lam=1.0,
         num_lam=11,
         timestep=_Types.Time(2, "femtosecond"),
-        runtime=_Types.Time(0.2, "nanoseconds"),
+        runtime=_Types.Time(1, "nanoseconds"),
         temperature_start=_Types.Temperature(300, "kelvin"),
         temperature_end=_Types.Temperature(300, "kelvin"),
         temperature=None,
