@@ -1436,6 +1436,13 @@ class Relative:
                 if "lambda" in part:
                     lambdas.append(float(part.split("_")[-1]))
 
+        if len(lambdas) == 0:
+            raise ValueError(
+                "No lambda windows were detected from the output directory names! "
+                "Ensure that the directory being analysed contains sub-directories"
+                "name e.g `lambda_0`, `lambda_1` containing the output files."
+            )
+
         # Find the temperature for each lambda window.
         temperatures = []
         for file, lambda_ in zip(files, lambdas):
@@ -1516,6 +1523,13 @@ class Relative:
                 for part in file.parts:
                     if "lambda" in part:
                         lambdas.append(float(part.split("_")[-1]))
+
+            if len(lambdas) == 0:
+                raise ValueError(
+                    "No lambda windows were detected from the output directory names! "
+                    "Ensure that the directory being analysed contains sub-directories"
+                    "name e.g `lambda_0`, `lambda_1` containing the output files."
+                )
 
             # Find the temperature at each lambda window
             temperatures = []
@@ -1685,6 +1699,13 @@ class Relative:
                 for part in file.parts:
                     if "lambda" in part:
                         lambdas.append(float(part.split("_")[-1]))
+
+            if len(lambdas) == 0:
+                raise ValueError(
+                    "No lambda windows were detected from the output directory names! "
+                    "Ensure that the directory being analysed contains sub-directories"
+                    "name e.g `lambda_0`, `lambda_1` containing the output files."
+                )
 
             temperatures = []
             for file in files:
@@ -1882,6 +1903,13 @@ class Relative:
         # Sort the lists based on the lambda values.
         temperatures = [x for _, x in sorted(zip(lambdas, temperatures))]
         lambdas = sorted(lambdas)
+
+        if len(lambdas) == 0:
+            raise ValueError(
+                "No lambda windows were detected from the output directory names! "
+                "Ensure that the directory being analysed contains sub-directories"
+                "name e.g `lambda_0`, `lambda_1` containing the output files."
+            )
 
         # Check that the temperatures at the end states match.
         if temperatures[0] != temperatures[-1]:
