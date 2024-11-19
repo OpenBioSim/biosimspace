@@ -2,7 +2,7 @@
 ====================================================
 
 .. image:: https://github.com/openbiosim/biosimspace/workflows/devel.yaml/badge.svg
-   :target: https://github.com/openbiosim/biosimspace/actions?query=workflow%3ABuild)
+   :target: https://github.com/openbiosim/biosimspace/actions?query=workflow%3ABuild
    :alt: Build status
 
 .. image:: https://anaconda.org/openbiosim/biosimspace/badges/downloads.svg
