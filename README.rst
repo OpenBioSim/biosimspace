@@ -1,8 +1,8 @@
 `BioSimSpace <https://biosimspace.openbiosim.org>`__
 ====================================================
 
-.. image:: https://github.com/openbiosim/biosimspace/workflows/devel.yaml/badge.svg
-   :target: https://github.com/openbiosim/biosimspace/actions?query=workflow%3ABuild
+.. image:: https://github.com/openbiosim/biosimspace/actions/workflows/devel.yaml/badge.svg
+   :target: https://github.com/openbiosim/biosimspace/actions?query=workflow%3ARelease-Devel
    :alt: Build status
 
 .. image:: https://anaconda.org/openbiosim/biosimspace/badges/downloads.svg
