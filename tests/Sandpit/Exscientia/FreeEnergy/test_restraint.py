@@ -14,7 +14,6 @@ from BioSimSpace.Sandpit.Exscientia.Units.Angle import degree, radian
 from BioSimSpace.Sandpit.Exscientia.Units.Energy import kcal_per_mol
 from BioSimSpace.Sandpit.Exscientia.Units.Length import angstrom
 from BioSimSpace.Sandpit.Exscientia.Units.Temperature import kelvin
-
 from tests.conftest import has_gromacs
 
 # Store the tutorial URL.
@@ -201,8 +200,28 @@ class TestGromacsOutputBoresch:
         assert aj == "1496"
         assert ak == "1497"
 
+    def test_bented_angle(self, Topology):
+        ai, aj, ak, type, thA, kA, thB, kB = Topology[8].split()
+        assert ai == "2"
+        assert aj == "1"
+        assert ak == "1496"
+        assert type == "10"
+        assert thA == "90.000"
+        assert kA == "4.18"
+        assert thB == "90.000"
+        assert kB == "4.18"
+        ai, aj, ak, type, thA, kA, thB, kB = Topology[9].split()
+        assert ai == "1"
+        assert aj == "1496"
+        assert ak == "1497"
+        assert type == "10"
+        assert thA == "90.000"
+        assert kA == "4.18"
+        assert thB == "90.000"
+        assert kB == "4.18"
+
     def test_dihedral(self, Topology):
-        ai, aj, ak, al, type, phiA, kA, phiB, kB = Topology[10].split()
+        ai, aj, ak, al, type, phiA, kA, phiB, kB = Topology[12].split()
         assert ai == "3"
         assert aj == "2"
         assert ak == "1"
@@ -212,12 +231,12 @@ class TestGromacsOutputBoresch:
         assert kA == "0.00"
         assert phiB == "148.396"
         assert kB == "41.84"
-        ai, aj, ak, al, type, phiA, kA, phiB, kB = Topology[11].split()
+        ai, aj, ak, al, type, phiA, kA, phiB, kB = Topology[13].split()
         assert ai == "2"
         assert aj == "1"
         assert ak == "1496"
         assert al == "1497"
-        ai, aj, ak, al, type, phiA, kA, phiB, kB = Topology[12].split()
+        ai, aj, ak, al, type, phiA, kA, phiB, kB = Topology[14].split()
         assert ai == "1"
         assert aj == "1496"
         assert ak == "1497"
@@ -233,8 +252,8 @@ class TestGromacsOutputBoreschRestraintLambda(TestGromacsOutputBoresch):
         ).split("\n")
 
     def test_dihedral(self, Topology):
-        assert "dihedral_restraints" in Topology[8]
-        ai, aj, ak, al, type, phiA, dphiA, kA, phiB, dphiB, kB = Topology[10].split()
+        assert "dihedral_restraints" in Topology[10]
+        ai, aj, ak, al, type, phiA, dphiA, kA, phiB, dphiB, kB = Topology[12].split()
         assert ai == "3"
         assert aj == "2"
         assert ak == "1"

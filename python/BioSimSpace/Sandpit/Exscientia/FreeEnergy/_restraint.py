@@ -37,7 +37,7 @@ from sire.legacy.Units import (
 )
 from sire.units import GeneralUnit as _sire_GeneralUnit
 
-from BioSimSpace.Sandpit.Exscientia.Types._general_unit import (
+from ..Types._general_unit import (
     GeneralUnit as _GeneralUnit,
 )
 from ..Types import Angle as _Angle, Length as _Length, Temperature as _Temperature
@@ -450,7 +450,7 @@ class Restraint:
             )
 
         # Format the parameters for the angles and dihedrals
-        def format_angle(equilibrium_values, force_constants, restraint_lambda):
+        def format_angle(equilibrium_values, force_constants, restraint_lambda, perturbed=True):
             """
             Format the angle equilibrium values and force constant
             in into the Gromacs topology format.
@@ -465,12 +465,22 @@ class Restraint:
 
             When restraint_lambda is True, the dihedrals will be stored in the dihedral_restraints.
             """
-            converted_equ_val = (
+            if isinstance(equilibrium_values, _Angle):
+                converted_equ_val = equilibrium_values / _degree
+            else:
+                converted_equ_val = (
                 self._restraint_dict["equilibrium_values"][equilibrium_values] / _degree
             )
-            converted_fc = self._restraint_dict["force_constants"][force_constants] / (
-                _kj_per_mol / (_radian * _radian)
-            )
+
+            if isinstance(force_constants, _GeneralUnit):
+                converted_fc = force_constants / (
+                    _kj_per_mol / (_radian * _radian)
+                )
+            else:
+                converted_fc = self._restraint_dict["force_constants"][force_constants] / (
+                    _kj_per_mol / (_radian * _radian)
+                )
+
             par_string = (
                 dihedral_restraints_parameters_string
                 if restraint_lambda
@@ -478,7 +488,7 @@ class Restraint:
             )
             return par_string.format(
                 eq0="{:.3f}".format(converted_equ_val),
-                fc0="{:.2f}".format(0),
+                fc0="{:.2f}".format(0 if perturbed else converted_fc),
                 eq1="{:.3f}".format(converted_equ_val),
                 fc1="{:.2f}".format(converted_fc),
             )
@@ -493,12 +503,12 @@ class Restraint:
                 parameters=format_bond(equilibrium_values, force_constants),
             )
 
-        def write_angle(key_list, equilibrium_values, force_constants):
+        def write_angle(key_list, equilibrium_values, force_constants, func_type=1, perturbed=True):
             return master_string.format(
                 index=format_index(key_list),
-                func_type=1,
+                func_type=func_type,
                 parameters=format_angle(
-                    equilibrium_values, force_constants, restraint_lambda=False
+                    equilibrium_values, force_constants, restraint_lambda=False, perturbed=perturbed
                 ),
             )
 
@@ -539,6 +549,22 @@ class Restraint:
         output.append(write_angle(("r2", "r1", "l1"), "thetaA0", "kthetaA"))
         # Angles: r1-l1-l2 (thetaB0, kthetaB)
         output.append(write_angle(("r1", "l1", "l2"), "thetaB0", "kthetaB"))
+        # Bent angle: r2-r1-l1
+        # Center is 90 degree
+        # force constant is set by evaluating the free energy of adding a harmonic angle potential with fc at kcal/mol/rad2 at 135 degree
+        #| fc (kcal/mol/rad2) | FE (kcal/mol) |
+        #|--------------------|---------------|
+        #| control            | 1.05          |
+        #| 0                  | 1.05          |
+        #| 0.1                | 0.99          |
+        #| 1                  | 1.17          |
+        #| 5                  | 2.14          |
+        #| 10                 | 3.46          |
+        #| 100                | 14.92         |
+        # Thus 1 kcal/mol/rad2 is choosen
+        output.append(write_angle(("r2", "r1", "l1"), 90 * _degree, 1 * _kcal_per_mol / _radian**2, func_type=10, perturbed=False))
+        # Bent angle: r2-r1-l1
+        output.append(write_angle(("r1", "l1", "l2"), 90 * _degree, 1 * _kcal_per_mol / _radian**2, func_type=10, perturbed=False))
 
         if restraint_lambda:
             output.append("[ dihedral_restraints ]")
