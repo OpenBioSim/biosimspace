@@ -43,9 +43,7 @@ def test_free_energy(perturbable_system):
     """Test a free energy perturbation protocol."""
 
     # Create a short FEP protocol.
-    protocol = BSS.Protocol.FreeEnergy(
-        runtime=0.1 * BSS.Units.Time.picosecond, report_interval=50, restart_interval=50
-    )
+    protocol = BSS.Protocol.FreeEnergy(runtime=0.1 * BSS.Units.Time.picosecond)
 
     # Run the process, check that it finished without error, and returns a system.
     run_process(perturbable_system, protocol)
