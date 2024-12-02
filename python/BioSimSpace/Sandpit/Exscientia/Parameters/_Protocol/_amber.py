@@ -841,6 +841,7 @@ class GAFF(_protocol.Protocol):
         net_charge=None,
         ensure_compatible=True,
         property_map={},
+        **kwargs,
     ):
         """
         Constructor.
@@ -873,6 +874,10 @@ class GAFF(_protocol.Protocol):
             A dictionary that maps system "properties" to their user defined
             values. This allows the user to refer to properties with their
             own naming scheme, e.g. { "charge" : "my-charge" }
+
+        **kwargs: dict
+            Additional keyword arguments. These can be used to pass custom
+            parameters to the Antechamber program.
         """
 
         if type(version) is not int:
@@ -911,6 +916,11 @@ class GAFF(_protocol.Protocol):
                 raise TypeError(
                     "'net_charge' must be of type 'int', or `BioSimSpace.Types.Charge'"
                 )
+
+        # Check the kwargs to see whether acdoctor is enabled.
+        self._acdoctor = kwargs.get("acdoctor", True)
+        if not isinstance(self._acdoctor, bool):
+            raise TypeError("'acdoctor' must be of type 'bool'")
 
         # Set the version.
         self._version = version
@@ -1085,6 +1095,10 @@ class GAFF(_protocol.Protocol):
             self._charge_method.lower(),
             charge,
         )
+
+        # Disable acdoctor if requested.
+        if not self._acdoctor:
+            command += " -dr no"
 
         with open(_os.path.join(str(work_dir), "README.txt"), "w") as file:
             # Write the command to file.
