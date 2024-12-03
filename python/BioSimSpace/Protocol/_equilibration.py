@@ -42,14 +42,15 @@ class Equilibration(_Protocol, _PositionRestraintMixin):
     def __init__(
         self,
         timestep=_Types.Time(2, "femtosecond"),
-        runtime=_Types.Time(0.2, "nanoseconds"),
+        runtime=_Types.Time(1, "nanoseconds"),
         temperature_start=_Types.Temperature(300, "kelvin"),
         temperature_end=_Types.Temperature(300, "kelvin"),
         temperature=None,
         pressure=None,
         thermostat_time_constant=_Types.Time(1, "picosecond"),
-        report_interval=100,
-        restart_interval=500,
+        report_interval=200,
+        restart_interval=1000,
+        restart=False,
         restraint=None,
         force_constant=10 * _Units.Energy.kcal_per_mol / _Units.Area.angstrom2,
     ):
@@ -88,6 +89,9 @@ class Equilibration(_Protocol, _PositionRestraintMixin):
         restart_interval : int
             The frequency at which restart configurations and trajectory
             frames are saved. (In integration steps.)
+
+        restart : bool
+            Whether this is a continuation of a previous simulation.
 
         restraint : str, [int]
             The type of restraint to perform. This should be one of the
@@ -155,6 +159,9 @@ class Equilibration(_Protocol, _PositionRestraintMixin):
         # Set the restart interval.
         self.setRestartInterval(restart_interval)
 
+        # Set the restart flag.
+        self.setRestart(restart)
+
         # Set the posistion restraint.
         _PositionRestraintMixin.__init__(self, restraint, force_constant)
 
@@ -169,7 +176,7 @@ class Equilibration(_Protocol, _PositionRestraintMixin):
             f"thermostat_time_constant={self._thermostat_time_constant}, "
             f"report_interval={self._report_interval}, "
             f"restart_interval={self._restart_interval}, "
-            + _PositionRestraintMixin._get_parm(self)
+            f"restart={self._restart}, " + _PositionRestraintMixin._get_parm(self)
         )
 
     def __str__(self):
@@ -204,6 +211,7 @@ class Equilibration(_Protocol, _PositionRestraintMixin):
             and self._thermostat_time_constant == other._thermostat_time_constant
             and self._report_interval == other._report_interval
             and self._restart_interval == other._restart_interval
+            and self._restart == other._restart
             and _PositionRestraintMixin.__eq__(self, other)
         )
 
@@ -483,6 +491,34 @@ class Equilibration(_Protocol, _PositionRestraintMixin):
             restart_interval = 500
 
         self._restart_interval = restart_interval
+
+    def isRestart(self):
+        """
+        Return whether this restart simulation.
+
+        Returns
+        -------
+
+        is_restart : bool
+            Whether this is a restart simulation.
+        """
+        return self._restart
+
+    def setRestart(self, restart):
+        """
+        Set the restart flag.
+
+        Parameters
+        ----------
+
+        restart : bool
+            Whether this is a restart simulation.
+        """
+        if isinstance(restart, bool):
+            self._restart = restart
+        else:
+            _warnings.warn("Non-boolean restart flag. Defaulting to False!")
+            self._restart = False
 
     def isConstantTemp(self):
         """
