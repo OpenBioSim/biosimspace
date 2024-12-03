@@ -2,6 +2,8 @@ import pytest
 
 import numpy as np
 
+from functools import partial
+
 import BioSimSpace.Sandpit.Exscientia as BSS
 from BioSimSpace.Sandpit.Exscientia.Align import decouple
 from BioSimSpace.Sandpit.Exscientia._Exceptions import AnalysisError
@@ -143,8 +145,7 @@ class TestBSS_analysis:
     """Test selection of restraints using the inbuilt BSS method."""
 
     @staticmethod
-    @pytest.fixture(scope="class")
-    def _restraint_search(tmp_path_factory):
+    def _restraint_search_general(tmp_path_factory, ligand_idx=1):
         outdir = tmp_path_factory.mktemp("out")
         system = BSS.IO.readMolecules(
             [
@@ -152,9 +153,12 @@ class TestBSS_analysis:
                 f"{url}/complex.top.bz2",
             ]
         )
-        ligand = system.getMolecule(1)
-        decoupled_ligand = decouple(ligand)
         protein = system.getMolecule(0)
+        if ligand_idx == 0:
+            ligand = protein.copy()
+        else:
+            ligand = system.getMolecule(ligand_idx)
+        decoupled_ligand = decouple(ligand)
         new_system = (protein + decoupled_ligand).toSystem()
 
         protocol = BSS.Protocol.Production()
@@ -166,6 +170,15 @@ class TestBSS_analysis:
             trajectory=traj, topology=top
         )
         return restraint_search, outdir
+
+    @pytest.fixture(scope="class")
+    def _restraint_search(self, tmp_path_factory):
+        return partial(self._restraint_search_general, tmp_path_factory, ligand_idx=1)()
+
+    @pytest.fixture(scope="class")
+    def _restraint_search_protein(self, tmp_path_factory):
+        # Select the protein as the ligand.
+        return partial(self._restraint_search_general, tmp_path_factory, ligand_idx=0)()
 
     @staticmethod
     @pytest.fixture(scope="class")
@@ -210,40 +223,40 @@ class TestBSS_analysis:
     def test_dG_off_boresch(self, boresch_restraint):
         """Test if the restraint generated has the same energy"""
         restraint, _ = boresch_restraint
-        assert np.isclose(-9.8955, restraint.correction.value(), atol=0.01)
+        assert np.isclose(-9.2133, restraint.correction.value(), atol=0.01)
 
     def test_bond_boresch(self, boresch_restraint):
         restraint, _ = boresch_restraint
         equilibrium_values_r0 = (
             restraint._restraint_dict["equilibrium_values"]["r0"] / nanometer
         )
-        assert np.isclose(0.6057, equilibrium_values_r0, atol=0.001)
+        assert np.isclose(0.4987, equilibrium_values_r0, atol=0.001)
 
     def test_angles_boresch(self, boresch_restraint):
         restraint, _ = boresch_restraint
         equilibrium_values_thetaA0 = (
             restraint._restraint_dict["equilibrium_values"]["thetaA0"] / degree
         )
-        assert np.isclose(140.6085, equilibrium_values_thetaA0, atol=0.001)
+        assert np.isclose(119.3375, equilibrium_values_thetaA0, atol=0.001)
         equilibrium_values_thetaB0 = (
             restraint._restraint_dict["equilibrium_values"]["thetaB0"] / degree
         )
-        assert np.isclose(56.4496, equilibrium_values_thetaB0, atol=0.001)
+        assert np.isclose(100.8382, equilibrium_values_thetaB0, atol=0.001)
 
     def test_dihedrals_boresch(self, boresch_restraint):
         restraint, _ = boresch_restraint
         equilibrium_values_phiA0 = (
             restraint._restraint_dict["equilibrium_values"]["phiA0"] / degree
         )
-        assert np.isclose(21.6173, equilibrium_values_phiA0, atol=0.001)
+        assert np.isclose(29.1947, equilibrium_values_phiA0, atol=0.001)
         equilibrium_values_phiB0 = (
             restraint._restraint_dict["equilibrium_values"]["phiB0"] / degree
         )
-        assert np.isclose(-19.4394, equilibrium_values_phiB0, atol=0.001)
+        assert np.isclose(-136.9009, equilibrium_values_phiB0, atol=0.001)
         equilibrium_values_phiC0 = (
             restraint._restraint_dict["equilibrium_values"]["phiC0"] / degree
         )
-        assert np.isclose(71.3148, equilibrium_values_phiC0, atol=0.001)
+        assert np.isclose(-102.3908, equilibrium_values_phiC0, atol=0.001)
 
     def test_index_boresch(self, boresch_restraint):
         restraint, _ = boresch_restraint
@@ -251,7 +264,7 @@ class TestBSS_analysis:
             k: restraint._restraint_dict["anchor_points"][k].index()
             for k in restraint._restraint_dict["anchor_points"]
         }
-        assert idxs == {"r1": 1560, "r2": 1558, "r3": 1562, "l1": 10, "l2": 9, "l3": 11}
+        assert idxs == {"r1": 1560, "r2": 1558, "r3": 1562, "l1": 8, "l2": 9, "l3": 13}
 
     def test_force_constant_boresch(self, boresch_restraint_k20):
         restraint, _ = boresch_restraint_k20
@@ -266,6 +279,22 @@ class TestBSS_analysis:
                 restraint_type="Boresch",
                 block=False,
                 cutoff=0.1 * angstrom,
+            )
+
+    def test_non_overlapping_anchor_selections_forbidden(
+        self, _restraint_search_protein
+    ):
+        """
+        Ensure that anchor atoms cannot be in the same molecule
+        (the protein has been selected as the ligand, so we are
+        guaranteed that anchor atoms will be in the same molecule).
+        """
+        restraint_search, _ = _restraint_search_protein
+        with pytest.raises(AnalysisError):
+            restraint = restraint_search.analyse(
+                method="BSS",
+                restraint_type="Boresch",
+                block=False,
             )
 
     def test_plots_mdr(self, multiple_distance_restraint):

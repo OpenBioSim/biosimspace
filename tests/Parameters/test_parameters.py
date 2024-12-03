@@ -167,3 +167,24 @@ def test_smiles_stereo():
 
     # Make sure the SMILES strings are the same.
     assert rdmol0_smiles == rdmol1_smiles
+
+
+@pytest.mark.skipif(
+    has_antechamber is False or has_tleap is False,
+    reason="Requires AmberTools/antechamber and tLEaP to be installed.",
+)
+def test_acdoctor():
+    """
+    Test that parameterising negatively charged molecules works when acdoctor
+    is disabled.
+    """
+
+    # Load the molecule.
+    mol = BSS.IO.readMolecules(f"{url}/negative_charge.sdf")[0]
+
+    # Make sure parameterisation fails when acdoctor is enabled.
+    with pytest.raises(BSS._Exceptions.ParameterisationError):
+        BSS.Parameters.gaff(mol).getMolecule()
+
+    # Make sure parameterisation works when acdoctor is disabled.
+    mol = BSS.Parameters.gaff(mol, acdoctor=False).getMolecule()
