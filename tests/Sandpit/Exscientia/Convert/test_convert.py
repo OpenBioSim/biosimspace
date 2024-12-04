@@ -94,3 +94,36 @@ def test_molecule_rename():
 
     # Make sure the name is correct.
     assert mol._sire_object.name().value() == "smiles:[C@@H](C(F)(F)F)(OC(F)F)Cl"
+
+
+@pytest.mark.parametrize("lig", ["2dd", "2hh", "2ii", "2s", "2x"])
+def test_sdf_stereo(lig):
+    """
+    Test that SDF stereochemistry is correctly preserved when converting
+    to RDKit format via Sire.
+    """
+
+    import tempfile
+
+    from rdkit import Chem
+    from tests.conftest import url
+
+    # Load the molecule.
+    mol = BSS.IO.readMolecules(f"{url}/lig_{lig}.sdf")[0]
+
+    with tempfile.NamedTemporaryFile() as f:
+        # Write the molecule to a temporary file.
+        BSS.IO.saveMolecules(f.name, mol, "sdf")
+
+        # Load the molecule using RDKit.
+        rdmol = Chem.SDMolSupplier(f"{f.name}.sdf")[0]
+
+        # Convert the molecule using Sire.
+        rdmol_sire = BSS.Convert.toRDKit(mol)
+
+        # Get the SMILES strings.
+        smiles = Chem.CanonSmiles(Chem.MolToSmiles(rdmol))
+        smiles_sire = Chem.CanonSmiles(Chem.MolToSmiles(rdmol_sire))
+
+        # Check that the SMILES strings are the same.
+        assert smiles == smiles_sire
