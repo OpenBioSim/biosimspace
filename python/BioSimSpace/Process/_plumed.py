@@ -397,7 +397,7 @@ class Plumed:
 
             # RMSD.
             elif isinstance(colvar, _CollectiveVariable.RMSD):
-                molecules = [system._mol_nums[colvar.getReferenceIndex()]]
+                molecules = [system._mol_nums[i] for i in colvar.getMoleculeIndices()]
 
             # Loop over all of the atoms. Make sure the index is valid and
             # check if we need to create an entity for the molecule containing
@@ -631,7 +631,8 @@ class Plumed:
 
                 # Write the reference PDB file.
                 with open(
-                    _os.path.join(str(self._work_dir), f"reference_{num_rmsd}.pdb"), "w"
+                    _os.path.join(str(self._work_dir), f"reference_{num_rmsd}.pdb"),
+                    "w",
                 ) as file:
                     for line in colvar.getReferencePDB():
                         file.write(line + "\n")
@@ -1007,7 +1008,7 @@ class Plumed:
 
             # RMSD.
             elif isinstance(colvar, _CollectiveVariable.RMSD):
-                molecules = [system._mol_nums[colvar.getReferenceIndex()]]
+                molecules = [system._mol_nums[i] for i in colvar.getMoleculeIndices()]
 
             # Loop over all of the atoms. Make sure the index is valid and
             # check if we need to create an entity for the molecule containing
@@ -1232,7 +1233,7 @@ class Plumed:
 
                 # Write the reference PDB file.
                 with open(
-                    _os.path.join(str(self._work_dir), "reference_%i.pdb" % num_rmsd),
+                    _os.path.join(str(self._work_dir), f"reference_{num_rmsd}.pdb"),
                     "w",
                 ) as file:
                     for line in colvar.getReferencePDB():

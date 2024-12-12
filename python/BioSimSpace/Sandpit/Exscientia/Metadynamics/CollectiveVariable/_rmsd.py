@@ -32,7 +32,11 @@ from math import sqrt as _sqrt
 from sire.legacy import IO as _SireIO
 from sire.legacy import Mol as _SireMol
 
+from sire.mol import selection_to_atoms as _selection_to_atoms
+
+from ... import _isVerbose
 from ..._Exceptions import IncompatibleError as _IncompatibleError
+from ..._SireWrappers import Atom as _Atom
 from ..._SireWrappers import Molecule as _Molecule
 from ..._SireWrappers import System as _System
 from ...Align import rmsdAlign as _rmsdAlign
@@ -50,8 +54,8 @@ class RMSD(_CollectiveVariable):
         self,
         system,
         reference,
-        rmsd_indices,
-        reference_index=None,
+        align_selection,
+        rmsd_selection,
         hill_width=_Length(0.1, "nanometer"),
         lower_bound=None,
         upper_bound=None,
@@ -69,23 +73,17 @@ class RMSD(_CollectiveVariable):
         system : :class:`System <BioSimSpace._SireWrappers.System>`
             The molecular system of interest.
 
-        reference : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
-            The reference molecule, against which the RMSD will be measured.
-            This molecule should match with a single molecule from the
-            system, i.e. contain the same residues as the matching molecule
-            in the same order.
+        reference : :class:`System <BioSimSpace._SireWrappers.System>`
+            The reference system, against which the RMSD will be measured.
 
-        rmsd_indices : [int]
-            The indices of the atoms within the reference that should be
-            used when calculating the RMSD. Atoms from the reference that
-            are not in rmsd_indices will instead be used for alignment.
+        align_selection : str
+            A Sire selection string that defines the atoms to be used
+            when aligning the two structures. If None, then the RMSD
+            will be calculated without alignment.
 
-        reference_index : int
-            The index of the molecule in the system that matches the
-            reference. If none, then we will assume that the molecule with
-            the closest number of residues is the match. If not all atoms
-            from the reference are matched in the system, then an exception
-            will be thrown.
+        rmsd_selection : str
+            A Sire selection string that defines the atoms to be used
+            when calculating the RMSD.
 
         hill_width : :class:`Length <BioSimSpace.Types.Length>`
             The width of the Gaussian hill used to sample this variable.
@@ -127,182 +125,184 @@ class RMSD(_CollectiveVariable):
             raise TypeError(
                 "'system' must be of type 'BioSimSpace._SireWrappers.System'."
             )
+        self._system = system.copy()
 
-        if not isinstance(reference, _Molecule):
+        if not isinstance(reference, _System):
             raise TypeError(
-                "'reference' must be of type 'BioSimSpace._SireWrappers.Molecule'."
+                "'reference' must be of type 'BioSimSpace._SireWrappers.System'."
             )
         self._reference = reference.copy()
+
+        from sire.system import System
+
+        sire_reference = System(reference._sire_object)
+
+        # Make sure that the reference system is compatible with the system.
+        if system.nMolecules() != reference.nMolecules():
+            raise _IncompatibleError(
+                "The number of molecules in 'system' and 'reference' must match."
+            )
+        if system.nResidues() != reference.nResidues():
+            raise _IncompatibleError(
+                "The number of residues in 'system' and 'reference' must match."
+            )
+        if system.nAtoms() != reference.nAtoms():
+            raise _IncompatibleError(
+                "The number of atoms in 'system' and 'reference' must match."
+            )
+
+        # Validate alignment selection string.
+        if not isinstance(align_selection, str):
+            raise TypeError("'align_selection' must be of type 'str'")
+        self._align_selection = align_selection
+
+        try:
+            self._aligment_atoms = _selection_to_atoms(sire_reference, align_selection)
+        except Exception as e:
+            msg = "Invalid 'align_selection' string."
+            if _isVerbose():
+                raise IOError(msg) from e
+            else:
+                raise IOError(msg) from None
+
+        # Validate RMSD selection string.
+        if not isinstance(rmsd_selection, str):
+            raise TypeError("'rmsd_selection' must be of type 'str'")
+        self._rmsd_selection = rmsd_selection
+
+        try:
+            self._rmsd_atoms = _selection_to_atoms(sire_reference, rmsd_selection)
+        except Exception as e:
+            msg = "Invalid 'rmsd_selection' string."
+            if _isVerbose():
+                raise IOError(msg) from e
+            else:
+                raise IOError(msg) from None
 
         # Check that the map is valid.
         if not isinstance(property_map, dict):
             raise TypeError("'property_map' must be of type 'dict'")
 
-        # Extract the corresponding molecule from the system by index.
-        if reference_index is not None:
-            if not type(reference_index) is int:
-                raise TypeError("'reference_index' must be of type 'int'.")
-            self._reference_index = reference_index
-            molecule = system[reference_index]
+        # Work out the unique molecule numbers used for alignment and RMSD.
 
-        # Match to the molecule with the closest number of residues.
-        else:
-            # Store the number of residues in the target.
-            num_res_ref = reference.nResidues()
+        mol_nums = set()
 
-            # Create a list to hold the number of residues for each molecule in the system.
-            num_res_system = []
-            for mol in system:
-                num_res_system.append(mol.nResidues())
+        for atom in self._aligment_atoms:
+            if atom.molecule().number() not in mol_nums:
+                mol_nums.add(atom.molecule().number())
 
-            # Find the index of the molecule with the closest number of residues.
-            reference_index = min(
-                enumerate(num_res_system), key=lambda x: abs(x[1] - num_res_ref)
-            )[0]
+        for atom in self._rmsd_atoms:
+            if atom.molecule().number() not in mol_nums:
+                mol_nums.add(atom.molecule().number())
 
-            # Extract the molecule from the system.
-            self._reference_index = reference_index
-            molecule = system[reference_index]
+        # Set to store the molecule indices in the system.
+        self._molecule_indices = []
 
-        if isinstance(rmsd_indices, (list, tuple)):
-            # Make sure the indices are unique.
-            rmsd_indices = list(set(rmsd_indices))
+        # List to store the absolute atom indices.
+        abs_atom_indices = []
 
-            if len(rmsd_indices) == 0:
-                raise ValueError("'rmsd_indices' contains no items?")
-            elif len(rmsd_indices) >= reference.nAtoms():
-                raise ValueError(
-                    "'rmsd_indices' must refer to a subset of the "
-                    "atoms from the reference molecule."
-                )
+        # Dictionary to store alignment and RMSD indices for each molecule.
+        align_indices = {}
+        rmsd_indices = {}
 
-            for idx in rmsd_indices:
-                if not type(idx) is int:
-                    raise TypeError("'rmsd_indices' must be a list of 'int' types.")
-                if idx < 0:
-                    idx += reference.nAtoms()
-                if idx < 0 or idx >= reference.nAtoms():
-                    raise ValueError(
-                        "'rmsd_indices' is out of range: "
-                        f"{-reference.nAtoms()}:{reference.nAtoms()-1}"
-                    )
-        else:
-            raise TypeError("'rmsd_indices' must be a list of 'int' types.")
+        # Create mappings for the alignment and RMSD.
 
-        # Create the matcher.
-        matcher = _SireMol.ResNumAtomNameMatcher()
+        # Loop over the molecules numbers.
+        for num in mol_nums:
+            # Extract the molecule from the reference system.
+            molecule = reference._sire_object[num]
 
-        # Match the atoms by residue number and name.
-        matches = matcher.match(reference._sire_object, molecule._sire_object)
+            # Work out the index of the molecule in the system.
+            self._molecule_indices.append(system.getIndex(_Molecule(molecule)))
 
-        # We need to match all of the atoms in the reference.
-        if len(matches) < reference.nAtoms():
-            raise _IncompatibleError(
-                "Didn't match all of the atoms in the reference molecule: "
-                f"Found {len(matches)}, expected {reference.nAtoms()}."
+            # Set of atoms to select.
+            selected = set()
+
+            # Create a cursor for editing the molecule.
+            cursor = molecule.cursor()
+
+            # Loop over the atoms.
+            for i, atom in enumerate(molecule.atoms()):
+                is_align = False
+                is_rmsd = False
+                # This atom is used for alignment.
+                if atom in self._aligment_atoms:
+                    is_align = True
+                    try:
+                        align_indices[num].append(atom.index())
+                    except:
+                        align_indices[num] = [atom.index()]
+                # This atom is used for RMSD.
+                if atom in self._rmsd_atoms:
+                    is_rmsd = True
+                    try:
+                        rmsd_indices[num].append(atom.index())
+                    except:
+                        rmsd_indices[num] = [atom.index()]
+
+                if is_align or is_rmsd:
+                    # Append to the list of atoms to select.
+                    selected.add(atom.index())
+
+                    # Add the absolute atom index.
+                    abs_atom_indices.append(1 + reference.getIndex(_Atom(atom)))
+
+                    # Set occupancy and beta factor.
+                    if is_align:
+                        cursor.atom(i)["occupancy"] = 1.0
+                    else:
+                        cursor.atom(i)["occupancy"] = 0.0
+                    if is_rmsd:
+                        cursor.atom(i)["beta_factor"] = 1.0
+                    else:
+                        cursor.atom(i)["beta_factor"] = 0.0
+
+            # Commit the changes.
+            new_molecule = cursor.commit()
+
+            # Create an AtomSelection.
+            selection = new_molecule.selection()
+
+            # Unselect all of the atoms.
+            selection.selectNone()
+
+            # Now add all of the atoms that appear in the reference.
+            for idx in selected:
+                selection.select(idx)
+
+            # Create a partial molecule and extract the atoms.
+            partial_molecule = (
+                _SireMol.PartialMolecule(new_molecule, selection).extract().molecule()
             )
 
-        # Invert the matches so that we map from the system to the reference.
-        matches = {v: k for k, v in matches.items()}
+            # Update the new system.
+            try:
+                new_system += _Molecule(partial_molecule)
+            except:
+                new_system = _Molecule(partial_molecule).toSystem()
 
-        # Get the indices of the matching atoms.
-        idx_matches = matches.keys()
+        # Parse as a PDB file and store the lines.
+        pdb = _SireIO.PDB2(new_system._sire_object)
+        lines = pdb.toLines()
 
-        # Extract the molecule of interest and make it editable.
-        edit_mol = molecule._sire_object.edit()
-
-        # A list of atoms to select.
-        selected = []
-
-        # Create a mapping dictionary for the atoms involved in the RMSD and alignment.
-        rmsd_mapping = {}
-        align_mapping = {}
-
-        # Get the coordinates property from the user mapping.
-        coord_prop = property_map.get("coordinates", "coordinates")
-
-        # Loop over all atoms in the molecule.
-        for x in range(0, molecule.nAtoms()):
-            # Convert to an AtomIdx.
-            idx = _SireMol.AtomIdx(x)
-            # This atom was matched to an atom in the reference.
-            if idx in idx_matches:
-                # Append to the list of atoms to select.
-                selected.append(idx)
-                # Copy across the coordinates.
-                edit_mol = (
-                    edit_mol.atom(idx)
-                    .setProperty(
-                        coord_prop,
-                        reference._sire_object.atom(matches[idx]).property(
-                            "coordinates"
-                        ),
-                    )
-                    .molecule()
-                )
-                # Set occupancy and beta factor.
-                if matches[idx].value() in rmsd_indices:
-                    # This atom is used to compute the RMSD.
-                    edit_mol = (
-                        edit_mol.atom(idx).setProperty("occupancy", 0.0).molecule()
-                    )
-                    edit_mol = (
-                        edit_mol.atom(idx).setProperty("beta_factor", 1.0).molecule()
-                    )
-                    rmsd_mapping[idx] = matches[idx]
-                else:
-                    # This atom is used for alignment.
-                    edit_mol = (
-                        edit_mol.atom(idx).setProperty("occupancy", 1.0).molecule()
-                    )
-                    edit_mol = (
-                        edit_mol.atom(idx).setProperty("beta_factor", 0.0).molecule()
-                    )
-                    align_mapping[idx.value()] = matches[idx].value()
+        # Format for PLUMED, making sure to use the same indices as in the system.
+        # Also strip any TER records.
+        self._reference_pdb = []
+        for line, idx in zip(lines[1:-2], abs_atom_indices):
+            if not "TER" in line:
+                self._reference_pdb.append(line[:6] + str(idx).rjust(5) + line[11:])
+        self._reference_pdb.append(lines[-1])
 
         # Store the initial value of the RMSD. This is useful to use as a starting
         # point for the restraint when performing steered molecular dynamics.
         self._initial_value = self._compute_initial_rmsd(
             system,
             reference,
-            reference_index,
-            rmsd_mapping,
-            align_mapping,
+            self._molecule_indices,
+            align_indices,
+            rmsd_indices,
             property_map,
         )
-
-        # Commit the changes.
-        new_molecule = edit_mol.commit()
-
-        # Create an AtomSelection.
-        selection = new_molecule.selection()
-
-        # Unselect all of the atoms.
-        selection.selectNone()
-
-        # Now add all of the atoms that appear in the reference.
-        for idx in selected:
-            selection.select(idx)
-
-        # Create a partial molecule and extract the atoms.
-        partial_molecule = (
-            _SireMol.PartialMolecule(new_molecule, selection).extract().molecule()
-        )
-
-        # Save the changes to the molecule.
-        molecule = _Molecule(partial_molecule)
-
-        # Parse as a PDB file and store the lines.
-        pdb = _SireIO.PDB2(molecule.toSystem()._sire_object)
-        lines = pdb.toLines()
-
-        # Format for PLUMED, making sure to use the same indices as in the system.
-        new_indices = [idx.value() + 1 for idx in selected]
-        self._reference_pdb = [
-            line[:6] + str(idx).rjust(5) + line[11:]
-            for line, idx in zip(lines[1:-2], new_indices)
-        ]
-        self._reference_pdb.append(lines[-1])
 
         # Set the "settable" parameters.
         self.setHillWidth(hill_width)
@@ -331,7 +331,8 @@ class RMSD(_CollectiveVariable):
     def __str__(self):
         """Return a human readable string representation of the object."""
         string = "<BioSimSpace.Metadynamics.CollectiveVariable.RMSD: "
-        string += " reference=%s" % self._reference
+        string += " align_selection=%s" % self._align_selection
+        string += ", rmsd_selection=%s" % self._rmsd_selection
         string += ", hill_width=%s" % self._hill_width
         if self._lower_bound is not None:
             string += ", lower_bound=%s" % self._lower_bound
@@ -445,19 +446,17 @@ class RMSD(_CollectiveVariable):
         """
         return self._alignment_type
 
-    def getReferenceIndex(self):
+    def getMoleculeIndices(self):
         """
-        Return the index of the molecule in the system that corresponds
-        to the reference.
+        Return the indices of molecules involved in the collective variable.
 
         Returns
         -------
 
-        reference_index : int
-            The index of the molecule in the system that corresponds to
-            the reference.
+        molecule_indices : int
+            The indices of molecules involved in the collective variable.
         """
-        return self._reference_index
+        return self._molecule_indices
 
     def setPeriodicBoundaries(self, pbc):
         """
@@ -491,9 +490,9 @@ class RMSD(_CollectiveVariable):
         self,
         system,
         reference,
-        reference_index,
-        rmsd_mapping,
-        align_mapping,
+        molecule_indices,
+        align_indices,
+        rmsd_indices,
         property_map={},
     ):
         """
@@ -511,18 +510,17 @@ class RMSD(_CollectiveVariable):
             system, i.e. contain the same residues as the matching molecule
             in the same order.
 
-        reference_index : int
-            The index of the molecule in the system that matches the
-            reference.
+        molecule_indices : [int]
+            The indices of molecules in the system that contain atoms involved
+            in alignment and RMSD.
 
-        rmsd_mapping : {Sire.Mol.AtomIdx : Sire.Mol.AtomIdx, ...}
-             A dictionary mapping atoms in the system to those in the
-             reference molecule.
+        align_indices : {Sire.Mol.MolNum: [Sire.Mol.AtomIdx, ...]}
+            A dictionary mapping molecules to the indices of atoms that will
+            be used for alignment.
 
-        align_mapping : { int: int, ...}
-             A dictionary mapping atoms in the system to those in the
-             reference molecule that will be used for alignment prior
-             to computing the RMSD.
+        rmsd_indices : {Sire.Mol.MolNum: [Sire.Mol.AtomIdx, ...]}
+            A dictionary mapping molecules to the indices of atoms that will
+            be used for the RMSD.
 
         property_map : dict
             A dictionary that maps system "properties" to their user defined
@@ -544,39 +542,53 @@ class RMSD(_CollectiveVariable):
                 "'system' must be of type 'BioSimSpace._SireWrappers.System'."
             )
 
-        if not isinstance(reference, _Molecule):
+        if not isinstance(reference, _System):
             raise TypeError(
-                "'reference' must be of type 'BioSimSpace._SireWrappers.Molecule'."
+                "'reference' must be of type 'BioSimSpace._SireWrappers.System'."
             )
 
-        if not type(reference_index) is int:
-            raise TypeError("'reference_index' must be of type 'int'.")
+        if not isinstance(molecule_indices, list):
+            raise TypeError("'molecule_indices' must be a list of integers.")
+        for idx in molecule_indices:
+            if not type(idx) is int:
+                raise TypeError("'molecule_indices' must be a list of integers.")
 
-        if not isinstance(rmsd_mapping, dict):
-            raise TypeError("'rmsd_mapping' must be of type 'dict'.")
-
-        for k, v in rmsd_mapping.items():
-            if not isinstance(k, _SireMol.AtomIdx) or not isinstance(
-                v, _SireMol.AtomIdx
-            ):
+        if not isinstance(align_indices, dict):
+            raise TypeError("'align_indices' must be a dictionary.")
+        for key, value in align_indices.items():
+            if not isinstance(key, _SireMol.MolNum):
                 raise TypeError(
-                    "'mapping' must contain 'Sire.Mol.AtomIdx' key-value pairs!"
+                    "Keys of 'align_indices' must be of type 'sire.legacy.Mol.MolMolNum'."
                 )
+            if not isinstance(value, list):
+                raise TypeError(
+                    "Values of 'align_indices' must be lists of 'sire.legacy.Mol.AtomIdx' types."
+                )
+            for idx in value:
+                if not isinstance(idx, _SireMol.AtomIdx):
+                    raise TypeError(
+                        "Values of 'align_indices' must be lists of 'sire.legacy.Mol.AtomIdx' types."
+                    )
 
-        if not isinstance(align_mapping, dict):
-            raise TypeError("'align_mapping' must be of type 'dict'.")
-
-        for k, v in align_mapping.items():
-            if not type(k) is int or not type(v) is int:
-                raise TypeError("'align_mapping' must contain 'int' key-value pairs!")
+        if not isinstance(rmsd_indices, dict):
+            raise TypeError("'rmsd_indices' must be a dictionary.")
+        for key, value in rmsd_indices.items():
+            if not isinstance(key, _SireMol.MolNum):
+                raise TypeError(
+                    "Keys of 'rmsd_indices' must be of type 'sire.legacy.Mol.MolNum'."
+                )
+            if not isinstance(value, list):
+                raise TypeError(
+                    "Values of 'rmsd_indices' must be lists of 'sire.legacy.Mol.AtomIdx' types."
+                )
+            for idx in value:
+                if not isinstance(idx, _SireMol.AtomIdx):
+                    raise TypeError(
+                        "Values of 'rmsd_indices' must be lists of 'sire.legacy.Mol.AtomIdx' types."
+                    )
 
         if not isinstance(property_map, dict):
             raise TypeError("'property_map' must be of type 'dict'")
-
-        try:
-            molecule = system[reference_index]
-        except:
-            raise ValueError("Molecule at 'reference_index' not found in 'system'!")
 
         # Get the 'space' property from the system.
         try:
@@ -587,38 +599,66 @@ class RMSD(_CollectiveVariable):
                 f"'system' has no '{space_prop}' property. Unable to compute RMSD!"
             )
 
-        # Align the molecule to the reference using the alignment mapping.
-        if len(align_mapping) > 0:
-            try:
-                molecule = _rmsdAlign(
-                    molecule,
-                    reference,
-                    align_mapping,
-                    property_map0=property_map,
-                    property_map1=property_map,
-                )
-            except:
-                ValueError(
-                    "Unable to align 'molecule' to 'reference' based on 'align_mapping'."
-                )
-
         # Set the user-define coordinates property.
         coord_prop = property_map.get("coordinates", "coordinates")
 
-        # Loop over all atom matches and compute the squared distance.
+        # Total squared distance.
         dist2 = 0
-        for idx0, idx1 in rmsd_mapping.items():
+
+        # Total number of RMSD atoms.
+        num_rmsd = 0
+
+        # Loop over the molecules.
+        for idx in molecule_indices:
+            mol = system[idx]
+            ref = reference[idx]
+
+            align_mapping = {}
+
             try:
-                coord0 = molecule._sire_object.atom(idx0).property(coord_prop)
-                coord1 = reference._sire_object.atom(idx1).property(coord_prop)
-            except:
-                raise ValueError(
-                    "Could not calculate initial RMSD due to missing coordinates!"
-                )
-            dist2 += space.calcDist2(coord0, coord1)
+                align_mapping = {
+                    i.value(): i.value()
+                    for i in align_indices[ref._sire_object.number()]
+                }
+            except Exception as e:
+                pass
+
+            if len(align_mapping) > 0:
+                try:
+                    new_mol = _rmsdAlign(
+                        mol,
+                        ref,
+                        align_mapping,
+                        property_map0=property_map,
+                        property_map1=property_map,
+                    )
+                except:
+                    ValueError(
+                        "Unable to align 'molecule' to 'reference' based on 'align_mapping'."
+                    )
+
+            rmsd_mapping = {}
+
+            try:
+                rmsd_mapping = {i: i for i in rmsd_indices[ref._sire_object.number()]}
+            except Exception as e:
+                pass
+
+            if len(rmsd_mapping) > 0:
+                # Loop over all atom matches and compute the squared distance.
+                for idx0, idx1 in rmsd_mapping.items():
+                    try:
+                        coord0 = new_mol._sire_object.atom(idx0).property(coord_prop)
+                        coord1 = ref._sire_object.atom(idx1).property(coord_prop)
+                    except:
+                        raise ValueError(
+                            "Could not calculate initial RMSD due to missing coordinates!"
+                        )
+                    dist2 += space.calcDist2(coord0, coord1)
+                    num_rmsd += 1
 
         # Compute the RMSD.
-        dist2 /= len(rmsd_mapping)
+        dist2 /= num_rmsd
         rmsd = _sqrt(dist2)
 
         return _Length(rmsd, "Angstrom")

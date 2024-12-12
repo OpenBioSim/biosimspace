@@ -45,11 +45,12 @@ def test_metadynamics(system):
     reason="Local test requiring PLUMED patched GROMACS.",
 )
 def test_steering(system):
-    # Find the indices of the atoms in the ALA residue.
-    rmsd_idx = [x.index() for x in system.search("resname ALA").atoms()]
-
-    # Create the collective variable.
-    cv = BSS.Metadynamics.CollectiveVariable.RMSD(system, system[0], rmsd_idx)
+    # Create the collective variable. Here we align on molecule index 1
+    # and all atoms not belonging to to the ALA residue in molecule index 0.
+    # We compute the RSMD using the atoms belonging to the ALA residue.
+    cv = BSS.Metadynamics.CollectiveVariable.RMSD(
+        system, system, "(molidx 0 and not resname ALA) or molidx 1", "resname ALA"
+    )
 
     # Add some stages.
     start = 0 * BSS.Units.Time.nanosecond
