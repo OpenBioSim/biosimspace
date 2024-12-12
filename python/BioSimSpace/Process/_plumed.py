@@ -623,12 +623,15 @@ class Plumed:
             elif isinstance(colvar, _CollectiveVariable.RMSD):
                 num_rmsd += 1
                 arg_name = "r%d" % num_rmsd
-                colvar_string = "%s: RMSD REFERENCE=reference.pdb" % arg_name
+                colvar_string = "%s: RMSD REFERENCE=reference_%d.pdb" % (
+                    arg_name,
+                    num_rmsd,
+                )
                 colvar_string += " TYPE=%s" % colvar.getAlignmentType().upper()
 
                 # Write the reference PDB file.
                 with open(
-                    _os.path.join(str(self._work_dir), "reference.pdb"), "w"
+                    _os.path.join(str(self._work_dir), f"reference_{num_rmsd}.pdb"), "w"
                 ) as file:
                     for line in colvar.getReferencePDB():
                         file.write(line + "\n")
