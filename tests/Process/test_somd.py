@@ -129,11 +129,56 @@ def test_pert_res_num(perturbable_system):
     assert unique1[0] == "perturbed residue number = 2"
 
 
+def test_triclinic():
+    """
+    Test the triclinic box vectors can be updated correctly with OpenMM 8.2+.
+    """
+
+    # Load the triclinic alanine dipeptide system.
+    system = BSS.IO.readMolecules(
+        BSS.IO.expand(url, ["ala_triclinic.rst7", "ala_triclinic.prm7"])
+    )
+
+    # Create a short production protocol.
+    protocol = BSS.Protocol.Production(runtime=BSS.Types.Time(0.001, "nanoseconds"))
+
+    # Run the process, check that it finished without error, and returns a system.
+    run_process(system, protocol)
+
+
+def test_triclinic_fep():
+    """
+    Test the triclinic box vectors can be updated correctly with OpenMM 8.2+.
+    """
+
+    # Load the triclinic alanine dipeptide system.
+    system = BSS.IO.readPerturbableSystem(
+        *BSS.IO.expand(
+            url,
+            [
+                "ethane_methanol_triclinic0.prm7",
+                "ethane_methanol_triclinic0.rst7",
+                "ethane_methanol_triclinic1.prm7",
+                "ethane_methanol_triclinic1.rst7",
+            ],
+        )
+    )
+
+    # Create a short production FEP protocol.
+    protocol = BSS.Protocol.FreeEnergy(runtime=0.1 * BSS.Units.Time.picosecond)
+
+    # Run the process, check that it finished without error, and returns a system.
+    run_process(system, protocol)
+
+
 def run_process(system, protocol):
     """Helper function to run various simulation protocols."""
 
+    # Use CUDA platform is CUDA_VISIBLE_DEVICES is set.
+    platform = "CUDA" if "CUDA_VISIBLE_DEVICES" in os.environ else "CPU"
+
     # Initialise the SOMD process.
-    process = BSS.Process.Somd(system, protocol, name="test", platform="CPU")
+    process = BSS.Process.Somd(system, protocol, name="test", platform=platform)
 
     # Start the SOMD simulation.
     process.start()
