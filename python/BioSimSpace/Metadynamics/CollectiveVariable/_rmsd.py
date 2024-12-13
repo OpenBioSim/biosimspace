@@ -56,6 +56,7 @@ class RMSD(_CollectiveVariable):
         reference,
         align_selection,
         rmsd_selection,
+        reference_mapping=None,
         hill_width=_Length(0.1, "nanometer"),
         lower_bound=None,
         upper_bound=None,
@@ -84,6 +85,11 @@ class RMSD(_CollectiveVariable):
         rmsd_selection : str
             A Sire selection string that defines the atoms to be used
             when calculating the RMSD.
+
+        reference_mapping : dict
+            A dictionary mapping molecule indices in the reference to
+            those in the system. This must be used when the reference
+            represents a sub-set of the system.
 
         hill_width : :class:`Length <BioSimSpace.Types.Length>`
             The width of the Gaussian hill used to sample this variable.
@@ -137,19 +143,42 @@ class RMSD(_CollectiveVariable):
 
         sire_reference = System(reference._sire_object)
 
-        # Make sure that the reference system is compatible with the system.
-        if system.nMolecules() != reference.nMolecules():
-            raise _IncompatibleError(
-                "The number of molecules in 'system' and 'reference' must match."
-            )
-        if system.nResidues() != reference.nResidues():
-            raise _IncompatibleError(
-                "The number of residues in 'system' and 'reference' must match."
-            )
-        if system.nAtoms() != reference.nAtoms():
-            raise _IncompatibleError(
-                "The number of atoms in 'system' and 'reference' must match."
-            )
+        if reference_mapping is None:
+            # Make sure that the reference system is compatible with the system.
+            if system.nMolecules() != reference.nMolecules():
+                raise _IncompatibleError(
+                    "The number of molecules in 'system' and 'reference' must match."
+                )
+            if system.nResidues() != reference.nResidues():
+                raise _IncompatibleError(
+                    "The number of residues in 'system' and 'reference' must match."
+                )
+            if system.nAtoms() != reference.nAtoms():
+                raise _IncompatibleError(
+                    "The number of atoms in 'system' and 'reference' must match."
+                )
+
+            self._reference_mapping = {i: i for i in range(system.nMolecules())}
+        else:
+            if not isinstance(reference_mapping, dict):
+                raise TypeError("'reference_mapping' must be of type 'dict'")
+
+            # Validate the mapping.
+            for k, v in reference_mapping.items():
+                if not isinstance(k, int):
+                    raise TypeError("Keys of 'reference_mapping' must be of type 'int'")
+                if not isinstance(v, int):
+                    raise TypeError(
+                        "Values of 'reference_mapping' must be of type 'int'"
+                    )
+
+                # Make sure the mapped molecules have the same number of atoms.
+                if reference[k].nAtoms() != system[v].nAtoms():
+                    raise _IncompatibleError(
+                        "Molecules mapped via the 'reference_mapping' must have the same number of atoms."
+                    )
+
+            self._reference_mapping = reference_mapping
 
         # Validate alignment selection string.
         if not isinstance(align_selection, str):
@@ -195,8 +224,11 @@ class RMSD(_CollectiveVariable):
             if atom.molecule().number() not in mol_nums:
                 mol_nums.add(atom.molecule().number())
 
-        # Set to store the molecule indices in the system.
+        # List to store the molecule indices in the system.
         self._molecule_indices = []
+
+        # List to store index pairs for the mapped molecule (system, reference).
+        molecule_pairs = []
 
         # List to store the absolute atom indices.
         abs_atom_indices = []
@@ -212,8 +244,14 @@ class RMSD(_CollectiveVariable):
             # Extract the molecule from the reference system.
             molecule = reference._sire_object[num]
 
-            # Work out the index of the molecule in the system.
-            self._molecule_indices.append(system.getIndex(_Molecule(molecule)))
+            # Work out the index of the molecule in the reference.
+            index = reference.getIndex(_Molecule(molecule))
+
+            # Map the index to the system.
+            self._molecule_indices.append(self._reference_mapping[index])
+
+            # Store the index pair.
+            molecule_pairs.append((self._reference_mapping[index], index))
 
             # Set of atoms to select.
             selected = set()
@@ -298,7 +336,7 @@ class RMSD(_CollectiveVariable):
         self._initial_value = self._compute_initial_rmsd(
             system,
             reference,
-            self._molecule_indices,
+            molecule_pairs,
             align_indices,
             rmsd_indices,
             property_map,
@@ -490,7 +528,7 @@ class RMSD(_CollectiveVariable):
         self,
         system,
         reference,
-        molecule_indices,
+        molecule_pairs,
         align_indices,
         rmsd_indices,
         property_map={},
@@ -510,9 +548,9 @@ class RMSD(_CollectiveVariable):
             system, i.e. contain the same residues as the matching molecule
             in the same order.
 
-        molecule_indices : [int]
-            The indices of molecules in the system that contain atoms involved
-            in alignment and RMSD.
+        molecule_pairs : [(int, int), ...]
+            The indices of molecules in the system and reference that contain
+            atoms involved in alignment and RMSD.
 
         align_indices : {Sire.Mol.MolNum: [Sire.Mol.AtomIdx, ...]}
             A dictionary mapping molecules to the indices of atoms that will
@@ -547,11 +585,17 @@ class RMSD(_CollectiveVariable):
                 "'reference' must be of type 'BioSimSpace._SireWrappers.System'."
             )
 
-        if not isinstance(molecule_indices, list):
-            raise TypeError("'molecule_indices' must be a list of integers.")
-        for idx in molecule_indices:
-            if not type(idx) is int:
-                raise TypeError("'molecule_indices' must be a list of integers.")
+        if not isinstance(molecule_pairs, list):
+            raise TypeError("'molecule_pairs' must be a list of integer tuples.")
+        for pair in molecule_pairs:
+            if not isinstance(pair, tuple):
+                raise TypeError("'molecule_pairs' must be a list of integer tuples.")
+            if len(pair) != 2:
+                raise ValueError("'molecule_pairs' must be a list of integer tuples.")
+            if not isinstance(pair[0], int):
+                raise TypeError("'molecule_pairs' must be a list of integer tuples.")
+            if not isinstance(pair[1], int):
+                raise TypeError("'molecule_pairs' must be a list of integer tuples.")
 
         if not isinstance(align_indices, dict):
             raise TypeError("'align_indices' must be a dictionary.")
@@ -609,9 +653,9 @@ class RMSD(_CollectiveVariable):
         num_rmsd = 0
 
         # Loop over the molecules.
-        for idx in molecule_indices:
-            mol = system[idx]
-            ref = reference[idx]
+        for idx_system, idx_ref in molecule_pairs:
+            mol = system[idx_system]
+            ref = reference[idx_ref]
 
             align_mapping = {}
 
