@@ -172,6 +172,15 @@ class RMSD(_CollectiveVariable):
                         "Values of 'reference_mapping' must be of type 'int'"
                     )
 
+                if k < 0 or k >= reference.nMolecules():
+                    raise ValueError(
+                        "Keys of 'reference_mapping' must be in the range [0, nMolecules)"
+                    )
+                if v < 0 or v >= system.nMolecules():
+                    raise ValueError(
+                        "Values of 'reference_mapping' must be in the range [0, nMolecules)"
+                    )
+
                 # Make sure the mapped molecules have the same number of atoms.
                 if reference[k].nAtoms() != system[v].nAtoms():
                     raise _IncompatibleError(
