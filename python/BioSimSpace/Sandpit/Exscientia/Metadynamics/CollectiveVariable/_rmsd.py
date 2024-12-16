@@ -172,11 +172,17 @@ class RMSD(_CollectiveVariable):
                         "Values of 'reference_mapping' must be of type 'int'"
                     )
 
-                if k < 0 or k >= reference.nMolecules():
+                # Allow negative indeices.
+                if k < 0:
+                    k += reference.nMolecules()
+                if v < 0:
+                    v += system.nMolecules()
+
+                if k >= reference.nMolecules():
                     raise ValueError(
                         "Keys of 'reference_mapping' must be in the range [0, nMolecules)"
                     )
-                if v < 0 or v >= system.nMolecules():
+                if v >= system.nMolecules():
                     raise ValueError(
                         "Values of 'reference_mapping' must be in the range [0, nMolecules)"
                     )
