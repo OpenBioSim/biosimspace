@@ -43,7 +43,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "biosimspace"
-copyright = "2017-2024"
+copyright = "2017-2025"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
