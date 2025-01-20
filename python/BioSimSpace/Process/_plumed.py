@@ -1,7 +1,7 @@
 ######################################################################
 # BioSimSpace: Making biomolecular simulation a breeze!
 #
-# Copyright: 2017-2024
+# Copyright: 2017-2025
 #
 # Authors: Lester Hedges <lester.hedges@gmail.com>
 #
@@ -377,7 +377,10 @@ class Plumed:
                 )
 
                 # Store the indices of the largest and second largest molecules.
-                molecules = [sorted_nums[-1][1], sorted_nums[-2][1]]
+                if sorted_nums[-1][1] not in molecules:
+                    molecules.append(sorted_nums[-1][1])
+                if sorted_nums[-2][1] not in molecules:
+                    molecules.append(sorted_nums[-2][1])
 
                 # The funnel collective variable requires an auxiliary file for
                 # PLUMED versions < 2.7.
@@ -397,7 +400,10 @@ class Plumed:
 
             # RMSD.
             elif isinstance(colvar, _CollectiveVariable.RMSD):
-                molecules = [system._mol_nums[colvar.getReferenceIndex()]]
+                for i in colvar.getMoleculeIndices():
+                    num = system._mol_nums[i]
+                    if num not in molecules:
+                        molecules.append(num)
 
             # Loop over all of the atoms. Make sure the index is valid and
             # check if we need to create an entity for the molecule containing
@@ -623,12 +629,16 @@ class Plumed:
             elif isinstance(colvar, _CollectiveVariable.RMSD):
                 num_rmsd += 1
                 arg_name = "r%d" % num_rmsd
-                colvar_string = "%s: RMSD REFERENCE=reference.pdb" % arg_name
+                colvar_string = "%s: RMSD REFERENCE=reference_%d.pdb" % (
+                    arg_name,
+                    num_rmsd,
+                )
                 colvar_string += " TYPE=%s" % colvar.getAlignmentType().upper()
 
                 # Write the reference PDB file.
                 with open(
-                    _os.path.join(str(self._work_dir), "reference.pdb"), "w"
+                    _os.path.join(str(self._work_dir), f"reference_{num_rmsd}.pdb"),
+                    "w",
                 ) as file:
                     for line in colvar.getReferencePDB():
                         file.write(line + "\n")
@@ -1004,7 +1014,10 @@ class Plumed:
 
             # RMSD.
             elif isinstance(colvar, _CollectiveVariable.RMSD):
-                molecules = [system._mol_nums[colvar.getReferenceIndex()]]
+                for i in colvar.getMoleculeIndices():
+                    num = system._mol_nums[i]
+                    if num not in molecules:
+                        molecules.append(num)
 
             # Loop over all of the atoms. Make sure the index is valid and
             # check if we need to create an entity for the molecule containing
@@ -1229,7 +1242,7 @@ class Plumed:
 
                 # Write the reference PDB file.
                 with open(
-                    _os.path.join(str(self._work_dir), "reference_%i.pdb" % num_rmsd),
+                    _os.path.join(str(self._work_dir), f"reference_{num_rmsd}.pdb"),
                     "w",
                 ) as file:
                     for line in colvar.getReferencePDB():
