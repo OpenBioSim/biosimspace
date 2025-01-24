@@ -1511,7 +1511,7 @@ class Relative:
         if method == "ALCHEMLYB":
             # Find the output files and work out the lambda windows from the directory names.
             glob_path = _pathlib.Path(work_dir)
-            files = sorted(glob_path.glob("**/[!bar]*.xvg"))
+            files = sorted(glob_path.glob("**/[!bar]*.xvg"), key=lambda x: float(x.parent.name.split('_')[1]))
             lambdas = []
             for file in files:
                 for part in file.parts:
@@ -1567,7 +1567,7 @@ class Relative:
 
             # Create the command.
             glob_path = _pathlib.Path(work_dir)
-            xvg_files = sorted(glob_path.glob("**/[!bar]*.xvg"))
+            xvg_files = sorted(glob_path.glob("**/[!bar]*.xvg"), key=lambda x: float(x.parent.name.split('_')[1]))
             xvg_files = [str(file.absolute()) for file in xvg_files]
             command = "%s bar -f %s -o %s/bar.xvg" % (
                 _gmx_exe,
