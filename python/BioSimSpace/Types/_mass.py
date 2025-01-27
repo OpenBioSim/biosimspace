@@ -69,6 +69,7 @@ class Mass(_Type):
 
     # Print format.
     _print_format = {
+        "KILOGRAM": "kg",
         "GRAM": "g",
         "MILLIGRAM": "mg",
         "MICROGRAM": "ug",
