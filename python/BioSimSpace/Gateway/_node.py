@@ -60,6 +60,7 @@ from ._requirements import Charge as _Charge
 from ._requirements import Energy as _Energy
 from ._requirements import Integer as _Integer
 from ._requirements import Length as _Length
+from ._requirements import Mass as _Mass
 from ._requirements import Pressure as _Pressure
 from ._requirements import Requirement as _Requirement
 from ._requirements import String as _String
@@ -74,6 +75,7 @@ _float_types = [
     _Energy,
     _Pressure,
     _Length,
+    _Mass,
     _Area,
     _Volume,
     _Temperature,
@@ -86,6 +88,7 @@ _unit_types = [
     _Energy,
     _Pressure,
     _Length,
+    _Mass,
     _Area,
     _Volume,
     _Temperature,
