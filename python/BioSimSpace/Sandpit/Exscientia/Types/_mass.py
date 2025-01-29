@@ -100,7 +100,7 @@ class Mass(_Type):
         Constructor.
 
         ``*args`` can be a value and unit, or a string representation
-        of the length, e.g. "12 grams".
+        of the mass, e.g. "12 grams".
 
         Parameters
         ----------
@@ -121,15 +121,15 @@ class Mass(_Type):
         print the mass in kilograms.
 
         >>> import BioSimSpace as BSS
-        >>> length = BSS.Types.Mass(12, "G")
-        >>> print(length.kilogram())
+        >>> mass = BSS.Types.Mass(12, "G")
+        >>> print(mass.kilogram())
 
         The same as above, except passing a string representation of the
-        length to the constructor.
+        mass to the constructor.
 
         >>> import BioSimSpace as BSS
-        >>> length = BSS.Types.Mass("12 G")
-        >>> print(length.kilogram())
+        >>> mass = BSS.Types.Mass("12 G")
+        >>> print(mass.kilogram())
 
         The string matching is extremeley flexible, so all of the following
         would be valid arguments: "12 G", "12 grams", "1.2e1 grams".
@@ -167,7 +167,7 @@ class Mass(_Type):
         elif isinstance(other, str):
             try:
                 mass = Mass(other)
-                return self * length
+                return self * mass
             except:
                 raise ValueError(
                     "Could not convert the string to a 'BioSimSpace.Mass' type."
@@ -302,7 +302,7 @@ class Mass(_Type):
         Returns
         -------
 
-        length : :class:`Mass <BioSimSpace.Types.Mass>`
+        mass : :class:`Mass <BioSimSpace.Types.Mass>`
             The mass in the default unit of grams.
         """
         if mag is None:
@@ -323,7 +323,7 @@ class Mass(_Type):
         Returns
         -------
 
-        length : :class:`Mass <BioSimSpace.Types.Mass>`
+        mass : :class:`Mass <BioSimSpace.Types.Mass>`
             The mass in the specified unit.
         """
         if unit == "KILOGRAM":
