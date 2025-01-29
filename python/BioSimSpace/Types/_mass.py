@@ -121,15 +121,15 @@ class Mass(_Type):
         print the mass in kilograms.
 
         >>> import BioSimSpace as BSS
-        >>> length = BSS.Types.Length(12, "G")
-        >>> print(length.kilograms())
+        >>> length = BSS.Types.Mass(12, "G")
+        >>> print(length.kilogram())
 
         The same as above, except passing a string representation of the
         length to the constructor.
 
         >>> import BioSimSpace as BSS
-        >>> length = BSS.Types.Length("12 G")
-        >>> print(length.kilograms())
+        >>> length = BSS.Types.Mass("12 G")
+        >>> print(length.kilogram())
 
         The string matching is extremeley flexible, so all of the following
         would be valid arguments: "12 G", "12 grams", "1.2e1 grams".
