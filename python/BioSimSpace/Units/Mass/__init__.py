@@ -19,42 +19,28 @@
 # along with BioSimSpace. If not, see <http://www.gnu.org/licenses/>.
 #####################################################################
 
-"""
-.. currentmodule:: BioSimSpace.Types
+"""Mass units."""
 
-Classes
-=======
+__author__ = "Lester Hedges"
+__email__ = "lester.hedges@gmail.com"
 
-.. autosummary::
-    :toctree: generated/
+__all__ = [
+    "kilogram",
+    "gram",
+    "milligram",
+    "microgram",
+    "nanogram",
+    "picogram",
+    "femtogram",
+]
 
-    Angle
-    Area
-    Charge
-    Coordinate
-    Energy
-    Length
-    Mass
-    Pressure
-    Temperature
-    Time
-    Vector
-    Volume
-"""
 
-from ._angle import *
-from ._area import *
-from ._charge import *
-from ._coordinate import *
-from ._energy import *
-from ._length import *
-from ._mass import *
-from ._pressure import *
-from ._temperature import *
-from ._time import *
-from ._vector import *
-from ._volume import *
+from ...Types import Mass as _Mass
 
-# Hide GeneralUnit since it will be automatically created from combinations
-# of the unit based types above.
-from ._general_unit import GeneralUnit as _GeneralUnit
+kilogram = _Mass(1, "kilogram")
+gram = _Mass(1, "gram")
+milligram = _Mass(1, "milligram")
+microgram = _Mass(1, "microgram")
+nanogram = _Mass(1, "nanogram")
+picogram = _Mass(1, "picogram")
+femtogram = _Mass(1, "femtogram")

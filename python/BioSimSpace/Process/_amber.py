@@ -102,6 +102,9 @@ class Amber(_process.Process):
 
         explicit_dummies : bool
             Whether to keep dummy atoms explicit at alchemical end states, or remove them.
+            This option is provided for legacy support of alchemical free energy calculations
+            using the old PMEMD CPU implementation. The default is False, which should be
+            used for any recent AMBER version or for GPU accelerated PMEMD.
 
         exe : str
             The full path to the AMBER executable.
