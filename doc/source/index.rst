@@ -30,7 +30,9 @@ BioSimSpace is distributed and supported as an open source community project by
 Citation |DOI for Citing BioSimSpace|
 =====================================
 
-If you use BioSimSpace in any scientific software, please cite the following paper: ::
+If you use BioSimSpace in any scientific software, please cite the following paper:
+
+.. code-block:: bibtex
 
     @article{Hedges2019,
       doi = {10.21105/joss.01831},
