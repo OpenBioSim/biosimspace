@@ -47,6 +47,7 @@ Requirement types
     Volume
     Charge
     Energy
+    Mass
     Pressure
     Temperature
     Time
