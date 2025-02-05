@@ -122,8 +122,19 @@ def test_metadynamics():
 
 
 def test_steering(system):
-    # Create a collective variable so we can instantiate a steering protocol.
-    cv = BSS.Metadynamics.CollectiveVariable.RMSD(system, system[0], [0, 1, 2, 3])
+    # Create a reference containing the first and third molecule from the system.
+    reference = (system[0] + system[2]).toSystem()
+
+    # Create the collective variable. Here we align on molecule index 1
+    # and all atoms not belonging to to the ALA residue in molecule index 0.
+    # We compute the RSMD using the atoms belonging to the ALA residue.
+    cv = BSS.Metadynamics.CollectiveVariable.RMSD(
+        system,
+        reference,
+        "(molidx 0 and not resname ALA) or molidx 1",
+        "resname ALA",
+        reference_mapping={0: 0, 1: 2},
+    )
 
     # Create a schedule.
     start = 0 * BSS.Units.Time.nanosecond

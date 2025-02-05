@@ -1,7 +1,7 @@
 ######################################################################
 # BioSimSpace: Making biomolecular simulation a breeze!
 #
-# Copyright: 2017-2024
+# Copyright: 2017-2025
 #
 # Authors: Lester Hedges <lester.hedges@gmail.com>
 #
@@ -817,3 +817,24 @@ class GeneralUnit(_Type):
 
         else:
             raise TypeError("'string' must be of type 'str'")
+
+    def _to_default_unit(self, mag=None):
+        """
+        Internal method to return an object of the same type in the default unit.
+
+        Parameters
+        ----------
+
+        mag : float
+           The value (optional).
+
+        Returns
+        -------
+
+        length : :class:`Length <BioSimSpace.Types.Length>`
+            The length in the default unit of Angstrom.
+        """
+        if mag is None:
+            return self
+        else:
+            return mag * self

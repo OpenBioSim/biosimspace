@@ -1,7 +1,7 @@
 #####################################################################
 # BioSimSpace: Making biomolecular simulation a breeze!
 #
-# Copyright: 2017-2024
+# Copyright: 2017-2025
 #
 # Authors: Lester Hedges <lester.hedges@gmail.com>
 #
@@ -31,15 +31,16 @@ __all__ = [
     "Boolean",
     "Integer",
     "Float",
-    "String",  # Regular types.
+    "String",
     "File",
-    "FileSet",  # File types.
+    "FileSet",
     "Length",
     "Area",
-    "Volume",  # Length types.
+    "Volume",
     "Angle",
     "Charge",
     "Energy",
+    "Mass",
     "Pressure",
     "Temperature",
     "Time",
@@ -744,16 +745,20 @@ class Length(Requirement):
     for the default.
 
     >>> import BioSimSpace as BSS
-    >>> my_length = BSS.Gateway.Length(help="A length requirement",
-    ...                                default=10*BSS.Units.Length.angstrom)
+    >>> my_length = BSS.Gateway.Length(
+    ...     help="A length requirement",
+    ...     default=10*BSS.Units.Length.angstrom
+    ... )
 
     Create a length requirement with a default of 10 Angstrom and a maximum
     of 50 nanometers. Note that the unit is taken from the default value.
 
     >>> import BioSimSpace as BSS
-    >>> my_length = BSS.Gateway.Length(help="A length requirement",
-    ...                                default=10*BSS.Units.Length.angstrom,
-    ...                                maximum=50*BSS.Units.Length.nanometer)
+    >>> my_length = BSS.Gateway.Length(
+    ...     help="A length requirement",
+    ...     default=10*BSS.Units.Length.angstrom,
+    ...     maximum=50*BSS.Units.Length.nanometer
+    ... )
     """
 
     # Set the argparse argument type.
@@ -866,9 +871,11 @@ class Area(Requirement):
     of 50 square nanometers. Note that the unit is taken from the default value.
 
     >>> import BioSimSpace as BSS
-    >>> my_area = BSS.Gateway.Area(help="An area requirement",
-    ...                            default=100*BSS.Units.Area.angstrom2,
-    ...                            maximum=50*BSS.Units.Area.nanometer2)
+    >>> my_area = BSS.Gateway.Area(
+    ...     help="An area requirement",
+    ...     default=100*BSS.Units.Area.angstrom2,
+    ...     maximum=50*BSS.Units.Area.nanometer2
+    ... )
     """
 
     # Set the argparse argument type.
@@ -981,9 +988,11 @@ class Volume(Requirement):
     of 50 cubed nanometers. Note that the unit is taken from the default value.
 
     >>> import BioSimSpace as BSS
-    >>> my_volume = BSS.Gateway.Volume(help="A volume requirement",
-    ...                                default=10*BSS.Units.Volume.angstrom3,
-    ...                                maximum=50*BSS.Units.Volume.nanometer3)
+    >>> my_volume = BSS.Gateway.Volume(
+    ...     help="A volume requirement",
+    ...     default=10*BSS.Units.Volume.angstrom3,
+    ...     maximum=50*BSS.Units.Volume.nanometer3
+    ... )
     """
 
     # Set the argparse argument type.
@@ -1096,9 +1105,11 @@ class Angle(Requirement):
     of 360 degrees. Note that the unit is taken from the default value.
 
     >>> import BioSimSpace as BSS
-    >>> my_angle = BSS.Gateway.Angle(help="An angle requirement",
-    ...                              default=3.14*BSS.Units.Angle.radian,
-    ...                              maximum=360*BSS.Units.Angle.degree)
+    >>> my_angle = BSS.Gateway.Angle(
+    ...     help="An angle requirement",
+    ...     default=3.14*BSS.Units.Angle.radian,
+    ...     maximum=360*BSS.Units.Angle.degree
+    ... )
     """
 
     # Set the argparse argument type.
@@ -1211,9 +1222,11 @@ class Charge(Requirement):
     maximum of -10 Coulomb. Note that the unit is taken from the default value.
 
     >>> import BioSimSpace as BSS
-    >>> my_charge = BSS.Gateway.Charge(help="A charge requirement",
-    ...                                default=3*BSS.Units.Charge.electron_charge,
-    ...                                maximum=10*BSS.Units.Charge.coulomb)
+    >>> my_charge = BSS.Gateway.Charge(
+    ...     help="A charge requirement",
+    ...     default=3*BSS.Units.Charge.electron_charge,
+    ...     maximum=10*BSS.Units.Charge.coulomb
+    ... )
     """
 
     # Set the argparse argument type.
@@ -1326,9 +1339,11 @@ class Energy(Requirement):
     maximum of 50 kJ per mol. Note that the unit is taken from the default value.
 
     >>> import BioSimSpace as BSS
-    >>> my_energy = BSS.Gateway.Energy(help="An energy requirement",
-    ...                                default=3*BSS.Units.Energy.kcal_per_mol,
-    ...                                maximum=50*BSS.Units.Energy.kj_per_mol)
+    >>> my_energy = BSS.Gateway.Energy(
+    ...     help="An energy requirement",
+    ...     default=3*BSS.Units.Energy.kcal_per_mol,
+    ...     maximum=50*BSS.Units.Energy.kj_per_mol
+    ... )
     """
 
     # Set the argparse argument type.
@@ -1419,6 +1434,122 @@ class Energy(Requirement):
                 return _Types.Energy(value, unit)._convert_to(self._unit)
 
 
+class Mass(Requirement):
+    """A mass requirement.
+
+    Examples
+    --------
+
+    Create a mass requirement with a default of 10 grams.
+
+    >>> import BioSimSpace as BSS
+    >>> my_mass = BSS.Gateway.Mass(help="A mass requirement with a default of 10 grams", default=10, unit="gram")
+
+    The same, but explicitly passing a :class:`Mass <BioSimSpace.Types.Mass>`
+
+    >>> import BioSimSpace as BSS
+    >>> my_mass = BSS.Gateway.Mass(help="A mass requirement with a default of 10 grams", default=10*BSS.Units.Mass.gram)
+
+    Create a mass requirement with a default of 10 grams and a maximum of 10 kilograms.
+    Note that the unit is taken from the default value.
+
+    >>> import BioSimSpace as BSS
+    >>> my_mass = BSS.Gateway.Mass(
+    ...     help="A mass requirement with a default of 10 grams",
+    ...     default=10*BSS.Units.Mass.gram,
+    ...     maximum=10*BSS.Units.Mass.kilogram
+    ... )
+    """
+
+    # Set the argparse argument type.
+    _arg_type = str
+
+    def __init__(
+        self,
+        help=None,
+        default=None,
+        unit=None,
+        minimum=None,
+        maximum=None,
+        allowed=None,
+    ):
+        """
+        Constructor.
+
+        Parameters
+        ----------
+
+        help : str
+            The help string.
+
+        default : :class:`Mass <BioSimSpace.Types.Mass>`
+            The default value.
+
+        unit : str
+            The unit.
+
+        minimum : :class:`Mass <BioSimSpace.Types.Mass>`
+            The minimum allowed value.
+
+        maximum : :class:`Mass <BioSimSpace.Types.Mass>`
+            The maximum allowed value.
+
+        allowed : [:class:`Mass <BioSimSpace.Types.Mass>`]
+            A list of allowed values.
+        """
+
+        # Validate the unit.
+        if unit is not None:
+            mass = _Types.Mass("1 %s" % unit)
+            self._unit = mass.unit()
+            self._print_unit = mass._print_format[mass.unit()]
+        else:
+            try:
+                self._unit = default.unit()
+            except:
+                raise ValueError("No unit or default value has been specified!")
+
+        # Call the base class constructor.
+        super().__init__(
+            help=help,
+            default=default,
+            unit=self._unit,
+            minimum=minimum,
+            maximum=maximum,
+            allowed=allowed,
+        )
+
+    def getValue(self):
+        """
+        Return the value.
+
+        Returns
+        -------
+
+        value : :class:`Mass <BioSimSpace.Types.Mass>`
+            The value of the requirement.
+        """
+        if self._value is None:
+            return None
+        else:
+            return _copy.deepcopy(self._value)
+
+    def _validate(self, value):
+        """Validate that the value is of the correct type."""
+
+        if isinstance(value, _Types.Mass):
+            return value._convert_to(self._unit)
+
+        else:
+            # Extract the value and unit from the argument string.
+            value, unit = _validate_unit_requirement(value, "pressure")
+
+            if unit is None:
+                return _Types.Mass(value, self._unit)
+            else:
+                return _Types.Mass(value, unit)._convert_to(self._unit)
+
+
 class Pressure(Requirement):
     """A pressure requirement.
 
@@ -1440,9 +1571,11 @@ class Pressure(Requirement):
     maximum of 10 bar. Note that the unit is taken from the default value.
 
     >>> import BioSimSpace as BSS
-    >>> my_pressure = BSS.Gateway.Pressure(help="A pressure requirement",
-    ...                                    default=BSS.Units.Pressure.atm,
-    ...                                    maximum=10*BSS.Units.Pressure.bar)
+    >>> my_pressure = BSS.Gateway.Pressure(
+    ...     help="A pressure requirement",
+    ...     default=BSS.Units.Pressure.atm,
+    ...     maximum=10*BSS.Units.Pressure.bar
+    ... )
     """
 
     # Set the argparse argument type.
@@ -1555,9 +1688,11 @@ class Temperature(Requirement):
     maximum of 100 Celsius. Note that the unit is taken from the default value.
 
     >>> import BioSimSpace as BSS
-    >>> my_temperature = BSS.Gateway.Temperature(help="A temperature requirement",
-    ...                                          default=300*BSS.Units.Temperature.kelvin,
-    ...                                          maximum=100*BSS.Units.Temperature.celsius)
+    >>> my_temperature = BSS.Gateway.Temperature(
+    ...     help="A temperature requirement",
+    ...     default=300*BSS.Units.Temperature.kelvin,
+    ...     maximum=100*BSS.Units.Temperature.celsius
+    ... )
     """
 
     # Set the argparse argument type.
@@ -1670,9 +1805,11 @@ class Time(Requirement):
     of 5 hours. Note that the unit is taken from the default value.
 
     >>> import BioSimSpace as BSS
-    >>> my_time = BSS.Gateway.Time(help="A time requirement",
-    ...                            default=35*BSS.Units.Time.minute,
-    ...                            maximum=5*BSS.Units.Time.hour)
+    >>> my_time = BSS.Gateway.Time(
+    ...     help="A time requirement",
+    ...     default=35*BSS.Units.Time.minute,
+    ...     maximum=5*BSS.Units.Time.hour
+    ... )
     """
 
     # Set the argparse argument type.
@@ -1764,7 +1901,8 @@ class Time(Requirement):
 
 
 def _validate_unit_requirement(value, unit_type):
-    """Helper function to validate input requirements with units.
+    """
+    Helper function to validate input requirements with units.
 
     Parameters
     ----------

@@ -1,7 +1,7 @@
 ######################################################################
 # BioSimSpace: Making biomolecular simulation a breeze!
 #
-# Copyright: 2017-2024
+# Copyright: 2017-2025
 #
 # Authors: Lester Hedges <lester.hedges@gmail.com>
 #
@@ -34,6 +34,7 @@ Classes
     Coordinate
     Energy
     Length
+    Mass
     Pressure
     Temperature
     Time
@@ -47,6 +48,7 @@ from ._charge import *
 from ._coordinate import *
 from ._energy import *
 from ._length import *
+from ._mass import *
 from ._pressure import *
 from ._temperature import *
 from ._time import *

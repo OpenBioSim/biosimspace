@@ -9,6 +9,18 @@ company supporting open-source development of fostering academic/industrial coll
 within the biomolecular simulation community. Our software is hosted via the `OpenBioSim`
 `GitHub <https://github.com/OpenBioSim/biosimspace>`__ organisation.
 
+`2024.4.0 <https://github.com/openbiosim/biosimspace/compare/2024.3.0...2024.4.0>`_ - Feb 04 2025
+-------------------------------------------------------------------------------------------------
+
+* Improved robustness of restraint search and fixed torsion force constant (`@fjclark <https://github.com/fjclark>`_) (`#360 <https://github.com/OpenBioSim/biosimspace/pull/360>`__).
+* Add support for ``acdoctor`` option for ``Antechamber`` to help with parameterisation of molecules with atypical valence (`#361 <https://github.com/OpenBioSim/biosimspace/pull/361>`__).
+* Added missing AMBER atom mapping pruning options to the :mod:`BioSimSpace.Align` module (`#366 <https://github.com/OpenBioSim/biosimspace/pull/366>`__).
+* Improved error messages when no lambda windows are found during alchemical free-energy analysis (`@fjclark <https://github.com/fjclark>`_) (`#368 <https://github.com/OpenBioSim/biosimspace/pull/368>`__).
+* Decouple the selection used for aligment and RMSD for the :class:`RMSD <BioSimSpace.Metadynamics.CollectiveVariable.RMSD>` collective variable (`#379 <https://github.com/OpenBioSim/biosimspace/pull/379>`__).
+* Added missing ``._to_default_unit()`` method to the :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>` class (`#385 <https://github.com/OpenBioSim/biosimspace/pull/385>`__).
+* Clarified the meaning of the ``explicit_dummies`` keyword argument in the :class:`BioSimSpace.Process.Amber` class (`#385 <https://github.com/OpenBioSim/biosimspace/pull/385>`__).
+* Added a new :class:`BioSimSpace.Types.Mass` class to handle atomic masses (`#385 <https://github.com/OpenBioSim/biosimspace/pull/385>`__).
+
 `2024.3.0 <https://github.com/openbiosim/biosimspace/compare/2024.2.0...2024.3.0>`_ - Oct 24 2024
 -------------------------------------------------------------------------------------------------
 

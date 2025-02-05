@@ -1,7 +1,7 @@
 ######################################################################
 # BioSimSpace: Making biomolecular simulation a breeze!
 #
-# Copyright: 2017-2024
+# Copyright: 2017-2025
 #
 # Authors: Lester Hedges <lester.hedges@gmail.com>
 #
@@ -73,6 +73,20 @@ Charge units
     Charge.electron_charge
     Charge.coulomb
 
+Mass units
+==========
+
+.. autosummary::
+    :toctree: generated/
+
+    Mass.kilogram
+    Mass.gram
+    Mass.milligram
+    Mass.microgram
+    Mass.nanogram
+    Mass.picogram
+    Mass.femtogram
+
 Energy units
 ============
 
@@ -123,6 +137,7 @@ from . import Area
 from . import Charge
 from . import Energy
 from . import Length
+from . import Mass
 from . import Pressure
 from . import Temperature
 from . import Time
