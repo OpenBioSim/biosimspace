@@ -122,14 +122,14 @@ class Mass(_Type):
 
         >>> import BioSimSpace as BSS
         >>> mass = BSS.Types.Mass(12, "G")
-        >>> print(mass.kilogram())
+        >>> print(mass.kilograms())
 
         The same as above, except passing a string representation of the
         mass to the constructor.
 
         >>> import BioSimSpace as BSS
         >>> mass = BSS.Types.Mass("12 G")
-        >>> print(mass.kilogram())
+        >>> print(mass.kilograms())
 
         The string matching is extremeley flexible, so all of the following
         would be valid arguments: "12 G", "12 grams", "1.2e1 grams".
@@ -184,7 +184,7 @@ class Mass(_Type):
         # Multiplication is commutative: a*b = b*a
         return self.__mul__(other)
 
-    def kilogram(self):
+    def kilograms(self):
         """
         Return the mass in kilograms.
 
@@ -199,7 +199,7 @@ class Mass(_Type):
             "KILOGRAM",
         )
 
-    def gram(self):
+    def grams(self):
         """
         Return the mass in grams.
 
@@ -214,7 +214,7 @@ class Mass(_Type):
             "GRAM",
         )
 
-    def milligram(self):
+    def milligrams(self):
         """
         Return the mass in milligrams.
 
@@ -229,7 +229,7 @@ class Mass(_Type):
             "MILLIGRAM",
         )
 
-    def microgram(self):
+    def micrograms(self):
         """
         Return the mass in micrograms.
 
@@ -244,7 +244,7 @@ class Mass(_Type):
             "MICROGRAM",
         )
 
-    def nanogram(self):
+    def nanograms(self):
         """
         Return the mass in nanograms.
 
@@ -259,7 +259,7 @@ class Mass(_Type):
             "NANOGRAM",
         )
 
-    def picogram(self):
+    def picograms(self):
         """
         Return the mass in picograms.
 
@@ -274,7 +274,7 @@ class Mass(_Type):
             "PICOGRAM",
         )
 
-    def femtogram(self):
+    def femtograms(self):
         """
         Return the mass in femtograms.
 
@@ -306,7 +306,7 @@ class Mass(_Type):
             The mass in the default unit of grams.
         """
         if mag is None:
-            return self.gram()
+            return self.grams()
         else:
             return Mass(mag, "GRAM")
 
@@ -327,19 +327,19 @@ class Mass(_Type):
             The mass in the specified unit.
         """
         if unit == "KILOGRAM":
-            return self.kilogram()
+            return self.kilograms()
         elif unit == "GRAM":
-            return self.gram()
+            return self.grams()
         elif unit == "MILLIGRAM":
-            return self.milligram()
+            return self.milligrams()
         elif unit == "MICROGRAM":
-            return self.microgram()
+            return self.micrograms()
         elif unit == "NANOGRAM":
-            return self.nanogram()
+            return self.nanograms()
         elif unit == "PICOGRAM":
-            return self.picogram()
+            return self.picograms()
         elif unit == "FEMTOGRAM":
-            return self.femtogram()
+            return self.femtograms()
         else:
             raise ValueError(
                 "Supported units are: '%s'" % list(self._supported_units.keys())
