@@ -146,7 +146,7 @@ def supportedFormats():
     return _sire_convert.supported_formats()
 
 
-def to(obj, format="biosimspace", property_map={}):
+def to(obj, format="biosimspace", property_map={}, **kwargs):
     """
     Convert an object to a specified format.
 
@@ -186,6 +186,13 @@ def to(obj, format="biosimspace", property_map={}):
 
     if not isinstance(property_map, dict):
         raise TypeError("'property_map' must be of type 'dict'.")
+
+    # Check for force_stereo_inference in kwargs.
+    if "force_stereo_inference" in kwargs:
+        force_stereo_inference = kwargs["force_stereo_inference"]
+        if not isinstance(force_stereo_inference, bool):
+            raise TypeError("'force_stereo_inference' must be of type 'bool'.")
+        property_map["force_stereo_inference"] = force_stereo_inference
 
     # Special handling for OpenMM conversion. Currently this is a one-way (toOpenMM)
     # conversion only and is only supported for specific Sire and BioSimSpace types.
@@ -508,7 +515,7 @@ def toOpenMM(obj, property_map={}):
         )
 
 
-def toRDKit(obj, property_map={}):
+def toRDKit(obj, force_stereo_inference=False, property_map={}):
     """
     Convert an object to RDKit format.
 
@@ -517,6 +524,11 @@ def toRDKit(obj, property_map={}):
 
     obj :
         The input object to convert.
+
+    bool : force_stereo_inference
+        Whether to force inference of stereochemistry, overriding any
+        stereochemistry present in the input object. This is useful when
+        the object has been loaded from a file with invalid stereochemistry.
 
     property_map : dict
         A dictionary that maps system "properties" to their user defined
@@ -529,6 +541,15 @@ def toRDKit(obj, property_map={}):
     converted_obj :
        The object in OpenMM format.
     """
+
+    if not isinstance(force_stereo_inference, bool):
+        raise TypeError("'force_stereo_inference' must be of type 'bool'.")
+
+    if not isinstance(property_map, dict):
+        raise TypeError("'property_map' must be of type 'dict'.")
+
+    property_map["force_stereo_inference"] = force_stereo_inference
+
     return to(obj, format="rdkit", property_map=property_map)
 
 
