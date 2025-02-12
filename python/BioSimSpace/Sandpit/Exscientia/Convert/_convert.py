@@ -47,6 +47,7 @@ import rdkit.Chem as _Chem
 from sire import convert as _sire_convert
 from sire import smiles as _sire_smiles
 
+import sire.legacy.Base as _SireBase
 import sire.legacy.Mol as _SireMol
 import sire.legacy.System as _SireSystem
 import sire.legacy.Vol as _SireVol
@@ -192,7 +193,7 @@ def to(obj, format="biosimspace", property_map={}, **kwargs):
         force_stereo_inference = kwargs["force_stereo_inference"]
         if not isinstance(force_stereo_inference, bool):
             raise TypeError("'force_stereo_inference' must be of type 'bool'.")
-        property_map["force_stereo_inference"] = force_stereo_inference
+        property_map["force_stereo_inference"] = _SireBase.wrap(force_stereo_inference)
 
     # Special handling for OpenMM conversion. Currently this is a one-way (toOpenMM)
     # conversion only and is only supported for specific Sire and BioSimSpace types.
@@ -548,7 +549,7 @@ def toRDKit(obj, force_stereo_inference=False, property_map={}):
     if not isinstance(property_map, dict):
         raise TypeError("'property_map' must be of type 'dict'.")
 
-    property_map["force_stereo_inference"] = force_stereo_inference
+    property_map["force_stereo_inference"] = _SireBase.wrap(force_stereo_inference)
 
     return to(obj, format="rdkit", property_map=property_map)
 
