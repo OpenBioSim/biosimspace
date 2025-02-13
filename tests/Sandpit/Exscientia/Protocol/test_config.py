@@ -480,7 +480,9 @@ class TestSomdABFE:
     def test_turn_on_restraint_boresch(self, system_and_boresch_restraint):
         """Test for turning on multiple distance restraints"""
         system, restraint = system_and_boresch_restraint
-        protocol = FreeEnergy(perturbation_type="restraint")
+        protocol = FreeEnergy(perturbation_type="restraint", 
+                              runtime=1*BSS.Units.Time.nanosecond,
+                              timestep=2*BSS.Units.Time.femtosecond)
         freenrg = BSS.FreeEnergy.AlchemicalFreeEnergy(
             system, protocol, engine="SOMD", restraint=restraint
         )
@@ -488,6 +490,11 @@ class TestSomdABFE:
         # Test .cfg file
         with open(f"{freenrg._work_dir}/lambda_0.0000/somd.cfg", "r") as f:
             cfg_text = f.read()
+            assert "nmoves = 500000" in cfg_text
+            assert "ncycles_per_snap = 1" in cfg_text
+            assert "buffered coordinates frequency = 1000" in cfg_text
+            assert "timestep = 2.00 femtosecond" in cfg_text
+            assert "energy frequency = 200" in cfg_text
             assert "use boresch restraints = True" in cfg_text
             assert 'boresch restraints dictionary = {"anchor_points":{"r1":1,'
             ' "r2":2, "r3":3, "l1":4, "l2":5, "l3":6}, "equilibrium_values"'
