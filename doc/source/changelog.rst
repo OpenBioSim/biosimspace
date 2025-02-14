@@ -13,6 +13,7 @@ within the biomolecular simulation community. Our software is hosted via the `Op
 -------------------------------------------------------------------------------------------------
 
 * Add ``force_stereo_inference`` keyword argument to :func:`BioSimSpace.Convert.toRDKit <BioSimSpace.Convert.toRDKit>` to allow control over stereochemistry inference. This allows a user to match the old ``sire`` behaviour, where stereochemistry was always infered, which would override any information already present in a molecule (`#388 <https://github.com/OpenBioSim/biosimspace/pull/388>`__).
+* Port optimised ``SOMD`` configuration settings to the Exscientia sandpit.
 
 `2024.4.0 <https://github.com/openbiosim/biosimspace/compare/2024.3.0...2024.4.0>`_ - Feb 04 2025
 -------------------------------------------------------------------------------------------------
