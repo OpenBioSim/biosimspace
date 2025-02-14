@@ -743,51 +743,52 @@ class ConfigFactory:
             # Get the report and restart intervals.
             report_interval = self._report_interval
             restart_interval = self._restart_interval
-            runtime = self.protocol.getRunTime()
 
-            # Get the timestep.
-            timestep = self.protocol._timestep
+            # Work out the number of cycles. We want one per nanosecond of simulation.
+            if self.protocol.getRunTime().nanoseconds().value() < 2:
+                ncycles = 1
+                moves_per_cycle = self._steps
+            else:
+                ncycles = _math.ceil(self.protocol.getRunTime().nanoseconds().value())
+                moves_per_cycle = _math.ceil(self._steps / ncycles)
 
-            # Work out the number of cycles.
-            ncycles = (runtime / timestep) / report_interval
-
-            # If the number of cycles isn't integer valued, adjust the report
-            # interval so that we match specified the run time.
-            if ncycles - _math.floor(ncycles) != 0:
-                ncycles = _math.floor(ncycles)
-                if ncycles == 0:
-                    ncycles = 1
-                report_interval = _math.ceil((runtime / timestep) / ncycles)
-
-            # For free energy simulations, the report interval must be a multiple
-            # of the energy frequency which is 250 steps.
-            if isinstance(self.protocol, _Protocol._FreeEnergyMixin):
-                if report_interval % 250 != 0:
-                    report_interval = 250 * _math.ceil(report_interval / 250)
+            # The number of moves needs to be multiple of the report interval.
+            if moves_per_cycle % report_interval != 0:
+                moves_per_cycle = (
+                    _math.ceil(moves_per_cycle / report_interval) * report_interval
+                )
 
             # Work out the number of cycles per frame.
-            cycles_per_frame = restart_interval / report_interval
+            cycles_per_frame = restart_interval / moves_per_cycle
 
             # Work out whether we need to adjust the buffer frequency.
             buffer_freq = 0
             if cycles_per_frame < 1:
-                buffer_freq = cycles_per_frame * restart_interval
+                buffer_freq = restart_interval
                 cycles_per_frame = 1
-                self._buffer_freq = buffer_freq
             else:
                 cycles_per_frame = _math.floor(cycles_per_frame)
 
+            # Make sure that we aren't buffering more than 1000 frames per cycle.
+            if buffer_freq > 0 and moves_per_cycle / buffer_freq > 1000:
+                _warnings.warn(
+                    "Trajectory buffering will exceed limit. Reducing buffer frequency."
+                )
+                buffer_freq = moves_per_cycle / 1000
+
             # For free energy simulations, the buffer frequency must be an integer
             # multiple of the frequency at which free energies are written, which
-            # is 250 steps. Round down to the closest multiple.
+            # is report interval. Round down to the closest multiple.
             if isinstance(self.protocol, _Protocol._FreeEnergyMixin):
                 if buffer_freq > 0:
-                    buffer_freq = 250 * _math.floor(buffer_freq / 250)
+                    buffer_freq = report_interval * _math.floor(
+                        buffer_freq / report_interval
+                    )
 
             # The number of SOMD cycles.
-            protocol_dict["ncycles"] = int(ncycles)
+            protocol_dict["ncycles"] = ncycles
             # The number of moves per cycle.
-            protocol_dict["nmoves"] = report_interval
+            protocol_dict["nmoves"] = moves_per_cycle
             # Cycles per trajectory write.
             protocol_dict["ncycles_per_snap"] = cycles_per_frame
             # Buffering frequency.
@@ -862,7 +863,7 @@ class ConfigFactory:
                     "hbonds-notperturbed"  # Handle hydrogen perturbations.
                 )
                 protocol_dict["energy frequency"] = (
-                    250  # Write gradients every 250 steps.
+                    report_interval  # Write gradients at report interval.
                 )
 
             protocol = [str(x) for x in self.protocol.getLambdaValues()]
