@@ -480,9 +480,11 @@ class TestSomdABFE:
     def test_turn_on_restraint_boresch(self, system_and_boresch_restraint):
         """Test for turning on multiple distance restraints"""
         system, restraint = system_and_boresch_restraint
-        protocol = FreeEnergy(perturbation_type="restraint", 
-                              runtime=1*BSS.Units.Time.nanosecond,
-                              timestep=2*BSS.Units.Time.femtosecond)
+        protocol = FreeEnergy(
+            perturbation_type="restraint",
+            runtime=1 * BSS.Units.Time.nanosecond,
+            timestep=2 * BSS.Units.Time.femtosecond,
+        )
         freenrg = BSS.FreeEnergy.AlchemicalFreeEnergy(
             system, protocol, engine="SOMD", restraint=restraint
         )
