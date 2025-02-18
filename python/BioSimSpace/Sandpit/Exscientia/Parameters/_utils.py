@@ -92,6 +92,11 @@ def formalCharge(molecule, property_map={}):
 
         if len(formats) == 0:
             formats = ["PDB", "SDF"]
+        elif len(formats) == 1:
+            if formats[0] == "PDB":
+                formats.append("SDF")
+            else:
+                formats.append("PDB")
     except:
         formats = ["PDB", "SDF"]
 
