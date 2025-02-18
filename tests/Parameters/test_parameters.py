@@ -188,3 +188,20 @@ def test_acdoctor():
 
     # Make sure parameterisation works when acdoctor is disabled.
     mol = BSS.Parameters.gaff(mol, acdoctor=False).getMolecule()
+
+
+def test_broken_sdf_formal_charge():
+    """
+    Test that the PDB fallback works when using a broken SDF file
+    as input for calculating the total formal charge.
+    """
+
+    # Load the molecule.
+    mol = BSS.IO.readMolecules(f"{url}/broken.sdf")[0]
+
+    # Compute the formal charge.
+    charge = BSS.Parameters._utils.formalCharge(mol)
+
+    from math import isclose
+
+    assert isclose(charge.value(), 0.0, abs_tol=1e-6)
