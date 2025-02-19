@@ -28,14 +28,14 @@ __all__ = ["formalCharge"]
 
 import tempfile as _tempfile
 
-from .. import _is_notebook
+from .. import _isVerbose
 from .. import IO as _IO
 from .. import _Utils
 from ..Units.Charge import electron_charge as _electron_charge
 from .._SireWrappers import Molecule as _Molecule
 
 
-def formalCharge(molecule):
+def formalCharge(molecule, property_map={}):
     """
     Compute the formal charge on a molecule. This function requires that
     the molecule has explicit hydrogen atoms.
@@ -45,6 +45,11 @@ def formalCharge(molecule):
 
     molecule : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
         A molecule object.
+
+    property_map : dict
+        A dictionary that maps system "properties" to their user defined
+        values. This allows the user to refer to properties with their
+        own naming scheme, e.g. { "charge" : "my-charge" }
 
     Returns
     -------
@@ -57,6 +62,9 @@ def formalCharge(molecule):
         raise TypeError(
             "'molecule' must be of type 'BioSimSpace._SireWrappers.Molecule'"
         )
+
+    if not isinstance(property_map, dict):
+        raise TypeError("'property_map' must be of type 'dict'")
 
     from rdkit import Chem as _Chem
     from rdkit import RDLogger as _RDLogger
@@ -71,15 +79,56 @@ def formalCharge(molecule):
     # Zero the total formal charge.
     formal_charge = 0
 
-    # Run in the working directory.
-    with _Utils.cd(work_dir):
-        # Save the molecule to a PDB file.
-        _IO.saveMolecules("tmp", molecule, "PDB")
+    # Get the fileformat property name.
+    property = property_map.get("fileformat", "fileformat")
 
-        # Read the ligand PDB into an RDKit molecule.
-        mol = _Chem.MolFromPDBFile("tmp.pdb")
+    # Preferentially use the file format that the molecule was loaded from.
+    try:
+        # Get the raw list of formats.
+        raw_formats = molecule._sire_object.property(property).value().split(",")
 
-        # Compute the formal charge.
-        formal_charge = _Chem.rdmolops.GetFormalCharge(mol)
+        # Remove all formats other than PDB and SDF.
+        formats = [f for f in raw_formats if f in ["PDB", "SDF"]]
 
-    return formal_charge * _electron_charge
+        if len(formats) == 0:
+            formats = ["PDB", "SDF"]
+        elif len(formats) == 1:
+            if formats[0] == "PDB":
+                formats.append("SDF")
+            else:
+                formats.append("PDB")
+    except:
+        formats = ["PDB", "SDF"]
+
+    # List of exceptions.
+    exceptions = []
+
+    # Try going via each format in turn.
+    for format in formats:
+        try:
+            with _Utils.cd(work_dir):
+                # Save the molecule in the given format.
+                _IO.saveMolecules("tmp", molecule, format)
+
+                # Load with RDKit.
+                if format == "SDF":
+                    rdmol = _Chem.MolFromMolFile("tmp.sdf")
+                else:
+                    rdmol = _Chem.MolFromPDBFile("tmp.pdb")
+
+                # Compute the formal charge.
+                formal_charge = _Chem.rdmolops.GetFormalCharge(rdmol)
+
+                return formal_charge * _electron_charge
+
+        except Exception as e:
+            exceptions.append(e)
+
+    # If we got this far, then we failed to compute the formal charge.
+    msg = "Failed to compute the formal charge on the molecule."
+    if _isVerbose():
+        for e in exceptions:
+            msg += "\n\n" + str(e)
+        raise RuntimeError(msg)
+    else:
+        raise RuntimeError(msg) from None
