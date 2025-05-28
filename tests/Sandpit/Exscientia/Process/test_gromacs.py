@@ -12,10 +12,11 @@ from BioSimSpace.Sandpit.Exscientia.FreeEnergy import Restraint
 from BioSimSpace.Sandpit.Exscientia.Units.Angle import radian
 from BioSimSpace.Sandpit.Exscientia.Units.Energy import kcal_per_mol, kj_per_mol
 from BioSimSpace.Sandpit.Exscientia.Units.Length import angstrom
+from BioSimSpace.Sandpit.Exscientia.Units.Mass import gram
 from BioSimSpace.Sandpit.Exscientia.Units.Pressure import bar
 from BioSimSpace.Sandpit.Exscientia.Units.Temperature import kelvin
 from BioSimSpace.Sandpit.Exscientia.Units.Time import picosecond
-from BioSimSpace.Sandpit.Exscientia.Units.Volume import nanometer3
+from BioSimSpace.Sandpit.Exscientia.Units.Volume import centimeter3, nanometer3
 from tests.Sandpit.Exscientia.conftest import (
     has_alchemtest,
     has_amber,
@@ -359,6 +360,8 @@ class TestGetRecord:
             ("getPressureDC", False, -215.590363, bar),
             ("getVolume", True, 44.679958, nanometer3),
             ("getVolume", False, 44.523510, nanometer3),
+            ("getDensity", False, 1.027221558, gram / centimeter3),
+            ("getDensity", True, 1.023624695, gram / centimeter3),
         ],
     )
     def test_get(self, setup, func, time_series, value, unit):
@@ -378,6 +381,7 @@ class TestGetRecord:
         assert np.isclose(df["Volume (nm^3)"][0.0], 44.679958)
         assert np.isclose(df["Pressure (bar)"][0.0], 119.490417)
         assert np.isclose(df["Temperature (kelvin)"][0.0], 306.766907)
+        assert np.isclose(df["Density (g/cm^3)"][0.0], 1.023624695)
 
     def test_dhdl_parquet_exist(self, setup):
         assert Path(f"{setup.workDir()}/dHdl.parquet").exists()
