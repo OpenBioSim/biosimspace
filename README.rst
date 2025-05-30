@@ -28,6 +28,13 @@ for biomolecular simulation. With it you can:
   run in different ways, e.g. command-line, `Jupyter <https://jupyter.org>`__.
 * Start, stop, and monitor molecular simulation processes within interactive Python environments.
 
+We are currently conducting a
+`survey <https://docs.google.com/forms/d/1zY0i3lLR9MhmohKjcu0wJp_CXJvBwcWoj6iG4p9LNKk/edit?ts=6836f566>`__
+to help us understand how BioSimSpace is being used and how we can improve it.
+The survey explores your molecular simulation tools and practices, identifies workflow challenges, and
+gathers feedback on the BioSimSpace simulation framework to guide its future development. If you have
+a few minutes, please fill it out!
+
 Citation |DOI for Citing BioSimSpace|
 =====================================
 
