@@ -32,6 +32,7 @@ import warnings as _warnings
 from .. import Protocol as _Protocol
 from ..Protocol._free_energy_mixin import _FreeEnergyMixin
 from ..Protocol._position_restraint_mixin import _PositionRestraintMixin
+from .._Exceptions import IncompatibleError as _IncompatibleError
 
 from ._config import Config as _Config
 
