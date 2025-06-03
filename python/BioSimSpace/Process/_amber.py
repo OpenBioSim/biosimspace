@@ -365,10 +365,6 @@ class Amber(_process.Process):
                 )
             else:
                 _shutil.copy(self._rst_file, self._ref_file)
-            file = _os.path.splitext(self._ref_file)[0]
-            _IO.saveMolecules(
-                file, reference_system, "rst7", property_map=self._property_map
-            )
         except Exception as e:
             msg = "Failed to write reference system to 'RST7' format."
             if _isVerbose():
