@@ -172,6 +172,13 @@ class Amber(_process.Process):
         # Flag to indicate whether the original system has a box.
         self._has_box = _AmberConfig.hasBox(self._system, self._property_map)
 
+        # Take note of whether the original reference system was None
+        # This will be used later to avoid duplication
+        if reference_system is not None:
+            self._is_real_reference = True
+        else:
+            self._is_real_reference = False
+
         # If the path to the executable wasn't specified, then search
         # for it in AMBERHOME and the PATH.
         if exe is None:
@@ -333,7 +340,6 @@ class Amber(_process.Process):
         else:
             # Check for perturbable molecules and convert to the chosen end state.
             system = self._checkPerturbable(system)
-            reference_system = self._checkPerturbable(reference_system)
 
         # RST file (coordinates).
         try:
@@ -348,6 +354,17 @@ class Amber(_process.Process):
 
         # Reference file for position restraints.
         try:
+            if self._is_real_reference:
+                reference_system, _ = _squash(
+                    system, explicit_dummies=self._explicit_dummies
+                )
+                reference_system = self._checkPerturbable(reference_system)
+                file = _os.path.splitext(self._ref_file)[0]
+                _IO.saveMolecules(
+                    file, reference_system, "rst7", property_map=self._property_map
+                )
+            else:
+                _shutil.copy(self._rst_file, self._ref_file)
             file = _os.path.splitext(self._ref_file)[0]
             _IO.saveMolecules(
                 file, reference_system, "rst7", property_map=self._property_map
