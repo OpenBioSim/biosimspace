@@ -24,7 +24,7 @@
 __author__ = "Lester Hedges"
 __email__ = "lester.hedges@gmail.com"
 
-__all__ = ["meter3", "nanometer3", "angstrom3", "picometer3"]
+__all__ = ["meter3", "nanometer3", "angstrom3", "picometer3", "centimeter3"]
 
 from ...Types import Volume as _Volume
 
@@ -32,3 +32,4 @@ meter3 = _Volume(1, "meter3")
 nanometer3 = _Volume(1, "nanometer3")
 angstrom3 = _Volume(1, "angstrom3")
 picometer3 = _Volume(1, "picometer3")
+centimeter3 = _Volume(1e-6, "meter3")

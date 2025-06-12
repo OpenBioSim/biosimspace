@@ -32,6 +32,7 @@ import os as _os
 import traceback
 
 import pandas as pd
+from loguru import logger
 
 from .._Utils import _try_import
 
@@ -53,6 +54,7 @@ from ..Protocol import Production as _Production
 from ..Protocol._protocol import Protocol as _Protocol
 from .._SireWrappers import System as _System
 from ..Types._type import Type as _Type
+from ..Types import Time as _Time
 from .. import Units as _Units
 from .. import _Utils
 from ..FreeEnergy._restraint import Restraint as _Restraint
@@ -898,7 +900,7 @@ class Process:
         else:
             self._seed = seed
 
-    def wait(self, max_time=None):
+    def wait(self, max_time=None, inactivity_timeout: None | _Time = None):
         """
         Wait for the process to finish.
 
@@ -939,11 +941,52 @@ class Process:
             self._process.wait(max_time)
 
         else:
-            # Wait for the process to finish.
-            self._process.wait()
+            if inactivity_timeout is None:
+                # Wait for the process to finish.
+                self._process.wait()
 
-            # Store the final run time.
-            self.runTime()
+                # Store the final run time.
+                self.runTime()
+            else:
+                inactivity_timeout = int(inactivity_timeout.milliseconds().value())
+                last_time = self._getLastTime()
+                if last_time is None:
+                    # Wait for the process to finish.
+                    self._process.wait()
+
+                    # Store the final run time.
+                    self.runTime()
+                else:
+                    while self.isRunning():
+                        self._process.wait(inactivity_timeout)
+                        if self.isRunning():
+                            current_time = self._getLastTime()
+                            if current_time > last_time:
+                                logger.info(
+                                    f"Current simulation time ({current_time})."
+                                )
+                                last_time = current_time
+                            else:
+                                logger.warning(
+                                    f"Current simulation time ({current_time}) has not advanced compared "
+                                    f"to the last time ({last_time}). The process "
+                                    f"might have hung and will be killed."
+                                )
+                                with open(
+                                    f"{self.workDir()}/{self._name}.out", "a+"
+                                ) as f:
+                                    f.write("Process Hung. Killed.")
+                                self.kill()
+
+    def _getLastTime(self) -> float | None:
+        """This is the base method in the Process base class.
+        Each subclass, such as AMBER or GROMACS, is expected to override this method
+        to provide their own implementation for returning the current time.
+
+        If this method is not overridden, it will return None,
+        and the `inactivity_timeout` feature will be skipped.
+        """
+        return None
 
     def isQueued(self):
         """
