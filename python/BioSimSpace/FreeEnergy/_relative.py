@@ -1064,19 +1064,16 @@ class Relative:
             lam = float(metadata["lambda"])
         except:
             raise ValueError("Parquet metadata does not contain 'lambda'.")
-        try:
-            lambda_array = metadata["lambda_array"]
-            try:
-                lambda_grad = metadata["lambda_grad"]
-            except:
-                lambda_grad = []
-        except:
-            raise ValueError("Parquet metadata does not contain 'lambda array'")
         if not is_mbar:
             try:
                 lambda_grad = metadata["lambda_grad"]
             except:
                 raise ValueError("Parquet metadata does not contain 'lambda grad'")
+        else:
+            try:
+                lambda_grad = metadata["lambda_grad"]
+            except:
+                lambda_grad = []
 
         # Make sure that the temperature is correct.
         if not T == temperature:
