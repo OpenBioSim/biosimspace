@@ -1066,6 +1066,10 @@ class Relative:
             raise ValueError("Parquet metadata does not contain 'lambda'.")
         try:
             lambda_array = metadata["lambda_array"]
+            try:
+                lambda_grad = metadata["lambda_grad"]
+            except:
+                lambda_grad = []
         except:
             raise ValueError("Parquet metadata does not contain 'lambda array'")
         if not is_mbar:
@@ -1085,8 +1089,8 @@ class Relative:
         df = table.to_pandas()
 
         if is_mbar:
-            # Extract the columns correspodning to the lambda array.
-            df = df[[x for x in lambda_array]]
+            # Extract all columns other than those used for the gradient.
+            df = df[[x for x in df.columns if x not in lambda_grad]]
 
             # Subtract the potential at the simulated lambda.
             df = df.subtract(df[lam], axis=0)
