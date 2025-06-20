@@ -208,3 +208,18 @@ def test_broken_sdf_formal_charge():
     from math import isclose
 
     assert isclose(charge.value(), 0.0, abs_tol=1e-6)
+
+
+def test_ff19SB():
+    """
+    Test that the ff19SB force field can be used to parameterise a molecule.
+    """
+
+    # Load the molecule.
+    mol = BSS.IO.readMolecules(f"{url}/4LYT_Fixed.pdb.bz2")[0]
+
+    # Parameterise the molecule with ff19SB.
+    mol = BSS.Parameters.ff19SB(mol).getMolecule()
+
+    # Make sure the molecule has CMAP terms.
+    assert mol._sire_object.hasProperty("cmap")
