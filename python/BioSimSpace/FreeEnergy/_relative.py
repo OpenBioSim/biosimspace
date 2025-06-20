@@ -1085,7 +1085,7 @@ class Relative:
         df = table.to_pandas()
 
         if is_mbar:
-            # Extract the columns correspodning to the lambda array.
+            # Extract the columns corresponding to the lambda array.
             df = df[[x for x in lambda_array]]
 
             # Subtract the potential at the simulated lambda.
