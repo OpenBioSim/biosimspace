@@ -1930,6 +1930,29 @@ class Gromacs(_process.Process):
         """
         return self.getPressure(time_series, block=False)
 
+    def getDensity(self, time_series=False, block="AUTO"):
+        """
+        Get the Density.
+
+        Parameters
+        ----------
+
+        time_series : bool
+            Whether to return a list of time series records.
+
+        block : bool
+            Whether to block until the process has finished running.
+
+        Returns
+        -------
+
+        density : :class:`GeneralUnit <BioSimSpace.Units.Mass.kilogram / BioSimSpace.Units.Volume.meter3>`
+            The Density.
+        """
+        return self.getRecord(
+            "DENSITY", time_series, _Units.Mass.kilogram / _Units.Volume.meter3, block
+        )
+
     def getPressureDC(self, time_series=False, block="AUTO"):
         """
         Get the DC pressure.
@@ -2489,7 +2512,7 @@ class Gromacs(_process.Process):
                 elif unit == "nm/ps":
                     units.append(_Units.Length.nanometer / _Units.Time.picosecond)
                 elif unit == "kg/m^3":
-                    units.append(_Types._GeneralUnit("kg/m3"))
+                    units.append(_Units.Mass.kilogram / _Units.Volume.meter3)
                 else:
                     units.append(1.0)
                     _warnings.warn(
@@ -2934,6 +2957,11 @@ class Gromacs(_process.Process):
                             "Temperature (kelvin)",
                             _Units.Temperature.kelvin,
                             "getTemperature",
+                        ),
+                        (
+                            "Density (g/cm^3)",
+                            _Units.Mass.gram / _Units.Volume.centimeter3,
+                            "getDensity",
                         ),
                     ]
                 )

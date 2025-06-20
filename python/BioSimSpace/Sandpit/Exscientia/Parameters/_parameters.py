@@ -532,57 +532,6 @@ def _parameterise_openff(
             "must be in your PATH."
         ) from None
 
-    # Check the Antechamber version. Open Force Field requires Antechamber >= 22.0.
-    try:
-        # Antechamber returns an exit code of 1 when requesting version information.
-        # As such, we wrap the call within a try-except block in case it fails.
-
-        import shlex as _shlex
-        import subprocess as _subprocess
-
-        # Generate the command-line string. (Antechamber must be in the PATH,
-        # so no need to use AMBERHOME.
-        command = "antechamber -v"
-
-        # Run the command as a subprocess.
-        proc = _subprocess.run(
-            _Utils.command_split(command),
-            shell=False,
-            text=True,
-            stdout=_subprocess.PIPE,
-            stderr=_subprocess.STDOUT,
-        )
-
-        # Get stdout and split into lines.
-        lines = proc.stdout.split("\n")
-
-        # If present, version information is on line 1.
-        string = lines[1]
-
-        # Delete the welcome message.
-        string = string.replace("Welcome to antechamber", "")
-
-        # Extract the version and convert to float.
-        version = float(string.split(":")[0])
-
-        # The version is okay, enable Open Force Field support.
-        if version >= 22:
-            is_compatible = True
-        # Disable Open Force Field support.
-        else:
-            is_compatible = False
-
-        del _shlex
-        del _subprocess
-
-    # Something went wrong, disable Open Force Field support.
-    except:
-        is_compatible = False
-        raise
-
-    if not is_compatible:
-        raise _IncompatibleError(f"'{forcefield}' requires Antechamber >= 22.0")
-
     # Validate arguments.
 
     if not isinstance(molecule, (_Molecule, str)):
