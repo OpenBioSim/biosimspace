@@ -1103,13 +1103,13 @@ class Relative:
 
                 # Forward difference.
                 if lam_delta > lam:
-                    double_incr = (lam_delta - lam) * 2
-                    grad = (df[lam_delta] - df[lam]) * 2 / double_incr
+                    incr = lam_delta - lam
+                    grad = (df[lam_delta] - df[lam]) / incr
 
                 # Backward difference.
                 else:
-                    double_incr = (lam - lam_delta) * 2
-                    grad = (df[lam] - df[lam_delta]) * 2 / double_incr
+                    incr = lam - lam_delta
+                    grad = (df[lam] - df[lam_delta]) / incr
 
             # Central difference.
             else:
