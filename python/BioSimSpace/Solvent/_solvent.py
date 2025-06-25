@@ -1264,21 +1264,20 @@ def _solvate(
                 "the 'box' size or 'shell' thickness."
             )
 
-        # Delete the final line from the OPC topology file.
+        # Delete the defaults section and final line from the OPC topology file.
         if model == "opc":
             with open("opc.top", "r") as file:
                 lines = file.readlines()
             with open("opc.top", "w") as file:
-                for line in lines[:-1]:
+                for line in lines[6:-1]:
                     file.write(line)
 
         # Create a TOP file for the water model. By default we use the Amber03
         # force field to generate a dummy topology for the water model.
         with open("water_ions.top", "w") as file:
             file.write("#define FLEXIBLE 1\n\n")
-            if model != "opc":
-                file.write("; Include AmberO3 force field\n")
-                file.write('#include "amber03.ff/forcefield.itp"\n\n')
+            file.write("; Include AmberO3 force field\n")
+            file.write('#include "amber03.ff/forcefield.itp"\n\n')
             # Special handling for OPC, which uses a local topology file.
             file.write("; Include %s water topology\n" % model.upper())
             if model == "opc":
@@ -1515,8 +1514,12 @@ def _solvate(
                             file.write("#define FLEXIBLE 1\n\n")
                             file.write("; Include AmberO3 force field\n")
                             file.write('#include "amber03.ff/forcefield.itp"\n\n')
+                            # Special handling for OPC, which uses a local topology file.
                             file.write("; Include %s water topology\n" % model.upper())
-                            file.write('#include "amber03.ff/%s.itp"\n\n' % model)
+                            if model == "opc":
+                                file.write('#include "opc.top"\n\n')
+                            else:
+                                file.write('#include "amber03.ff/%s.itp"\n\n' % model)
                             file.write("; Include ions\n")
                             file.write('#include "amber03.ff/ions.itp"\n\n')
                             file.write("[ system ] \n")
