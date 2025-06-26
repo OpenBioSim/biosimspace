@@ -1312,10 +1312,21 @@ class Relative:
 
         # Preprocess the data.
         try:
-            processed_data = Relative._preprocess_data(data, estimator, **kwargs)
-            processed_data = _alchemlyb.concat(processed_data)
-        except:
-            _warnings.warn("Could not preprocess the data!")
+            preprocess = kwargs.pop("preprocess", True)
+        except KeyError:
+            preprocess = True
+
+        if not isinstance(preprocess, bool):
+            raise TypeError("'preprocess' must be of type 'bool'.")
+
+        if preprocess:
+            try:
+                processed_data = Relative._preprocess_data(data, estimator, **kwargs)
+                processed_data = _alchemlyb.concat(processed_data)
+            except:
+                _warnings.warn("Could not preprocess the data!")
+                processed_data = _alchemlyb.concat(data)
+        else:
             processed_data = _alchemlyb.concat(data)
 
         mbar_method = None
