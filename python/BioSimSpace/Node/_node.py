@@ -36,7 +36,7 @@ from sire.legacy import Base as _SireBase
 # Set the default node directory.
 _node_dir = _os.path.dirname(__file__) + "/_nodes"
 
-__all__ = ["list", "help", "run", "setNodeDirectory"]
+__all__ = ["list", "help", "run", "setNodeDirectory", "getNodeDirectory"]
 
 
 def list():
@@ -123,20 +123,36 @@ def run(name, args={}):
         if not _os.path.isfile(full_name + ".py"):
             raise ValueError(
                 "Cannot find node: '%s'. " % name
+                + "in directory '%s'. " % _node_dir
                 + "Run 'Node.list()' to see available nodes!"
             )
         else:
             full_name += ".py"
 
+    # get pid so that we can associate a unique directory with this run
+    import uuid
+
+    input_unique_id = str(uuid.uuid4())
+    input_name = f"input_{input_unique_id}.yaml"
+
+    # Special case argument for file_prefix, allows users to associate
+    # a unique identifier with the output files.
+    if "file_prefix" in args:
+        output_unique_id = args["file_prefix"]
+        out_name = f"{output_unique_id}.yaml"
+    else:
+        out_name = "output.yaml"
+
     # Write a YAML configuration file for the BioSimSpace node.
     if len(args) > 0:
-        with open("input.yaml", "w") as file:
+        with open(input_name, "w") as file:
             _yaml.dump(args, file, default_flow_style=False)
 
         # Create the command.
-        command = "%s/python %s --config input.yaml" % (
+        command = "%s/python %s --config %s" % (
             _SireBase.getBinDir(),
             full_name,
+            input_name,
         )
 
     # No arguments.
@@ -150,13 +166,11 @@ def run(name, args={}):
 
     if proc.returncode == 0:
         # Read the output YAML file into a dictionary.
-        with open("output.yaml", "r") as file:
+        with open(out_name, "r") as file:
             output = _yaml.safe_load(file)
-
         # Delete the redundant YAML files.
-        _os.remove("input.yaml")
-        _os.remove("output.yaml")
-
+        _os.remove(input_name)
+        _os.remove(out_name)
         return output
 
     else:
@@ -180,3 +194,16 @@ def setNodeDirectory(dir):
 
     global _node_dir
     _node_dir = dir
+
+
+def getNodeDirectory():
+    """
+    Get the directory of the node library.
+
+    Returns
+    -------
+
+    dir : str
+        The path to the node library.
+    """
+    return _node_dir
