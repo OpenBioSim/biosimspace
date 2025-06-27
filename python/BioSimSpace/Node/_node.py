@@ -90,7 +90,7 @@ def help(name):
     print(proc.stdout)
 
 
-def run(name, args={}):
+def run(name, args={}, work_dir=None):
     """
     Run a node.
 
@@ -103,6 +103,10 @@ def run(name, args={}):
     args : dict
         A dictionary of arguments to be passed to the node.
 
+    work_dir : str, optional
+        The working directory in which to run the node. If not specified,
+        the current working directory is used.
+
     Returns
     -------
 
@@ -112,8 +116,17 @@ def run(name, args={}):
 
     # Validate the input.
 
+    if not isinstance(name, str):
+        raise TypeError("'name' must be of type 'str'.")
+
     if not isinstance(args, dict):
         raise TypeError("'args' must be of type 'dict'.")
+
+    if work_dir is not None:
+        if not isinstance(work_dir, str):
+            raise TypeError("'work_dir' must be of type 'str'.")
+    else:
+        work_dir = _os.getcwd()
 
     # Apped the node directory name.
     full_name = _node_dir + "/" + name
@@ -129,53 +142,44 @@ def run(name, args={}):
         else:
             full_name += ".py"
 
-    # get pid so that we can associate a unique directory with this run
-    import uuid
+    with _Utils.chdir(work_dir):
+        # Write a YAML configuration file for the BioSimSpace node.
+        if len(args) > 0:
+            with open("input.yaml", "w") as file:
+                _yaml.dump(args, file, default_flow_style=False)
 
-    input_unique_id = str(uuid.uuid4())
-    input_name = f"input_{input_unique_id}.yaml"
+            # Create the command.
+            command = "%s/python %s --config input.yaml" % (
+                _SireBase.getBinDir(),
+                full_name,
+            )
 
-    # Special case argument for file_prefix, allows users to associate
-    # a unique identifier with the output files.
-    if "file_prefix" in args:
-        output_unique_id = args["file_prefix"]
-        out_name = f"{output_unique_id}.yaml"
-    else:
-        out_name = "output.yaml"
+        # No arguments.
+        else:
+            command = "%s/python %s" % (_SireBase.getBinDir(), full_name)
 
-    # Write a YAML configuration file for the BioSimSpace node.
-    if len(args) > 0:
-        with open(input_name, "w") as file:
-            _yaml.dump(args, file, default_flow_style=False)
-
-        # Create the command.
-        command = "%s/python %s --config %s" % (
-            _SireBase.getBinDir(),
-            full_name,
-            input_name,
+        # Run the node as a subprocess.
+        proc = _subprocess.run(
+            _Utils.command_split(command),
+            shell=False,
+            text=True,
+            stderr=_subprocess.PIPE,
         )
 
-    # No arguments.
-    else:
-        command = "%s/python %s" % (_SireBase.getBinDir(), full_name)
+        if proc.returncode == 0:
+            # Read the output YAML file into a dictionary.
+            with open("output.yaml", "r") as file:
+                output = _yaml.safe_load(file)
 
-    # Run the node as a subprocess.
-    proc = _subprocess.run(
-        _Utils.command_split(command), shell=False, text=True, stderr=_subprocess.PIPE
-    )
+            # Delete the redundant YAML files.
+            _os.remove("input.yaml")
+            _os.remove("output.yaml")
 
-    if proc.returncode == 0:
-        # Read the output YAML file into a dictionary.
-        with open(out_name, "r") as file:
-            output = _yaml.safe_load(file)
-        # Delete the redundant YAML files.
-        _os.remove(input_name)
-        _os.remove(out_name)
-        return output
+            return output
 
-    else:
-        # Print the standard error, decoded as UTF-8.
-        print(proc.stderr)
+        else:
+            # Print the standard error, decoded as UTF-8.
+            print(proc.stderr)
 
 
 def setNodeDirectory(dir):
