@@ -37,16 +37,14 @@ __all__ = [
 
 # A dictionary mapping AMBER protein force field names to their pdb2gmx
 # compatibility. Note that the names specified below will be used for the
-# parameterisation functions, so they should be suitably formatted. Once we
-# have CMAP support we should be able to determine the available force fields
-# by scanning the AmberTools installation directory, as we do for those from
-# OpenFF.
+# parameterisation functions, so they should be suitably formatted.
 _amber_protein_forcefields = {
     "ff03": True,
     "ff99": True,
     "ff99SB": False,
     "ff99SBildn": False,
     "ff14SB": False,
+    "ff19SB": False,
 }
 
 from .. import _amber_home, _gmx_exe, _gmx_path, _isVerbose

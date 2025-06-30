@@ -1064,15 +1064,16 @@ class Relative:
             lam = float(metadata["lambda"])
         except:
             raise ValueError("Parquet metadata does not contain 'lambda'.")
-        try:
-            lambda_array = metadata["lambda_array"]
-        except:
-            raise ValueError("Parquet metadata does not contain 'lambda array'")
         if not is_mbar:
             try:
                 lambda_grad = metadata["lambda_grad"]
             except:
                 raise ValueError("Parquet metadata does not contain 'lambda grad'")
+        else:
+            try:
+                lambda_grad = metadata["lambda_grad"]
+            except:
+                lambda_grad = []
 
         # Make sure that the temperature is correct.
         if not T == temperature:
@@ -1085,8 +1086,8 @@ class Relative:
         df = table.to_pandas()
 
         if is_mbar:
-            # Extract the columns correspodning to the lambda array.
-            df = df[[x for x in lambda_array]]
+            # Extract all columns other than those used for the gradient.
+            df = df[[x for x in df.columns if x not in lambda_grad]]
 
             # Subtract the potential at the simulated lambda.
             df = df.subtract(df[lam], axis=0)
@@ -1103,13 +1104,13 @@ class Relative:
 
                 # Forward difference.
                 if lam_delta > lam:
-                    double_incr = (lam_delta - lam) * 2
-                    grad = (df[lam_delta] - df[lam]) * 2 / double_incr
+                    incr = lam_delta - lam
+                    grad = (df[lam_delta] - df[lam]) / incr
 
                 # Backward difference.
                 else:
-                    double_incr = (lam - lam_delta) * 2
-                    grad = (df[lam] - df[lam_delta]) * 2 / double_incr
+                    incr = lam - lam_delta
+                    grad = (df[lam] - df[lam_delta]) / incr
 
             # Central difference.
             else:
@@ -1311,10 +1312,21 @@ class Relative:
 
         # Preprocess the data.
         try:
-            processed_data = Relative._preprocess_data(data, estimator, **kwargs)
-            processed_data = _alchemlyb.concat(processed_data)
-        except:
-            _warnings.warn("Could not preprocess the data!")
+            preprocess = kwargs.pop("preprocess", True)
+        except KeyError:
+            preprocess = True
+
+        if not isinstance(preprocess, bool):
+            raise TypeError("'preprocess' must be of type 'bool'.")
+
+        if preprocess:
+            try:
+                processed_data = Relative._preprocess_data(data, estimator, **kwargs)
+                processed_data = _alchemlyb.concat(processed_data)
+            except:
+                _warnings.warn("Could not preprocess the data!")
+                processed_data = _alchemlyb.concat(data)
+        else:
             processed_data = _alchemlyb.concat(data)
 
         mbar_method = None
