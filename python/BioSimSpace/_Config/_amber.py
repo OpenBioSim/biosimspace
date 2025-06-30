@@ -240,7 +240,7 @@ class Amber(_Config):
                 # Convert to a squashed representation, if needed
                 if isinstance(self._protocol, _FreeEnergyMixin):
                     atom_mapping0 = _squashed_atom_mapping(
-                        self.system, is_lambda1=False
+                        self._system, is_lambda1=False
                     )
                     atom_mapping1 = _squashed_atom_mapping(
                         self._system, is_lambda1=True
