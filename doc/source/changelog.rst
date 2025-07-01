@@ -9,6 +9,12 @@ company supporting open-source development of fostering academic/industrial coll
 within the biomolecular simulation community. Our software is hosted via the `OpenBioSim`
 `GitHub <https://github.com/OpenBioSim/biosimspace>`__ organisation.
 
+`2024.4.1 <https://github.com/openbiosim/biosimspace/compare/2024.4.0...2024.4.1>`_ - Feb 14 2025
+-------------------------------------------------------------------------------------------------
+
+* Add ``force_stereo_inference`` keyword argument to :func:`BioSimSpace.Convert.toRDKit <BioSimSpace.Convert.toRDKit>` to allow control over stereochemistry inference. This allows a user to match the old ``sire`` behaviour, where stereochemistry was always infered, which would override any information already present in a molecule (`#388 <https://github.com/OpenBioSim/biosimspace/pull/388>`__).
+* Port optimised ``SOMD`` configuration settings to the Exscientia sandpit.
+
 `2024.4.0 <https://github.com/openbiosim/biosimspace/compare/2024.3.0...2024.4.0>`_ - Feb 04 2025
 -------------------------------------------------------------------------------------------------
 
