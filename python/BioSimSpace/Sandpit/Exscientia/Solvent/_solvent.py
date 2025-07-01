@@ -24,12 +24,13 @@
 __author__ = "Lester Hedges"
 __email__ = "lester.hedges@gmail.com"
 
-__all__ = ["solvate", "spc", "spce", "tip3p", "tip4p", "tip5p", "waterModels"]
+__all__ = ["solvate", "spc", "spce", "tip3p", "tip4p", "tip5p", "opc", "waterModels"]
 
 import os as _os
 import re as _re
 import subprocess as _subprocess
 import shlex as _shlex
+import shutil as _shutil
 import sys as _sys
 import warnings as _warnings
 
@@ -658,6 +659,108 @@ def tip5p(
     )
 
 
+def opc(
+    molecule=None,
+    box=None,
+    angles=3 * [_Angle(90, "degrees")],
+    shell=None,
+    ion_conc=0,
+    is_neutral=True,
+    is_aligned=False,
+    match_water=True,
+    work_dir=None,
+    property_map={},
+):
+    """
+    Add OPC solvent.
+
+    Parameters
+    ----------
+
+    molecule : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`, \
+               :class:`Molecule <BioSimSpace._SireWrappers.Molecules>`, \
+               :class:`System <BioSimSpace._SireWrappers.System>`
+        A molecule, or container/system of molecules.
+
+    box : [:class:`Length <BioSimSpace.Types.Length>`]
+        A list containing the box size in each dimension.
+
+    angles : [:class:`Angle <BioSimSpace.Types.Angle>`]
+        A list containing the angles between the box vectors: yz, xz, and xy.
+
+    shell : :class:`Length` <BioSimSpace.Types.Length>`
+        Thickness of the water shell around the solute. Note that the
+        base length of the resulting box must be at least twice as large
+        as the cutoff used by the chosen molecular dynamics engine. As such,
+        the shell option is often unsuitable for small molecules.
+
+    ion_conc : float
+        The ion concentration in (mol per litre).
+
+    is_neutral : bool
+        Whether to neutralise the system.
+
+    is_aligned : bool
+        Whether to align the principal axes of the molecule to those of the
+        solvent box.
+
+    match_water : bool
+        Whether to update the naming of existing water molecules to match the
+        expected convention for GROMACS, which is used as the solvation engine.
+
+    work_dir : str
+        The working directory for the process.
+
+    property_map : dict
+        A dictionary that maps system "properties" to their user defined
+        values. This allows the user to refer to properties with their
+        own naming scheme, e.g. { "charge" : "my-charge" }
+
+    Returns
+    -------
+
+    system : :class:`System <BioSimSpace._SireWrappers.System>`
+        The solvated molecular system.
+    """
+
+    if _gmx_exe is None:
+        raise _MissingSoftwareError(
+            "'BioSimSpace.Solvent.opc' is not supported. "
+            "Please install GROMACS (http://www.gromacs.org)."
+        )
+
+    # Validate arguments.
+    molecule, box, angles, shell, work_dir, property_map = _validate_input(
+        "opc",
+        molecule,
+        box,
+        angles,
+        shell,
+        ion_conc,
+        is_neutral,
+        is_aligned,
+        match_water,
+        work_dir,
+        property_map,
+    )
+
+    # Return the solvated system.
+    return _solvate(
+        molecule,
+        box,
+        angles,
+        shell,
+        "opc",
+        4,
+        ion_conc,
+        is_neutral,
+        is_aligned,
+        match_water,
+        work_dir=work_dir,
+        property_map=property_map,
+    )
+
+
 def _validate_input(
     model,
     molecule,
@@ -1094,11 +1197,21 @@ def _solvate(
             mod = model
         command = "%s solvate -cs %s" % (_gmx_exe, mod)
 
+        # OPC is a special case using a local structure file.
+        if mod == "opc":
+            command += ".gro"
+
         # Add the shell information.
         if molecule is not None and shell is not None:
             command += " -shell %f" % shell.nanometers().value()
 
         command += " -cp box.gro -o output.gro"
+
+        if mod == "opc":
+            template = _SireBase.getShareDir() + "/templates/water/opc"
+            _shutil.copyfile(template + ".itp", "opc.top")
+            _shutil.copyfile(template + "_solvate.gro", "opc.gro")
+            command += " -p opc.top"
 
         with open("README.txt", "a") as file:
             # Write the command to file.
@@ -1151,14 +1264,26 @@ def _solvate(
                 "the 'box' size or 'shell' thickness."
             )
 
+        # Delete the defaults section and final line from the OPC topology file.
+        if model == "opc":
+            with open("opc.top", "r") as file:
+                lines = file.readlines()
+            with open("opc.top", "w") as file:
+                for line in lines[6:-1]:
+                    file.write(line)
+
         # Create a TOP file for the water model. By default we use the Amber03
         # force field to generate a dummy topology for the water model.
         with open("water_ions.top", "w") as file:
             file.write("#define FLEXIBLE 1\n\n")
             file.write("; Include AmberO3 force field\n")
             file.write('#include "amber03.ff/forcefield.itp"\n\n')
+            # Special handling for OPC, which uses a local topology file.
             file.write("; Include %s water topology\n" % model.upper())
-            file.write('#include "amber03.ff/%s.itp"\n\n' % model)
+            if model == "opc":
+                file.write('#include "opc.top"\n\n')
+            else:
+                file.write('#include "amber03.ff/%s.itp"\n\n' % model)
             file.write("; Include ions\n")
             file.write('#include "amber03.ff/ions.itp"\n\n')
             file.write("[ system ] \n")
@@ -1389,8 +1514,12 @@ def _solvate(
                             file.write("#define FLEXIBLE 1\n\n")
                             file.write("; Include AmberO3 force field\n")
                             file.write('#include "amber03.ff/forcefield.itp"\n\n')
+                            # Special handling for OPC, which uses a local topology file.
                             file.write("; Include %s water topology\n" % model.upper())
-                            file.write('#include "amber03.ff/%s.itp"\n\n' % model)
+                            if model == "opc":
+                                file.write('#include "opc.top"\n\n')
+                            else:
+                                file.write('#include "amber03.ff/%s.itp"\n\n' % model)
                             file.write("; Include ions\n")
                             file.write('#include "amber03.ff/ions.itp"\n\n')
                             file.write("[ system ] \n")

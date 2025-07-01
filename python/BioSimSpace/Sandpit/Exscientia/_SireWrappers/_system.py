@@ -2522,7 +2522,17 @@ class System(_SireWrapper):
                     # TODO: Assume TIP3P. Not sure how to detect SPC/E at present.
                     water_model = "TIP3P"
                 elif num_point == 4:
-                    water_model = "TIP4P"
+                    # Check for OPC water.
+                    try:
+                        if (
+                            waters[0].search("element Xx").atoms()[0].charge().value()
+                            < -1.1
+                        ):
+                            water_model = "OPC"
+                        else:
+                            water_model = "TIP4P"
+                    except:
+                        water_model = "TIP4P"
                 elif num_point == 5:
                     water_model = "TIP5P"
 
