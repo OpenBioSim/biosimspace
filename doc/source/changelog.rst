@@ -13,7 +13,7 @@ within the biomolecular simulation community. Our software is hosted via the `Op
 -------------------------------------------------------------------------------------------------
 
 * Improved robustness of formal charge inference when reading molecules from PDB or SDF files (`#393 <https://github.com/OpenBioSim/biosimspace/pull/393>`__).
-* Make sure the system extracted from AMBER trajectory frames during free-energy perturbation simulations are in the original, unsquashed format (`#403 <https://github.com/OpenBioSim/biosimspace/pull/403>`__).
+* Make sure the system extracted from AMBER trajectory frames during free-energy perturbation simulations is in the original, unsquashed format (`#403 <https://github.com/OpenBioSim/biosimspace/pull/403>`__).
 * Add support for the ``ff19SB`` force field and OPC water (`#406 <https://github.com/OpenBioSim/biosimspace/pull/406>`__).
 * Allow creation of ``SOMD`` perturbation files without modification to ghost atom bonded terms (`#407 <https://github.com/OpenBioSim/biosimspace/pull/407>`__).
 * Support analysis of ``SOMD2`` energy trajectories with time varying lambda sampling (`#408 <https://github.com/OpenBioSim/biosimspace/pull/408>`__).
