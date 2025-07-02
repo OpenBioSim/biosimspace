@@ -2,14 +2,11 @@ import os
 import sys
 import platform
 
-# import sire in mixed_api compatibility mode
-try:
-    import sire as _sr
+from setuptools import setup, find_packages
 
-    _sr.use_mixed_api()
-except ImportError:
-    # a new version of sire is not installed
-    pass
+import versioneer
+
+# A list of authors and their email addresses.
 
 # Allow setting on the command line because setting
 # environment variables on Windows is painful!
@@ -21,32 +18,6 @@ if "BSS_CONDA_INSTALL=1" in sys.argv:
     os.environ["BSS_CONDA_INSTALL"] = "1"
     sys.argv.remove("BSS_CONDA_INSTALL=1")
 
-
-if not os.getenv("BSS_CONDA_INSTALL"):
-    # Set the minimum allowed Sire version.
-    min_ver = "2023.0.0"
-    min_ver_int = int(min_ver.replace(".", ""))
-
-    # Make sure we're using the Sire python interpreter.
-    try:
-        import sire.legacy.Base
-
-        bin_dir = sire.legacy.Base.getBinDir()
-        lib_dir = sire.legacy.Base.getLibDir()
-    except ModuleNotFoundError:
-        raise ModuleNotFoundError(
-            "BioSimSpace currently requires the Sire Python interpreter: www.siremol.org"
-        )
-
-    # Check the Sire version.
-    if int(sire.legacy.__version__.replace(".", "").replace("dev", "")) < min_ver_int:
-        raise ImportError("BioSimSpace requires Sire version '%s' or above." % min_ver)
-
-from setuptools import setup, find_packages
-
-import versioneer
-
-# A list of authors and their email addresses.
 authors = (
     "Lester Hedges <lester.hedges@gmail.com, "
     "Christopher Woods <chryswoods@gmail.com>, "
