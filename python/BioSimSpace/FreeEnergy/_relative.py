@@ -1178,19 +1178,25 @@ class Relative:
         raw_data = data
 
         # Data length.
-        data_len = len(data[0])
+        data_len = [len(i) for i in data]
 
         # Step size.
-        data_step = round((data[0].index[-1][0] - data[0].index[-2][0]), 1)
+        data_step = [round((i.index[-1][0] - i.index[-2][0]), 1) for i in data]
 
         # Get the upper and lower bounds for truncate.
-        truncate_lower = (data_len * (truncate_lower / 100)) * data_step
-        truncate_upper = (data_len * (truncate_upper / 100)) * data_step
+        truncate_lower = [
+            (data_len[i] * (truncate_lower / 100)) * data_step[i]
+            for i in range(len(data_len))
+        ]
+        truncate_upper = [
+            (data_len[i] * (truncate_upper / 100)) * data_step[i]
+            for i in range(len(data_len))
+        ]
 
         try:
             data = [
-                _slicing(i, lower=truncate_lower, upper=truncate_upper)
-                for i in raw_data
+                _slicing(d, lower=truncate_lower[i], upper=truncate_upper[i])
+                for i, d in enumerate(raw_data)
             ]
         except:
             _warnings.warn("Could not truncate data.")
