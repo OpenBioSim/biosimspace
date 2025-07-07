@@ -9,6 +9,7 @@ sire==2025.2.0.dev
 configargparse
 ipywidgets
 kcombu_bss
+loguru
 lomap2
 networkx
 nglview
