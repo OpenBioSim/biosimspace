@@ -112,6 +112,25 @@ if _amber_home is not None:
     if not _os.path.isfile(_parmchk_exe):
         raise IOError("Missing parmchk executable: '%s'" % _parmchk_exe)
 
+# Check for ABCG2 support.
+_has_abcg2 = False
+
+try:
+    cmd = "antechamber -L"
+    proc = _subprocess.run(
+        _Utils.command_split(cmd),
+        shell=False,
+        stdout=_subprocess.PIPE,
+        stderr=_subprocess.PIPE,
+        text=True,
+    )
+    if proc.returncode == 0:
+        # Check the output for ABCG2 support.
+        if "abcg2" in proc.stdout:
+            _has_abcg2 = True
+except:
+    pass
+
 
 class AmberProtein(_protocol.Protocol):
     """A class for handling AMBER protein force field models."""
@@ -833,6 +852,11 @@ class GAFF(_protocol.Protocol):
 
     # A list of supported charge methods.
     _charge_methods = ["RESP", "CM2", "MUL", "BCC", "ESP", "GAS"]
+
+    # Add ABCG2 to the list of charge methods if it is supported.
+    # This requires Antechamber > 24.0.
+    if _has_abcg2:
+        _charge_methods.append("ABCG2")
 
     def __init__(
         self,
