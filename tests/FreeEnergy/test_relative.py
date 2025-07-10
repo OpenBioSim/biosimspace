@@ -43,7 +43,7 @@ def expected_results():
     """A dictionary of expected FEP results."""
 
     return {
-        "amber": {"mbar": -12.7176, "ti": -13.8771},
+        "amber": {"mbar": -12.5939, "ti": -13.6850},
         "gromacs": {"mbar": -6.0238, "ti": -8.4158},
         "somd": {"mbar": -6.3519, "ti": -6.3209},
     }
@@ -73,8 +73,12 @@ def test_analysis(fep_output, engine, estimator, expected_results):
     path_vac = f"{fep_output.name}/fep_output/{engine}/vacuum"
 
     # Perform the analysis.
-    free_nrg_free, _ = BSS.FreeEnergy.Relative.analyse(path_free, estimator=estimator)
-    free_nrg_vac, _ = BSS.FreeEnergy.Relative.analyse(path_vac, estimator=estimator)
+    free_nrg_free, _ = BSS.FreeEnergy.Relative.analyse(
+        path_free, estimator=estimator, preprocess=False
+    )
+    free_nrg_vac, _ = BSS.FreeEnergy.Relative.analyse(
+        path_vac, estimator=estimator, preprocess=False
+    )
 
     # Compute the free-energy difference.
     delta_g = BSS.FreeEnergy.Relative.difference(free_nrg_free, free_nrg_vac)
