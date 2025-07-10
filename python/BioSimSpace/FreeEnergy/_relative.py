@@ -1183,13 +1183,16 @@ class Relative:
         # Step size.
         data_step = [round((i.index[-1][0] - i.index[-2][0]), 1) for i in data]
 
+        # Start time.
+        start_time = [i.index[0][0] for i in data]
+
         # Get the upper and lower bounds for truncate.
         truncate_lower = [
-            (data_len[i] * (truncate_lower / 100)) * data_step[i]
+            (start_time[i] + (data_len[i] * (truncate_lower / 100)) * data_step[i])
             for i in range(len(data_len))
         ]
         truncate_upper = [
-            (data_len[i] * (truncate_upper / 100)) * data_step[i]
+            (start_time[i] + (data_len[i] * (truncate_upper / 100)) * data_step[i])
             for i in range(len(data_len))
         ]
 
