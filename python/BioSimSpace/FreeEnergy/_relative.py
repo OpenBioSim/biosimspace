@@ -1177,23 +1177,21 @@ class Relative:
         # Copy the data.
         raw_data = data
 
-        # Data length.
-        data_len = [len(i) for i in data]
-
-        # Step size.
-        data_step = [round((i.index[-1][0] - i.index[-2][0]), 1) for i in data]
-
         # Start time.
         start_time = [i.index[0][0] for i in data]
 
-        # Get the upper and lower bounds for truncate.
+        # End time.
+        end_time = [i.index[-1][0] for i in data]
+
+        # Get the lower and upper bounds for the truncation.
         truncate_lower = [
-            (start_time[i] + (data_len[i] * (truncate_lower / 100)) * data_step[i])
-            for i in range(len(data_len))
+            start_time[i] + (end_time[i] - start_time[i]) * (truncate_lower / 100)
+            for i in range(len(data))
         ]
+
         truncate_upper = [
-            (start_time[i] + (data_len[i] * (truncate_upper / 100)) * data_step[i])
-            for i in range(len(data_len))
+            start_time[i] + (end_time[i] - start_time[i]) * (truncate_upper / 100)
+            for i in range(len(data))
         ]
 
         try:
