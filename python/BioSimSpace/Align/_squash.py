@@ -1,7 +1,6 @@
 import itertools as _it
 import numpy as _np
 import os as _os
-import parmed as _pmd
 import shutil as _shutil
 import tempfile
 
@@ -164,6 +163,8 @@ def _squash_molecule(molecule, explicit_dummies=False):
 
     # Perform the multi-residue squashing with ParmEd as it is much easier and faster.
     with tempfile.TemporaryDirectory() as tempdir:
+        import parmed as _pmd
+
         # Load in ParmEd.
         _saveMolecules(f"{tempdir}/temp", mol0 + mol1, "prm7,rst7")
         _shutil.move(f"{tempdir}/temp.prm7", f"{tempdir}/temp.parm7")
