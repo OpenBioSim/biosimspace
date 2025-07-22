@@ -281,10 +281,9 @@ class OpenForceField(_protocol.Protocol):
         else:
             if not _has_antechamber:
                 raise _MissingSoftwareError(
-                    f"'{forcefield}' is not supported. AmberTools "
-                    "(http://ambermd.org) is needed for charge "
-                    "calculation and 'antechamber' executable "
-                    "must be in your PATH."
+                    f"{self._forcefield} is not supported. AnteChamber "
+                    "(http://ambermd.org) or OpenFF-NAGL are needed for "
+                    "charge calculation."
                 ) from None
             charge_from_molecules = None
 
