@@ -34,6 +34,7 @@ Functions
     tip3p
     tip4p
     tip5p
+    opc
     waterModels
 
 Examples
