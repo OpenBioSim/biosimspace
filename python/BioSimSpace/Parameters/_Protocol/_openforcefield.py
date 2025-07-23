@@ -33,6 +33,7 @@ __all__ = ["OpenForceField"]
 # To override any protocols, just implement a custom "run" method in any
 # of the classes.
 
+from ..._Exceptions import MissingSoftwareError as _MissingSoftwareError
 from ..._Utils import _try_import, _have_imported
 
 import os as _os
@@ -105,6 +106,15 @@ else:
     _Interchange = _openff
     _OpenFFMolecule = _openff
     _Forcefield = _openff
+
+
+try:
+    from sire.legacy.Base import findExe as _findExe
+
+    _findExe("antechamber")
+    _has_antechamber = True
+except:
+    _has_antechamber = False
 
 # Reset stderr.
 _sys.stderr = _orig_stderr
@@ -269,6 +279,12 @@ class OpenForceField(_protocol.Protocol):
                     raise _ThirdPartyError(msg) from None
             charge_from_molecules = [off_molecule]
         else:
+            if not _has_antechamber:
+                raise _MissingSoftwareError(
+                    f"{self._forcefield} is not supported. AnteChamber "
+                    "(http://ambermd.org) or OpenFF-NAGL are needed for "
+                    "charge calculation."
+                ) from None
             charge_from_molecules = None
 
         # Extract the molecular topology.

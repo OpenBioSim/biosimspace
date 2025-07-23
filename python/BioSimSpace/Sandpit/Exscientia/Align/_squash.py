@@ -4,7 +4,6 @@ import shutil as _shutil
 import tempfile
 
 import numpy as _np
-import parmed as _pmd
 from sire.legacy import IO as _SireIO
 from sire.legacy import Mol as _SireMol
 
@@ -158,6 +157,8 @@ def _squash_molecule(molecule, explicit_dummies=False):
 
     # Perform the multi-residue squashing with ParmEd as it is much easier and faster.
     with tempfile.TemporaryDirectory() as tempdir:
+        import parmed as _pmd
+
         # Load in ParmEd.
         _saveMolecules(f"{tempdir}/temp", mol0 + mol1, "prm7,rst7")
         _shutil.move(f"{tempdir}/temp.prm7", f"{tempdir}/temp.parm7")
