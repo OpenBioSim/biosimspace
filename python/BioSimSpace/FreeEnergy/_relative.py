@@ -1078,8 +1078,8 @@ class Relative:
         # Make sure that the temperature is correct.
         if not T == temperature:
             raise ValueError(
-                f"The temperature in the parquet metadata '{temperature:%.3f}' "
-                f"does not match the specified temperature '{T:%.3f}'."
+                f"The temperature in the parquet metadata '{temperature:.3f}' "
+                f"does not match the specified temperature '{T:.3f}'."
             )
 
         # Convert to a pandas dataframe.
