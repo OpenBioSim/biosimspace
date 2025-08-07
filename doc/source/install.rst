@@ -86,17 +86,16 @@ And then... Install BioSimSpace into a new environment
 We recommend that :mod:`BioSimSpace` is installed into a new (clean) environment.
 This minimises the risk of failures caused by incompatible dependencies.
 
-BioSimSpace is currently packaged for Python 3.8 and Python 3.9. We will start
-by creating a Python 3.9 environment that we will call ``openbiosim``.
-
 .. code-block:: bash
 
-   $ conda create -n openbiosim "python<3.10"
+   $ conda create -n openbiosim
 
 .. note::
 
-   We use ``python<3.10`` as this will install the most recent 3.9
-   release of python.
+   If you require a specific version of Python, you can specify this
+   when creating the environment, e.g. by adding ``python=3.12`` to
+   the command above. Note that the latest version of :mod:`BioSimSpace`
+   will only be compatible with specific versions of Python.
 
 We can now install :mod:`BioSimSpace` into that environment by typing
 
