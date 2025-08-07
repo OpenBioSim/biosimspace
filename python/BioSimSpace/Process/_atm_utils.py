@@ -300,22 +300,18 @@ class _ATMUtils:
     def getLigandBoundAtomsAsList(self):
         import numpy as np
 
-        return list(
-            np.arange(
-                self.data["first_ligand_bound_atom_index"],
-                self.data["last_ligand_bound_atom_index"] + 1,
-            )
-        )
+        return np.arange(
+            self.data["first_ligand_bound_atom_index"],
+            self.data["last_ligand_bound_atom_index"] + 1,
+        ).tolist()
 
     def getLigandFreeAtomsAsList(self):
         import numpy as np
 
-        return list(
-            np.arange(
-                self.data["first_ligand_free_atom_index"],
-                self.data["last_ligand_free_atom_index"] + 1,
-            )
-        )
+        return np.arange(
+            self.data["first_ligand_free_atom_index"],
+            self.data["last_ligand_free_atom_index"] + 1,
+        ).tolist()
 
     def createATMForce(
         self,
