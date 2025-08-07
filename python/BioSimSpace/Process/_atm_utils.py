@@ -51,31 +51,31 @@ class _ATMUtils:
         import numpy as np
 
         self.lig1_first_atomnum = self.data["first_ligand_bound_atom_index"]
-        self.lig1_rigid_atoms = list(
-            np.add(self.lig1_first_atomnum, self.data["ligand_bound_rigid_core"])
-        )
+        self.lig1_rigid_atoms = np.add(
+            self.lig1_first_atomnum, self.data["ligand_bound_rigid_core"]
+        ).tolist()
         self.lig2_first_atomnum = self.data["first_ligand_free_atom_index"]
-        self.lig2_rigid_atoms = list(
-            np.add(self.lig2_first_atomnum, self.data["ligand_free_rigid_core"])
-        )
+        self.lig2_rigid_atoms = np.add(
+            self.lig2_first_atomnum, self.data["ligand_free_rigid_core"]
+        ).tolist()
 
     def findAbsoluteCOMAtoms(self):
         import numpy as np
 
         self.protein_first_atomnum = self.data["first_protein_atom_index"]
-        self.protein_com_atoms = list(
-            np.add(self.protein_first_atomnum, self.data["protein_com_atoms"])
-        )
+        self.protein_com_atoms = np.add(
+            self.protein_first_atomnum, self.data["protein_com_atoms"]
+        ).tolist()
 
         self.lig1_first_atomnum = self.data["first_ligand_bound_atom_index"]
-        self.lig1_com_atoms = list(
-            np.add(self.lig1_first_atomnum, self.data["ligand_bound_com_atoms"])
-        )
+        self.lig1_com_atoms = np.add(
+            self.lig1_first_atomnum, self.data["ligand_bound_com_atoms"]
+        ).tolist()
 
         self.lig2_first_atomnum = self.data["first_ligand_free_atom_index"]
-        self.lig2_com_atoms = list(
-            np.add(self.lig2_first_atomnum, self.data["ligand_free_com_atoms"])
-        )
+        self.lig2_com_atoms = np.add(
+            self.lig2_first_atomnum, self.data["ligand_free_com_atoms"]
+        ).tolist()
 
     def getATMForceConstants(self, index=None):
         self.lig1_atoms = self.getLigandBoundAtomsAsList()
