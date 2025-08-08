@@ -130,29 +130,6 @@ class _ATM(_Protocol, _PositionRestraintMixin):
         # Set the postition restraint.
         _PositionRestraintMixin.__init__(self, restraint, force_constant)
 
-    def __str__(self):
-        d = self.getData()
-        """Return a string representation of the protocol."""
-        string = "<BioSimSpace.Protocol.ATM>: "
-        string += "timestep=%s " % self.getTimeStep()
-        string += ", runtime=%s " % self.getRunTime()
-        string += ", temperature=%s " % self.getTemperature()
-        if self._pressure is not None:
-            string += ", pressure=%s, " % self.getPressure()
-        string += ", lambda1=%s " % self.getLambda1()
-        string += ", lambda2=%s " % self.getLambda2()
-        string += ", ligand_bound core atoms=%s" % d["ligand_bound_rigid_core"]
-        string += ", ligand_free core atoms=%s" % d["ligand_free_rigid_core"]
-        string += ", report_interval=%s " % self.getReportInterval()
-        string += ", restart_interval=%s " % self.getRestartInterval()
-        string += ">"
-
-        return string
-
-    def __repr__(self):
-        """Return a string showing how to instantiate the object."""
-        return self.__str__()
-
     def getData(self):
         """
         Return the ATM data dictionary.
@@ -778,6 +755,27 @@ class ATMMinimisation(_ATM):
         # Store the number of minimisation steps.
         self.setSteps(steps)
 
+    def __str__(self):
+        """Return a string representation of the protocol."""
+        string = "<BioSimSpace.Protocol.ATMMinimisation>: "
+        string += "steps=%s " % self.getSteps()
+        string += ", core_alignment=%s " % self.getCoreAlignment()
+        string += ", com_distance_restraint=%s " % self.getCOMDistanceRestraint()
+        string += ", align_k_distance=%s " % self.getAlignKDistance()
+        string += ", align_k_theta=%s " % self.getAlignKTheta()
+        string += ", align_k_psi=%s " % self.getAlignKPsi()
+        string += ", com_k=%s " % self.getCOMk()
+        string += ", com_restraint_width=%s " % self.getCOMWidth()
+        string += ", positional_restraint_width=%s " % self.getPosRestWidth()
+        string += ", soft_core_umax=%s " % self.getSoftCoreUmax()
+        string += ", soft_core_u0=%s " % self.getSoftCoreU0()
+        string += ", soft_core_a=%s " % self.getSoftCoreA()
+        return string
+
+    def __repr__(self):
+        """Return a string showing how to instantiate the object."""
+        return self.__str__()
+
     def getSteps(self):
         """
         Return the number of minimisation steps.
@@ -939,7 +937,6 @@ class ATMEquilibration(_ATM):
         soft_core_a : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
             The a value for the ATM softcore potential.
 
-
         use_atm_force : bool
             Whether to apply the ATM force within the equilibration protocol.
 
@@ -1030,6 +1027,41 @@ class ATMEquilibration(_ATM):
         self.setUh(uh)
 
         self.setW0(W0)
+
+    def __str__(self):
+        """Return a string representation of the protocol."""
+        string = "<BioSimSpace.Protocol.ATMEquilibration>: "
+        string += "timestep=%s " % self.getTimeStep()
+        string += ", runtime=%s " % self.getRunTime()
+        string += ", temperature_start=%s " % self.getStartTemperature()
+        string += ", temperature_end=%s " % self.getEndTemperature()
+        string += ", pressure=%s " % self.getPressure()
+        string += ", thermostat_time_constant=%s " % self.getThermostatTimeConstant()
+        string += ", report_interval=%s " % self.getReportInterval()
+        string += ", restart_interval=%s " % self.getRestartInterval()
+        string += ", core_alignment=%s " % self.getCoreAlignment()
+        string += ", com_distance_restraint=%s " % self.getCOMDistanceRestraint()
+        string += ", align_k_distance=%s " % self.getAlignKDistance()
+        string += ", align_k_theta=%s " % self.getAlignKTheta()
+        string += ", align_k_psi=%s " % self.getAlignKPsi()
+        string += ", com_k=%s " % self.getCOMk()
+        string += ", com_restraint_width=%s " % self.getCOMWidth()
+        string += ", positional_restraint_width=%s " % self.getPosRestWidth()
+        string += ", soft_core_umax=%s " % self.getSoftCoreUmax()
+        string += ", soft_core_u0=%s " % self.getSoftCoreU0()
+        string += ", soft_core_a=%s " % self.getSoftCoreA()
+        string += ", use_atm_force=%s " % self.getUseATMForce()
+        string += ", direction=%s " % self.getDirection()
+        string += ", lambda1=%s " % self.getLambda1()
+        string += ", lambda2=%s " % self.getLambda2()
+        string += ", alpha=%s " % self.getAlpha()
+        string += ", uh=%s " % self.getUh()
+        string += ", W0=%s " % self.getW0()
+        return string
+
+    def __repr__(self):
+        """Return a string showing how to instantiate the object."""
+        return self.__str__()
 
     def getTimeStep(self):
         """
@@ -1827,6 +1859,41 @@ class ATMAnnealing(_ATM):
         # Set the number of annealing cycles.
         self.setAnnealNumCycles(anneal_numcycles)
 
+    def __str__(self):
+        """Return a string representation of the protocol."""
+        string = "<BioSimSpace.Protocol.ATMAnnealing>: "
+        string += "timestep=%s " % self.getTimeStep()
+        string += ", runtime=%s " % self.getRunTime()
+        string += ", temperature=%s " % self.getTemperature()
+        string += ", pressure=%s " % self.getPressure()
+        string += ", thermostat_time_constant=%s " % self.getThermostatTimeConstant()
+        string += ", report_interval=%s " % self.getReportInterval()
+        string += ", restart_interval=%s " % self.getRestartInterval()
+        string += ", core_alignment=%s " % self.getCoreAlignment()
+        string += ", com_distance_restraint=%s " % self.getCOMDistanceRestraint()
+        string += ", align_k_distance=%s " % self.getAlignKDistance()
+        string += ", align_k_theta=%s " % self.getAlignKTheta()
+        string += ", align_k_psi=%s " % self.getAlignKPsi()
+        string += ", com_k=%s " % self.getCOMk()
+        string += ", com_restraint_width=%s " % self.getCOMWidth()
+        string += ", positional_restraint_width=%s " % self.getPosRestWidth()
+        string += ", soft_core_umax=%s " % self.getSoftCoreUmax()
+        string += ", soft_core_u0=%s " % self.getSoftCoreU0()
+        string += ", soft_core_a=%s " % self.getSoftCoreA()
+        string += ", direction=%d " % self.getDirection()
+        string += ", lambda1=%.2f " % self.getLambda1()
+        string += ", lambda2=%.2f " % self.getLambda2()
+        string += ", alpha=%s " % self.getAlpha()
+        string += ", uh=%s " % self.getUh()
+        string += ", W0=%s " % self.getW0()
+        string += ", anneal_values=%s " % self.getAnnealValues()
+        string += ", anneal_numcycles=%d " % self.getAnnealNumCycles()
+        return string
+
+    def __repr__(self):
+        """Return a string showing how to instantiate the object."""
+        return self.__str__()
+
     def getTimeStep(self):
         """
         Return the time step.
@@ -2320,7 +2387,7 @@ class ATMAnnealing(_ATM):
 
         def capitalise_keys(input_dict):
             # The first letter of each key needs to be captilised
-            # so that it can be properly passed to openMM later
+            # so that it can be properly passed to OpenMM later
             capitalized_dict = {}
             for key, value in input_dict.items():
                 capitalized_key = key.capitalize()
@@ -2665,6 +2732,33 @@ class ATMProduction(_ATM):
         self._set_lambda_values()
 
         self.setAnalysisMethod(analysis_method)
+
+    def __str__(self):
+        """Return a string representation of the protocol."""
+        string = "<BioSimSpace.Protocol.ATMProduction>: "
+        string += "timestep=%s " % self.getTimeStep()
+        string += ", runtime=%s " % self.getRunTime()
+        string += ", temperature=%s " % self.getTemperature()
+        string += ", pressure=%s " % self.getPressure()
+        string += ", thermostat_time_constant=%s " % self.getThermostatTimeConstant()
+        string += ", report_interval=%s " % self.getReportInterval()
+        string += ", restart_interval=%s " % self.getRestartInterval()
+        string += ", core_alignment=%s " % self.getCoreAlignment()
+        string += ", com_distance_restraint=%s " % self.getCOMDistanceRestraint()
+        string += ", align_k_distance=%s " % self.getAlignKDistance()
+        string += ", align_k_theta=%s " % self.getAlignKTheta()
+        string += ", align_k_psi=%s " % self.getAlignKPsi()
+        string += ", com_k=%s " % self.getCOMk()
+        string += ", com_restraint_width=%s " % self.getCOMWidth()
+        string += ", positional_restraint_width=%s " % self.getPosRestWidth()
+        string += ", soft_core_umax=%s " % self.getSoftCoreUmax()
+        string += ", soft_core_u0=%s " % self.getSoftCoreU0()
+        string += ", soft_core_a=%s " % self.getSoftCoreA()
+        return string
+
+    def __repr__(self):
+        """Return a string showing how to instantiate the object."""
+        return self.__str__()
 
     def getTimeStep(self):
         """
