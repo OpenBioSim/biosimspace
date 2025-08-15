@@ -592,7 +592,13 @@ def readMolecules(
 
 
 def saveMolecules(
-    filebase, system, fileformat, match_water=True, property_map={}, **kwargs
+    filebase,
+    system,
+    fileformat,
+    match_water=True,
+    save_velocities=True,
+    property_map={},
+    **kwargs,
 ):
     """
     Save a molecular system to file.
@@ -616,6 +622,9 @@ def saveMolecules(
         convention for the chosen file format. This is useful when a system
         is being saved to a different file format to that from which it was
         loaded.
+
+    save_velocities : bool
+        Whether to write velocities to the output files.
 
     property_map : dict
         A dictionary that maps system "properties" to their user
@@ -710,6 +719,10 @@ def saveMolecules(
     if not isinstance(match_water, bool):
         raise TypeError("'match_water' must be of type 'bool'.")
 
+    # Validate the save_velocities flag.
+    if not isinstance(save_velocities, bool):
+        raise TypeError("'save_velocities' must be of type 'bool'.")
+
     # Make a list of the matched file formats.
     formats = []
 
@@ -734,6 +747,11 @@ def saveMolecules(
     # Add the GROMACS topology file path.
     if _gmx_path is not None and ("GROMACS_PATH" not in _property_map):
         _property_map["GROMACS_PATH"] = _gmx_path
+
+    # If the user doesn't wish to save velocities, then remap the
+    # velocity property.
+    if not save_velocities:
+        _property_map["velocity"] = "null"
 
     # Get the directory name.
     dirname = _os.path.dirname(filebase)
@@ -861,7 +879,7 @@ def saveMolecules(
     return files
 
 
-def savePerturbableSystem(filebase, system, property_map={}):
+def savePerturbableSystem(filebase, system, save_velocities=True, property_map={}):
     """
     Save a system containing a perturbable molecule. This will be written in
     AMBER format, with a topology file for each end state of the perturbation,
@@ -876,6 +894,9 @@ def savePerturbableSystem(filebase, system, property_map={}):
 
     system : :class:`System <BioSimSpace._SireWrappers.System>`
         The molecular system.
+
+    save_velocities : bool
+        Whether to write velocities to the output files.
 
     property_map : dict
         A dictionary that maps system "properties" to their user defined
@@ -907,6 +928,10 @@ def savePerturbableSystem(filebase, system, property_map={}):
             "or a list of 'BiSimSpace._SireWrappers.Molecule' types."
         )
 
+    # Validate the save_velocities flag.
+    if not isinstance(save_velocities, bool):
+        raise TypeError("'save_velocities' must be of type 'bool'.")
+
     # Validate the map.
     if not isinstance(property_map, dict):
         raise TypeError("'property_map' must be of type 'dict'")
@@ -925,6 +950,14 @@ def savePerturbableSystem(filebase, system, property_map={}):
     # Create a copy of the system for the lambda=0 and lambda=1 end states.
     system0 = system.copy()
     system1 = system.copy()
+
+    # Create a copy of the property map.
+    property_map = property_map.copy()
+
+    # If the user doesn't wish to save velocities, then remap the
+    # velocity property.
+    if not save_velocities:
+        property_map["velocity"] = "null"
 
     # Update the perturbable molecule in each system.
     system0.updateMolecules(
