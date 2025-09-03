@@ -1,5 +1,5 @@
 =================
-Molecular Editing
+Molecular editing
 =================
 
 In this tutorial, you will use BioSimSpace and Sire to edit force field parameters
