@@ -220,7 +220,7 @@ ThreeAtomFunctions( size=13
 )
 
 -----------------
-Editing Dihedrals
+Editing dihedrals
 -----------------
 
 Dihedrals are a bit more complex to edit, since a single dihedral can contain multiple
@@ -310,3 +310,102 @@ Finally, a three-term expression that mixes all formats:
 ... )
 >>> d = AmberDihedral(f, Phi)
 >>> assert isclose(f.evaluate(val), d.toExpression(Phi).evaluate(val))
+
+------------------------
+Adding chain identifiers
+------------------------
+
+It may be useful to add chain identifiers to a molecule, e.g. if you plan to track
+specific residues during a simulation. Here we will add chain identifiers to an
+existing molecule, defining a new chain every residues. (This is just an example.)
+The logic is almost identical to that used to create a new molecule from scratch,
+as shown above. The only difference is the addition of chains to the molecule prior
+to adding the residues and atoms. In Sire the largest structural units are added first,
+with the smaller ones then being added and *reparented* to the larger ones.
+
+First, let's load a molecule that has multiple residues. Here we will use
+the alanine dipeptide molecule that is included with the BioSimSpace tutorials:
+
+>>> import BioSimSpace as BSS
+>>> ala = BSS.IO.readMolecules(
+...     BSS.IO.expand(
+...         BSS.tutorialUrl(), ["ala.top", "ala.crd"]
+...     )
+... )[0]
+
+Next we will create a string for the chain identifiers. Here we will
+use uppercase letters, but in practice you can use any character:
+
+>>> chain_ids = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+Now we we create a ``MolStructureEditor`` to build the new molecule:
+
+>>> import sire as sr
+>>> editor = sr.legacy.Mol.MolStructureEditor()
+
+To begin with we need to add the chains to the editor:
+
+>>> for i in range(ala.nResidues()):
+...     editor.add(sr.legacy.Mol.ChainName(chain_ids[i]))
+
+Now we can loop over the residues in the original molecule, adding them to
+the editor, reparenting them to the appropriate chain, then adding the atoms:
+
+>>> for i, res in enumerate(ala._sire_object.residues()):
+...     cg = editor.add(sr.legacy.Mol.CGName(str(i)))
+...     new_res = editor.add(res.number())
+...     new_res.rename(res.name())
+...     new_res.reparent(chain_ids[i // 3])
+...     for j, atom in enumerate(res.atoms()):
+...         new_atom = cg.add(atom.number())
+...         new_atom.rename(atom.name())
+...         new_atom.reparent(res.index())
+... editor = editor.commit().edit()
+
+Next we need to copy across the molecular properties, e.g. charges and bonded terms.
+
+>>> for prop in ala._sire_object.propertKeys():
+...     editor = editor.setProperty(prop, ala._sire_object.property(prop)).molecule()
+
+Finally, we can commit the changes to create the new molecule:
+
+>>> bss_mol = BSS._SireWrappers.Molecule(editor.commit())
+
+Let's check that the new molecule has the correct number of chains:
+
+>>> assert bss_mol.nChains() == bss_mol.nResidues()
+
+Finally we will write to PDB format to check that the chain identifiers:
+
+>>> BSS.IO.saveMolecules("ala_chains", bss_mol, "pdb")
+
+The output file ``ala_chains.pdb`` should look something like this::
+
+	MODEL     1
+	ATOM      1 HH31 ACE A   1      13.681  13.148  15.273  1.00  0.00           H
+	ATOM      2  CH3 ACE A   1      13.681  14.238  15.273  1.00  0.00           C
+	ATOM      3 HH32 ACE A   1      13.168  14.602  16.163  1.00  0.00           H
+	ATOM      4 HH33 ACE A   1      13.168  14.602  14.384  1.00  0.00           H
+	ATOM      5  C   ACE A   1      15.109  14.789  15.273  1.00  0.00           C
+	ATOM      6  O   ACE A   1      16.072  14.026  15.273  1.00  0.00           O
+	TER       7      ACE A   1
+	ATOM      8  N   ALA B   2      15.237  16.118  15.273  1.00  0.00           N
+	ATOM      9  H   ALA B   2      14.414  16.704  15.273  1.00  0.00           H
+	ATOM     10  CA  ALA B   2      16.535  16.762  15.273  1.00  0.00           C
+	ATOM     11  HA  ALA B   2      17.089  16.464  16.163  1.00  0.00           H
+	ATOM     12  CB  ALA B   2      17.343  16.369  14.041  1.00  0.00           C
+	ATOM     13  HB1 ALA B   2      16.805  16.670  13.142  1.00  0.00           H
+	ATOM     14  HB2 ALA B   2      18.312  16.867  14.068  1.00  0.00           H
+	ATOM     15  HB3 ALA B   2      17.490  15.289  14.032  1.00  0.00           H
+	ATOM     16  C   ALA B   2      16.394  18.278  15.273  1.00  0.00           C
+	ATOM     17  O   ALA B   2      15.282  18.801  15.273  1.00  0.00           O
+	TER      18      ALA B   2
+	ATOM     19  N   NME C   3      17.527  18.983  15.273  1.00  0.00           N
+	ATOM     20  H   NME C   3      18.418  18.507  15.273  1.00  0.00           H
+	ATOM     21  CH3 NME C   3      17.527  20.432  15.273  1.00  0.00           C
+	ATOM     22 HH31 NME C   3      16.500  20.796  15.273  1.00  0.00           H
+	ATOM     23 HH32 NME C   3      18.041  20.796  16.163  1.00  0.00           H
+	ATOM     24 HH33 NME C   3      18.041  20.796  14.384  1.00  0.00           H
+	TER      25      NME C   3
+	ENDMDL
+	END
