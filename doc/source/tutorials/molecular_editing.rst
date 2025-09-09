@@ -187,7 +187,7 @@ Editing dihedrals
 -----------------
 
 Dihedrals are a bit more complex to edit, since a single dihedral can contain multiple
-terms, or *parts". For example, let's look at the dihedrals in our ethanol molecule:
+terms, or *parts*. For example, let's look at the dihedrals in our ethanol molecule:
 
 >>> dihedrals = ethanol._sire_object.property("dihedral").potentials()
 >>> for i, dihedral in enumerate(dihedrals):
