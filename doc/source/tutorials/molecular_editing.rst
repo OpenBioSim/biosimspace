@@ -76,6 +76,9 @@ To go the other way, we can convert the ``AmberBond`` back into an ``Expression`
 >>> print(amber_bond.asExpression(Symbol("r")))
 371.4 [r - 0.973]^2
 
+Editing charges
+---------------
+
 To edit *atomic* properties, such as charges, we can use the *new* Sire Python API:
 
 >>> cursor = ethanol._sire_object.cursor()
@@ -94,6 +97,14 @@ SireMol::AtomCharges( size=9
 7: 10 |e|
 8: 10 |e|
 )
+
+.. Note::
+   To see the full list of properties available for a molecule, you can use the
+   ``propertyKeys()`` method on the underlying Sire molecule object, e.g.
+    ``ethanol._sire_object.propertyKeys()``.
+
+Editing bonds
+-------------
 
 For *molecule* properties, such as bonded parameters, we currently need to use
 the legacy Sire API. Here we will create a new set of bonds by nulling the force
@@ -123,7 +134,149 @@ TwoAtomFunction( {CGIdx(0),Index(2)} <-> {CGIdx(0),Index(8)} : 0 )
 
 .. Note::
    Here we've adjusted the parameters for the existing bonding, but we could
-   also adjust which atoms are bonded too.
+   also adjust which atoms are bonded by ommitting or adding new bonds when
+   constructing the new ``TwoAtomFunctions`` object.
+
+Editing angles
+--------------
+
+Angles are stored as ``ThreeAtomFunction`` objects, which can be accessed via the
+``angle`` property key. Here we will modify the angle whose central atom is named
+O3.
+
+First, let's create a ``ThreeAtomFunctions`` container to store the potentials:
+
+>>> from sire.legacy.MM import AmberAngle, ThreeAtomFunctions
+>>> angles = ThreeAtomFunctions(ethanol._sire_object.info())
+
+Next, let's loop over the existing potentials, adding each in turn,
+and modifying the desired angle:
+
+>>> for angle in ethanol._sire_object.property("angle").potentials():
+...     if ethanol._sire_object.atom(angle.atom1()).name().value() == "O3":
+...         amber_angle = AmberAngle(100, 1.5)
+...         angles.set(angle.atom0(), angle.atom1(), angle.atom2(), amber_angle.toExpression(Symbol("theta")))
+...     else:
+...         angles.set(angle.atom0(), angle.atom1(), angle.atom2(), angle.function())
+
+Now we can set the new angles on the molecule:
+
+>>> cursor = ethanol._sire_object.cursor()
+>>> cursor["angle"] = angles
+>>> ethanol._sire_object = cursor.commit()
+
+Let's print the new angles to check that the change has been made:
+
+>>> for angle in ethanol._sire_object.property("angle").potentials():
+...     print(angle)
+ThreeAtomFunction( {CGIdx(0),Index(1)} <- {CGIdx(0),Index(0)} -> {CGIdx(0),Index(3)} : 46.3 [theta - 1.91637]^2 )
+ThreeAtomFunction( {CGIdx(0),Index(0)} <- {CGIdx(0),Index(1)} -> {CGIdx(0),Index(2)} : 67.5 [theta - 1.92318]^2 )
+ThreeAtomFunction( {CGIdx(0),Index(2)} <- {CGIdx(0),Index(1)} -> {CGIdx(0),Index(7)} : 50.9 [theta - 1.9244]^2 )
+ThreeAtomFunction( {CGIdx(0),Index(3)} <- {CGIdx(0),Index(0)} -> {CGIdx(0),Index(5)} : 39.4 [theta - 1.87763]^2 )
+ThreeAtomFunction( {CGIdx(0),Index(2)} <- {CGIdx(0),Index(1)} -> {CGIdx(0),Index(6)} : 50.9 [theta - 1.9244]^2 )
+ThreeAtomFunction( {CGIdx(0),Index(3)} <- {CGIdx(0),Index(0)} -> {CGIdx(0),Index(4)} : 39.4 [theta - 1.87763]^2 )
+ThreeAtomFunction( {CGIdx(0),Index(0)} <- {CGIdx(0),Index(1)} -> {CGIdx(0),Index(7)} : 46.4 [theta - 1.91218]^2 )
+ThreeAtomFunction( {CGIdx(0),Index(1)} <- {CGIdx(0),Index(0)} -> {CGIdx(0),Index(5)} : 46.3 [theta - 1.91637]^2 )
+ThreeAtomFunction( {CGIdx(0),Index(0)} <- {CGIdx(0),Index(1)} -> {CGIdx(0),Index(6)} : 46.4 [theta - 1.91218]^2 )
+ThreeAtomFunction( {CGIdx(0),Index(6)} <- {CGIdx(0),Index(1)} -> {CGIdx(0),Index(7)} : 39.2 [theta - 1.89298]^2 )
+ThreeAtomFunction( {CGIdx(0),Index(1)} <- {CGIdx(0),Index(0)} -> {CGIdx(0),Index(4)} : 46.3 [theta - 1.91637]^2 )
+ThreeAtomFunction( {CGIdx(0),Index(4)} <- {CGIdx(0),Index(0)} -> {CGIdx(0),Index(5)} : 39.4 [theta - 1.87763]^2 )
+ThreeAtomFunction( {CGIdx(0),Index(1)} <- {CGIdx(0),Index(2)} -> {CGIdx(0),Index(8)} : 100 [theta - 1.5]^2 )
+
+Editing dihedrals
+-----------------
+
+Dihedrals are a bit more complex to edit, since a single dihedral can contain multiple
+terms, or *parts". For example, let's look at the dihedrals in our ethanol molecule:
+
+>>> dihedrals = ethanol._sire_object.property("dihedral").potentials()
+>>> for i, dihedral in enumerate(dihedrals):
+...     print(i, dihedral)
+0 FourAtomFunction( {CGIdx(0),Index(0)} <- {CGIdx(0),Index(1)} - {CGIdx(0),Index(2)} -> {CGIdx(0),Index(8)} : 0.25 cos(phi) + 0.16 cos(3 phi) + 0.41 )
+1 FourAtomFunction( {CGIdx(0),Index(7)} <- {CGIdx(0),Index(1)} - {CGIdx(0),Index(2)} -> {CGIdx(0),Index(8)} : 0.166667 cos(3 phi) + 0.166667 )
+2 FourAtomFunction( {CGIdx(0),Index(2)} <- {CGIdx(0),Index(1)} - {CGIdx(0),Index(0)} -> {CGIdx(0),Index(3)} : 0.25 cos(phi) + 0.25 )
+3 FourAtomFunction( {CGIdx(0),Index(6)} <- {CGIdx(0),Index(1)} - {CGIdx(0),Index(2)} -> {CGIdx(0),Index(8)} : 0.166667 cos(3 phi) + 0.166667 )
+4 FourAtomFunction( {CGIdx(0),Index(3)} <- {CGIdx(0),Index(0)} - {CGIdx(0),Index(1)} -> {CGIdx(0),Index(7)} : 0.155556 cos(3 phi) + 0.155556 )
+5 FourAtomFunction( {CGIdx(0),Index(3)} <- {CGIdx(0),Index(0)} - {CGIdx(0),Index(1)} -> {CGIdx(0),Index(6)} : 0.155556 cos(3 phi) + 0.155556 )
+6 FourAtomFunction( {CGIdx(0),Index(2)} <- {CGIdx(0),Index(1)} - {CGIdx(0),Index(0)} -> {CGIdx(0),Index(5)} : 0.25 cos(phi) + 0.25 )
+7 FourAtomFunction( {CGIdx(0),Index(2)} <- {CGIdx(0),Index(1)} - {CGIdx(0),Index(0)} -> {CGIdx(0),Index(4)} : 0.25 cos(phi) + 0.25 )
+8 FourAtomFunction( {CGIdx(0),Index(5)} <- {CGIdx(0),Index(0)} - {CGIdx(0),Index(1)} -> {CGIdx(0),Index(7)} : 0.155556 cos(3 phi) + 0.155556 )
+9 FourAtomFunction( {CGIdx(0),Index(4)} <- {CGIdx(0),Index(0)} - {CGIdx(0),Index(1)} -> {CGIdx(0),Index(7)} : 0.155556 cos(3 phi) + 0.155556 )
+10 FourAtomFunction( {CGIdx(0),Index(5)} <- {CGIdx(0),Index(0)} - {CGIdx(0),Index(1)} -> {CGIdx(0),Index(6)} : 0.155556 cos(3 phi) + 0.155556 )
+11 FourAtomFunction( {CGIdx(0),Index(4)} <- {CGIdx(0),Index(0)} - {CGIdx(0),Index(1)} -> {CGIdx(0),Index(6)} : 0.155556 cos(3 phi) + 0.155556 )
+
+Let's consider the first ``FourAtomFunction``, which has multiple terms, and convert it to
+an ``AmberDihedral``object.
+
+... Note::
+   The containers used for bonded functions don't preserver order, so the
+   dihedrals shown above may not be in the same order as you see when you run
+   the code.
+
+>>> from sire.legacy.MM import AmberDihedral
+>>> from sire.legacy.CAS import Symbol
+>>> amber_dihedral = AmberDihedral(dihedrals[0].function(), Symbol("phi"))
+
+We can now print the terms in the dihedral:
+
+>>> print(amber_dihedral.terms())
+[AmberDihPart( k = 0.25, periodicity = 1, phase = 0 ), AmberDihPart( k = 0.16, periodicity = 3, phase = 0 )]
+
+It's not currently possible to use ``AmberDihPart`` objects directly as a means
+of building an ``AmberDihedral``. This is because this part of the legacy Sire
+API was never intended to be used directly from Python, rather ``AmberDihedral``
+objects would be created directly from expressions that are parsed from AMBER
+topology files in the C++ API. However, it is easy enough to create multi-term
+objects by writing custom expressions. The ``AmberDihedral`` code is written to
+be robust against different AMBER-style dihedral representations from common
+format. For example:
+
+A regular AMBER-style dihedral series where all terms have positive cosine factors:
+
+>>> from sire.legacy.CAS import Cos, Expression, Symbol
+>>> Phi = Symbol("phi")
+>>> f = Expression(0.3 * (1 + Cos(Phi)) + 0.8 * (1 + Cos(4 * Phi)))
+>>> d = AmberDihedral(f, Phi)
+>>> print("AMBER:", d)
+AMBER: AmberDihedral( k[0] = 0.3, periodicity[0] = 1, phase[0] = 0, k[1] = 0.8, periodicity[1] = 4, phase[1] = 0 )
+>>> assert d.toExpression(Phi) == f
+
+An AMBER-style dihedral containing positive and negative cosine factors, which
+can appear in the CHARMM force field:
+
+>>> f = Expression(0.3 * (1 + Cos(Phi)) - 0.8 * (1 - Cos(4 * Phi)))
+>>> d = AmberDihedral(f, Phi)
+>>> print("CHARMM:", d)
+CHARMM: AmberDihedral( k[0] = 0.3, periodicity[0] = 1, phase[0] = 0, k[1] = -0.8, periodicity[1] = 4, phase[1] = 0 )
+>>> assert d.toExpression(Phi) == f
+
+An AMBER-style dihedral containing positive and negative cosine factors, with
+the negative of the form ``k [1 - Cos(Phi)]`` rather than ``-k [1 + Cos(Phi)]``.
+These can appear in the GROMACS force field:
+
+>>> f = Expression(0.3 * (1 + Cos(Phi)) + 0.8 * (1 - Cos(4 * Phi)))
+>>> d = AmberDihedral(f, Phi)
+>>> print("GROMACS:", d)
+GROMACS: AmberDihedral( k[0] = 0.3, periodicity[0] = 1, phase[0] = 0, k[1] = 0.8, periodicity[1] = 4, phase[1] = -3.14159 )
+>>> from math import isclose
+>>> from sire.legacy.CAS import SymbolValue, Values
+>>> val = Values(SymbolValue(Phi.ID(), 2.0))
+>>> assert isclose(f.evaluate(val), d.toExpression(Phi).evaluate(val))
+
+Finally, a three-term expression that mixes all formats:
+
+>>> # Try a three-term expression that mixes all formats.
+>>> f = Expression(
+...     0.3 * (1 + Cos(Phi))
+...     - 1.2 * (1 + Cos(3 * Phi))
+...     + 0.8 * (1 - Cos(4 * Phi))
+... )
+>>> d = AmberDihedral(f, Phi)
+>>> assert isclose(f.evaluate(val), d.toExpression(Phi).evaluate(val))
+
+.. Note::
+   Impropers are also stored as ``FourAtomFunction`` objects, which can be
+   accessed via the ``improper`` property key.
 
 ----------------------
 Creating new molecules
@@ -218,98 +371,6 @@ ThreeAtomFunctions( size=13
 11:    H5:5-C1:1-H6:6       : 39.4 [theta - 1.87763]^2
 12:    H7:7-C2:2-H8:8       : 39.2 [theta - 1.89298]^2
 )
-
------------------
-Editing dihedrals
------------------
-
-Dihedrals are a bit more complex to edit, since a single dihedral can contain multiple
-terms, or *parts". For example, let's look at the dihedrals in our ethanol molecule:
-
->>> dihedrals = ethanol._sire_object.property("dihedral").potentials()
->>> for i, dihedral in enumerate(dihedrals):
-...     print(i, dihedral)
-0 FourAtomFunction( {CGIdx(0),Index(0)} <- {CGIdx(0),Index(1)} - {CGIdx(0),Index(2)} -> {CGIdx(0),Index(8)} : 0.25 cos(phi) + 0.16 cos(3 phi) + 0.41 )
-1 FourAtomFunction( {CGIdx(0),Index(7)} <- {CGIdx(0),Index(1)} - {CGIdx(0),Index(2)} -> {CGIdx(0),Index(8)} : 0.166667 cos(3 phi) + 0.166667 )
-2 FourAtomFunction( {CGIdx(0),Index(2)} <- {CGIdx(0),Index(1)} - {CGIdx(0),Index(0)} -> {CGIdx(0),Index(3)} : 0.25 cos(phi) + 0.25 )
-3 FourAtomFunction( {CGIdx(0),Index(6)} <- {CGIdx(0),Index(1)} - {CGIdx(0),Index(2)} -> {CGIdx(0),Index(8)} : 0.166667 cos(3 phi) + 0.166667 )
-4 FourAtomFunction( {CGIdx(0),Index(3)} <- {CGIdx(0),Index(0)} - {CGIdx(0),Index(1)} -> {CGIdx(0),Index(7)} : 0.155556 cos(3 phi) + 0.155556 )
-5 FourAtomFunction( {CGIdx(0),Index(3)} <- {CGIdx(0),Index(0)} - {CGIdx(0),Index(1)} -> {CGIdx(0),Index(6)} : 0.155556 cos(3 phi) + 0.155556 )
-6 FourAtomFunction( {CGIdx(0),Index(2)} <- {CGIdx(0),Index(1)} - {CGIdx(0),Index(0)} -> {CGIdx(0),Index(5)} : 0.25 cos(phi) + 0.25 )
-7 FourAtomFunction( {CGIdx(0),Index(2)} <- {CGIdx(0),Index(1)} - {CGIdx(0),Index(0)} -> {CGIdx(0),Index(4)} : 0.25 cos(phi) + 0.25 )
-8 FourAtomFunction( {CGIdx(0),Index(5)} <- {CGIdx(0),Index(0)} - {CGIdx(0),Index(1)} -> {CGIdx(0),Index(7)} : 0.155556 cos(3 phi) + 0.155556 )
-9 FourAtomFunction( {CGIdx(0),Index(4)} <- {CGIdx(0),Index(0)} - {CGIdx(0),Index(1)} -> {CGIdx(0),Index(7)} : 0.155556 cos(3 phi) + 0.155556 )
-10 FourAtomFunction( {CGIdx(0),Index(5)} <- {CGIdx(0),Index(0)} - {CGIdx(0),Index(1)} -> {CGIdx(0),Index(6)} : 0.155556 cos(3 phi) + 0.155556 )
-11 FourAtomFunction( {CGIdx(0),Index(4)} <- {CGIdx(0),Index(0)} - {CGIdx(0),Index(1)} -> {CGIdx(0),Index(6)} : 0.155556 cos(3 phi) + 0.155556 )
-
-Let's consider the first ``FourAtomFunction``, which has multiple terms, and convert it to
-an ``AmberDihedral``object.
-
-... Note::
-   The containers used for bonded functions don't preserver order, so the
-   dihedrals shown above may not be in the same order as you see when you run
-   the code.
-
->>> from sire.legacy.MM import AmberDihedral
->>> from sire.legacy.CAS import Symbol
->>> amber_dihedral = AmberDihedral(dihedrals[0].function(), Symbol("phi"))
-
-We can now print the terms in the dihedral:
-
->>> print(amber_dihedral.terms())
-[AmberDihPart( k = 0.25, periodicity = 1, phase = 0 ), AmberDihPart( k = 0.16, periodicity = 3, phase = 0 )]
-
-It's not currently possible to use ``AmberDihPart`` objects directly as a means
-of building an ``AmberDihedral``. This is because this part of the legacy Sire
-API was never intended to be used directly from Python, rather ``AmberDihedral``
-objects would be created directly from expressions that are parsed from AMBER
-topology files in the C++ API. However, it is easy enough to create multi-term
-objects by writing custom expressions. The ``AmberDihedral`` code is written to
-be robust against different AMBER-style dihedral representations from common
-format. For example:
-
-A regular AMBER-style dihedral series where all terms have positive cosine factors:
-
->>> from sire.legacy.CAS import Cos, Expression, Symbol
->>> Phi = Symbol("phi")
->>> f = Expression(0.3 * (1 + Cos(Phi)) + 0.8 * (1 + Cos(4 * Phi)))
->>> d = AmberDihedral(f, Phi)
->>> print("AMBER:", d)
-AMBER: AmberDihedral( k[0] = 0.3, periodicity[0] = 1, phase[0] = 0, k[1] = 0.8, periodicity[1] = 4, phase[1] = 0 )
->>> assert d.toExpression(Phi) == f
-
-An AMBER-style dihedral containing positive and negative cosine factors, which
-can appear in the CHARMM force field:
-
->>> f = Expression(0.3 * (1 + Cos(Phi)) - 0.8 * (1 - Cos(4 * Phi)))
->>> d = AmberDihedral(f, Phi)
->>> print("CHARMM:", d)
-CHARMM: AmberDihedral( k[0] = 0.3, periodicity[0] = 1, phase[0] = 0, k[1] = -0.8, periodicity[1] = 4, phase[1] = 0 )
->>> assert d.toExpression(Phi) == f
-
-An AMBER-style dihedral containing positive and negative cosine factors, with
-the negative of the form ``k [1 - Cos(Phi)]`` rather than ``-k [1 + Cos(Phi)]``.
-These can appear in the GROMACS force field:
-
->>> f = Expression(0.3 * (1 + Cos(Phi)) + 0.8 * (1 - Cos(4 * Phi)))
->>> d = AmberDihedral(f, Phi)
->>> print("GROMACS:", d)
-GROMACS: AmberDihedral( k[0] = 0.3, periodicity[0] = 1, phase[0] = 0, k[1] = 0.8, periodicity[1] = 4, phase[1] = -3.14159 )
->>> from math import isclose
->>> from sire.legacy.CAS import SymbolValue, Values
->>> val = Values(SymbolValue(Phi.ID(), 2.0))
->>> assert isclose(f.evaluate(val), d.toExpression(Phi).evaluate(val))
-
-Finally, a three-term expression that mixes all formats:
-
->>> # Try a three-term expression that mixes all formats.
->>> f = Expression(
-...     0.3 * (1 + Cos(Phi))
-...     - 1.2 * (1 + Cos(3 * Phi))
-...     + 0.8 * (1 - Cos(4 * Phi))
-... )
->>> d = AmberDihedral(f, Phi)
->>> assert isclose(f.evaluate(val), d.toExpression(Phi).evaluate(val))
 
 ------------------------
 Adding chain identifiers
