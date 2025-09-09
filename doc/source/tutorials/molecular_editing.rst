@@ -3,18 +3,18 @@ Molecular editing
 =================
 
 In this tutorial, you will use BioSimSpace and Sire to edit force field parameters
-a small molecule. Sire is a molecular simulation framework that BioSimSpace is
-built upond, and provides a wide range of functionality for manipulating and editing
+for a small molecule. Sire is a molecular simulation framework that BioSimSpace is
+built upon, and provides a wide range of functionality for manipulating and editing
 molecules.
 
 --------------------------
 Editing existing molecules
 --------------------------
 
-In this section you will lean how to edit the force field parameters of an existing
-molecule, e.g. if you want to adjust charges, or modify bonded parameters.
+In this section you will learn how to edit the force field parameters of an
+existing molecule, e.g. if you want to adjust charges, or modify bonded parameters.
 
-First, let's import the necessary modules and use BioSimSpace to create a
+First, let's import the necessary modules and use BioSimSpace to create
 a parameterised ethanol molecule from a SMILES string:
 
 >>> import BioSimSpace as BSS
@@ -38,7 +38,7 @@ SireMol::AtomCharges( size=9
 8: 0.396 |e|
 )
 
-Bonded terms are stored internall as expressions using a buit-in computer algebra
+Bonded terms are stored internally as expressions using a buit-in computer algebra
 system:
 
 >>> for bond in ethanol._sire_object.property("bond").potentials():
@@ -317,7 +317,7 @@ Adding chain identifiers
 
 It may be useful to add chain identifiers to a molecule, e.g. if you plan to track
 specific residues during a simulation. Here we will add chain identifiers to an
-existing molecule, defining a new chain every residues. (This is just an example.)
+existing molecule, defining a new chain for each residue. (This is just an example.)
 The logic is almost identical to that used to create a new molecule from scratch,
 as shown above. The only difference is the addition of chains to the molecule prior
 to adding the residues and atoms. In Sire the largest structural units are added first,
@@ -338,7 +338,7 @@ use uppercase letters, but in practice you can use any character:
 
 >>> chain_ids = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-Now we we create a ``MolStructureEditor`` to build the new molecule:
+Now we create a ``MolStructureEditor`` to build the new molecule:
 
 >>> import sire as sr
 >>> editor = sr.legacy.Mol.MolStructureEditor()
