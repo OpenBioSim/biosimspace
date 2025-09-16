@@ -303,6 +303,10 @@ cut-group for each residue in our template, then add atoms to them:
 ...         new_atom.reparent(sr.legacy.Mol.ResIdx(i))
 ...     mol = cg.molecule().commit()
 
+.. Note::
+    A cut-group is a logical grouping of atoms into a single group that is
+    considered for intermolecular non-bonded cutting, and for periodic boundaries.
+
 We now have the basic structure of our molecule:
 
 >>> for res in mol.residues():
