@@ -109,7 +109,7 @@ SireMol::AtomCharges( size=9
 .. Note::
    To see the full list of properties available for a molecule, you can use the
    ``propertyKeys()`` method on the underlying Sire molecule object, e.g.
-    ``ethanol._sire_object.propertyKeys()``.
+   ``ethanol._sire_object.propertyKeys()``.
 
 Editing bonds
 -------------
