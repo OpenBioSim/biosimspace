@@ -38,6 +38,14 @@ SireMol::AtomCharges( size=9
 8: 0.396 |e|
 )
 
+.. Note::
+   BioSimSpace provides wrappers for several Sire classes, including the
+   ``Molecule`` class used here. The underlying Sire object can be accessed
+   via the ``_sire_object`` attribute. The underscore signifies that this is
+   a "private" attribute, and so should be used with care, i.e. the operations
+   described here would typically only be performed by an expert user since they
+   directly modify the state of an internal attribute of the ``Molecule`` object.
+
 Bonded terms are stored internally as expressions using a buit-in computer algebra
 system:
 
