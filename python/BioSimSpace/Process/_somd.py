@@ -238,9 +238,9 @@ class Somd(_process.Process):
         self._zero_dummy_impropers = kwargs.get("zero_dummy_impropers", False)
         if not isinstance(self._zero_dummy_impropers, bool):
             self._zero_dummy_impropers = False
-        self._no_dummy_modifications = kwargs.get("no_dummy_modifications", False)
-        if not isinstance(self._no_dummy_modifications, bool):
-            self._no_dummy_modifications = False
+        self._dummy_modifications = kwargs.get("dummy_modifications", True)
+        if not isinstance(self._dummy_modifications, bool):
+            self._dummy_modifications = True
 
         # The names of the input files.
         self._rst_file = _os.path.join(str(self._work_dir), f"{name}.rst7")
@@ -343,7 +343,7 @@ class Somd(_process.Process):
                     zero_dummy_impropers=self._zero_dummy_impropers,
                     property_map=self._property_map,
                     perturbation_type=self._protocol.getPerturbationType(),
-                    no_dummy_modifications=self._no_dummy_modifications,
+                    dummy_modifications=self._dummy_modifications,
                 )
 
                 self._input_files.append(self._pert_file)
@@ -926,7 +926,7 @@ def _to_pert_file(
     print_all_atoms=False,
     property_map={},
     perturbation_type="full",
-    no_dummy_modifications=False,
+    dummy_modifications=True,
 ):
     """
     Write a perturbation file for a perturbable molecule.
@@ -966,9 +966,10 @@ def _to_pert_file(
         "grow_soft" : Perturb all growing soft atom LJ terms (i.e. 0.0->value).
         "charge_soft" : Perturb all charging soft atom LJ terms (i.e. 0.0->value).
 
-    no_dummy_modifications : bool
-        Whether to skip modifications to dummy atoms. This is useful when
-        modifications to dummy atoms have already been applied.
+    dummy_modifications : bool
+        Whether to modify bonded interactions involving dummy atoms. It is
+        useful to disable this when modifications to dummy atom terms have
+        already been applied to the system externally.
 
     Returns
     -------
@@ -1006,8 +1007,8 @@ def _to_pert_file(
     if not isinstance(perturbation_type, str):
         raise TypeError("'perturbation_type' must be of type 'str'")
 
-    if not isinstance(no_dummy_modifications, bool):
-        raise TypeError("'no_dummy_modifications' must be of type 'bool'")
+    if not isinstance(dummy_modifications, bool):
+        raise TypeError("'dummy_modifications' must be of type 'bool'")
 
     # Convert to lower case and strip whitespace.
     perturbation_type = perturbation_type.lower().replace(" ", "")
@@ -1985,8 +1986,8 @@ def _to_pert_file(
                 initial_dummy = _has_dummy(mol, [idx0, idx1, idx2])
                 final_dummy = _has_dummy(mol, [idx0, idx1, idx2], True)
 
-                # Modifications to dummy states.
-                if not no_dummy_modifications:
+                # Perform dummy modifications if required.
+                if dummy_modifications:
                     # Set the angle parameters of the dummy state to those of
                     # the non-dummy end state.
                     if initial_dummy and final_dummy:
@@ -2329,7 +2330,7 @@ def _to_pert_file(
                 all_dummy_final = all(_is_dummy(mol, [idx0, idx1, idx2, idx3], True))
 
                 # Perform dummy modifications if required.
-                if not no_dummy_modifications:
+                if dummy_modifications:
                     # Dummies are present in both end states, use null potentials.
                     if has_dummy_initial and has_dummy_final:
                         amber_dihedral0 = _SireMM.AmberDihedral()
@@ -2729,7 +2730,7 @@ def _to_pert_file(
                 all_dummy_final = all(_is_dummy(mol, [idx0, idx1, idx2, idx3], True))
 
                 # Perform dummy modifications if required.
-                if not no_dummy_modifications:
+                if dummy_modifications:
                     # Dummies are present in both end states, use null potentials.
                     if has_dummy_initial and has_dummy_final:
                         amber_dihedral0 = _SireMM.AmberDihedral()
