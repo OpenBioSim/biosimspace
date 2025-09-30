@@ -3103,13 +3103,13 @@ def _prune_perturbed_constraints(molecule0, molecule1, mapping):
     new_mapping = {}
 
     # Store a hydrogen element.
-    hydrogen = _SireMol.Element("H")
+    hydrogen = _SireMol.Element("H").symbol()
 
     for idx0, idx1 in mapping.items():
         atom0 = molecule0.getAtoms()[idx0]
         atom1 = molecule1.getAtoms()[idx1]
-        elem0 = atom0._sire_object.property("element")
-        elem1 = atom1._sire_object.property("element")
+        elem0 = atom0._sire_object.property("element").symbol()
+        elem1 = atom1._sire_object.property("element").symbol()
         elems = {elem0, elem1}
 
         # Make sure we are not matching a hydrogen to a non-hydrogen.
