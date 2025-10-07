@@ -182,3 +182,46 @@ def test_getFrame(system):
     assert frame.nMolecules() == system.nMolecules()
     assert frame.nResidues() == system.nResidues()
     assert frame.nAtoms() == system.nAtoms()
+
+
+@pytest.mark.skipif(
+    has_mdanalysis is False or has_mdtraj is False,
+    reason="Requires MDAnalysis and mdtraj to be installed.",
+)
+def test_perturbable():
+    """
+    Make sure that trajectory frames can be reconstructed for a perturbable system.
+    """
+    import sire as sr
+
+    # First, load the ethane-to-methanol perturbable system.
+    mols = sr.load_test_files("merged_molecule.s3")
+    system = BSS._SireWrappers.Molecule(mols["perturbable"].molecules()[0]).toSystem()
+
+    # GROMACS files.
+    trajectory_gromacs = "tests/input/ethane_methanol.xtc"
+    topology_gromacs = "tests/input/ethane_methanol.tpr"
+
+    # Create the trajectory object.
+    traj = BSS.Trajectory.Trajectory(
+        trajectory=trajectory_gromacs,
+        topology=topology_gromacs,
+        system=system,
+    )
+
+    # Try to extract the first and last frame.
+    frames = traj.getFrames([0, -1])
+
+    # AMBER files.
+    trajectory_amber = "tests/input/ethane_methanol.nc"
+    topology_amber = "tests/input/ethane_methanol.prm7"
+
+    # Create the trajectory object.
+    traj = BSS.Trajectory.Trajectory(
+        trajectory=trajectory_amber,
+        topology=topology_amber,
+        system=system,
+    )
+
+    # Try to extract the first and last frame.
+    frames = traj.getFrames([0, -1])
