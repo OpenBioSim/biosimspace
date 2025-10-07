@@ -47,6 +47,7 @@ from sire import load as _sire_load
 from sire._load import _resolve_path
 
 from .. import _isVerbose
+from ..Align._squash import _squash, _unsquash
 from .._Exceptions import IncompatibleError as _IncompatibleError
 from ..Process._process import Process as _Process
 from .._SireWrappers import System as _System
@@ -270,9 +271,22 @@ def getFrame(trajectory, topology, index, system=None, property_map={}):
             # The new_system object will contain a single molecule with the
             # coordinates of all of the atoms in the reference. As such, we
             # will need to split the system into molecules.
-            new_system = _split_molecules(
+            new_system, is_squashed = _split_molecules(
                 frame, pdb, renumbered_system, str(work_dir), property_map
             )
+
+            # Make sure the system has the correct end-state properties.
+            if is_squashed:
+                for mol in new_system:
+                    if "is_perturbable" in mol.propertyKeys():
+                        cursor = mol.cursor()
+                        cursor["coordinates"] = cursor["coordinates0"]
+                        try:
+                            cursor["velocities"] = cursor["velocities0"]
+                        except:
+                            pass
+                    new_system.update(cursor.commit())
+
             try:
                 sire_system, _ = _SireIO.updateCoordinatesAndVelocities(
                     system._sire_object, new_system, mapping, False, property_map, {}
@@ -791,7 +805,7 @@ class Trajectory:
                     self._trajectory.select_atoms("all").write(pdb_file)
 
             # Try to update the coordinates/velocities in the reference system.
-            if self._system is not None:
+            if self._system is not None and self._system.nPerturbableMolecules() == 0:
                 if self._backend == "SIRE" and frame.current().num_molecules() > 1:
                     try:
                         new_system = frame.current()._system
@@ -853,13 +867,26 @@ class Trajectory:
                     # The new_system object will contain a single molecule with the
                     # coordinates of all of the atoms in the reference. As such, we
                     # will need to split the system into molecules.
-                    new_system = _split_molecules(
+                    new_system, is_squashed = _split_molecules(
                         frame,
                         pdb,
                         self._renumbered_system,
                         str(self._work_dir),
                         self._property_map,
                     )
+
+                    # Make sure the system has the correct end-state properties.
+                    if is_squashed:
+                        for mol in new_system:
+                            if "is_perturbable" in mol.propertyKeys():
+                                cursor = mol.cursor()
+                                cursor["coordinates"] = cursor["coordinates0"]
+                                try:
+                                    cursor["velocities"] = cursor["velocities0"]
+                                except:
+                                    pass
+                            new_system.update(cursor.commit())
+
                     try:
                         sire_system, _ = _SireIO.updateCoordinatesAndVelocities(
                             self._system._sire_object,
@@ -1088,6 +1115,9 @@ def _split_molecules(frame, pdb, reference, work_dir, property_map={}):
     system : Sire.System.System
         The passed system, split into the appropriate number of molecules,
         as a Sire System object.
+
+    is_squashed : bool
+        Whether the passed frame was squashed.
     """
 
     if not isinstance(frame, (_SireIO.AmberRst7, _SireIO.Gro87)):
@@ -1119,6 +1149,25 @@ def _split_molecules(frame, pdb, reference, work_dir, property_map={}):
     # Whether the frame contains velocity information.
     has_vels = frame.hasVelocities()
 
+    # Whether the reference is a perturbable system.
+    is_perturbable = reference.nPerturbableMolecules() > 0
+
+    if is_perturbable:
+        # Cannot go via PDB format for perturbable systems.
+        pdb = None
+
+        # AMBER format perturbable systems are squashed.
+        if frame.num_atoms() > reference.nAtoms():
+            explicit_dummies = property_map.get("explicit_dummies", False)
+            if not isinstance(explicit_dummies, bool):
+                explicit_dummies = False
+            is_amber = True
+            squashed_system, mapping = _squash(
+                reference, explicit_dummies=explicit_dummies
+            )
+        else:
+            is_amber = False
+
     # Store the formats associated with the reference system.
     formats = reference.fileFormat()
 
@@ -1144,72 +1193,104 @@ def _split_molecules(frame, pdb, reference, work_dir, property_map={}):
     else:
         box = _SireVol.TriclinicBox(frame.box_v1(), frame.box_v2(), frame.box_v3())
 
-    if "PRM7" in formats:
-        try:
-            top = _SireIO.AmberPrm(reference._sire_object)
-            top.writeToFile(top_file)
-        except Exception as e:
-            msg = "Unable to write reference system to AmberPrm7 format!"
-            if _isVerbose():
-                raise IOError(msg) from e
-            else:
-                raise IOError(msg) from None
-
-    elif "GroTop" in formats or "GROTOP" in formats:
-        try:
-            top = _SireIO.GroTop(reference._sire_object)
-            top.writeToFile(top_file)
-        except Exception as e:
-            msg = "Unable to write reference system to GroTop format!"
-            if _isVerbose():
-                raise IOError(msg) from e
-            else:
-                raise IOError(msg) from None
-
-    elif "PSF" in formats:
-        try:
-            top = _SireIO.CharmmPSF(reference._sire_object)
-            top.writeToFile(top_file)
-        except Exception as e:
-            msg = "Unable to write reference system to CharmmPSF format!"
-            if _isVerbose():
-                raise IOError(msg) from e
-            else:
-                raise IOError(msg) from None
-
-    # Unknown, try using PDB.
+    if is_perturbable:
+        if is_amber:
+            # Write the squashed system to file.
+            try:
+                top = _SireIO.AmberPrm(squashed_system._sire_object)
+                top.writeToFile(top_file)
+            except Exception as e:
+                msg = "Unable to write squashed reference system to AmberPrm7 format!"
+                if _isVerbose():
+                    raise IOError(msg) from e
+                else:
+                    raise IOError(msg) from None
+        else:
+            try:
+                top = _SireIO.GroTop(reference._sire_object)
+                top.writeToFile(top_file)
+            except Exception as e:
+                msg = "Unable to write perturbable reference system to GroTop format!"
+                if _isVerbose():
+                    raise IOError(msg) from e
+                else:
+                    raise IOError(msg) from None
     else:
-        is_pdb = True
+        if "PRM7" in formats:
+            try:
+                top = _SireIO.AmberPrm(reference._sire_object)
+                top.writeToFile(top_file)
+            except Exception as e:
+                msg = "Unable to write reference system to AmberPrm7 format!"
+                if _isVerbose():
+                    raise IOError(msg) from e
+                else:
+                    raise IOError(msg) from None
 
-        # Get the PDB records.
-        pdb_lines = pdb.toLines()
+        elif "GroTop" in formats or "GROTOP" in formats:
+            try:
+                top = _SireIO.GroTop(reference._sire_object)
+                top.writeToFile(top_file)
+            except Exception as e:
+                msg = "Unable to write reference system to GroTop format!"
+                if _isVerbose():
+                    raise IOError(msg) from e
+                else:
+                    raise IOError(msg) from None
 
-        # Create a list to hold the new lines.
-        new_lines = []
+        elif "PSF" in formats:
+            try:
+                top = _SireIO.CharmmPSF(reference._sire_object)
+                top.writeToFile(top_file)
+            except Exception as e:
+                msg = "Unable to write reference system to CharmmPSF format!"
+                if _isVerbose():
+                    raise IOError(msg) from e
+                else:
+                    raise IOError(msg) from None
 
-        # Find the first atom record.
-        for idx, line in enumerate(pdb_lines):
-            if line.startswith("ATOM"):
-                break
+        # Unknown, try using PDB.
+        else:
+            is_pdb = True
 
-        # Loop over all of the molecules in the reference, adding the records fo
-        # each atom. We append a standalone TER record between each molecule,
-        # which is used by Sire.IO.PDB2 to split molecules.
-        for mol in reference:
-            new_lines.extend(pdb_lines[idx : idx + mol.nAtoms()])
-            new_lines.append("TER")
-            idx += mol.nAtoms()
+            # Get the PDB records.
+            pdb_lines = pdb.toLines()
 
-        # Recreate the PDB object using the updated records.
-        pdb = _SireIO.PDB2(new_lines)
+            # Create a list to hold the new lines.
+            new_lines = []
 
-        # Convert to a system.
-        split_system = pdb.toSystem()
+            # Find the first atom record.
+            for idx, line in enumerate(pdb_lines):
+                if line.startswith("ATOM"):
+                    break
+
+            # Loop over all of the molecules in the reference, adding the records fo
+            # each atom. We append a standalone TER record between each molecule,
+            # which is used by Sire.IO.PDB2 to split molecules.
+            for mol in reference:
+                new_lines.extend(pdb_lines[idx : idx + mol.nAtoms()])
+                new_lines.append("TER")
+                idx += mol.nAtoms()
+
+            # Recreate the PDB object using the updated records.
+            pdb = _SireIO.PDB2(new_lines)
+
+            # Convert to a system.
+            split_system = pdb.toSystem()
 
     if not is_pdb:
         # Try to read the system back in, making sure that the numbering is unique.
         try:
             split_system = _SireIO.MoleculeParser.read([coord_file, top_file])
+
+            # Unsquash if necessary.
+            if is_perturbable and is_amber:
+                split_system = _unsquash(
+                    reference,
+                    _System(split_system),
+                    mapping,
+                    explicit_dummies=explicit_dummies,
+                )._sire_object
 
         except Exception as e:
             msg = "Unable to read trajectory frame!"
@@ -1221,7 +1302,7 @@ def _split_molecules(frame, pdb, reference, work_dir, property_map={}):
     # Add the space property.
     split_system.setProperty(property_map.get("space", "space"), box)
 
-    return split_system
+    return split_system, is_perturbable and is_amber
 
 
 def _update_water_topology(system, topology, trajectory, property_map):
