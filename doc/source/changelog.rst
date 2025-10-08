@@ -9,6 +9,24 @@ company supporting open-source development of fostering academic/industrial coll
 within the biomolecular simulation community. Our software is hosted via the `OpenBioSim`
 `GitHub <https://github.com/OpenBioSim/biosimspace>`__ organisation.
 
+`2025.2.0 <https://github.com/openbiosim/biosimspace/compare/2024.5.0...2025.2.0>`_ - Oct 08 2025
+-------------------------------------------------------------------------------------------------
+
+* Add support for ``SOMD2`` FEP analysis using data frames with different numbers of samples (`#415 <https://github.com/OpenBioSim/biosimspace/pull/415>`__).
+* Add support for the ABCG2 charge method for GAFF parameterisation (`#421 <https://github.com/OpenBioSim/biosimspace/pull/421>`__).
+* Fixed f-string formatting error in FEP analysis exception message (`#423 <https://github.com/OpenBioSim/biosimspace/pull/423>`__).
+* Fixed FEP energy trajectory slicing when intitial sample time is non-zero (`#424 <https://github.com/OpenBioSim/biosimspace/pull/424>`__).
+* Add workaround for incompatibility between ``ParmEd`` and ``NumPy`` 2.3 (`#428 <https://github.com/OpenBioSim/biosimspace/pull/428>`__).
+* Remove ``AnteChamber`` check when using ``OpenFF-NAGL`` (`#428 <https://github.com/OpenBioSim/biosimspace/pull/428>`__).
+* Add missing OPC water solvation function docstring (`#431 <https://github.com/OpenBioSim/biosimspace/pull/431>`__).
+* Use ``NumPy`` native ``array.tolist()`` rather than ``list(array)`` and add missing ATM protocol ``__str__`` methods (`#435 <https://github.com/OpenBioSim/biosimspace/pull/435>`__).
+* Add missing OPC water solvation function docstring (`#431 <https://github.com/OpenBioSim/biosimspace/pull/431>`__).
+* Allow user to skip writing of velocities to output files (`#437 <https://github.com/OpenBioSim/biosimspace/pull/437>`__).
+* Add support for renumbering molecules when copying a system (`#440 <https://github.com/OpenBioSim/biosimspace/pull/440>`__).
+* Added a molecular editing tutorial (`#447 <https://github.com/OpenBioSim/biosimspace/pull/447>`__).
+* Fixed issue with a non-singleton being used in a set within a mapping pruning function (`#454 <https://github.com/OpenBioSim/biosimspace/pull/454>`__).
+* Fix handling of trajectory frame reconstruction when using a perturbable reference system (`#456 <https://github.com/OpenBioSim/biosimspace/pull/456>`__).
+
 `2025.1.0 <https://github.com/openbiosim/biosimspace/compare/2024.4.1...2025.1.0>`_ - Jul 01 2025
 -------------------------------------------------------------------------------------------------
 
