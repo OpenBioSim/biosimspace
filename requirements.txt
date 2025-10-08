@@ -4,7 +4,7 @@
 sire~=2025.2.0
 
 # devel
-#sire==2025.2.0.dev
+#sire==2025.3.0.dev
 
 configargparse
 ipywidgets
