@@ -25,3 +25,4 @@ please :doc:`ask for support. <../support>`
    metadynamics
    protein_mutations
    alchemical_transfer
+   molecular_editing

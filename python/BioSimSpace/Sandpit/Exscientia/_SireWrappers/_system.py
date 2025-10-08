@@ -260,6 +260,47 @@ class System(_SireWrapper):
         """Return the number of molecules in the system."""
         return self.nMolecules()
 
+    def copy(self, renumber=False):
+        """
+        Return a copy of this System.
+
+        Parameters
+        ----------
+
+        renumber : bool
+            Whether to give the copied molecules unique molecule numbers.
+
+        Returns
+        -------
+
+        System : :class:`System <BioSimSpace._SireWrappers.System>`
+            A copy of the object.
+        """
+
+        if not isinstance(renumber, bool):
+            raise TypeError("'renumber' must be of type 'bool'")
+
+        if not renumber:
+            return super().copy()
+
+        # Create a molecules container.
+        mols = _SireMol.MoleculeGroup("all")
+
+        # Give each molecule a unique molecule number.
+        for mol in self._sire_object:
+            cursor = mol.cursor()
+            cursor.number = _SireMol.MolNum.getUniqueNumber()
+            mols.add(cursor.commit())
+
+        # Create a new system.
+        system = _Molecules(mols).toSystem()
+
+        # Copy over the system properties.
+        for prop in self._sire_object.propertyKeys():
+            system._sire_object.setProperty(prop, self._sire_object.property(prop))
+
+        return system
+
     def nMolecules(self):
         """
         Return the number of molecules in the system.

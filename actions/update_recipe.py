@@ -19,7 +19,12 @@ print(f"conda recipe in {condadir}")
 
 # Store the name of the recipe and template YAML files.
 recipe = os.path.join(condadir, "meta.yaml")
-template = os.path.join(condadir, "template.yaml")
+
+# If the BSS_TEMPLATE environment variable is set, use that as the template.
+if "BSS_TEMPLATE" in os.environ:
+    template = os.environ["BSS_TEMPLATE"]
+else:
+    template = os.path.join(condadir, "template.yaml")
 
 # Now parse all of the requirements
 run_reqs = parse_requirements(os.path.join(srcdir, "requirements.txt"))

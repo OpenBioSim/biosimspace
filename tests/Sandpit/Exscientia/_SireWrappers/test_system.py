@@ -508,3 +508,26 @@ def test_remove_box(system):
 
     # Make sure the box is removed.
     assert not "space" in system._sire_object.propertyKeys()
+
+
+def test_renumber(system):
+    # Make sure all the molecules retain their original numbers
+    # using the default copy.
+    for mol0, mol1 in zip(system, system.copy()):
+        assert mol0.number() == mol1.number()
+
+    # Store the set of original molecule numbers.
+    original_numbers = set(mol.number() for mol in system)
+
+    # Create a renumbered copy of the system.
+    renumbered_system = system.copy(renumber=True)
+
+    # Make sure that all of the numbers differ when renumbering.
+    for mol0, mol1 in zip(system, renumbered_system):
+        assert mol0.number() != mol1.number()
+
+    # Store the set of renumbered molecule numbers.
+    renumbered_numbers = set(mol.number() for mol in renumbered_system)
+
+    # Make sure that no original numbers are present in the renumbered set.
+    assert original_numbers.isdisjoint(renumbered_numbers)
