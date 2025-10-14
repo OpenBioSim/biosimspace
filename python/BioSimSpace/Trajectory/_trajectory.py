@@ -805,7 +805,7 @@ class Trajectory:
                     self._trajectory.select_atoms("all").write(pdb_file)
 
             # Try to update the coordinates/velocities in the reference system.
-            if self._system is not None and self._system.nPerturbableMolecules() == 0:
+            if self._system is not None:
                 if self._backend == "SIRE" and frame.current().num_molecules() > 1:
                     try:
                         new_system = frame.current()._system
