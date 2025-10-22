@@ -197,6 +197,9 @@ def setNodeDirectory(dir):
     if not _os.path.isdir(dir):
         raise IOError("Node directory '%s' doesn't exist!" % dir)
 
+    # Use the absolute path.
+    dir = _os.path.abspath(dir)
+
     global _node_dir
     _node_dir = dir
 
