@@ -105,7 +105,8 @@ def run(name, args={}, work_dir=None):
 
     work_dir : str, optional
         The working directory in which to run the node. If not specified,
-        the current working directory is used.
+        the current working directory is used. Note that inputs should
+        use absolute paths if this is set.
 
     Returns
     -------
@@ -142,7 +143,7 @@ def run(name, args={}, work_dir=None):
         else:
             full_name += ".py"
 
-    with _Utils.chdir(work_dir):
+    with _Utils.cd(work_dir):
         # Write a YAML configuration file for the BioSimSpace node.
         if len(args) > 0:
             with open("input.yaml", "w") as file:
@@ -195,6 +196,9 @@ def setNodeDirectory(dir):
 
     if not _os.path.isdir(dir):
         raise IOError("Node directory '%s' doesn't exist!" % dir)
+
+    # Use the absolute path.
+    dir = _os.path.abspath(dir)
 
     global _node_dir
     _node_dir = dir

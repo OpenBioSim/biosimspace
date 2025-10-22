@@ -2450,7 +2450,7 @@ def _draw_molecules(
 
     # standard settings for visualization
     d2d.drawOptions().useBWAtomPalette()
-    d2d.drawOptions().continousHighlight = False
+    d2d.drawOptions().continuousHighlight = False
     d2d.drawOptions().setHighlightColour(highlight_color)
     d2d.drawOptions().addAtomIndices = True
     d2d.DrawMolecules(
