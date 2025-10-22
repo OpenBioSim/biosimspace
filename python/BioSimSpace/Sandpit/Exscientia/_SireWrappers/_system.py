@@ -380,7 +380,7 @@ class System(_SireWrapper):
             own naming scheme, e.g. { "charge" : "my-charge" }
 
         is_lambda1 : bool
-           Whether to use the charge at lambda = 1 if the molecule is merged.
+           Whether to use the charge at lambda = 1 for perturbable molecules.
 
         Returns
         -------
@@ -1219,7 +1219,7 @@ class System(_SireWrapper):
         ----------
 
         is_lambda1 : bool
-           Whether to use the coordinates at lambda = 1 if the molecule is merged.
+           Whether to use the coordinates at lambda = 1 for perturbable molecules.
 
         property_map : dict
             A dictionary that maps system "properties" to their user defined
@@ -1280,7 +1280,7 @@ class System(_SireWrapper):
             The coordinates of all atoms in the system in Angstroms.
 
         is_lambda1 : bool
-           Whether to set the coordinates at lambda = 1 if the molecule is merged.
+           Whether to set the coordinates at lambda = 1 for perturbable molecules.
 
         property_map : dict
             A dictionary that maps system "properties" to their user defined
