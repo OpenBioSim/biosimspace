@@ -1254,7 +1254,7 @@ class System(_SireWrapper):
         # Try to get the coordinates array.
         try:
             coords = _sr.io.get_coords_array(mols, map=property_map)
-        except exception as e:
+        except Exception as e:
             msg = "Failed to extract coordinates from system!"
             if _isVerbose():
                 raise RuntimeError(msg) from e
@@ -1314,7 +1314,7 @@ class System(_SireWrapper):
                 is_lambda1,
                 map=property_map,
             )
-        except exception as e:
+        except Exception as e:
             msg = "Failed to set coordinates in system!"
             if _isVerbose():
                 raise RuntimeError(msg) from e
