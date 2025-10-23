@@ -380,7 +380,7 @@ class System(_SireWrapper):
             own naming scheme, e.g. { "charge" : "my-charge" }
 
         is_lambda1 : bool
-           Whether to use the charge at lambda = 1 if the molecule is merged.
+           Whether to use the charge at lambda = 1 for perturbable molecules.
 
         Returns
         -------
@@ -1157,6 +1157,117 @@ class System(_SireWrapper):
             The number of perturbable molecules in the system.
         """
         return len(self.getPerturbableMolecules())
+
+    def getCoordinates(self, is_lambda1=False, property_map={}):
+        """
+        Return the coordinates of all atoms in the system as a NumPy array.
+        Coordinates are returned in Angstroms.
+
+        Parameters
+        ----------
+
+        is_lambda1 : bool
+           Whether to use the coordinates at lambda = 1 for perturbable molecules.
+
+        property_map : dict
+            A dictionary that maps system "properties" to their user defined
+            values. This allows the user to refer to properties with their
+            own naming scheme, e.g. { "charge" : "my-charge" }
+
+        Returns
+        -------
+
+        coordinates : numpy.ndarray
+            The coordinates of all atoms in the system in Angstroms.
+        """
+
+        if not isinstance(is_lambda1, bool):
+            raise TypeError("'is_lambda1' must be of type 'bool'")
+
+        if not isinstance(property_map, dict):
+            raise TypeError("'property_map' must be of type 'dict'")
+
+        import sire as _sr
+
+        # Convert to a new Sire system.
+        mols = _sr.system.System(self._sire_object)
+
+        # Link to the correct end-state if required.
+        if self.nPerturbableMolecules() > 0:
+            if is_lambda1:
+                mols = _sr.morph.link_to_perturbed(mols, map=property_map)
+            else:
+                mols = _sr.morph.link_to_reference(mols, map=property_map)
+
+        # Try to get the coordinates array.
+        try:
+            coords = _sr.io.get_coords_array(mols, map=property_map)
+        except Exception as e:
+            msg = "Failed to extract coordinates from system!"
+            if _isVerbose():
+                raise RuntimeError(msg) from e
+            else:
+                raise RuntimeError(msg) from None
+
+        return coords
+
+    def setCoordinates(
+        self,
+        coordinates,
+        is_lambda1=False,
+        property_map={},
+    ):
+        """
+        Set the coordinates of all atoms in the system from a NumPy array.
+        Coordinates are expected to be in Angstroms.
+
+        Parameters
+        ----------
+
+        coordinates : numpy.ndarray
+            The coordinates of all atoms in the system in Angstroms.
+
+        is_lambda1 : bool
+           Whether to set the coordinates at lambda = 1 for perturbable molecules.
+
+        property_map : dict
+            A dictionary that maps system "properties" to their user defined
+            values. This allows the user to refer to properties with their
+            own naming scheme, e.g. { "charge" : "my-charge" }
+        """
+
+        import numpy as _np
+
+        # Validate input.
+        if not isinstance(coordinates, _np.ndarray):
+            raise TypeError("'coordinates' must be of type 'numpy.ndarray'")
+        if coordinates.ndim != 2 or coordinates.shape[1] != 3:
+            raise ValueError("'coordinates' must be a 2D array with shape (n_atoms, 3)")
+        if coordinates.shape[0] != self.nAtoms():
+            raise ValueError(
+                "'coordinates' must have the same number of atoms as the system"
+            )
+
+        if not isinstance(is_lambda1, bool):
+            raise TypeError("'is_lambda1' must be of type 'bool'")
+
+        if not isinstance(property_map, dict):
+            raise TypeError("'property_map' must be of type 'dict'")
+
+        # Set the coordinates.
+        try:
+            self._sire_object = _SireIO.setCoordinates(
+                self._sire_object,
+                coordinates.tolist(),
+                is_lambda1,
+                map=property_map,
+            )
+        except Exception as e:
+            msg = "Failed to set coordinates in system!"
+            if _isVerbose():
+                raise RuntimeError(msg) from e
+            else:
+                raise RuntimeError(msg) from None
 
     def rotateBoxVectors(
         self,

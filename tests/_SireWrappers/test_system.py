@@ -1,4 +1,5 @@
 import math
+import numpy as np
 import pytest
 
 from sire.legacy.Vol import TriclinicBox
@@ -521,3 +522,27 @@ def test_renumber(system):
 
     # Make sure that no original numbers are present in the renumbered set.
     assert original_numbers.isdisjoint(renumbered_numbers)
+
+
+@pytest.mark.parametrize("fixture", ["system", "perturbable_system"])
+@pytest.mark.parametrize("is_lambda1", [True, False])
+def test_set_coordinates(fixture, is_lambda1, request):
+    # Get the fixture system.
+    mols = request.getfixturevalue(fixture).copy()
+
+    # Store the existing coordinates as a NumPy array.
+    coords = mols.getCoordinates(is_lambda1=is_lambda1)
+
+    # Modify the system to multiply all coordinates by 2.
+    mols.setCoordinates(coords * 2.0, is_lambda1=is_lambda1)
+
+    # Get the new coordinates as a NumPy array.
+    new_coords = mols.getCoordinates(is_lambda1=is_lambda1)
+
+    # Divide the new coordinates by the old coordinates.
+    ratio = new_coords / coords
+
+    # Make sure the new coordinates are as expected.
+    assert (
+        np.sum(np.round(ratio)) == 6.0 * mols.nAtoms()
+    ), "Coordinates were not set correctly."
