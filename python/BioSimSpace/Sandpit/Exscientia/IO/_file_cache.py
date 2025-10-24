@@ -196,7 +196,7 @@ def _check_cache(
 
     # Create the key.
     key = (
-        system._sire_object.uid().toString(),
+        system._sire_object.uid().to_string(),
         format,
         _compress_molnum_key(str(system._mol_nums)),
         str(set(excluded_properties)),
@@ -331,7 +331,7 @@ def _update_cache(
 
     # Create the key.
     key = (
-        system._sire_object.uid().toString(),
+        system._sire_object.uid().to_string(),
         format,
         _compress_molnum_key(str(system._mol_nums)),
         str(set(excluded_properties)),

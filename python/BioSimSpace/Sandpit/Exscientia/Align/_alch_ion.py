@@ -44,7 +44,7 @@ def _mark_alchemical_ion(molecule):
     # Edit the molecule
     mol_edit = mol_sire.edit()
 
-    mol_edit.setProperty("AlchemicalIon", True)
+    mol_edit.set_property("AlchemicalIon", True)
 
     # Update the Sire molecule object of the new molecule.
     mol._sire_object = mol_edit.commit()

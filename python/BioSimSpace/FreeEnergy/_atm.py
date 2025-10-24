@@ -531,7 +531,7 @@ class ATMSetup:
             ]
             temp_data = self.data.copy()
             temp_data["displacement"] = serialisable_disp
-            self._system._sire_object.setProperty("atom_data", _json.dumps(temp_data))
+            self._system._sire_object.set_property("atom_data", _json.dumps(temp_data))
             return self._system, self.data
 
         else:
@@ -562,7 +562,7 @@ class ATMSetup:
             temp_data = self.data.copy()
             temp_data["displacement"] = serialisable_disp
             # encode data in system for consistency
-            self._system._sire_object.setProperty("atom_data", _json.dumps(temp_data))
+            self._system._sire_object.set_property("atom_data", _json.dumps(temp_data))
             return self._system, self.data
 
     @staticmethod
@@ -666,7 +666,7 @@ class ATMSetup:
                 atoms1.append(system.getIndex(atom))
             com /= search.nResults()
 
-            initial_normal_vector = (non_protein_coords - com).toVector().normalise()
+            initial_normal_vector = (non_protein_coords - com).to_vector().normalise()
 
             out_of_protein = displacement.value() * initial_normal_vector
             return out_of_protein
@@ -1636,7 +1636,7 @@ class _ViewAtoM(_View):
         if system is not None:
             try:
                 pdb = _SireIO.PDB2(system, self._property_map)
-                pdb.writeToFile(filename)
+                pdb.write_to_file(filename)
             except Exception as e:
                 msg = "Failed to write system to 'PDB' format."
                 if _isVerbose():

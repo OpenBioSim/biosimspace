@@ -130,7 +130,7 @@ class Namd(_process.Process):
         # for it in $PATH.
         if exe is None:
             try:
-                self._exe = _SireBase.findExe("namd2").absoluteFilePath()
+                self._exe = _SireBase.findExe("namd2").absolute_file_path()
             except:
                 raise _MissingSoftwareError(
                     "'BioSimSpace.Process.Namd' is not supported. "
@@ -196,7 +196,7 @@ class Namd(_process.Process):
         # PDB file.
         try:
             pdb = _SireIO.PDB2(system._sire_object, self._property_map)
-            pdb.writeToFile(self._top_file)
+            pdb.write_to_file(self._top_file)
         except Exception as e:
             msg = "Failed to write system to 'PDB' format."
             if _isVerbose():
@@ -212,7 +212,7 @@ class Namd(_process.Process):
         velocity_file = _os.path.splitext(self._top_file)[0] + ".vel"
 
         # Write the velocity file.
-        has_velocities = pdb.writeVelocityFile(velocity_file)
+        has_velocities = pdb.write_velocity_file(velocity_file)
 
         # If a file was written, store the name of the file and update the
         # list of input files.
@@ -299,12 +299,12 @@ class Namd(_process.Process):
 
         prop = self._property_map.get("space", "space")
 
-        if prop in self._system._sire_object.propertyKeys():
+        if prop in self._system._sire_object.property_keys():
             try:
                 box = self._system._sire_object.property(prop)
 
                 # Flag that we have found a periodic box.
-                has_box = box.isPeriodic()
+                has_box = box.is_periodic()
             except Exception:
                 box = None
 
@@ -346,9 +346,9 @@ class Namd(_process.Process):
         prop = self._property_map.get("param_format", "param_format")
 
         # Check whether the system contains parameter format information.
-        if prop in self._system._sire_object.propertyKeys():
+        if prop in self._system._sire_object.property_keys():
             # Get the parameter format.
-            if self._system._sire_object.property(prop).toString() == "CHARMM":
+            if self._system._sire_object.property(prop).to_string() == "CHARMM":
                 is_charmm = True
             else:
                 is_charmm = False
@@ -448,7 +448,7 @@ class Namd(_process.Process):
                     )
 
                     # Write the PDB file.
-                    p.writeToFile(self._restraint_file)
+                    p.write_to_file(self._restraint_file)
 
                 except:
                     _warnings.warn(
@@ -669,7 +669,7 @@ class Namd(_process.Process):
 
         # Process is already running.
         if self._process is not None:
-            if self._process.isRunning():
+            if self._process.is_running():
                 return
 
         # Clear any existing output.
@@ -807,10 +807,10 @@ class Namd(_process.Process):
                 self._mapping = mapping
 
                 # Update the box information in the original system.
-                if "space" in new_system._sire_object.propertyKeys():
+                if "space" in new_system._sire_object.property_keys():
                     box = new_system._sire_object.property("space")
-                    if box.isPeriodic():
-                        old_system._sire_object.setProperty(
+                    if box.is_periodic():
+                        old_system._sire_object.set_property(
                             self._property_map.get("space", "space"), box
                         )
 
@@ -941,9 +941,9 @@ class Namd(_process.Process):
             self._mapping = mapping
 
             # Update the box information in the original system.
-            if "space" in new_system._sire_object.propertyKeys():
+            if "space" in new_system._sire_object.property_keys():
                 box = new_system._sire_object.property("space")
-                old_system._sire_object.setProperty(
+                old_system._sire_object.set_property(
                     self._property_map.get("space", "space"), box
                 )
 
@@ -2135,7 +2135,7 @@ class Namd(_process.Process):
                 for atom in edit_mol.atoms():
                     edit_mol = (
                         edit_mol.atom(atom.index())
-                        .setProperty("restrained", 0.0)
+                        .set_property("restrained", 0.0)
                         .molecule()
                     )
 
@@ -2143,7 +2143,7 @@ class Namd(_process.Process):
                 for idx in atoms:
                     edit_mol = (
                         edit_mol.atom(_SireMol.AtomIdx(idx))
-                        .setProperty("restrained", 10.0)
+                        .set_property("restrained", 10.0)
                         .molecule()
                     )
 
@@ -2180,7 +2180,7 @@ class Namd(_process.Process):
                 for atom in edit_mol.atoms():
                     edit_mol = (
                         edit_mol.atom(atom.index())
-                        .setProperty("restrained", 0.0)
+                        .set_property("restrained", 0.0)
                         .molecule()
                     )
 
@@ -2194,7 +2194,7 @@ class Namd(_process.Process):
                 for idx in idxs:
                     edit_mol = (
                         edit_mol.atom(idx)
-                        .setProperty("restrained", force_constant)
+                        .set_property("restrained", force_constant)
                         .molecule()
                     )
 

@@ -352,7 +352,7 @@ def test_isSame(system):
     assert other.isSame(system, excluded_properties=["coordinates"])
 
     # Now delete a property.
-    other._sire_object.removeProperty("space")
+    other._sire_object.remove_property("space")
 
     # Assert that they are different.
     assert not system.isSame(other, excluded_properties=["coordinates"])
@@ -412,14 +412,14 @@ def test_rotate_box_vectors(system):
     space = system._sire_object.property("space")
 
     # Store the box matrix.
-    box_matrix = space.boxMatrix()
+    box_matrix = space.box_matrix()
 
     # Create a triclinic box using the box matrix. This will create:
     # TriclinicBox( ( 31.3979, 0, 0 ), ( 0, 34.1, 0 ), ( 0, 0, 29.273 ) )
     box = TriclinicBox(box_matrix.column0(), box_matrix.column1(), box_matrix.column2())
 
     # Update the space property.
-    system._sire_object.setProperty("space", box)
+    system._sire_object.set_property("space", box)
 
     # Store the current box.
     box0, angles0 = system.getBox()
@@ -476,7 +476,7 @@ def test_set_water_property_preserve(system):
     # Flag one water molecule with a unique property.
     mol = system[-1]
     mol._sire_object = (
-        mol._sire_object.edit().setProperty("test", True).molecule().commit()
+        mol._sire_object.edit().set_property("test", True).molecule().commit()
     )
     system.updateMolecules(mol)
 
@@ -484,7 +484,7 @@ def test_set_water_property_preserve(system):
     system._set_water_topology("GROMACS")
 
     # Make sure the property is preserved.
-    assert system[-1]._sire_object.hasProperty("test")
+    assert system[-1]._sire_object.has_property("test")
 
 
 def test_remove_box(system):
@@ -492,13 +492,13 @@ def test_remove_box(system):
     system = system.copy()
 
     # Make sure the box is present.
-    assert "space" in system._sire_object.propertyKeys()
+    assert "space" in system._sire_object.property_keys()
 
     # Remove the box.
     system.removeBox()
 
     # Make sure the box is removed.
-    assert not "space" in system._sire_object.propertyKeys()
+    assert not "space" in system._sire_object.property_keys()
 
 
 def test_renumber(system):

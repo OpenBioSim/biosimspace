@@ -57,26 +57,6 @@ import warnings as _warnings
 
 _warnings.filterwarnings("ignore", module="numpy")
 
-# Make sure we're using the Sire python interpreter.
-# First, load new sire in mixed_api compatibility mode (if it is installed)
-try:
-    import sire as _sr
-
-    _sr.use_mixed_api(support_old_module_names=False)
-    _sr.convert.supported_formats()
-except ImportError:
-    pass
-
-try:
-    import sire
-
-    del sire
-except ModuleNotFoundError:
-    raise ModuleNotFoundError(
-        "BioSimSpace currently requires the Sire "
-        + "Python interpreter: www.siremol.org"
-    )
-
 # Determine whether we're being imported from a Jupyter notebook.
 try:
     _shell = get_ipython().__class__.__name__
@@ -165,7 +145,7 @@ if "GROMACSHOME" in _environ:
     try:
         _gmx_exe = _SireBase.findExe(
             "%s/bin/gmx" % _environ.get("GROMACSHOME")
-        ).absoluteFilePath()
+        ).absolute_file_path()
     except:
         try:
             _gmx_exe = _SireBase.findExe(

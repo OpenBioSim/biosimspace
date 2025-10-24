@@ -179,7 +179,7 @@ class Atom(_SireWrapper):
 
         # Get the element property from the atom.
         try:
-            element = self._sire_object.property(prop).toString()
+            element = self._sire_object.property(prop).to_string()
         except:
             element = ""
 

@@ -361,13 +361,13 @@ class GeneralUnit(_Type):
 
             # Create the dimension mask.
             dimensions = (
-                temp.ANGLE(),
-                temp.CHARGE(),
-                temp.LENGTH(),
-                temp.MASS(),
-                temp.QUANTITY(),
-                temp.TEMPERATURE(),
-                temp.TIME(),
+                temp.angle(),
+                temp.charge(),
+                temp.length(),
+                temp.mass(),
+                temp.quantity(),
+                temp.temperature(),
+                temp.time(),
             )
 
             # Return as an existing type if the dimensions match.
@@ -405,13 +405,13 @@ class GeneralUnit(_Type):
 
             # Create the dimension mask.
             dimensions = (
-                temp.ANGLE(),
-                temp.CHARGE(),
-                temp.LENGTH(),
-                temp.MASS(),
-                temp.QUANTITY(),
-                temp.TEMPERATURE(),
-                temp.TIME(),
+                temp.angle(),
+                temp.charge(),
+                temp.length(),
+                temp.mass(),
+                temp.quantity(),
+                temp.temperature(),
+                temp.time(),
             )
 
             # Return as an existing type if the dimensions match.

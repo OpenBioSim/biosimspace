@@ -187,7 +187,7 @@ class Amber(_process.Process):
             else:
                 is_free_energy = False
 
-            self._exe = _find_exe(
+            self._exe = _findExe(
                 is_gpu=is_gpu, is_free_energy=is_free_energy, is_vacuum=self._is_vacuum
             )
         else:
@@ -504,7 +504,7 @@ class Amber(_process.Process):
 
         # Process is already running.
         if self._process is not None:
-            if self._process.isRunning():
+            if self._process.is_running():
                 return
 
         # Run the process in the working directory.
@@ -636,10 +636,10 @@ class Amber(_process.Process):
 
             # Update the box information in the original system.
             if self._has_box:
-                if "space" in new_system._sire_object.propertyKeys():
+                if "space" in new_system._sire_object.property_keys():
                     box = new_system._sire_object.property("space")
-                    if box.isPeriodic():
-                        old_system._sire_object.setProperty(
+                    if box.is_periodic():
+                        old_system._sire_object.set_property(
                             self._property_map.get("space", "space"), box
                         )
 
@@ -792,9 +792,9 @@ class Amber(_process.Process):
                 self._mapping = mapping
 
             # Update the box information in the original system.
-            if "space" in new_system._sire_object.propertyKeys():
+            if "space" in new_system._sire_object.property_keys():
                 box = new_system._sire_object.property("space")
-                old_system._sire_object.setProperty(
+                old_system._sire_object.set_property(
                     self._property_map.get("space", "space"), box
                 )
 
@@ -2722,7 +2722,7 @@ class Amber(_process.Process):
         """Kill the running process."""
 
         # Kill the process.
-        if not self._process is None and self._process.isRunning():
+        if not self._process is None and self._process.is_running():
             self._process.kill()
 
     def _get_stdout_record(
@@ -2838,7 +2838,7 @@ class Amber(_process.Process):
                 return None
 
 
-def _find_exe(is_gpu=False, is_free_energy=False, is_vacuum=False):
+def _findExe(is_gpu=False, is_free_energy=False, is_vacuum=False):
     """
     Helper function to search for an AMBER executable.
 

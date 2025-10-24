@@ -85,12 +85,12 @@ class OpenMMATM(_OpenMM):
         prop = self._property_map.get("space", "space")
 
         # Check whether the system contains periodic box information.
-        if prop in self._system._sire_object.propertyKeys():
+        if prop in self._system._sire_object.property_keys():
             try:
                 # Make sure that we have a periodic box. The system will now have
                 # a default cartesian space.
                 box = self._system._sire_object.property(prop)
-                has_box = box.isPeriodic()
+                has_box = box.is_periodic()
             except:
                 has_box = False
         else:

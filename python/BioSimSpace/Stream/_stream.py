@@ -186,7 +186,7 @@ def getSireMetadata(file):
 
     try:
         # Convert the header to a list of lines.
-        header = _NewSireStream.get_data_header(file).toString().split("\n")
+        header = _NewSireStream.get_data_header(file).to_string().split("\n")
 
         # The overall metadata.
         metadata = {}

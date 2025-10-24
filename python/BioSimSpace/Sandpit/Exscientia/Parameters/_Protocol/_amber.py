@@ -689,7 +689,7 @@ class AmberProtein(_protocol.Protocol):
         )
 
         # Add this as a molecule property.
-        mol = mol.edit().setProperty("connectivity", conn).molecule().commit()
+        mol = mol.edit().set_property("connectivity", conn).molecule().commit()
 
         # Create the search query.
         query = _SireMol.Select("bonds from element S to element S")
@@ -1038,7 +1038,7 @@ class GAFF(_protocol.Protocol):
                 prop = "charge"
 
             # The molecule has a charge property.
-            if new_mol._getSireObject().hasProperty(prop):
+            if new_mol._getSireObject().has_property(prop):
                 charge = new_mol.charge(property_map=_property_map).value()
 
                 # Charge is non-integer, try to fix it.
@@ -1060,7 +1060,7 @@ class GAFF(_protocol.Protocol):
                     _property_map = {"charge": "formal_charge"}
                     prop = "formal_charge"
 
-                if new_mol._getSireObject().hasProperty(prop):
+                if new_mol._getSireObject().has_property(prop):
                     charge = new_mol.charge(property_map=_property_map).value()
 
                     # Compute the formal charge ourselves to check that it is consistent.
@@ -1084,7 +1084,7 @@ class GAFF(_protocol.Protocol):
         # intermediate format.
         fileformat_prop = self._property_map.get("fileformat", "fileformat")
         if (
-            new_mol._sire_object.hasProperty(fileformat_prop)
+            new_mol._sire_object.has_property(fileformat_prop)
             and "SDF" in new_mol._sire_object.property("fileformat").value()
         ):
             format = "sdf"

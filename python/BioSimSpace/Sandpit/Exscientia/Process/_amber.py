@@ -581,7 +581,7 @@ class Amber(_process.Process):
 
         # Process is already running.
         if self._process is not None:
-            if self._process.isRunning():
+            if self._process.is_running():
                 return
 
         # Run the process in the working directory.
@@ -710,10 +710,10 @@ class Amber(_process.Process):
                 # need to recompute it next time.
                 self._mapping = mapping
             # Update the box information in the original system.
-            if "space" in new_system._sire_object.propertyKeys():
+            if "space" in new_system._sire_object.property_keys():
                 box = new_system._sire_object.property("space")
-                if box.isPeriodic():
-                    old_system._sire_object.setProperty(
+                if box.is_periodic():
+                    old_system._sire_object.set_property(
                         self._property_map.get("space", "space"), box
                     )
 
@@ -866,9 +866,9 @@ class Amber(_process.Process):
                 self._mapping = mapping
 
             # Update the box information in the original system.
-            if "space" in new_system._sire_object.propertyKeys():
+            if "space" in new_system._sire_object.property_keys():
                 box = new_system._sire_object.property("space")
-                old_system._sire_object.setProperty(
+                old_system._sire_object.set_property(
                     self._property_map.get("space", "space"), box
                 )
 
@@ -2793,7 +2793,7 @@ class Amber(_process.Process):
         """Kill the running process."""
 
         # Kill the process.
-        if not self._process is None and self._process.isRunning():
+        if not self._process is None and self._process.is_running():
             self._process.kill()
 
     def _get_stdout_record(

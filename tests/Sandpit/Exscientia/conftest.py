@@ -110,7 +110,7 @@ def get_energy(
     if coord_mol is not None:
         c = mol._sire_object.cursor()
         c_coord = coord_mol._sire_object.cursor()
-        coordinates = c_coord["coordinates"].toVector()
+        coordinates = c_coord["coordinates"].to_vector()
         if coord_mol_mapping is not None:
             sorted_keys = sorted(coord_mol_mapping)
             coordinates = [coordinates[coord_mol_mapping[k]] for k in sorted_keys]

@@ -74,10 +74,10 @@ class Residue(_SireWrapper):
         self._is_multi_atom = True
 
         # Store the number of atoms in the residue.
-        self._num_atoms = self._sire_object.nAtoms()
+        self._num_atoms = self._sire_object.num_atoms()
 
         # Store the atom indices in the residue.
-        self._atom_idxs = self._sire_object.atomIdxs()
+        self._atom_idxs = self._sire_object.atom_idxs()
 
         # Initialise the iterator count.
         self._iter_count = 0

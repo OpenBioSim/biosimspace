@@ -336,12 +336,12 @@ class Gromacs(_process.Process):
 
         # Check whether the system contains periodic box information.
         space_prop = self._property_map.get("space", "space")
-        if space_prop in self._system._sire_object.propertyKeys():
+        if space_prop in self._system._sire_object.property_keys():
             try:
                 # Make sure that we have a periodic box. The system will now have
                 # a default cartesian space.
                 box = self._system._sire_object.property(space_prop)
-                has_box = box.isPeriodic()
+                has_box = box.is_periodic()
             except:
                 has_box = False
         else:
@@ -358,13 +358,13 @@ class Gromacs(_process.Process):
 
             # Create a 999.9 nm periodic box and apply to the system.
             space = _SireVol.PeriodicBox(_SireMaths.Vector(9999, 9999, 9999))
-            system._sire_object.setProperty(
+            system._sire_object.set_property(
                 self._property_map.get("space", "space"), space
             )
 
             # Re-write the GRO file.
             gro = _SireIO.Gro87(system._sire_object, self._property_map)
-            gro.writeToFile(self._gro_file)
+            gro.write_to_file(self._gro_file)
 
         # Initialise a dictionary of additional configuration options.
         config_options = {}
@@ -751,7 +751,7 @@ class Gromacs(_process.Process):
 
         # Process is already running.
         if self._process is not None:
-            if self._process.isRunning():
+            if self._process.is_running():
                 return
 
         # Clear any existing output.
@@ -2079,10 +2079,10 @@ class Gromacs(_process.Process):
             sys_idx_moltypes = {}
 
             # Convert the topology to a GROMACS system.
-            gro_system = top.groSystem()
+            gro_system = top.gro_system()
 
             # Initialise the dictionary for each type.
-            for mol_type in gro_system.uniqueTypes():
+            for mol_type in gro_system.unique_types():
                 moltypes_sys_idx[mol_type] = []
 
             # Now loop over each molecule and store the indices of the molecules
@@ -2194,7 +2194,7 @@ class Gromacs(_process.Process):
             else:
                 # Create an empty multi-dict for each molecule type.
                 mol_atoms = {}
-                for mol_type in gro_system.uniqueTypes():
+                for mol_type in gro_system.unique_types():
                     mol_atoms[mol_type] = []
 
                 # Now work out which MolNum corresponds to each atom in the restraint.
@@ -2619,22 +2619,22 @@ class Gromacs(_process.Process):
             # the original system contains space information, since it will have
             # been added in order to run vacuum simulations.
             if (
-                space_prop in old_system._sire_object.propertyKeys()
-                and space_prop in new_system._sire_object.propertyKeys()
+                space_prop in old_system._sire_object.property_keys()
+                and space_prop in new_system._sire_object.property_keys()
             ):
                 # Get the original space.
                 box = old_system._sire_object.property("space")
 
                 # Only update the box if the space is periodic.
-                if box.isPeriodic():
+                if box.is_periodic():
                     box = new_system._sire_object.property("space")
-                    old_system._sire_object.setProperty(
+                    old_system._sire_object.set_property(
                         self._property_map.get("space", "space"), box
                     )
 
             # If this is a vacuum simulation, then translate the centre of mass
             # of the system back to the origin.
-            if not space_prop in old_system._sire_object.propertyKeys():
+            if not space_prop in old_system._sire_object.property_keys():
                 com = new_system._getCenterOfMass()
                 old_system.translate([-x for x in com])
 
@@ -2735,23 +2735,23 @@ class Gromacs(_process.Process):
                 # the original system contains space information, since it will have
                 # been added in order to run vacuum simulations.
                 if (
-                    space_prop in old_system._sire_object.propertyKeys()
-                    and space_prop in new_system._sire_object.propertyKeys()
+                    space_prop in old_system._sire_object.property_keys()
+                    and space_prop in new_system._sire_object.property_keys()
                 ):
                     # Get the original space.
                     box = old_system._sire_object.property("space")
 
                     # Only update the box if the space is periodic.
-                    if box.isPeriodic():
+                    if box.is_periodic():
                         box = new_system._sire_object.property("space")
-                        if box.isPeriodic():
-                            old_system._sire_object.setProperty(
+                        if box.is_periodic():
+                            old_system._sire_object.set_property(
                                 self._property_map.get("space", "space"), box
                             )
 
                 # If this is a vacuum simulation, then translate the centre of mass
                 # of the system back to the origin.
-                if not space_prop in old_system._sire_object.propertyKeys():
+                if not space_prop in old_system._sire_object.property_keys():
                     com = new_system._getCenterOfMass()
                     old_system.translate([-x for x in com])
 

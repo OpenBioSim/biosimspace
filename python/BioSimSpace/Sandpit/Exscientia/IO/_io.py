@@ -88,7 +88,7 @@ class _Capturing(list):
 
 # Capture the supported format information
 with _Capturing() as format_info:
-    print(r"%s" % _SireIO.MoleculeParser.supportedFormats())
+    print(r"%s" % _SireIO.MoleculeParser.supported_formats())
 
 # Create a list of the supported formats.
 _formats = []
@@ -557,7 +557,7 @@ def readMolecules(
 
     # Add a file format shared property.
     prop = property_map.get("fileformat", "fileformat")
-    system.addSharedProperty(prop, system.property(prop))
+    system.add_shared_property(prop, system.property(prop))
 
     # Remove "space" and "time" shared properties since this causes incorrect
     # behaviour when extracting molecules and recombining them to make other
@@ -566,14 +566,14 @@ def readMolecules(
         # Space.
         prop = property_map.get("space", "space")
         space = system.property(prop)
-        system.removeSharedProperty(prop)
-        system.setProperty(prop, space)
+        system.remove_shared_property(prop)
+        system.set_property(prop, space)
 
         # Time.
         prop = property_map.get("time", "time")
         time = system.property(prop)
-        system.removeSharedProperty(prop)
-        system.setProperty(prop, time)
+        system.remove_shared_property(prop)
+        system.set_property(prop, time)
     except:
         pass
 
@@ -793,9 +793,9 @@ def saveMolecules(
 
             # Loop over all molecules in the system.
             for mol in system.getMolecules():
-                if mol._sire_object.hasProperty(forcefield):
+                if mol._sire_object.has_property(forcefield):
                     if (
-                        mol._sire_object.property(forcefield).combiningRules()
+                        mol._sire_object.property(forcefield).combining_rules()
                         == "geometric"
                     ):
                         _warnings.warn(
@@ -1059,7 +1059,7 @@ def readPerturbableSystem(top0, coords0, top1, coords1, property_map={}):
                 raise IOError(msg) from e
             else:
                 raise IOError(msg) from None
-        if parser.isEmpty():
+        if parser.is_empty():
             raise ValueError(
                 f"Unable to read topology file for lamba=0 end state: {top0}"
             )
@@ -1073,7 +1073,7 @@ def readPerturbableSystem(top0, coords0, top1, coords1, property_map={}):
                 raise IOError(msg) from e
             else:
                 raise IOError(msg) from None
-        if parser.isEmpty():
+        if parser.is_empty():
             raise ValueError(
                 f"Unable to read topology file for lamba=1 end state: {top1}"
             )
@@ -1124,35 +1124,35 @@ def readPerturbableSystem(top0, coords0, top1, coords1, property_map={}):
     # Rename all properties in the molecule for the lambda=0 end state,
     # e.g.: "prop" --> "prop0". Then delete all properties named "prop"
     # and "prop1".
-    for prop in mol.propertyKeys():
+    for prop in mol.property_keys():
         # See if this property exists in the user map.
         new_prop = property_map.get(prop, prop) + "0"
 
         # Copy the property using the updated name.
-        mol = mol.setProperty(new_prop, mol.property(prop)).molecule()
+        mol = mol.set_property(new_prop, mol.property(prop)).molecule()
 
         # Delete the redundant property.
-        mol = mol.removeProperty(prop).molecule()
+        mol = mol.remove_property(prop).molecule()
 
     # Now add the properties for the lambda=1 end state.
     mol1 = system1[idx]._sire_object
-    for prop in mol1.propertyKeys():
+    for prop in mol1.property_keys():
         # See if this property exists in the user map.
         new_prop = property_map.get(prop, prop) + "1"
 
         # Copy the property using the updated name.
-        mol = mol.setProperty(new_prop, mol1.property(prop)).molecule()
+        mol = mol.set_property(new_prop, mol1.property(prop)).molecule()
 
     # Flag that the molecule is perturbable.
-    mol.setProperty("is_perturbable", _SireBase.wrap(True))
+    mol.set_property("is_perturbable", _SireBase.wrap(True))
 
     # Get the two molecules.
     mol0 = system0[idx]._sire_object
     mol1 = system1[idx]._sire_object
 
     # Add the molecule0 and molecule1 properties.
-    mol.setProperty("molecule0", mol0)
-    mol.setProperty("molecule1", mol1)
+    mol.set_property("molecule0", mol0)
+    mol.set_property("molecule1", mol1)
 
     # Get the connectivity property name.
     conn_prop = property_map.get("connectivity", "connectivity")
@@ -1165,28 +1165,28 @@ def readPerturbableSystem(top0, coords0, top1, coords1, property_map={}):
     if conn0 == conn1:
         # The connectivity is the same, so we can use the connectivity
         # from the lambda=0 end state.
-        mol = mol.setProperty(conn_prop, conn0).molecule()
+        mol = mol.set_property(conn_prop, conn0).molecule()
 
         # Delete the end state properties.
-        mol = mol.removeProperty(conn_prop + "0").molecule()
-        mol = mol.removeProperty(conn_prop + "1").molecule()
+        mol = mol.remove_property(conn_prop + "0").molecule()
+        mol = mol.remove_property(conn_prop + "1").molecule()
 
     # Reconstruct the intrascale matrices using the GroTop parser.
     intra0 = (
         _SireIO.GroTop(_Molecule(mol0).toSystem()._sire_object)
-        .toSystem()[0]
+        .to_system()[0]
         .property("intrascale")
     )
     intra1 = (
         _SireIO.GroTop(_Molecule(mol1).toSystem()._sire_object)
-        .toSystem()[0]
+        .to_system()[0]
         .property("intrascale")
     )
 
     # Set the "intrascale" properties.
     intrascale_prop = property_map.get("intrascale", "intrascale")
-    mol.setProperty(intrascale_prop + "0", intra0)
-    mol.setProperty(intrascale_prop + "1", intra0)
+    mol.set_property(intrascale_prop + "0", intra0)
+    mol.set_property(intrascale_prop + "1", intra0)
 
     # Commit the changes.
     mol = _Molecule(mol.commit())
@@ -1201,14 +1201,14 @@ def readPerturbableSystem(top0, coords0, top1, coords1, property_map={}):
         # Space.
         prop = property_map.get("space", "space")
         space = system0._sire_object.property(prop)
-        system0._sire_object.removeSharedProperty(prop)
-        system0._sire_object.setProperty(prop, space)
+        system0._sire_object.remove_shared_property(prop)
+        system0._sire_object.set_property(prop, space)
 
         # Time.
         prop = property_map.get("time", "time")
         time = system0._sire_object.property(prop)
-        system0._sire_object.removeSharedProperty(prop)
-        system0._sire_object.setProperty(prop, time)
+        system0._sire_object.remove_shared_property(prop)
+        system0._sire_object.set_property(prop, time)
     except:
         pass
 

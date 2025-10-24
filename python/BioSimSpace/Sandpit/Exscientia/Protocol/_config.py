@@ -40,12 +40,12 @@ class ConfigFactory:
     @property
     def _has_box(self):
         """Return whether the current system has a box."""
-        if "space" in self.system._sire_object.propertyKeys():
+        if "space" in self.system._sire_object.property_keys():
             try:
                 # Make sure that we have a periodic box. The system will now have
                 # a default cartesian space.
                 box = self.system._sire_object.property("space")
-                has_box = box.isPeriodic()
+                has_box = box.is_periodic()
             except:
                 has_box = False
         else:
@@ -907,7 +907,7 @@ class ConfigFactory:
                         "multiple distance restraints."
                     )
                 total_lines.append("use boresch restraints = True")
-                total_lines.append(restraint.toString(engine="SOMD"))
+                total_lines.append(restraint.to_string(engine="SOMD"))
 
             # Handle multiple distance restraints.
             elif restraint._restraint_type == "multiple_distance":
@@ -916,7 +916,7 @@ class ConfigFactory:
                     # In this case, we want to ensure that the "permanent" distance restraint is active
                     total_lines.append("use permanent distance restraints = True")
                 total_lines.append(
-                    restraint.toString(
+                    restraint.to_string(
                         engine="SOMD", perturbation_type=perturbation_type
                     )
                 )

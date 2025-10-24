@@ -80,7 +80,7 @@ class Plumed:
 
         # Try to locate the PLUMED executable.
         try:
-            self._exe = _findExe("plumed").absoluteFilePath()
+            self._exe = _findExe("plumed").absolute_file_path()
         except:
             raise _Exceptions.MissingSoftwareError(
                 "Metadynamics simulations required "
@@ -325,7 +325,7 @@ class Plumed:
 
                     # Check whether the system has a space. If not, vacuum
                     # simulations are okay.
-                    if space_prop in system._sire_object.propertyKeys():
+                    if space_prop in system._sire_object.property_keys():
                         # Get the space property.
                         space = system._sire_object.property(space_prop)
 
@@ -419,7 +419,7 @@ class Plumed:
                     )
 
                 # Get the molecule numbers in this system.
-                mol_nums = system._sire_object.molNums()
+                mol_nums = system._sire_object.mol_nums()
 
                 # Loop over each molecule and find the one that contains this atom.
                 for x, num in enumerate(mol_nums):
@@ -441,7 +441,7 @@ class Plumed:
             idx = system._atom_index_tally[molecule]
 
             # Get the number of atoms in the molecule.
-            num_atoms = system._sire_object.molecule(molecule).nAtoms()
+            num_atoms = system._sire_object.molecule(molecule).num_atoms()
 
             # Create the entity record. Remember to one-index the atoms.
             string += " ENTITY%d=%d-%d" % (x, idx + 1, idx + num_atoms)
@@ -676,7 +676,7 @@ class Plumed:
                 idx = system._atom_index_tally[molecules[1]]
 
                 # Get the number of atoms in the ligand.
-                num_atoms = system._sire_object.molecule(molecule).nAtoms()
+                num_atoms = system._sire_object.molecule(molecule).num_atoms()
 
                 # Create the ligand record. Remember to one-index the atoms.
                 colvar_string = "lig: COM ATOMS=%d-%d" % (idx + 1, idx + num_atoms)
@@ -1033,7 +1033,7 @@ class Plumed:
                     )
 
                 # Get the molecule numbers in this system.
-                mol_nums = system._sire_object.molNums()
+                mol_nums = system._sire_object.mol_nums()
 
                 # Loop over each molecule and find the one that contains this atom.
                 for x, num in enumerate(mol_nums):
@@ -1055,7 +1055,7 @@ class Plumed:
             idx = system._atom_index_tally[molecule]
 
             # Get the number of atoms in the molecule.
-            num_atoms = system._sire_object.molecule(molecule).nAtoms()
+            num_atoms = system._sire_object.molecule(molecule).num_atoms()
 
             # Create the entity record. Remember to one-index the atoms.
             string += " ENTITY%d=%d-%d" % (x, idx + 1, idx + num_atoms)

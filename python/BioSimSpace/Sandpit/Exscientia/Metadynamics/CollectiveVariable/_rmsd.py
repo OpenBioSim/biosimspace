@@ -317,7 +317,7 @@ class RMSD(_CollectiveVariable):
             selection = new_molecule.selection()
 
             # Unselect all of the atoms.
-            selection.selectNone()
+            selection.select_none()
 
             # Now add all of the atoms that appear in the reference.
             for idx in selected:
@@ -336,7 +336,7 @@ class RMSD(_CollectiveVariable):
 
         # Parse as a PDB file and store the lines.
         pdb = _SireIO.PDB2(new_system._sire_object)
-        lines = pdb.toLines()
+        lines = pdb.to_lines()
 
         # Format for PLUMED, making sure to use the same indices as in the system.
         # Also strip any TER records.
@@ -713,7 +713,7 @@ class RMSD(_CollectiveVariable):
                         raise ValueError(
                             "Could not calculate initial RMSD due to missing coordinates!"
                         )
-                    dist2 += space.calcDist2(coord0, coord1)
+                    dist2 += space.calc_dist2(coord0, coord1)
                     num_rmsd += 1
 
         # Compute the RMSD.

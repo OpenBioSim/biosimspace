@@ -88,8 +88,8 @@ class System(_SireWrapper):
             sire_object = _SireSystem.System("BioSimSpace_System.")
             super().__init__(sire_object)
             self.addMolecules(_Molecule(system))
-            if "fileformat" in system.propertyKeys():
-                self._sire_object.setProperty(
+            if "fileformat" in system.property_keys():
+                self._sire_object.set_property(
                     "fileformat", system.property("fileformat")
                 )
 
@@ -98,8 +98,8 @@ class System(_SireWrapper):
             sire_object = _SireSystem.System("BioSimSpace_System.")
             super().__init__(sire_object)
             self.addMolecules(system)
-            if "fileformat" in system._sire_object.propertyKeys():
-                self._sire_object.setProperty(
+            if "fileformat" in system._sire_object.property_keys():
+                self._sire_object.set_property(
                     "fileformat", system._sire_object.property("fileformat")
                 )
 
@@ -141,7 +141,7 @@ class System(_SireWrapper):
         self._molecule_index = {}
 
         # Store the molecule numbers.
-        self._mol_nums = self._sire_object.molNums()
+        self._mol_nums = self._sire_object.mol_nums()
 
         # Initialise the iterator counter.
         self._iter_count = 0
@@ -150,7 +150,7 @@ class System(_SireWrapper):
         self._reset_mappings()
 
         # Update the molecule numbers.
-        self._mol_nums = self._sire_object.molNums()
+        self._mol_nums = self._sire_object.mol_nums()
 
     def __str__(self):
         """Return a human readable string representation of the object."""
@@ -289,15 +289,15 @@ class System(_SireWrapper):
         # Give each molecule a unique molecule number.
         for mol in self._sire_object:
             cursor = mol.cursor()
-            cursor.number = _SireMol.MolNum.getUniqueNumber()
+            cursor.number = _SireMol.MolNum.get_unique_number()
             mols.add(cursor.commit())
 
         # Create a new system.
         system = _Molecules(mols).toSystem()
 
         # Copy over the system properties.
-        for prop in self._sire_object.propertyKeys():
-            system._sire_object.setProperty(prop, self._sire_object.property(prop))
+        for prop in self._sire_object.property_keys():
+            system._sire_object.set_property(prop, self._sire_object.property(prop))
 
         return system
 
@@ -311,7 +311,7 @@ class System(_SireWrapper):
         num_molecules : int
             The number of molecules in the system.
         """
-        return self._sire_object.nMolecules()
+        return self._sire_object.num_molecules()
 
     def nResidues(self):
         """
@@ -326,8 +326,8 @@ class System(_SireWrapper):
 
         tally = 0
 
-        for n in self._sire_object.molNums():
-            tally += self._sire_object[n].nResidues()
+        for n in self._sire_object.mol_nums():
+            tally += self._sire_object[n].num_residues()
 
         return tally
 
@@ -344,8 +344,8 @@ class System(_SireWrapper):
 
         tally = 0
 
-        for n in self._sire_object.molNums():
-            tally += self._sire_object[n].nChains()
+        for n in self._sire_object.mol_nums():
+            tally += self._sire_object[n].num_chains()
 
         return tally
 
@@ -362,8 +362,8 @@ class System(_SireWrapper):
 
         tally = 0
 
-        for n in self._sire_object.molNums():
-            tally += self._sire_object[n].nAtoms()
+        for n in self._sire_object.mol_nums():
+            tally += self._sire_object[n].num_atoms()
 
         return tally
 
@@ -522,8 +522,8 @@ class System(_SireWrapper):
             """Helper function to check whether two Sire objects are the same."""
 
             # Store the two sets of properties.
-            props0 = object0.propertyKeys()
-            props1 = object1.propertyKeys()
+            props0 = object0.property_keys()
+            props1 = object1.property_keys()
 
             # Loop over all properties of object0.
             for p0 in props0:
@@ -536,7 +536,7 @@ class System(_SireWrapper):
                     name1 = property_map1.get(name0, name0)
 
                     # Does object1 have this property?
-                    if name1 in object1.propertyKeys():
+                    if name1 in object1.property_keys():
                         # Do the property versions match?
                         try:
                             if object0.version(name0) != object1.version(name1):
@@ -657,7 +657,7 @@ class System(_SireWrapper):
             )
 
         # Store the existing number of molecules.
-        num_mols = self._sire_object.nMolecules()
+        num_mols = self._sire_object.num_molecules()
 
         # The system is empty: create an empty Sire system.
         if num_mols == 0:
@@ -669,7 +669,7 @@ class System(_SireWrapper):
             # Extract the molecule numbers for the current system and
             # the molecules to add.
             mol_nums0 = self._mol_nums
-            mol_nums1 = molecules._sire_object.molNums()
+            mol_nums1 = molecules._sire_object.mol_nums()
 
             # There are molecule numbers in both sets, or the molecules
             # to add contains duplicates.
@@ -694,7 +694,7 @@ class System(_SireWrapper):
             self._reset_mappings()
 
             # Update the molecule numbers.
-            self._mol_nums = self._sire_object.molNums()
+            self._mol_nums = self._sire_object.mol_nums()
 
         # Remove velocities if any molecules are missing them.
         if self.nMolecules() > 1:
@@ -712,11 +712,11 @@ class System(_SireWrapper):
             has_perturbable = False
             for mol in self.getPerturbableMolecules():
                 # Add perturbable velocities.
-                if mol._sire_object.hasProperty("velocity0"):
+                if mol._sire_object.has_property("velocity0"):
                     has_perturbable = True
                     num_vels += 1
                 # Remove non-perturbable velocities to avoid double counting.
-                elif mol._sire_object.hasProperty("velocity"):
+                elif mol._sire_object.has_property("velocity"):
                     num_vels -= 1
 
             # Not all molecules have velocities.
@@ -797,7 +797,7 @@ class System(_SireWrapper):
         self._reset_mappings()
 
         # Update the molecule numbers.
-        self._mol_nums = self._sire_object.molNums()
+        self._mol_nums = self._sire_object.mol_nums()
 
     def removeWaterMolecules(self):
         """Remove all of the water molecules from the system."""
@@ -812,7 +812,7 @@ class System(_SireWrapper):
         self._reset_mappings()
 
         # Update the molecule numbers.
-        self._mol_nums = self._sire_object.molNums()
+        self._mol_nums = self._sire_object.mol_nums()
 
     def updateMolecule(self, index, molecule):
         """
@@ -861,7 +861,7 @@ class System(_SireWrapper):
             self._reset_mappings()
 
             # Update the molecule numbers.
-            self._mol_nums = self._sire_object.molNums()
+            self._mol_nums = self._sire_object.mol_nums()
 
     def updateMolecules(self, molecules):
         """
@@ -935,7 +935,7 @@ class System(_SireWrapper):
             self._reset_mappings()
 
             # Update the molecule numbers.
-            self._mol_nums = self._sire_object.molNums()
+            self._mol_nums = self._sire_object.mol_nums()
 
     def getMolecule(self, index):
         """
@@ -1117,7 +1117,7 @@ class System(_SireWrapper):
             A container of water molecule objects. The container will be
             empty if no water molecules are present.
         """
-        return _Molecules(self._sire_object.search("water").toGroup())
+        return _Molecules(self._sire_object.search("water").to_group())
 
     def nWaterMolecules(self):
         """
@@ -1143,7 +1143,9 @@ class System(_SireWrapper):
             be empty if no perturbable molecules are present.
         """
         return _Molecules(
-            self._sire_object.search("molecules with property is_perturbable").toGroup()
+            self._sire_object.search(
+                "molecules with property is_perturbable"
+            ).to_group()
         )
 
     def nPerturbableMolecules(self):
@@ -1328,13 +1330,13 @@ class System(_SireWrapper):
         space.rotate(precision)
 
         # Update the space property in the sire object.
-        self._sire_object.setProperty(space_prop, space)
+        self._sire_object.set_property(space_prop, space)
 
         # Get the rotation matrix.
-        rotation_matrix = space.rotationMatrix()
+        rotation_matrix = space.rotation_matrix()
 
         # Get the center of rotation, as a Sire vector.
-        center = origin.toVector()._sire_object
+        center = origin.to_vector()._sire_object
 
         from sire.system import System
 
@@ -1455,7 +1457,7 @@ class System(_SireWrapper):
         space.reduce(bias)
 
         # Update the space property in the sire object.
-        self._sire_object.setProperty(space_prop, space)
+        self._sire_object.set_property(space_prop, space)
 
     def repartitionHydrogenMass(
         self, factor=4, water="no", use_coordinates=False, property_map={}
@@ -1777,7 +1779,7 @@ class System(_SireWrapper):
             space = _SireVol.PeriodicBox(_SireMaths.Vector(vec))
 
         # Set the "space" property.
-        self._sire_object.setProperty(property_map.get("space", "space"), space)
+        self._sire_object.set_property(property_map.get("space", "space"), space)
 
     def getBox(self, property_map={}):
         """
@@ -1853,7 +1855,7 @@ class System(_SireWrapper):
 
         # Remove the "space" property.
         try:
-            self._sire_object.removeProperty(property_map.get("space", "space"))
+            self._sire_object.remove_property(property_map.get("space", "space"))
         except:
             pass
 
@@ -1874,7 +1876,7 @@ class System(_SireWrapper):
         if not isinstance(property_map, dict):
             raise TypeError("'property_map' must be of type 'dict'")
 
-        self._sire_object.makeWhole()
+        self._sire_object.make_whole()
 
     def translate(self, vector, property_map={}):
         """
@@ -2299,7 +2301,7 @@ class System(_SireWrapper):
 
         # Check each molecule for "bond" and "LJ" properties.
         for mol in self.getMolecules():
-            props = mol._sire_object.propertyKeys()
+            props = mol._sire_object.property_keys()
             if (bond not in props and bond0 not in props) or (
                 LJ not in props and LJ0 not in props
             ):
@@ -2344,7 +2346,7 @@ class System(_SireWrapper):
                         prop = "coordinates0"
                     else:
                         prop = "coordinates"
-                coord.extend(mol._sire_object.property(prop).toVector())
+                coord.extend(mol._sire_object.property(prop).to_vector())
 
             except UserWarning as e:
                 msg = (
@@ -2456,8 +2458,8 @@ class System(_SireWrapper):
         system.add(molgrp)
 
         # Copy any existing system properties.
-        for prop in self._sire_object.propertyKeys():
-            system.setProperty(prop, self._sire_object.property(prop))
+        for prop in self._sire_object.property_keys():
+            system.set_property(prop, self._sire_object.property(prop))
 
         return system
 
@@ -2579,8 +2581,8 @@ class System(_SireWrapper):
 
             # There will be a "water_model" system property if this object was
             # solvated by BioSimSpace.
-            if "water_model" in self._sire_object.propertyKeys():
-                water_model = self._sire_object.property("water_model").toString()
+            if "water_model" in self._sire_object.property_keys():
+                water_model = self._sire_object.property("water_model").to_string()
 
             # Otherwise, convert to an appropriate topology.
             else:
@@ -2624,9 +2626,9 @@ class System(_SireWrapper):
             # Loop over all molecules in the system and keep track
             # of the cumulative number of atoms.
             num_atoms = 0
-            for num in self._sire_object.molNums():
+            for num in self._sire_object.mol_nums():
                 self._atom_index_tally[num] = num_atoms
-                num_atoms += self._sire_object.molecule(num).nAtoms()
+                num_atoms += self._sire_object.molecule(num).num_atoms()
 
     def _set_residue_index_tally(self):
         """
@@ -2639,9 +2641,9 @@ class System(_SireWrapper):
             # Loop over all molecules in the system and keep track
             # of the cumulative number of residues.
             num_residues = 0
-            for num in self._sire_object.molNums():
+            for num in self._sire_object.mol_nums():
                 self._residue_index_tally[num] = num_residues
-                num_residues += self._sire_object.molecule(num).nResidues()
+                num_residues += self._sire_object.molecule(num).num_residues()
 
     def _set_molecule_index_tally(self):
         """

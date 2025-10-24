@@ -233,7 +233,7 @@ def to(obj, format="biosimspace", property_map={}, **kwargs):
                 space = _SireVol.Cartesian()
 
             # Set a shared space property.
-            obj._sire_object.addSharedProperty(prop, space)
+            obj._sire_object.add_shared_property(prop, space)
 
             # Now try to convert the object to OpenMM format.
             try:
@@ -642,7 +642,7 @@ def _to_rdkit(molecule, work_dir=_os.getcwd(), direct=True, property_map={}):
             filebase = work_dir + "/tmp"
 
             # Try to go via SDF format to preserve bond orders.
-            if molecule._sire_object.hasProperty("fileformat"):
+            if molecule._sire_object.has_property("fileformat"):
                 if "SDF" in molecule._sire_object.property("fileformat").value():
                     _IO.saveMolecules(
                         filebase, molecule, "SDF", property_map=property_map

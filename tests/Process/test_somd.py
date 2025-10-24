@@ -208,4 +208,4 @@ def run_process(system, protocol):
     assert new_system is not None
 
     # Make sure the space is valid.
-    assert new_system._sire_object.property("space").isPeriodic()
+    assert new_system._sire_object.property("space").is_periodic()

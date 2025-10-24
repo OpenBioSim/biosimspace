@@ -266,8 +266,8 @@ class SireWrapper:
         """
         aabox = self._getAABox(property_map)
 
-        box_min = [x.value() * _Units.Length.angstrom for x in aabox.minCoords()]
-        box_max = [x.value() * _Units.Length.angstrom for x in aabox.maxCoords()]
+        box_min = [x.value() * _Units.Length.angstrom for x in aabox.min_coords()]
+        box_max = [x.value() * _Units.Length.angstrom for x in aabox.max_coords()]
 
         return box_min, box_max
 
@@ -372,7 +372,7 @@ class SireWrapper:
                 try:
                     coord = atom._sire_object.property(coord_prop)
                     coord = ref_coord + _SireMaths.Vector(
-                        space.calcDistVector(ref_coord, coord)
+                        space.calc_dist_vector(ref_coord, coord)
                     )
                 except:
                     ValueError(
@@ -456,7 +456,7 @@ class SireWrapper:
         # Residues now have a coordinates property, but this is returned as a
         # Python list.
         try:
-            c = self._sire_object.property(prop).toVector()
+            c = self._sire_object.property(prop).to_vector()
         except:
             try:
                 c = self._sire_object.property(prop)

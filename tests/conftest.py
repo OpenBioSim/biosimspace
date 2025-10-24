@@ -9,6 +9,8 @@ import BioSimSpace as BSS
 
 from BioSimSpace._Utils import _try_import, _have_imported
 
+BSS.setVerbose(True)
+
 # Store the tutorial URL.
 url = BSS.tutorialUrl()
 

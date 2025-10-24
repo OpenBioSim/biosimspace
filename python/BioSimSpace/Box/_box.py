@@ -140,7 +140,7 @@ def rhombicDodecahedronSquare(image_distance):
 
     # Create the triclinic box.
 
-    triclinic_box = _TriclinicBox.rhombicDodecahedronSquare(
+    triclinic_box = _TriclinicBox.rhombic_dodecahedron_square(
         image_distance.angstroms().value()
     )
 
@@ -177,7 +177,7 @@ def rhombicDodecahedronHexagon(image_distance):
 
     # Create the triclinic box.
 
-    triclinic_box = _TriclinicBox.rhombicDodecahedronHexagon(
+    triclinic_box = _TriclinicBox.rhombic_dodecahedron_hexagon(
         image_distance.angstroms().value()
     )
 
@@ -214,7 +214,7 @@ def truncatedOctahedron(image_distance):
 
     # Create the triclinic box.
 
-    triclinic_box = _TriclinicBox.truncatedOctahedron(
+    triclinic_box = _TriclinicBox.truncated_octahedron(
         image_distance.angstroms().value()
     )
 

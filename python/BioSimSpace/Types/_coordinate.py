@@ -223,7 +223,7 @@ class Coordinate:
         """
         return _Length(self._vector.z(), "A")
 
-    def toVector(self):
+    def to_vector(self):
         """
         Convert to a unitless BioSimSpace.Types.Vector object.
 

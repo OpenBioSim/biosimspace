@@ -590,7 +590,7 @@ class RestraintSearch:
                 f"traj {type(traj)} must be of type 'BioSimSpace.Trajectory._trajectory.Trajectory'"
             )
 
-        n_frames = traj.nFrames()
+        n_frames = traj.num_frames()
         if not n_frames >= 50:
             _warnings.warn(
                 f"The trajectory for restraint selection has less than 50 frames ({n_frames} frames). "

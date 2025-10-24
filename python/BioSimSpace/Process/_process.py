@@ -209,7 +209,7 @@ class Process:
         prop = property_map.get("coordinates", "coordinates")
         for mol in system.getMolecules():
             if not mol.isPerturbable():
-                if not mol._sire_object.hasProperty(prop):
+                if not mol._sire_object.has_property(prop):
                     raise _IncompatibleError(
                         "System object contains molecules without coordinates!"
                     )
@@ -749,8 +749,8 @@ class Process:
                 )
 
             # Copy across the properties from the original system.
-            for prop in self._system._sire_object.propertyKeys():
-                system._sire_object.setProperty(
+            for prop in self._system._sire_object.property_keys():
+                system._sire_object.set_property(
                     prop, self._system._sire_object.property(prop)
                 )
 
@@ -968,7 +968,7 @@ class Process:
             Whether the process is running.
         """
         try:
-            return self._process.isRunning()
+            return self._process.is_running()
         except AttributeError:
             return False
 
@@ -983,13 +983,13 @@ class Process:
             Whether the process exited with an error.
         """
         try:
-            return self._process.isError()
+            return self._process.is_error()
         except AttributeError:
             return False
 
     def kill(self):
         """Kill the running process."""
-        if not self._process is None and self._process.isRunning():
+        if not self._process is None and self._process.is_running():
             self._process.kill()
 
     def stdout(self, n=10):

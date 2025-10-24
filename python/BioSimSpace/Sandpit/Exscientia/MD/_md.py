@@ -195,7 +195,7 @@ def _find_md_engines(system, protocol, engine="AUTO", gpu_support=False):
                         # Search system PATH.
                         else:
                             try:
-                                exe = _SireBase.findExe(exe).absoluteFilePath()
+                                exe = _SireBase.findExe(exe).absolute_file_path()
                                 found_engines.append(engine)
                                 found_exes.append(exe)
                             except:
@@ -219,7 +219,7 @@ def _find_md_engines(system, protocol, engine="AUTO", gpu_support=False):
                     # Search system PATH.
                     else:
                         try:
-                            exe = _SireBase.findExe(exe).absoluteFilePath()
+                            exe = _SireBase.findExe(exe).absolute_file_path()
                             found_engines.append(engine)
                             found_exes.append(exe)
                         except:

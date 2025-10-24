@@ -66,7 +66,7 @@ def test_amber_gromacs_triclinic(ubiquitin_system):
     from sire.legacy.Vol import TriclinicBox
 
     triclinic_box = TriclinicBox.truncatedOctahedron(50)
-    ubiquitin_system._sire_object.setProperty("space", triclinic_box)
+    ubiquitin_system._sire_object.set_property("space", triclinic_box)
 
     # Create a single-step minimisation protocol.
     protocol = BSS.Protocol.Minimisation(steps=1)

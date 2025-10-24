@@ -800,7 +800,7 @@ def makeFunnel(
 
     # Get the "coordinates" property from the user mapping.
     coordinates = property_map.get("coordinates", "coordinates")
-    if not protein._sire_object.hasProperty(coordinates):
+    if not protein._sire_object.has_property(coordinates):
         raise ValueError(
             f"The 'protein' molecule doesn't have a {coordinates} property!"
         )
@@ -847,7 +847,7 @@ def makeFunnel(
 
     # Get the "space" property from the user map.
     space_prop = property_map.get("space", "space")
-    if space_prop not in system._sire_object.propertyKeys():
+    if space_prop not in system._sire_object.property_keys():
         raise _IncompatibleError("The system contains no simulation box property!")
 
     # Store the space.
@@ -954,11 +954,11 @@ def makeFunnel(
     com /= search.nResults()
 
     # Compute the normal vector for the funnel.
-    initial_funnel_normal_vector = (non_protein - com).toVector().normalise()
+    initial_funnel_normal_vector = (non_protein - com).to_vector().normalise()
 
     # Compute the location of a point 10 Angstom in the direction of the funnel
     # normal vector in the direction of the protein.
-    into_the_protein = com.toVector() - 10 * initial_funnel_normal_vector
+    into_the_protein = com.to_vector() - 10 * initial_funnel_normal_vector
 
     # Search for all alpha carbons within 7 Angstrom of the point.
 
@@ -1049,7 +1049,7 @@ def viewFunnel(system, collective_variable, property_map={}):
 
     # Get the "coordinates" property from the user mapping.
     coordinates = property_map.get("coordinates", "coordinates")
-    if not protein._sire_object.hasProperty(coordinates):
+    if not protein._sire_object.has_property(coordinates):
         raise ValueError(
             f"The 'protein' molecule doesn't have a {coordinates} property!"
         )
@@ -1163,9 +1163,9 @@ def viewFunnel(system, collective_variable, property_map={}):
     for x in range(0, funnel_mol.nAtoms()):
         idx = _SireMol.AtomIdx(x)
         funnel_mol = (
-            funnel_mol.atom(idx).setProperty(coordinates, funnel_coords[x]).molecule()
+            funnel_mol.atom(idx).set_property(coordinates, funnel_coords[x]).molecule()
         )
-        funnel_mol = funnel_mol.atom(idx).setProperty(element, helium).molecule()
+        funnel_mol = funnel_mol.atom(idx).set_property(element, helium).molecule()
 
     # Add the funnel pseudoatoms to the system.
     new_system = system + _Molecule(funnel_mol.commit())

@@ -223,7 +223,7 @@ class View:
             system = self._handle
 
         # Extract the molecule numbers.
-        molnums = system.molNums()
+        molnums = system.mol_nums()
 
         # Create a new system.
         s = _SireSystem.System("BioSimSpace_System")
@@ -283,7 +283,7 @@ class View:
             system = self._handle
 
         # Extract the molecule numbers.
-        molnums = system.molNums()
+        molnums = system.mol_nums()
 
         # Make sure the index is valid.
         if index < 0:
@@ -443,7 +443,7 @@ class View:
         if system is not None:
             try:
                 pdb = _SireIO.PDB2(system, self._property_map)
-                pdb.writeToFile(filename)
+                pdb.write_to_file(filename)
             except Exception as e:
                 msg = "Failed to write system to 'PDB' format."
                 if _isVerbose():

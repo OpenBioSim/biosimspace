@@ -177,7 +177,7 @@ def _find_md_engines(system, protocol, engine="AUTO", gpu_support=False):
             # function.
             if engine == "AMBER":
                 from .._Config import Amber as _AmberConfig
-                from ..Process._amber import _find_exe
+                from ..Process._amber import _findExe
 
                 # Is this a vacuum simulation.
                 is_vacuum = not (
@@ -185,7 +185,7 @@ def _find_md_engines(system, protocol, engine="AUTO", gpu_support=False):
                 )
 
                 try:
-                    exe = _find_exe(
+                    exe = _findExe(
                         is_gpu=gpu_support,
                         is_free_energy=is_free_energy,
                         is_vacuum=is_vacuum,
@@ -225,7 +225,7 @@ def _find_md_engines(system, protocol, engine="AUTO", gpu_support=False):
                         # Search system PATH.
                         else:
                             try:
-                                exe = _SireBase.findExe(exe).absoluteFilePath()
+                                exe = _SireBase.findExe(exe).absolute_file_path()
                                 found_engines.append(engine)
                                 found_exes.append(exe)
                             except:

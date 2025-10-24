@@ -40,13 +40,13 @@ def alchemical_ion_system():
         atomtype = pert_ion._sire_object.property(f"atomtype{lambda_}")
         pert_ion._sire_object = (
             pert_ion._sire_object.edit()
-            .setProperty(f"ambertype{lambda_}", atomtype)
+            .set_property(f"ambertype{lambda_}", atomtype)
             .molecule()
         )
     pert_ion._sire_object = (
         pert_ion.getAtoms()[0]
         ._sire_object.edit()
-        .setProperty("charge1", 0 * SireUnits.mod_electron)
+        .set_property("charge1", 0 * SireUnits.mod_electron)
         .molecule()
     )
 

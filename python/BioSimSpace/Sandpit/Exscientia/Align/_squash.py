@@ -317,7 +317,7 @@ def _unsquash_molecule(molecule, squashed_molecules, explicit_dummies=False):
     atom_mapping1 = _squashed_atom_mapping(
         molecule, is_lambda1=True, explicit_dummies=explicit_dummies
     )
-    update_velocity = squashed_molecules[0]._sire_object.hasProperty("velocity")
+    update_velocity = squashed_molecules[0]._sire_object.has_property("velocity")
 
     # Even though the common core of the two molecules should have the same coordinates,
     # they might be PBC wrapped differently.
@@ -359,15 +359,15 @@ def _unsquash_molecule(molecule, squashed_molecules, explicit_dummies=False):
                 coordinates0 -= translation_vec
             coordinates1 -= translation_vec
 
-        siremol = merged_atom.setProperty("coordinates0", coordinates0).molecule()
-        siremol = merged_atom.setProperty("coordinates1", coordinates1).molecule()
+        siremol = merged_atom.set_property("coordinates0", coordinates0).molecule()
+        siremol = merged_atom.set_property("coordinates1", coordinates1).molecule()
 
         # Update the velocities.
         if update_velocity:
             velocities0 = squashed_atom0._sire_object.property("velocity")
             velocities1 = squashed_atom1._sire_object.property("velocity")
-            siremol = merged_atom.setProperty("velocity0", velocities0).molecule()
-            siremol = merged_atom.setProperty("velocity1", velocities1).molecule()
+            siremol = merged_atom.set_property("velocity0", velocities0).molecule()
+            siremol = merged_atom.set_property("velocity1", velocities1).molecule()
 
     return _Molecule(siremol.commit())
 
@@ -654,7 +654,7 @@ def _squashed_atom_mapping_molecule(
         all_ndummy1 = 0
     else:
         all_ndummy1 = sum(
-            "du" in x for x in molecule._sire_object.property("ambertype0").toVector()
+            "du" in x for x in molecule._sire_object.property("ambertype0").to_vector()
         )
 
     offset_squashed_lambda1 = molecule.nAtoms() - all_ndummy1

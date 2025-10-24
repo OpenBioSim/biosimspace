@@ -22,6 +22,6 @@ def test_connectivity(perturbable_molecule):
     have the same bonding.
     """
 
-    assert perturbable_molecule._sire_object.hasProperty("connectivity")
-    assert not perturbable_molecule._sire_object.hasProperty("connectivity0")
-    assert not perturbable_molecule._sire_object.hasProperty("connectivity1")
+    assert perturbable_molecule._sire_object.has_property("connectivity")
+    assert not perturbable_molecule._sire_object.has_property("connectivity0")
+    assert not perturbable_molecule._sire_object.has_property("connectivity1")

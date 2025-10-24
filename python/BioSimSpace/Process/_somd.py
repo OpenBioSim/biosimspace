@@ -426,7 +426,7 @@ class Somd(_process.Process):
         # Check whether the system contains periodic box information.
         # For now, well not attempt to generate a box if the system property
         # is missing. If no box is present, we'll assume a non-periodic simulation.
-        if "space" in self._system._sire_object.propertyKeys():
+        if "space" in self._system._sire_object.property_keys():
             has_box = True
         else:
             _warnings.warn("No simulation box found. Assuming gas phase simulation.")
@@ -508,7 +508,7 @@ class Somd(_process.Process):
 
         # Process is already running.
         if self._process is not None:
-            if self._process.isRunning():
+            if self._process.is_running():
                 return
 
         # Clear any existing output.
@@ -610,8 +610,8 @@ class Somd(_process.Process):
             self._mapping = mapping
 
             # Update the box information in the original system.
-            if box and box.isPeriodic():
-                old_system._sire_object.setProperty(
+            if box and box.is_periodic():
+                old_system._sire_object.set_property(
                     self._property_map.get("space", "space"), box
                 )
 
@@ -739,9 +739,9 @@ class Somd(_process.Process):
             self._mapping = mapping
 
             # Update the box information in the original system.
-            if "space" in new_system._sire_object.propertyKeys():
+            if "space" in new_system._sire_object.property_keys():
                 box = new_system._sire_object.property("space")
-                old_system._sire_object.setProperty(
+                old_system._sire_object.set_property(
                     self._property_map.get("space", "space"), box
                 )
 
@@ -779,7 +779,7 @@ class Somd(_process.Process):
             return None
 
         # Get the number of trajectory frames.
-        num_frames = self.getTrajectory(block=block).nFrames()
+        num_frames = self.getTrajectory(block=block).num_frames()
 
         if num_frames == 0:
             return None
@@ -987,7 +987,7 @@ def _to_pert_file(
             "'molecule' isn't perturbable. Cannot write perturbation file!"
         )
 
-    if not molecule._sire_object.property("forcefield0").isAmberStyle():
+    if not molecule._sire_object.property("forcefield0").ismber_style():
         raise _IncompatibleError(
             "Can only write perturbation files for AMBER style force fields."
         )
@@ -1508,8 +1508,8 @@ def _to_pert_file(
         # Loop over all bonds at lambda = 0.
         for idx, bond in enumerate(bonds0):
             # Get the AtomIdx for the atoms in the bond.
-            idx0 = info.atomIdx(bond.atom0())
-            idx1 = info.atomIdx(bond.atom1())
+            idx0 = info.atom_idx(bond.atom0())
+            idx1 = info.atom_idx(bond.atom1())
 
             # Create the BondID.
             bond_id = _SireMol.BondID(idx0, idx1)
@@ -1520,8 +1520,8 @@ def _to_pert_file(
         # Loop over all bonds at lambda = 1.
         for idx, bond in enumerate(bonds1):
             # Get the AtomIdx for the atoms in the bond.
-            idx0 = info.atomIdx(bond.atom0())
-            idx1 = info.atomIdx(bond.atom1())
+            idx0 = info.atom_idx(bond.atom0())
+            idx1 = info.atom_idx(bond.atom1())
 
             # Create the BondID.
             bond_id = _SireMol.BondID(idx0, idx1)
@@ -1559,8 +1559,8 @@ def _to_pert_file(
             bond = bonds[idx]
 
             # Get the AtomIdx for the atoms in the bond.
-            idx0 = info.atomIdx(bond.atom0())
-            idx1 = info.atomIdx(bond.atom1())
+            idx0 = info.atom_idx(bond.atom0())
+            idx1 = info.atom_idx(bond.atom1())
 
             return (mol.atom(idx0).name().value(), mol.atom(idx1).name().value())
 
@@ -1572,8 +1572,8 @@ def _to_pert_file(
             bond = bonds0[idx]
 
             # Get the AtomIdx for the atoms in the bond.
-            idx0 = info.atomIdx(bond.atom0())
-            idx1 = info.atomIdx(bond.atom1())
+            idx0 = info.atom_idx(bond.atom0())
+            idx1 = info.atom_idx(bond.atom1())
 
             # Cast the function as an AmberBond.
             amber_bond = _SireMM.AmberBond(bond.function(), _SireCAS.Symbol("r"))
@@ -1600,8 +1600,8 @@ def _to_pert_file(
             bond = bonds1[idx]
 
             # Get the AtomIdx for the atoms in the bond.
-            idx0 = info.atomIdx(bond.atom0())
-            idx1 = info.atomIdx(bond.atom1())
+            idx0 = info.atom_idx(bond.atom0())
+            idx1 = info.atom_idx(bond.atom1())
 
             # Cast the function as an AmberBond.
             amber_bond = _SireMM.AmberBond(bond.function(), _SireCAS.Symbol("r"))
@@ -1660,8 +1660,8 @@ def _to_pert_file(
             bond1 = bonds1[idx1]
 
             # Get the AtomIdx for the atoms in the bond.
-            idx0 = info.atomIdx(bond0.atom0())
-            idx1 = info.atomIdx(bond0.atom1())
+            idx0 = info.atom_idx(bond0.atom0())
+            idx1 = info.atom_idx(bond0.atom1())
 
             # Check that an atom in the bond is perturbed.
             if _has_pert_atom([idx0, idx1], pert_idxs):
@@ -1756,9 +1756,9 @@ def _to_pert_file(
         # Loop over all angles at lambda = 0.
         for idx, angle in enumerate(angles0):
             # Get the AtomIdx for the atoms in the angle.
-            idx0 = info.atomIdx(angle.atom0())
-            idx1 = info.atomIdx(angle.atom1())
-            idx2 = info.atomIdx(angle.atom2())
+            idx0 = info.atom_idx(angle.atom0())
+            idx1 = info.atom_idx(angle.atom1())
+            idx2 = info.atom_idx(angle.atom2())
 
             # Create the AngleID.
             angle_id = _SireMol.AngleID(idx0, idx1, idx2)
@@ -1769,9 +1769,9 @@ def _to_pert_file(
         # Loop over all angles at lambda = 1.
         for idx, angle in enumerate(angles1):
             # Get the AtomIdx for the atoms in the angle.
-            idx0 = info.atomIdx(angle.atom0())
-            idx1 = info.atomIdx(angle.atom1())
-            idx2 = info.atomIdx(angle.atom2())
+            idx0 = info.atom_idx(angle.atom0())
+            idx1 = info.atom_idx(angle.atom1())
+            idx2 = info.atom_idx(angle.atom2())
 
             # Create the AngleID.
             angle_id = _SireMol.AngleID(idx0, idx1, idx2)
@@ -1809,9 +1809,9 @@ def _to_pert_file(
             angle = angles[idx]
 
             # Get the AtomIdx for the atoms in the angle.
-            idx0 = info.atomIdx(angle.atom0())
-            idx1 = info.atomIdx(angle.atom1())
-            idx2 = info.atomIdx(angle.atom2())
+            idx0 = info.atom_idx(angle.atom0())
+            idx1 = info.atom_idx(angle.atom1())
+            idx2 = info.atom_idx(angle.atom2())
 
             return (
                 mol.atom(idx1).name().value(),
@@ -1827,9 +1827,9 @@ def _to_pert_file(
             angle = angles0[idx]
 
             # Get the AtomIdx for the atoms in the angle.
-            idx0 = info.atomIdx(angle.atom0())
-            idx1 = info.atomIdx(angle.atom1())
-            idx2 = info.atomIdx(angle.atom2())
+            idx0 = info.atom_idx(angle.atom0())
+            idx1 = info.atom_idx(angle.atom1())
+            idx2 = info.atom_idx(angle.atom2())
 
             # Cast the function as an AmberAngle.
             amber_angle = _SireMM.AmberAngle(angle.function(), _SireCAS.Symbol("theta"))
@@ -1896,9 +1896,9 @@ def _to_pert_file(
             angle = angles1[idx]
 
             # Get the AtomIdx for the atoms in the angle.
-            idx0 = info.atomIdx(angle.atom0())
-            idx1 = info.atomIdx(angle.atom1())
-            idx2 = info.atomIdx(angle.atom2())
+            idx0 = info.atom_idx(angle.atom0())
+            idx1 = info.atom_idx(angle.atom1())
+            idx2 = info.atom_idx(angle.atom2())
 
             # Cast the function as an AmberAngle.
             amber_angle = _SireMM.AmberAngle(angle.function(), _SireCAS.Symbol("theta"))
@@ -1967,9 +1967,9 @@ def _to_pert_file(
             angle1 = angles1[idx1]
 
             # Get the AtomIdx for the atoms in the angle.
-            idx0 = info.atomIdx(angle0.atom0())
-            idx1 = info.atomIdx(angle0.atom1())
-            idx2 = info.atomIdx(angle0.atom2())
+            idx0 = info.atom_idx(angle0.atom0())
+            idx1 = info.atom_idx(angle0.atom1())
+            idx2 = info.atom_idx(angle0.atom2())
 
             # Check that an atom in the angle is perturbed.
             if _has_pert_atom([idx0, idx1, idx2], pert_idxs):
@@ -2093,10 +2093,10 @@ def _to_pert_file(
         # Loop over all dihedrals at lambda = 0.
         for idx, dihedral in enumerate(dihedrals0):
             # Get the AtomIdx for the atoms in the dihedral.
-            idx0 = info.atomIdx(dihedral.atom0())
-            idx1 = info.atomIdx(dihedral.atom1())
-            idx2 = info.atomIdx(dihedral.atom2())
-            idx3 = info.atomIdx(dihedral.atom3())
+            idx0 = info.atom_idx(dihedral.atom0())
+            idx1 = info.atom_idx(dihedral.atom1())
+            idx2 = info.atom_idx(dihedral.atom2())
+            idx3 = info.atom_idx(dihedral.atom3())
 
             # Create the DihedralID.
             dihedral_id = _SireMol.DihedralID(idx0, idx1, idx2, idx3)
@@ -2107,10 +2107,10 @@ def _to_pert_file(
         # Loop over all dihedrals at lambda = 1.
         for idx, dihedral in enumerate(dihedrals1):
             # Get the AtomIdx for the atoms in the dihedral.
-            idx0 = info.atomIdx(dihedral.atom0())
-            idx1 = info.atomIdx(dihedral.atom1())
-            idx2 = info.atomIdx(dihedral.atom2())
-            idx3 = info.atomIdx(dihedral.atom3())
+            idx0 = info.atom_idx(dihedral.atom0())
+            idx1 = info.atom_idx(dihedral.atom1())
+            idx2 = info.atom_idx(dihedral.atom2())
+            idx3 = info.atom_idx(dihedral.atom3())
 
             # Create the DihedralID.
             dihedral_id = _SireMol.DihedralID(idx0, idx1, idx2, idx3)
@@ -2148,10 +2148,10 @@ def _to_pert_file(
             dihedral = dihedrals[idx]
 
             # Get the AtomIdx for the atoms in the angle.
-            idx0 = info.atomIdx(dihedral.atom0())
-            idx1 = info.atomIdx(dihedral.atom1())
-            idx2 = info.atomIdx(dihedral.atom2())
-            idx3 = info.atomIdx(dihedral.atom3())
+            idx0 = info.atom_idx(dihedral.atom0())
+            idx1 = info.atom_idx(dihedral.atom1())
+            idx2 = info.atom_idx(dihedral.atom2())
+            idx3 = info.atom_idx(dihedral.atom3())
 
             return (
                 mol.atom(idx1).name().value(),
@@ -2169,10 +2169,10 @@ def _to_pert_file(
             dihedral = dihedrals0[idx]
 
             # Get the AtomIdx for the atoms in the dihedral.
-            idx0 = info.atomIdx(dihedral.atom0())
-            idx1 = info.atomIdx(dihedral.atom1())
-            idx2 = info.atomIdx(dihedral.atom2())
-            idx3 = info.atomIdx(dihedral.atom3())
+            idx0 = info.atom_idx(dihedral.atom0())
+            idx1 = info.atom_idx(dihedral.atom1())
+            idx2 = info.atom_idx(dihedral.atom2())
+            idx3 = info.atom_idx(dihedral.atom3())
 
             # Cast the function as an AmberDihedral.
             amber_dihedral = _SireMM.AmberDihedral(
@@ -2234,10 +2234,10 @@ def _to_pert_file(
             dihedral = dihedrals1[idx]
 
             # Get the AtomIdx for the atoms in the dihedral.
-            idx0 = info.atomIdx(dihedral.atom0())
-            idx1 = info.atomIdx(dihedral.atom1())
-            idx2 = info.atomIdx(dihedral.atom2())
-            idx3 = info.atomIdx(dihedral.atom3())
+            idx0 = info.atom_idx(dihedral.atom0())
+            idx1 = info.atom_idx(dihedral.atom1())
+            idx2 = info.atom_idx(dihedral.atom2())
+            idx3 = info.atom_idx(dihedral.atom3())
 
             # Cast the function as an AmberDihedral.
             amber_dihedral = _SireMM.AmberDihedral(
@@ -2300,10 +2300,10 @@ def _to_pert_file(
             dihedral1 = dihedrals1[idx1]
 
             # Get the AtomIdx for the atoms in the dihedral.
-            idx0 = info.atomIdx(dihedral0.atom0())
-            idx1 = info.atomIdx(dihedral0.atom1())
-            idx2 = info.atomIdx(dihedral0.atom2())
-            idx3 = info.atomIdx(dihedral0.atom3())
+            idx0 = info.atom_idx(dihedral0.atom0())
+            idx1 = info.atom_idx(dihedral0.atom1())
+            idx2 = info.atom_idx(dihedral0.atom2())
+            idx3 = info.atom_idx(dihedral0.atom3())
 
             # Check that an atom in the dihedral is perturbed.
             if _has_pert_atom([idx0, idx1, idx2, idx3], pert_idxs):
@@ -2497,10 +2497,10 @@ def _to_pert_file(
         # Loop over all impropers at lambda = 0.
         for idx, improper in enumerate(impropers0):
             # Get the AtomIdx for the atoms in the improper.
-            idx0 = info.atomIdx(improper.atom0())
-            idx1 = info.atomIdx(improper.atom1())
-            idx2 = info.atomIdx(improper.atom2())
-            idx3 = info.atomIdx(improper.atom3())
+            idx0 = info.atom_idx(improper.atom0())
+            idx1 = info.atom_idx(improper.atom1())
+            idx2 = info.atom_idx(improper.atom2())
+            idx3 = info.atom_idx(improper.atom3())
 
             # Create the ImproperID.
             improper_id = _SireMol.ImproperID(idx0, idx1, idx2, idx3)
@@ -2511,10 +2511,10 @@ def _to_pert_file(
         # Loop over all impropers at lambda = 1.
         for idx, improper in enumerate(impropers1):
             # Get the AtomIdx for the atoms in the improper.
-            idx0 = info.atomIdx(improper.atom0())
-            idx1 = info.atomIdx(improper.atom1())
-            idx2 = info.atomIdx(improper.atom2())
-            idx3 = info.atomIdx(improper.atom3())
+            idx0 = info.atom_idx(improper.atom0())
+            idx1 = info.atom_idx(improper.atom1())
+            idx2 = info.atom_idx(improper.atom2())
+            idx3 = info.atom_idx(improper.atom3())
 
             # Create the ImproperID.
             improper_id = _SireMol.ImproperID(idx0, idx1, idx2, idx3)
@@ -2569,10 +2569,10 @@ def _to_pert_file(
             improper = impropers0[idx]
 
             # Get the AtomIdx for the atoms in the improper.
-            idx0 = info.atomIdx(improper.atom0())
-            idx1 = info.atomIdx(improper.atom1())
-            idx2 = info.atomIdx(improper.atom2())
-            idx3 = info.atomIdx(improper.atom3())
+            idx0 = info.atom_idx(improper.atom0())
+            idx1 = info.atom_idx(improper.atom1())
+            idx2 = info.atom_idx(improper.atom2())
+            idx3 = info.atom_idx(improper.atom3())
 
             # Cast the function as an AmberDihedral.
             amber_dihedral = _SireMM.AmberDihedral(
@@ -2634,10 +2634,10 @@ def _to_pert_file(
             improper = impropers1[idx]
 
             # Get the AtomIdx for the atoms in the dihedral.
-            idx0 = info.atomIdx(improper.atom0())
-            idx1 = info.atomIdx(improper.atom1())
-            idx2 = info.atomIdx(improper.atom2())
-            idx3 = info.atomIdx(improper.atom3())
+            idx0 = info.atom_idx(improper.atom0())
+            idx1 = info.atom_idx(improper.atom1())
+            idx2 = info.atom_idx(improper.atom2())
+            idx3 = info.atom_idx(improper.atom3())
 
             # Cast the function as an AmberDihedral.
             amber_dihedral = _SireMM.AmberDihedral(
@@ -2700,10 +2700,10 @@ def _to_pert_file(
             improper1 = impropers1[idx1]
 
             # Get the AtomIdx for the atoms in the improper.
-            idx0 = info.atomIdx(improper0.atom0())
-            idx1 = info.atomIdx(improper0.atom1())
-            idx2 = info.atomIdx(improper0.atom2())
-            idx3 = info.atomIdx(improper0.atom3())
+            idx0 = info.atom_idx(improper0.atom0())
+            idx1 = info.atom_idx(improper0.atom1())
+            idx2 = info.atom_idx(improper0.atom2())
+            idx3 = info.atom_idx(improper0.atom3())
 
             # Check that an atom in the improper is perturbed.
             if _has_pert_atom([idx0, idx1, idx2, idx3], pert_idxs):
@@ -2893,17 +2893,17 @@ def _to_pert_file(
     mol = mol.edit()
 
     # Remove the perturbable molecule flag.
-    mol = mol.removeProperty("is_perturbable").molecule()
+    mol = mol.remove_property("is_perturbable").molecule()
 
     # Special handling for the mass and element properties. Perturbed atoms
     # take the mass and atomic number from the maximum of both states,
     # not the lambda = 0 state.
-    if mol.hasProperty("mass0") and mol.hasProperty("element0"):
+    if mol.has_property("mass0") and mol.has_property("element0"):
         # See if the mass or element properties exists in the user map.
         new_mass_prop = property_map.get("mass", "mass")
         new_element_prop = property_map.get("element", "element")
 
-        for idx in range(0, mol.nAtoms()):
+        for idx in range(0, mol.num_atoms()):
             # Convert to an AtomIdx.
             idx = _SireMol.AtomIdx(idx)
 
@@ -2924,40 +2924,40 @@ def _to_pert_file(
                     mass = mass1
 
                 # Choose the element with the most protons.
-                if element0.nProtons() > element1.nProtons():
+                if element0.num_protons() > element1.num_protons():
                     element = element0
                 else:
                     element = element1
 
                 # Set the updated properties.
-                mol = mol.atom(idx).setProperty(new_mass_prop, mass).molecule()
-                mol = mol.atom(idx).setProperty(new_element_prop, element).molecule()
+                mol = mol.atom(idx).set_property(new_mass_prop, mass).molecule()
+                mol = mol.atom(idx).set_property(new_element_prop, element).molecule()
 
             else:
                 # Use the properties at lambda = 0.
                 mass = mol.atom(idx).property("mass0")
-                mol = mol.atom(idx).setProperty(new_mass_prop, mass).molecule()
-                mol = mol.atom(idx).setProperty(new_element_prop, element0).molecule()
+                mol = mol.atom(idx).set_property(new_mass_prop, mass).molecule()
+                mol = mol.atom(idx).set_property(new_element_prop, element0).molecule()
 
         # Delete redundant properties.
-        mol = mol.removeProperty("mass0").molecule()
-        mol = mol.removeProperty("mass1").molecule()
-        mol = mol.removeProperty("element0").molecule()
-        mol = mol.removeProperty("element1").molecule()
+        mol = mol.remove_property("mass0").molecule()
+        mol = mol.remove_property("mass1").molecule()
+        mol = mol.remove_property("element0").molecule()
+        mol = mol.remove_property("element1").molecule()
 
     # Rename all properties in the molecule: "prop0" --> "prop".
     # Delete all properties named "prop0" and "prop1".
-    for prop in mol.propertyKeys():
+    for prop in mol.property_keys():
         if prop[-1] == "0" and prop != "mass0" and prop != "element0":
             # See if this property exists in the user map.
             new_prop = property_map.get(prop[:-1], prop[:-1])
 
             # Copy the property using the updated name.
-            mol = mol.setProperty(new_prop, mol.property(prop)).molecule()
+            mol = mol.set_property(new_prop, mol.property(prop)).molecule()
 
             # Delete redundant properties.
-            mol = mol.removeProperty(prop).molecule()
-            mol = mol.removeProperty(prop[:-1] + "1").molecule()
+            mol = mol.remove_property(prop).molecule()
+            mol = mol.remove_property(prop[:-1] + "1").molecule()
 
     # Return the updated molecule.
     return _Molecule(mol.commit())
@@ -3029,7 +3029,7 @@ def _has_dummy(mol, idxs, is_lambda1=False):
     ambertype_dummy = "du"
 
     # Check that the molecule has the ambertype property.
-    has_ambertype = mol.hasProperty(ambertype_prop)
+    has_ambertype = mol.has_property(ambertype_prop)
 
     # Check whether an of the atoms is a dummy.
     for idx in idxs:
@@ -3088,7 +3088,7 @@ def _is_dummy(mol, idxs, is_lambda1=False):
     ambertype_dummy = "du"
 
     # Check that the molecule has the ambertype property.
-    has_ambertype = mol.hasProperty(ambertype_prop)
+    has_ambertype = mol.has_property(ambertype_prop)
 
     # Initialise a list to store the state of each atom.
     is_dummy = []

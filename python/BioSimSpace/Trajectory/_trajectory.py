@@ -225,10 +225,12 @@ def getFrame(trajectory, topology, index, system=None, property_map={}):
                 )
 
                 # Update the box information in the original system.
-                if "space" in new_system.propertyKeys():
+                if "space" in new_system.property_keys():
                     box = new_system.property("space")
-                    if box.isPeriodic():
-                        sire_system.setProperty(property_map.get("space", "space"), box)
+                    if box.is_periodic():
+                        sire_system.set_property(
+                            property_map.get("space", "space"), box
+                        )
 
                 new_system = _System(sire_system)
 
@@ -245,7 +247,7 @@ def getFrame(trajectory, topology, index, system=None, property_map={}):
                 if is_sire:
                     frame = frame.current()._system
                     pdb = _SireIO.PDB2(frame)
-                    pdb.writeToFile(pdb_file)
+                    pdb.write_to_file(pdb_file)
                     frame = _SireIO.AmberRst7(frame)
                 elif is_mdanalysis:
                     frame = _SireIO.Gro87(frame_file)
@@ -278,7 +280,7 @@ def getFrame(trajectory, topology, index, system=None, property_map={}):
             # Make sure the system has the correct end-state properties.
             if is_squashed:
                 for mol in new_system:
-                    if "is_perturbable" in mol.propertyKeys():
+                    if "is_perturbable" in mol.property_keys():
                         cursor = mol.cursor()
                         cursor["coordinates"] = cursor["coordinates0"]
                         try:
@@ -293,10 +295,12 @@ def getFrame(trajectory, topology, index, system=None, property_map={}):
                 )
 
                 # Update the box information in the original system.
-                if "space" in new_system.propertyKeys():
+                if "space" in new_system.property_keys():
                     box = new_system.property("space")
-                    if box.isPeriodic():
-                        sire_system.setProperty(property_map.get("space", "space"), box)
+                    if box.is_periodic():
+                        sire_system.set_property(
+                            property_map.get("space", "space"), box
+                        )
 
                 new_system = _System(sire_system)
             except Exception as e:
@@ -820,10 +824,10 @@ class Trajectory:
                         )
 
                         # Update the box information in the original system.
-                        if "space" in new_system.propertyKeys():
+                        if "space" in new_system.property_keys():
                             box = new_system.property("space")
-                            if box.isPeriodic():
-                                sire_system.setProperty(
+                            if box.is_periodic():
+                                sire_system.set_property(
                                     self._property_map.get("space", "space"), box
                                 )
 
@@ -841,7 +845,7 @@ class Trajectory:
                         if self._backend == "SIRE":
                             frame = frame.current()._system
                             pdb = _SireIO.PDB2(frame)
-                            pdb.writeToFile(pdb_file)
+                            pdb.write_to_file(pdb_file)
                             frame = _SireIO.AmberRst7(frame)
                         elif self._backend == "MDANALYSIS":
                             frame = _SireIO.Gro87(frame_file)
@@ -878,7 +882,7 @@ class Trajectory:
                     # Make sure the system has the correct end-state properties.
                     if is_squashed:
                         for mol in new_system:
-                            if "is_perturbable" in mol.propertyKeys():
+                            if "is_perturbable" in mol.property_keys():
                                 cursor = mol.cursor()
                                 cursor["coordinates"] = cursor["coordinates0"]
                                 try:
@@ -898,10 +902,10 @@ class Trajectory:
                         )
 
                         # Update the box information in the original system.
-                        if "space" in new_system.propertyKeys():
+                        if "space" in new_system.property_keys():
                             box = new_system.property("space")
-                            if box.isPeriodic():
-                                sire_system.setProperty(
+                            if box.is_periodic():
+                                sire_system.set_property(
                                     self._property_map.get("space", "space"), box
                                 )
 
@@ -1147,7 +1151,7 @@ def _split_molecules(frame, pdb, reference, work_dir, property_map={}):
     vel_prop = property_map.get("velocity", "velocity")
 
     # Whether the frame contains velocity information.
-    has_vels = frame.hasVelocities()
+    has_vels = frame.has_velocities()
 
     # Whether the reference is a perturbable system.
     is_perturbable = reference.nPerturbableMolecules() > 0
@@ -1178,7 +1182,7 @@ def _split_molecules(frame, pdb, reference, work_dir, property_map={}):
     # Write the frame coordinates/velocities to file.
     coord_file = _os.path.join(str(work_dir), f"{str(_uuid.uuid4())}.coords")
     top_file = _os.path.join(str(work_dir), f"{str(_uuid.uuid4())}.top")
-    frame.writeToFile(coord_file)
+    frame.write_to_file(coord_file)
 
     # Whether we've parsed as a PDB file.
     is_pdb = False
@@ -1198,7 +1202,7 @@ def _split_molecules(frame, pdb, reference, work_dir, property_map={}):
             # Write the squashed system to file.
             try:
                 top = _SireIO.AmberPrm(squashed_system._sire_object)
-                top.writeToFile(top_file)
+                top.write_to_file(top_file)
             except Exception as e:
                 msg = "Unable to write squashed reference system to AmberPrm7 format!"
                 if _isVerbose():
@@ -1208,7 +1212,7 @@ def _split_molecules(frame, pdb, reference, work_dir, property_map={}):
         else:
             try:
                 top = _SireIO.GroTop(reference._sire_object)
-                top.writeToFile(top_file)
+                top.write_to_file(top_file)
             except Exception as e:
                 msg = "Unable to write perturbable reference system to GroTop format!"
                 if _isVerbose():
@@ -1219,7 +1223,7 @@ def _split_molecules(frame, pdb, reference, work_dir, property_map={}):
         if "PRM7" in formats:
             try:
                 top = _SireIO.AmberPrm(reference._sire_object)
-                top.writeToFile(top_file)
+                top.write_to_file(top_file)
             except Exception as e:
                 msg = "Unable to write reference system to AmberPrm7 format!"
                 if _isVerbose():
@@ -1230,7 +1234,7 @@ def _split_molecules(frame, pdb, reference, work_dir, property_map={}):
         elif "GroTop" in formats or "GROTOP" in formats:
             try:
                 top = _SireIO.GroTop(reference._sire_object)
-                top.writeToFile(top_file)
+                top.write_to_file(top_file)
             except Exception as e:
                 msg = "Unable to write reference system to GroTop format!"
                 if _isVerbose():
@@ -1241,7 +1245,7 @@ def _split_molecules(frame, pdb, reference, work_dir, property_map={}):
         elif "PSF" in formats:
             try:
                 top = _SireIO.CharmmPSF(reference._sire_object)
-                top.writeToFile(top_file)
+                top.write_to_file(top_file)
             except Exception as e:
                 msg = "Unable to write reference system to CharmmPSF format!"
                 if _isVerbose():
@@ -1254,7 +1258,7 @@ def _split_molecules(frame, pdb, reference, work_dir, property_map={}):
             is_pdb = True
 
             # Get the PDB records.
-            pdb_lines = pdb.toLines()
+            pdb_lines = pdb.to_lines()
 
             # Create a list to hold the new lines.
             new_lines = []
@@ -1276,7 +1280,7 @@ def _split_molecules(frame, pdb, reference, work_dir, property_map={}):
             pdb = _SireIO.PDB2(new_lines)
 
             # Convert to a system.
-            split_system = pdb.toSystem()
+            split_system = pdb.to_system()
 
     if not is_pdb:
         # Try to read the system back in, making sure that the numbering is unique.
@@ -1300,7 +1304,7 @@ def _split_molecules(frame, pdb, reference, work_dir, property_map={}):
                 raise IOError(msg) from None
 
     # Add the space property.
-    split_system.setProperty(property_map.get("space", "space"), box)
+    split_system.set_property(property_map.get("space", "space"), box)
 
     return split_system, is_perturbable and is_amber
 
@@ -1362,7 +1366,7 @@ def _update_water_topology(system, topology, trajectory, property_map):
             try:
                 top = _SireIO.AmberPrm(topology)
                 system._set_water_topology("AMBER", property_map=property_map)
-                if top.toString() != "AmberPrm::null":
+                if top.to_string() != "AmberPrm::null":
                     matched_topology = True
                 else:
                     matched_topology = False

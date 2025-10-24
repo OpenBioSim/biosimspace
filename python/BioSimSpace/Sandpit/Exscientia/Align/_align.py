@@ -92,10 +92,10 @@ else:
 from ._merge import merge as _merge
 
 try:
-    _fkcombu_exe = _SireBase.findExe("fkcombu_bss").absoluteFilePath()
+    _fkcombu_exe = _SireBase.findExe("fkcombu_bss").absolute_file_path()
 except:
     try:
-        _fkcombu_exe = _SireBase.findExe("fkcombu").absoluteFilePath()
+        _fkcombu_exe = _SireBase.findExe("fkcombu").absolute_file_path()
     except:
         _fkcombu_exe = None
 
@@ -331,7 +331,7 @@ def generateNetwork(
             # If the molecule came from an SDF file, then use
             # that as the format as it's generally more reliable.
             is_sdf = False
-            if molecule._sire_object.hasProperty("fileformat"):
+            if molecule._sire_object.has_property("fileformat"):
                 if "SDF" in molecule._sire_object.property("fileformat").value():
                     is_sdf = True
                     if is_names:
@@ -1159,7 +1159,7 @@ def rmsdAlign(molecule0, molecule1, mapping=None, property_map0={}, property_map
         mol0 = (
             mol0.edit()
             .atom(idx0)
-            .setProperty(
+            .set_property(
                 property_map0.get("coordinates", "coordinates"),
                 mol1.atom(idx1).property(
                     property_map1.get("coordinates", "coordinates")
@@ -1339,7 +1339,7 @@ def flexAlign(
         # Copy the coordinates back into the original molecule.
         molecule0._sire_object = (
             molecule0._sire_object.edit()
-            .setProperty(prop, aligned._sire_object.property("coordinates"))
+            .set_property(prop, aligned._sire_object.property("coordinates"))
             .commit()
         )
 
@@ -1769,13 +1769,13 @@ def _score_rdkit_mappings(
     if prop0 != "coordinates":
         molecule0 = (
             molecule0.edit()
-            .setProperty("coordinates", molecule0.property(prop0))
+            .set_property("coordinates", molecule0.property(prop0))
             .commit()
         )
     if prop1 != "coordinates":
         molecule1 = (
             molecule1.edit()
-            .setProperty("coordinates", molecule1.property(prop1))
+            .set_property("coordinates", molecule1.property(prop1))
             .commit()
         )
 
@@ -1999,13 +1999,13 @@ def _score_sire_mappings(
     if prop0 != "coordinates":
         molecule0 = (
             molecule0.edit()
-            .setProperty("coordinates", molecule0.property(prop0))
+            .set_property("coordinates", molecule0.property(prop0))
             .commit()
         )
     if prop1 != "coordinates":
         molecule1 = (
             molecule1.edit()
-            .setProperty("coordinates", molecule1.property(prop1))
+            .set_property("coordinates", molecule1.property(prop1))
             .commit()
         )
 
@@ -2314,11 +2314,11 @@ def _prune_crossing_constraints(molecule0, molecule1, mapping):
             # Get the neighbours to the atom
             neighbours0 = [
                 molecule0._sire_object.atom(i)
-                for i in connectivity0.connectionsTo(_SireMol.AtomIdx(idx0))
+                for i in connectivity0.connections_to(_SireMol.AtomIdx(idx0))
             ]
             neighbours1 = [
                 molecule1._sire_object.atom(i)
-                for i in connectivity1.connectionsTo(_SireMol.AtomIdx(idx1))
+                for i in connectivity1.connections_to(_SireMol.AtomIdx(idx1))
             ]
 
             # Determine whether there are any constrained bonds between the MCS and softcore part

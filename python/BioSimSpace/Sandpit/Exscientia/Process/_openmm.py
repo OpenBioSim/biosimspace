@@ -290,12 +290,12 @@ class OpenMM(_process.Process):
         # Check whether the system contains periodic box information.
         # For now, we'll not attempt to generate a box if the system property
         # is missing. If no box is present, we'll assume a non-periodic simulation.
-        if prop in self._system._sire_object.propertyKeys():
+        if prop in self._system._sire_object.property_keys():
             try:
                 # Make sure that we have a periodic box. The system will now have
                 # a default cartesian space.
                 box = self._system._sire_object.property(prop)
-                has_box = box.isPeriodic()
+                has_box = box.is_periodic()
             except:
                 has_box = False
         else:
@@ -1222,7 +1222,7 @@ class OpenMM(_process.Process):
 
         # Process is already running.
         if self._process is not None:
-            if self._process.isRunning():
+            if self._process.is_running():
                 return
 
         # Clear any existing output.
@@ -1320,10 +1320,10 @@ class OpenMM(_process.Process):
                 self._mapping = mapping
 
                 # Update the box information in the original system.
-                if "space" in new_system._sire_object.propertyKeys():
+                if "space" in new_system._sire_object.property_keys():
                     box = new_system._sire_object.property("space")
-                    if box.isPeriodic():
-                        old_system._sire_object.setProperty(
+                    if box.is_periodic():
+                        old_system._sire_object.set_property(
                             self._property_map.get("space", "space"), box
                         )
 
@@ -1479,9 +1479,9 @@ class OpenMM(_process.Process):
             self._mapping = mapping
 
             # Update the box information in the original system.
-            if "space" in new_system._sire_object.propertyKeys():
+            if "space" in new_system._sire_object.property_keys():
                 box = new_system._sire_object.property("space")
-                old_system._sire_object.setProperty(
+                old_system._sire_object.set_property(
                     self._property_map.get("space", "space"), box
                 )
 

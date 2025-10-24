@@ -50,7 +50,7 @@ def make_ml(molecule):
     # Edit the molecule
     mol_edit = mol_sire.edit()
 
-    mol_edit.setProperty("ML", True)
+    mol_edit.set_property("ML", True)
 
     # Update the Sire molecule object of the new molecule.
     mol._sire_object = mol_edit.commit()

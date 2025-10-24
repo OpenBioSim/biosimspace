@@ -107,7 +107,7 @@ class Molecules(_SireWrapper):
             )
 
         # Store the number of molecules.
-        self._num_mols = self._sire_object.nMolecules()
+        self._num_mols = self._sire_object.num_molecules()
 
         # Initialise the iterator counter.
         self._iter_count = 0
@@ -131,7 +131,7 @@ class Molecules(_SireWrapper):
         molecules = self._sire_object.__deepcopy__()
 
         # Extract the MolNums.
-        mol_nums0 = molecules.molNums()
+        mol_nums0 = molecules.mol_nums()
 
         # Validate the input. Convert all valid input to another
         # Molecules object.
@@ -162,7 +162,7 @@ class Molecules(_SireWrapper):
 
         # Extract the molecule numbers for the current system and
         # the molecules to add.
-        mol_nums1 = other._sire_object.molNums()
+        mol_nums1 = other._sire_object.mol_nums()
 
         # There are molecule numbers in both sets, or the molecules
         # to add contains duplicates.

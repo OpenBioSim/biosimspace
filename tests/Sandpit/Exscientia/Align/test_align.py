@@ -171,7 +171,7 @@ def test_merge():
     # Create maps between property names: { "prop" : "prop0" }, { "prop" : "prop1" }
     pmap0 = {}
     pmap1 = {}
-    for prop in m2._sire_object.propertyKeys():
+    for prop in m2._sire_object.property_keys():
         if prop[-1] == "0":
             pmap0[prop[:-1]] = prop
         elif prop[-1] == "1":
@@ -293,7 +293,7 @@ def roi_merged_mol(roi_mol0, roi_mol1):
                 )
                 edit_mol = (
                     edit_mol.atom(AtomIdx(idx))
-                    .setProperty("coordinates", vec)
+                    .set_property("coordinates", vec)
                     .molecule()
                 )
         mol._sire_object = edit_mol.commit()
@@ -388,7 +388,7 @@ def roi_internal1(roi_mol1):
 @pytest.fixture(scope="module")
 def roi_pmap0(roi_merged_mol):
     res = {}
-    for prop in roi_merged_mol._sire_object.propertyKeys():
+    for prop in roi_merged_mol._sire_object.property_keys():
         if prop[-1] == "0":
             res[prop[:-1]] = prop
     return res
@@ -397,7 +397,7 @@ def roi_pmap0(roi_merged_mol):
 @pytest.fixture(scope="module")
 def roi_pmap1(roi_merged_mol):
     res = {}
-    for prop in roi_merged_mol._sire_object.propertyKeys():
+    for prop in roi_merged_mol._sire_object.property_keys():
         if prop[-1] == "1":
             res[prop[:-1]] = prop
     return res
@@ -678,16 +678,16 @@ def test_hydrogen_mass_repartitioning():
     dummy = Element("Xx")
 
     # Get the elements in either end state.
-    elements0 = merged._sire_object.property("element0").toVector()
-    elements1 = merged._sire_object.property("element1").toVector()
+    elements0 = merged._sire_object.property("element0").to_vector()
+    elements1 = merged._sire_object.property("element1").to_vector()
 
     # Work out the initial mass of the system.
     initial_mass0 = 0
-    for idx, mass in enumerate(merged._sire_object.property("mass0").toVector()):
+    for idx, mass in enumerate(merged._sire_object.property("mass0").to_vector()):
         if elements0[idx] != dummy:
             initial_mass0 += mass.value()
     initial_mass1 = 0
-    for idx, mass in enumerate(merged._sire_object.property("mass1").toVector()):
+    for idx, mass in enumerate(merged._sire_object.property("mass1").to_vector()):
         if elements1[idx] != dummy:
             initial_mass1 += mass.value()
 
@@ -699,8 +699,8 @@ def test_hydrogen_mass_repartitioning():
     dummy_masses1 = []
 
     # Extract the modified end state masses.
-    masses0 = merged._sire_object.property("mass0").toVector()
-    masses1 = merged._sire_object.property("mass1").toVector()
+    masses0 = merged._sire_object.property("mass0").to_vector()
+    masses1 = merged._sire_object.property("mass1").to_vector()
 
     # Work out the final mass of the system.
     final_mass0 = 0
@@ -745,8 +745,8 @@ def test_ion_merge():
     merged = BSS.Align.merge(water, BSS._SireWrappers.Molecule(ion))
 
     # Make sure the ion has the coordintes of the oxygen atom.
-    coords0 = merged._sire_object.property("coordinates0").toVector()[0]
-    coords1 = merged._sire_object.property("coordinates1").toVector()[0]
-    water_coords = water._sire_object.property("coordinates").toVector()[0]
+    coords0 = merged._sire_object.property("coordinates0").to_vector()[0]
+    coords1 = merged._sire_object.property("coordinates1").to_vector()[0]
+    water_coords = water._sire_object.property("coordinates").to_vector()[0]
     assert coords0 == coords1
     assert coords0 == water_coords
