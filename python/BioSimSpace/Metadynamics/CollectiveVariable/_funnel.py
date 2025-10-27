@@ -1164,7 +1164,7 @@ def viewFunnel(system, collective_variable, property_map={}):
     helium = _SireMol.Element("He")
 
     # Add the coordinaates and element property.
-    for x in range(0, funnel_mol.nAtoms()):
+    for x in range(0, funnel_mol.num_atoms()):
         idx = _SireMol.AtomIdx(x)
         funnel_mol = (
             funnel_mol.atom(idx).set_property(coordinates, funnel_coords[x]).molecule()
