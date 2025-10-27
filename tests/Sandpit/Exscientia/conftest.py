@@ -14,6 +14,9 @@ from BioSimSpace.Sandpit.Exscientia._SireWrappers import Molecule
 
 from BioSimSpace.Sandpit.Exscientia._Utils import _try_import, _have_imported
 
+# Turn on verbose error messages.
+BSS.setVerbose(True)
+
 # Store the tutorial URL.
 url = BSS.tutorialUrl()
 
