@@ -904,7 +904,6 @@ def _matchAtoms(
     property_map0={},
     property_map1={},
 ):
-    # A list of supported scoring functions.
     from .._SireWrappers import Molecule as _Molecule
     import sys as _sys
     from sire.legacy import Units as _SireUnits
@@ -912,6 +911,7 @@ def _matchAtoms(
     from sire.legacy import Mol as _SireMol
     from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
 
+    # A list of supported scoring functions.
     scoring_functions = ["RMSD", "RMSDALIGN", "RMSDFLEXALIGN"]
 
     # Validate input.
