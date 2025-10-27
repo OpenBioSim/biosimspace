@@ -91,6 +91,11 @@ get the minimised molecular system.
    minimised = process.getSystem()
 """
 
+import sire as _sr
+
+_sr.use_new_api()
+del _sr
+
 from ._amber import *
 from ._gromacs import *
 from ._namd import *

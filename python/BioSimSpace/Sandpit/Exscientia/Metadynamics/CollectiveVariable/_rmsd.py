@@ -26,24 +26,8 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["RMSD"]
 
-from math import ceil as _ceil
-from math import sqrt as _sqrt
-
-from sire.legacy import IO as _SireIO
-from sire.legacy import Mol as _SireMol
-
-from sire.mol import selection_to_atoms as _selection_to_atoms
-
-from ... import _isVerbose
-from ..._Exceptions import IncompatibleError as _IncompatibleError
-from ..._SireWrappers import Atom as _Atom
-from ..._SireWrappers import Molecule as _Molecule
-from ..._SireWrappers import System as _System
-from ...Align import rmsdAlign as _rmsdAlign
 
 from ._collective_variable import CollectiveVariable as _CollectiveVariable
-from .._bound import Bound as _Bound
-from .._grid import Grid as _Grid
 from ...Types import Length as _Length
 
 
@@ -118,6 +102,14 @@ class RMSD(_CollectiveVariable):
             values. This allows the user to refer to properties with their
             own naming scheme, e.g. { "charge" : "my-charge" }
         """
+        from sire.legacy import IO as _SireIO
+        from sire.legacy import Mol as _SireMol
+        from ..._SireWrappers import Atom as _Atom
+        from ... import _isVerbose
+        from ..._SireWrappers import System as _System
+        from sire.mol import selection_to_atoms as _selection_to_atoms
+        from ..._SireWrappers import Molecule as _Molecule
+        from ..._Exceptions import IncompatibleError as _IncompatibleError
 
         # Call the base class constructor.
         super().__init__()
@@ -586,6 +578,10 @@ class RMSD(_CollectiveVariable):
          rmsd : :class:`Length <BioSimSpace.Types.Length>`
              The initial value of the RMSD.
         """
+        from sire.legacy import Mol as _SireMol
+        from ...Align import rmsdAlign as _rmsdAlign
+        from math import sqrt as _sqrt
+        from ..._SireWrappers import System as _System
 
         # Note that we need to do this manually, since Sire.Mol.Evaluator doesn't
         # work correctly for molecules with different numbers of coordinate groups.
@@ -724,6 +720,7 @@ class RMSD(_CollectiveVariable):
 
     def _validate(self):
         """Internal function to check that the object is in a consistent state."""
+        from math import ceil as _ceil
 
         if self._lower_bound is not None:
             if type(self._lower_bound.getValue()) not in self._types:

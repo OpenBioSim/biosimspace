@@ -26,14 +26,13 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["ResourceManager"]
 
-import argparse as _argparse
-
 
 class ResourceManager:
     """A class for finding and managing hardware resources."""
 
     def __init__(self):
         """Constructor."""
+        import argparse as _argparse
 
         # Set default values.
         self._nodes = None

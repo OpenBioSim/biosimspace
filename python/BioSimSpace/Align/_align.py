@@ -33,14 +33,9 @@ __all__ = [
     "merge",
 ]
 
-import csv as _csv
-import os as _os
-import subprocess as _subprocess
-import sys as _sys
 from typing import Any, Collection, Optional
-from itertools import chain
 
-from .._Utils import _try_import, _have_imported, _assert_imported
+from .._Utils import _try_import, _have_imported
 
 import warnings as _warnings
 
@@ -65,19 +60,9 @@ with _warnings.catch_warnings():
         _RDLogger = _rdkit
 
 from sire.legacy import Base as _SireBase
-from sire.legacy import Maths as _SireMaths
-from sire.legacy import Mol as _SireMol
-from sire.legacy import Units as _SireUnits
 
-from .. import _is_notebook, _isVerbose
-from .._Exceptions import AlignmentError as _AlignmentError
-from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
-from .._SireWrappers import Molecule as _Molecule
 
-from .. import Convert as _Convert
-from .. import IO as _IO
 from .. import Units as _Units
-from .. import _Utils
 
 # lomap depends on RDKit and networkx
 _networkx = _try_import("networkx")
@@ -93,7 +78,6 @@ else:
 
     _lomap = _module_stub(name="rdkit, networkx")
 
-from ._merge import merge as _merge
 
 try:
     _fkcombu_exe = _SireBase.findExe("fkcombu_bss").absolute_file_path()
@@ -186,6 +170,14 @@ def generateNetwork(
         perturbation between molecules along an edge is likely to be more
         accurate.
     """
+    from .._Utils import _assert_imported
+    from .._Exceptions import AlignmentError as _AlignmentError
+    from .._SireWrappers import Molecule as _Molecule
+    import csv as _csv
+    import os as _os
+    from .. import _is_notebook, _isVerbose
+    from .. import IO as _IO
+    from .. import _Utils
 
     # Adapted from code by Jenke Scheen (@JenkeScheen).
 
@@ -913,6 +905,13 @@ def _matchAtoms(
     property_map1={},
 ):
     # A list of supported scoring functions.
+    from .._SireWrappers import Molecule as _Molecule
+    import sys as _sys
+    from sire.legacy import Units as _SireUnits
+    from .. import Convert as _Convert
+    from sire.legacy import Mol as _SireMol
+    from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
+
     scoring_functions = ["RMSD", "RMSDALIGN", "RMSDFLEXALIGN"]
 
     # Validate input.
@@ -1162,6 +1161,8 @@ def _kartograf_map(molecule0, molecule1, kartograf_kwargs):
         The kartograf mapping object.
 
     """
+    from .._SireWrappers import Molecule as _Molecule
+
     # Try to import kartograf.
     try:
         from kartograf.atom_aligner import align_mol_shape as _align_mol_shape
@@ -1310,6 +1311,7 @@ def _roiMatch(
     >>> import BioSimSpace as BSS
     >>> mapping = BSS.Align._align._roiMatch(molecule0, molecule1, roi=[12], use_kartograf=True)
     """
+    from .._SireWrappers import Molecule as _Molecule
 
     # Validate input
     if not isinstance(molecule0, _Molecule):
@@ -1602,6 +1604,11 @@ def rmsdAlign(
 
 
 def _rmsdAlign(molecule0, molecule1, mapping=None, property_map0={}, property_map1={}):
+    from .._Exceptions import AlignmentError as _AlignmentError
+    from .. import _isVerbose
+    from .._SireWrappers import Molecule as _Molecule
+    from sire.legacy import Mol as _SireMol
+
     if not isinstance(molecule0, _Molecule):
         raise TypeError(
             "'molecule0' must be of type 'BioSimSpace._SireWrappers.Molecule'"
@@ -1782,6 +1789,14 @@ def _flexAlign(
     property_map1,
 ):
     # Check that we found fkcombu in the PATH.
+    import subprocess as _subprocess
+    from .._Exceptions import AlignmentError as _AlignmentError
+    from .._SireWrappers import Molecule as _Molecule
+    import os as _os
+    from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
+    from .. import _Utils
+    from .. import IO as _IO
+
     if fkcombu_exe is None:
         if _fkcombu_exe is None:
             raise _MissingSoftwareError(
@@ -1937,6 +1952,7 @@ def _roiAlign(
     molecule : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
         The aligned molecule.
     """
+    from .._SireWrappers import Molecule as _Molecule
 
     if not isinstance(molecule0, _Molecule):
         raise TypeError(
@@ -2094,6 +2110,8 @@ def merge(
     >>> import BioSimSpace as BSS
     >>> molecule0 = BSS.Align.merge(molecule0, molecule1)
     """
+    from ._merge import merge as _merge
+    from .._SireWrappers import Molecule as _Molecule
 
     if not isinstance(molecule0, _Molecule):
         raise TypeError(
@@ -2205,6 +2223,10 @@ def viewMapping(
     show_adjacent_residues : bool, optional default=False
         If set to True, will show neighouring residues to the ROI region.
     """
+    from .._Utils import _assert_imported
+    from .. import Convert as _Convert
+    from .. import _is_notebook
+    from .._SireWrappers import Molecule as _Molecule
 
     # Only draw within a notebook.
     if not _is_notebook:
@@ -2342,6 +2364,7 @@ def _get_unique_bonds_and_atoms(
         ("elements"), deleted bonds ("bond_deletions) and altered bonds
         ("bond_changes) for molecule 1.
     """
+    from itertools import chain
 
     uniques: dict[str, set] = {
         "atoms": set(),  # atoms which fully don't exist in molB
@@ -2417,6 +2440,9 @@ def _draw_molecules(
         molA_atom_idx, molB_atom_idx]
         default None
     """
+    from rdkit.Chem import Draw
+    from rdkit.Chem import AllChem
+
     # input standardization:
     if atom_mapping is None:
         atom_mapping = {}
@@ -2598,6 +2624,11 @@ def _score_rdkit_mappings(
     mapping, scores : ([dict], list)
         The ranked mappings and corresponding scores.
     """
+    from .._Exceptions import AlignmentError as _AlignmentError
+    from .._SireWrappers import Molecule as _Molecule
+    from sire.legacy import Maths as _SireMaths
+    from sire.legacy import Mol as _SireMol
+    from .. import _isVerbose
 
     # Adapted from FESetup: https://github.com/CCPBioSim/fesetup
 
@@ -2830,6 +2861,11 @@ def _score_sire_mappings(
     mapping, scores : ([dict], list)
         The ranked mappings and corresponding scores.
     """
+    from .._Exceptions import AlignmentError as _AlignmentError
+    from .._SireWrappers import Molecule as _Molecule
+    from sire.legacy import Maths as _SireMaths
+    from sire.legacy import Mol as _SireMol
+    from .. import _isVerbose
 
     # Make sure to re-map the coordinates property in both molecules, otherwise
     # the move and align functions from Sire will not work.
@@ -2963,6 +2999,7 @@ def _validate_mapping(molecule0, molecule1, mapping, name):
     name : str
         The name of the mapping. (Used when raising exceptions.)
     """
+    from sire.legacy import Mol as _SireMol
 
     for idx0, idx1 in mapping.items():
         if type(idx0) is int and type(idx1) is int:
@@ -3032,6 +3069,7 @@ def _to_sire_mapping(mapping):
     sire_mapping : {Sire.Mol.AtomIdx:Sire.Mol.AtomIdx}
         The Sire mapping.
     """
+    from sire.legacy import Mol as _SireMol
 
     sire_mapping = {}
 
@@ -3100,6 +3138,8 @@ def _prune_perturbed_constraints(molecule0, molecule1, mapping):
     new_mapping : dict(int, int)
         The pruned MCS.
     """
+    from sire.legacy import Mol as _SireMol
+
     new_mapping = {}
 
     # Store a hydrogen element.
@@ -3143,6 +3183,7 @@ def _prune_crossing_constraints(molecule0, molecule1, mapping):
     new_mapping : dict(int, int)
         The pruned mapping.
     """
+    from sire.legacy import Mol as _SireMol
 
     # Get the connectivity of the molecules.
     connectivity0 = _SireMol.Connectivity(

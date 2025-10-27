@@ -29,18 +29,10 @@ __all__ = ["Node"]
 from .._Utils import _try_import
 
 import configargparse as _argparse
-import collections as _collections
-import __main__
-import os as _os
-import shutil as _shutil
-import sys as _sys
-import textwrap as _textwrap
-import warnings as _warnings
 
 _yaml = _try_import("yaml")
 
 from .. import _is_notebook
-from .. import setVerbose
 
 # Enable Jupyter widgets.
 if _is_notebook:
@@ -49,21 +41,14 @@ if _is_notebook:
     import ipywidgets as _widgets
     import zipfile as _zipfile
 
-from ..Types._type import Type as _Type
 
 from ._requirements import Area as _Area
-from ._requirements import Boolean as _Boolean
-from ._requirements import File as _File
-from ._requirements import FileSet as _FileSet
 from ._requirements import Float as _Float
 from ._requirements import Charge as _Charge
 from ._requirements import Energy as _Energy
-from ._requirements import Integer as _Integer
 from ._requirements import Length as _Length
 from ._requirements import Mass as _Mass
 from ._requirements import Pressure as _Pressure
-from ._requirements import Requirement as _Requirement
-from ._requirements import String as _String
 from ._requirements import Temperature as _Temperature
 from ._requirements import Time as _Time
 from ._requirements import Volume as _Volume
@@ -121,6 +106,14 @@ class CwlAction(_argparse.Action):
 
     def __call__(self, parser, namespace, values, option_string=None):
         """Export the CWL wrapper."""
+        from ._requirements import Integer as _Integer
+        from ._requirements import FileSet as _FileSet
+        import sys as _sys
+        from ._requirements import File as _File
+        import os as _os
+        import __main__
+        from ._requirements import String as _String
+        from ._requirements import Boolean as _Boolean
 
         if values == False:
             parser.exit()
@@ -298,6 +291,9 @@ class Node:
         name : str
             The name of the node.
         """
+        import os as _os
+        import __main__
+        import collections as _collections
 
         if not isinstance(description, str):
             raise TypeError("The 'description' keyword must be of type 'str'.")
@@ -429,6 +425,8 @@ class Node:
         input : :class:`Requirement <BioSimSpace.Gateway._requirement.Requirement>`
             The input requirement object.
         """
+        from ._requirements import Requirement as _Requirement
+        import warnings as _warnings
 
         if not isinstance(name, str):
             raise TypeError("'name' must be of type 'str'.")
@@ -597,6 +595,13 @@ class Node:
         reset : bool
             Whether to reset the widget data.
         """
+        from ._requirements import Integer as _Integer
+        from ..Types._type import Type as _Type
+        from ._requirements import Boolean as _Boolean
+        from ._requirements import FileSet as _FileSet
+        from ._requirements import File as _File
+        from ._requirements import String as _String
+        import ipywidgets as _widgets
 
         # Create a widget button to indicate whether the requirement value
         # has been set.
@@ -948,6 +953,8 @@ class Node:
         output : :class:`Requirement <BioSimSpace.Gateway._requirement.Requirement>`
             The output requirement object.
         """
+        from ._requirements import Requirement as _Requirement
+        import warnings as _warnings
 
         if not isinstance(name, str):
             raise TypeError("'name' must be of type 'str'.")
@@ -979,6 +986,12 @@ class Node:
         value :
             The value of the output.
         """
+        from ._requirements import FileSet as _FileSet
+        from ._requirements import File as _File
+        import os as _os
+        import warnings as _warnings
+        import shutil as _shutil
+
         try:
             # Enforce strict naming for all file-based outputs. This ensures
             # that the prefix used matches the requirement name.
@@ -1173,6 +1186,7 @@ class Node:
         controls : ipywidgets.form
            A gui control panel for setting input requirements.
         """
+        import ipywidgets as _widgets
 
         if not self._is_notebook:
             return
@@ -1248,6 +1262,8 @@ class Node:
 
     def _validateInput(self):
         """Validate the parsed inputs."""
+        import sys as _sys
+        from .. import setVerbose
 
         # Knime.
         if self._is_knime:
@@ -1319,6 +1335,12 @@ class Node:
             validated output, else the name of a YAML file containing
             the node output.
         """
+        from ._requirements import FileSet as _FileSet
+        import sys as _sys
+        from ._requirements import File as _File
+        import os as _os
+        import zipfile as _zipfile
+        from IPython.display import FileLink as _FileLink
 
         if not isinstance(file_prefix, str):
             raise TypeError("The 'file_prefix' keyword must be of type 'str'.")
@@ -1408,6 +1430,7 @@ class Node:
         help : str
             The formatted help string.
         """
+        import textwrap as _textwrap
 
         # Initialise the help string.
         help = "\n".join(_textwrap.wrap(input.getHelp(), 56))
@@ -1452,6 +1475,7 @@ class Node:
         output : str
             A string listing the output requirements.
         """
+        import textwrap as _textwrap
 
         string = "\n".join(_textwrap.wrap(self._description, 80))
 
@@ -1497,6 +1521,7 @@ def _on_value_change(change):
 
 def _on_file_upload(change):
     """Helper function to handle file uploads."""
+    import os as _os
 
     # Initialise the widget label.
     label = ""

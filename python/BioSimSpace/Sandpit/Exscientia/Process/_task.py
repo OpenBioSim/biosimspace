@@ -26,16 +26,6 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["Task"]
 
-from IPython.display import FileLink as _FileLink
-
-import glob as _glob
-import os as _os
-import threading as _threading
-import zipfile as _zipfile
-
-from .. import _is_notebook
-from .. import _Utils
-
 
 def _wrap_task(task):
     """
@@ -76,6 +66,7 @@ class Task:
         auto_start : bool
             Whether to immediately start the task.
         """
+        from .. import _Utils
 
         # Don't allow user to create an instance of this base class.
         if type(self) is Task:
@@ -118,6 +109,7 @@ class Task:
 
     def start(self):
         """Start the task."""
+        import threading as _threading
 
         # The task is already running.
         if self._is_started:
@@ -254,6 +246,11 @@ class Task:
         file_link : str, IPython.lib.display.FileLink
             The name of, or link to, a zipfile containing the output.
         """
+        import glob as _glob
+        from .. import _is_notebook
+        import zipfile as _zipfile
+        from IPython.display import FileLink as _FileLink
+        import os as _os
 
         # Don't recreate an existing zip file.
         if self._zipfile is None:

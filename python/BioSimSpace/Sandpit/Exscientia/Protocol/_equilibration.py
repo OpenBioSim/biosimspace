@@ -26,8 +26,6 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["Equilibration"]
 
-import math as _math
-import warnings as _warnings
 
 from .. import Types as _Types
 from .. import Units as _Units
@@ -309,6 +307,7 @@ class Equilibration(_Protocol, _PositionRestraintMixin):
         temperature : str, :class:`Temperature <BioSimSpace.Types.Temperature>`
             The starting temperature.
         """
+        import math as _math
 
         if isinstance(temperature, str):
             try:
@@ -346,6 +345,8 @@ class Equilibration(_Protocol, _PositionRestraintMixin):
         temperature : str, :class:`Temperature <BioSimSpace.Types.Temperature>`
             The final temperature.
         """
+        import math as _math
+
         if isinstance(temperature, str):
             try:
                 temperature = _Types.Temperature(temperature)
@@ -448,6 +449,8 @@ class Equilibration(_Protocol, _PositionRestraintMixin):
         report_interval : int
             The number of integration steps between reporting statistics.
         """
+        import warnings as _warnings
+
         if not type(report_interval) is int:
             raise TypeError("'report_interval' must be of type 'int'")
 
@@ -483,6 +486,8 @@ class Equilibration(_Protocol, _PositionRestraintMixin):
             The number of integration steps between saving restart
             configurations and/or trajectory frames.
         """
+        import warnings as _warnings
+
         if not type(restart_interval) is int:
             raise TypeError("'restart_interval' must be of type 'int'")
 
@@ -514,6 +519,8 @@ class Equilibration(_Protocol, _PositionRestraintMixin):
         restart : bool
             Whether this is a restart simulation.
         """
+        import warnings as _warnings
+
         if isinstance(restart, bool):
             self._restart = restart
         else:

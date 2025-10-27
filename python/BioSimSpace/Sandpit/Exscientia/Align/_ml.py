@@ -1,11 +1,3 @@
-import warnings
-
-from sire.legacy import Base as _SireBase
-
-from .._SireWrappers import Molecule as _Molecule
-from .._Exceptions import IncompatibleError as _IncompatibleError
-
-
 __all__ = ["make_ml"]
 
 
@@ -32,6 +24,9 @@ def make_ml(molecule):
     ML_molecule : BSS._SireWrappers.Molecule
         The molecule marked as being ML.
     """
+    from .._SireWrappers import Molecule as _Molecule
+    from .._Exceptions import IncompatibleError as _IncompatibleError
+
     # Validate input.
 
     if not isinstance(molecule, _Molecule):

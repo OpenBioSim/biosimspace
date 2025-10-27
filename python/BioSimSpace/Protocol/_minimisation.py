@@ -26,7 +26,6 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["Minimisation"]
 
-import warnings as _warnings
 
 from .. import Units as _Units
 
@@ -134,6 +133,8 @@ class Minimisation(_Protocol, _PositionRestraintMixin):
         steps : int
             The maximum number of minimisation steps.
         """
+        import warnings as _warnings
+
         if not type(steps) is int:
             raise TypeError("'steps' must be of type 'int'")
 

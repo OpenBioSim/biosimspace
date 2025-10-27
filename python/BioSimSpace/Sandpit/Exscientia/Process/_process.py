@@ -26,38 +26,15 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["Process"]
 
-import collections as _collections
-import glob as _glob
-import os as _os
-import traceback
-
-import pandas as pd
-from loguru import logger
 
 from .._Utils import _try_import
 
 _pygtail = _try_import("pygtail")
 
-import random as _random
-import timeit as _timeit
-import warnings as _warnings
-import sys as _sys
-import zipfile as _zipfile
 
-from sire.legacy import Mol as _SireMol
-
-from .. import _is_interactive, _is_notebook
-from .._Exceptions import IncompatibleError as _IncompatibleError
-from ..Protocol import Metadynamics as _Metadynamics
-from ..Protocol import Equilibration as _Equilibration
-from ..Protocol import Production as _Production
-from ..Protocol._protocol import Protocol as _Protocol
-from .._SireWrappers import System as _System
-from ..Types._type import Type as _Type
+from .. import _is_notebook
 from ..Types import Time as _Time
 from .. import Units as _Units
-from .. import _Utils
-from ..FreeEnergy._restraint import Restraint as _Restraint
 
 if _is_notebook:
     from IPython.display import FileLink as _FileLink
@@ -126,6 +103,15 @@ class Process:
             The Restraint object that contains information for the ABFE
             calculations.
         """
+        from .._SireWrappers import System as _System
+        from ..Protocol._protocol import Protocol as _Protocol
+        from .. import _is_interactive
+        from .. import _Utils
+        from sire.legacy import Mol as _SireMol
+        import collections as _collections
+        import warnings as _warnings
+        from .._Exceptions import IncompatibleError as _IncompatibleError
+        from ..FreeEnergy._restraint import Restraint as _Restraint
 
         # Warn user when create an instance of this base class.
         # The class is used for testing.
@@ -283,6 +269,10 @@ class Process:
         """This function checks if the restart setting in the protocol is
         consistent with the velocity in the system.
         """
+        from ..Protocol import Production as _Production
+        from ..Protocol import Equilibration as _Equilibration
+        import warnings as _warnings
+
         # Ensure that the restart is off when the system doesn't have velocity
         if (
             isinstance(protocol, (_Equilibration, _Production))
@@ -342,6 +332,8 @@ class Process:
 
     def _clear_output(self):
         """Reset stdout and stderr."""
+        import os as _os
+        import glob as _glob
 
         # Create the files. This makes sure that the 'stdout' and 'stderr'
         # methods can be called when the files are empty.
@@ -389,6 +381,7 @@ class Process:
             The list of PLUMED configuration strings, or a path to a configuration
             file.
         """
+        import os as _os
 
         # Check that the passed configuration is a list of strings.
         if _is_list_of_strings(config):
@@ -445,6 +438,7 @@ class Process:
         time : :class:`Time <BioSimSpace.Types.Time>`
             The current simulation time in nanoseconds.
         """
+        from ..Protocol import Metadynamics as _Metadynamics
 
         # Check that this is a metadynamics simulation.
         if not isinstance(self._protocol, _Metadynamics):
@@ -481,6 +475,7 @@ class Process:
         collective_variable : :class:`Type <BioSimSpace.Types>`
             The value of the collective variable.
         """
+        from ..Protocol import Metadynamics as _Metadynamics
 
         # Check that this is a metadynamics simulation.
         if not isinstance(self._protocol, _Metadynamics):
@@ -525,6 +520,7 @@ class Process:
                         [[:class:`Type <BioSimSpace.Types>`, :class:`Type <BioSimSpace.Types>`, ...], ...]
             The free energy estimate for the chosen collective variables.
         """
+        from ..Protocol import Metadynamics as _Metadynamics
 
         # Check that this is a metadynamics simulation.
         if not isinstance(self._protocol, _Metadynamics):
@@ -566,6 +562,9 @@ class Process:
         collective_variables : [(:class:`Type <BioSimSpace.Types>`, int, float, ...)]
             The value of the collective variable for each configuration.
         """
+        import sys as _sys
+        import random as _random
+        import warnings as _warnings
 
         if not type(number) is int:
             raise TypeError("'number' must be of type 'int'")
@@ -716,6 +715,8 @@ class Process:
         system : :class:`System <BioSimSpace._SireWrappers.System>`
             The molecular system at a given end state.
         """
+        from .._SireWrappers import System as _System
+        import warnings as _warnings
 
         # Check that the system is valid.
         if not isinstance(system, _System):
@@ -801,6 +802,8 @@ class Process:
         process : :class:`Procees <BioSimSpace.Process>`
             The new process object.
         """
+        from .._SireWrappers import System as _System
+        from ..Protocol._protocol import Protocol as _Protocol
 
         # Try to get the current system.
         if not restart:
@@ -896,6 +899,7 @@ class Process:
         seed : int
             The random number seed.
         """
+        import warnings as _warnings
 
         if not type(seed) is int:
             _warnings.warn("The seed must be an integer. Disabling seeding.")
@@ -913,6 +917,8 @@ class Process:
         max_time : :class:`Time <BioSimSpace.Types.Time>`, int, float
             The maximum time to wait (in minutes).
         """
+        from ..Types._type import Type as _Type
+        from loguru import logger
 
         # The process isn't running.
         if not self.isRunning():
@@ -1216,6 +1222,9 @@ class Process:
         output : str, IPython.display.FileLink
             A path, or file link, to an archive of the process input.
         """
+        import os as _os
+        from IPython.display import FileLink as _FileLink
+        import zipfile as _zipfile
 
         if name is None:
             name = self._name + "_input"
@@ -1272,6 +1281,10 @@ class Process:
         output : str, IPython.display.FileLink
             A path, or file link, to an archive of the process output.
         """
+        from IPython.display import FileLink as _FileLink
+        import os as _os
+        import glob as _glob
+        import zipfile as _zipfile
 
         if name is None:
             name = self._name + "_output"
@@ -1341,6 +1354,7 @@ class Process:
             The list of configuration strings, or a path to a configuration
             file.
         """
+        import os as _os
 
         # Check that the passed configuration is a list of strings.
         if _is_list_of_strings(config):
@@ -1377,6 +1391,7 @@ class Process:
             A configuration string, a list of configuration strings, or a
             path to a configuration file.
         """
+        import os as _os
 
         # Append a single string.
         if isinstance(config, str):
@@ -1512,6 +1527,8 @@ class Process:
         args : dict, collections.OrderedDict
             A dictionary of command-line arguments.
         """
+        import collections as _collections
+
         if isinstance(args, _collections.OrderedDict):
             self._args = args
 
@@ -1576,6 +1593,8 @@ class Process:
         args : dict, collections.OrderedDict
             A dictionary of command line arguments.
         """
+        import collections as _collections
+
         if isinstance(args, dict) or isinstance(args, _collections.OrderedDict):
             for arg, value in args.items():
                 self._args[arg] = value
@@ -1618,6 +1637,7 @@ class Process:
         runtime : :class:`Time <BioSimSpace.Types.Time>`
             The runtime in minutes.
         """
+        import timeit as _timeit
 
         # The process is still running.
         if self.isRunning():
@@ -1696,6 +1716,8 @@ class Process:
     ):
         """The abstract function to save the metric and free energy data. Need to be
         defined for each MD engine."""
+        import traceback
+
         try:
             self._saveMetric(filename, u_nk, dHdl)
         except Exception:
@@ -1725,6 +1747,9 @@ class Process:
         df : :class:`DataFrame <pandas.DataFrame>`
             The DataFrame object containing the metric of the simulation.
         """
+        import warnings as _warnings
+        import pandas as pd
+
         datadict = {}
         for key, unit, method in datadict_keys:
             values = getattr(self, method)(time_series=True, block=False)

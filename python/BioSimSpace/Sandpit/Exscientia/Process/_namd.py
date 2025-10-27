@@ -28,29 +28,9 @@ __all__ = ["Namd"]
 
 from .._Utils import _try_import
 
-import math as _math
-import os as _os
 
 _pygtail = _try_import("pygtail")
-import timeit as _timeit
-import warnings as _warnings
 
-from sire.legacy import Base as _SireBase
-from sire.legacy import IO as _SireIO
-from sire.legacy import Mol as _SireMol
-from sire.legacy.Maths import Vector as _Vector
-
-from .. import _isVerbose
-from .._Exceptions import IncompatibleError as _IncompatibleError
-from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
-from .._SireWrappers import System as _System
-from ..Types._type import Type as _Type
-
-from .. import IO as _IO
-from .. import Protocol as _Protocol
-from .. import Trajectory as _Trajectory
-from .. import Units as _Units
-from .. import _Utils
 
 from . import _process
 
@@ -97,6 +77,9 @@ class Namd(_process.Process):
             values. This allows the user to refer to properties with their
             own naming scheme, e.g. { "charge" : "my-charge" }
         """
+        from sire.legacy import Base as _SireBase
+        from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
+        import os as _os
 
         # Call the base class constructor.
         super().__init__(
@@ -156,6 +139,11 @@ class Namd(_process.Process):
 
     def _setup(self):
         """Setup the input files and working directory ready for simulation."""
+        from .. import IO as _IO
+        from .. import Protocol as _Protocol
+        from sire.legacy import IO as _SireIO
+        import os as _os
+        from .. import _isVerbose
 
         # Create the input files...
 
@@ -273,6 +261,13 @@ class Namd(_process.Process):
 
     def _generate_config(self):
         """Generate NAMD configuration file strings."""
+        import math as _math
+        from sire.legacy.Maths import Vector as _Vector
+        from .. import Protocol as _Protocol
+        from sire.legacy import IO as _SireIO
+        import warnings as _warnings
+        from .._Exceptions import IncompatibleError as _IncompatibleError
+        import os as _os
 
         # Clear the existing configuration list.
         self._config = []
@@ -648,6 +643,9 @@ class Namd(_process.Process):
         process : :class:`Process.Namd <BioSimSpace.Process.Namd>`
             The process object.
         """
+        from sire.legacy import Base as _SireBase
+        import timeit as _timeit
+        from .. import _Utils
 
         # The process is currently queued.
         if self.isQueued():
@@ -701,6 +699,10 @@ class Namd(_process.Process):
         system : :class:`System <BioSimSpace._SireWrappers.System>`
             The latest molecular system.
         """
+        import os as _os
+        from .. import IO as _IO
+        from sire.legacy import IO as _SireIO
+        import warnings as _warnings
 
         # Wait for the process to finish.
         if block is True:
@@ -831,6 +833,8 @@ class Namd(_process.Process):
         trajectory : :class:`Trajectory <BioSimSpace.Trajectory>`
             The latest trajectory object.
         """
+        from .. import Trajectory as _Trajectory
+        import warnings as _warnings
 
         if not isinstance(backend, str):
             raise TypeError("'backend' must be of type 'str'")
@@ -870,6 +874,8 @@ class Namd(_process.Process):
         frame : :class:`System <BioSimSpace._SireWrappers.System>`
             The System object of the corresponding frame.
         """
+        from .. import Trajectory as _Trajectory
+        from sire.legacy import IO as _SireIO
 
         if not type(index) is int:
             raise TypeError("'index' must be of type 'int'")
@@ -953,6 +959,8 @@ class Namd(_process.Process):
         record : :class:`Type <BioSimSpace.Types>`
             The matching record.
         """
+        import warnings as _warnings
+
         # Wait for the process to finish.
         if block is True:
             self.wait()
@@ -988,6 +996,8 @@ class Namd(_process.Process):
         record : :class:`Type <BioSimSpace.Types>`
             The matching record.
         """
+        import warnings as _warnings
+
         # Warn the user if the process has exited with an error.
         if self.isError():
             _warnings.warn("The process exited with an error!")
@@ -1011,6 +1021,8 @@ class Namd(_process.Process):
         records : dict
             The dictionary of time-series records.
         """
+        import warnings as _warnings
+
         # Wait for the process to finish.
         if block is True:
             self.wait()
@@ -1061,6 +1073,7 @@ class Namd(_process.Process):
         time : :class:`Time <BioSimSpace.Types.Time>`
             The current simulation time in nanoseconds.
         """
+        from .. import Protocol as _Protocol
 
         if isinstance(self._protocol, _Protocol.Minimisation):
             return None
@@ -1158,6 +1171,8 @@ class Namd(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
             The bond energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord("BOND", time_series, _Units.Energy.kcal_per_mol, block)
 
     def getCurrentBondEnergy(self, time_series=False):
@@ -1197,6 +1212,8 @@ class Namd(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
             The angle energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord("ANGLE", time_series, _Units.Energy.kcal_per_mol, block)
 
     def getCurrentAngleEnergy(self, time_series=False):
@@ -1236,6 +1253,8 @@ class Namd(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
             The total dihedral energy.
         """
+        from .. import Units as _Units
+
         # Get the proper and improper energies.
         proper = self.getRecord("DIHED", time_series, _Units.Energy.kcal_per_mol, block)
         improper = self.getRecord(
@@ -1292,6 +1311,8 @@ class Namd(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
             The proper dihedral energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord("DIHED", time_series, _Units.Energy.kcal_per_mol, block)
 
     def getCurrentProperEnergy(self, time_series=False):
@@ -1331,6 +1352,8 @@ class Namd(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
             The improper energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord("IMPRP", time_series, _Units.Energy.kcal_per_mol, block)
 
     def getCurrentImproperEnergy(self, time_series=False):
@@ -1370,6 +1393,8 @@ class Namd(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
             The electrostatic energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord("ELECT", time_series, _Units.Energy.kcal_per_mol, block)
 
     def getCurrentElectrostaticEnergy(self, time_series=False):
@@ -1409,6 +1434,8 @@ class Namd(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
             The Van der Vaals energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord("VDW", time_series, _Units.Energy.kcal_per_mol, block)
 
     def getCurrentVanDerWaalsEnergy(self, time_series=False):
@@ -1448,6 +1475,8 @@ class Namd(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
             The boundary energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "BOUNDARY", time_series, _Units.Energy.kcal_per_mol, block
         )
@@ -1489,6 +1518,8 @@ class Namd(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
             The external energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord("MISC", time_series, _Units.Energy.kcal_per_mol, block)
 
     def getCurrentMiscEnergy(self, time_series=False):
@@ -1528,6 +1559,8 @@ class Namd(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
             The kinetic energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord("KINETIC", time_series, _Units.Energy.kcal_per_mol, block)
 
     def getCurrentKineticEnergy(self, time_series=False):
@@ -1567,6 +1600,8 @@ class Namd(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
             The potential energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "POTENTIAL", time_series, _Units.Energy.kcal_per_mol, block
         )
@@ -1608,6 +1643,8 @@ class Namd(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
             The total energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord("TOTAL", time_series, _Units.Energy.kcal_per_mol, block)
 
     def getCurrentTotalEnergy(self, time_series=False):
@@ -1647,6 +1684,8 @@ class Namd(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
             The total energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord("TOTAL2", time_series, _Units.Energy.kcal_per_mol, block)
 
     def getCurrentTotal2Energy(self, time_series=False):
@@ -1686,6 +1725,8 @@ class Namd(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
             The total energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord("TOTAL3", time_series, _Units.Energy.kcal_per_mol, block)
 
     def getCurrentTotal3Energy(self, time_series=False):
@@ -1725,6 +1766,8 @@ class Namd(_process.Process):
         temperature : :class:`Temperature <BioSimSpace.Types.Temperature>`
             The temperature.
         """
+        from .. import Units as _Units
+
         return self.getRecord("TEMP", time_series, _Units.Temperature.kelvin, block)
 
     def getCurrentTemperature(self, time_series=False):
@@ -1764,6 +1807,8 @@ class Namd(_process.Process):
         temperature : :class:`Temperature <BioSimSpace.Types.Temperature>`
             The average temperature.
         """
+        from .. import Units as _Units
+
         return self.getRecord("TEMPAVG", time_series, _Units.Temperature.kelvin, block)
 
     def getCurrentTemperatureAverage(self, time_series=False):
@@ -1803,6 +1848,8 @@ class Namd(_process.Process):
         pressure : :class:`Pressure <BioSimSpace.Types.Pressure>`
             The pressure.
         """
+        from .. import Units as _Units
+
         return self.getRecord("PRESSURE", time_series, _Units.Pressure.bar, block)
 
     def getCurrentPressure(self, time_series=False):
@@ -1842,6 +1889,8 @@ class Namd(_process.Process):
         pressure : :class:`Pressure <BioSimSpace.Types.Pressure>`
             The average pressure.
         """
+        from .. import Units as _Units
+
         return self.getRecord("PRESSAVG", time_series, _Units.Pressure.bar, block)
 
     def getCurrentPressureAverage(self, time_series=False):
@@ -1881,6 +1930,8 @@ class Namd(_process.Process):
         pressure : :class:`Pressure <BioSimSpace.Types.Pressure>`
             The pressure.
         """
+        from .. import Units as _Units
+
         return self.getRecord("GPRESSURE", time_series, _Units.Pressure.bar, block)
 
     def getCurrentGPressure(self, time_series=False):
@@ -1920,6 +1971,8 @@ class Namd(_process.Process):
         pressure : :class:`Pressure <BioSimSpace.Types.Pressure>`
             The average pressure.
         """
+        from .. import Units as _Units
+
         return self.getRecord("GPRESSAVG", time_series, _Units.Pressure.bar, block)
 
     def getCurrentGPressureAverage(self, time_series=False):
@@ -1959,6 +2012,8 @@ class Namd(_process.Process):
         volume : :class:`Volume <BioSimSpace.Types.Volume>`
             The volume.
         """
+        from .. import Units as _Units
+
         return self.getRecord("VOLUME", time_series, _Units.Volume.angstrom3, block)
 
     def getCurrentVolume(self, time_series=False):
@@ -1989,6 +2044,7 @@ class Namd(_process.Process):
         eta : :class:`Time <BioSimSpace.Types.Time>`
             The estimated remaining time in minutes.
         """
+        from .. import Units as _Units
 
         # Make sure the list of stdout records is up to date.
         # Print the last zero lines, i.e. no output.
@@ -2083,6 +2139,8 @@ class Namd(_process.Process):
         system : :class:`System <BioSimSpace._SireWrappers.System>`
             The molecular system with an added 'restrained' property.
         """
+        from sire.legacy import Mol as _SireMol
+        from .. import _isVerbose
 
         # Get the force constant value in the default units. This is
         # the same as used by NAMD, i.e. kcal_per_mol/angstrom**2
@@ -2199,6 +2257,8 @@ class Namd(_process.Process):
         record :
             The matching stdout record.
         """
+        from ..Types._type import Type as _Type
+        import warnings as _warnings
 
         # No data!
         if len(self._stdout_dict) == 0:

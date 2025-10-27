@@ -33,6 +33,11 @@ Classes
     Somd
 """
 
+import sire as _sr
+
+_sr.use_new_api()
+del _sr
+
 from ._amber import *
 from ._gromacs import *
 from ._somd import *

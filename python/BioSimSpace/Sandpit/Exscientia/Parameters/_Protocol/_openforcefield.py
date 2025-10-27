@@ -30,16 +30,11 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["OpenForceField"]
 
-# To override any protocols, just implement a custom "run" method in any
-# of the classes.
 
-from ..._Exceptions import MissingSoftwareError as _MissingSoftwareError
 from ..._Utils import _try_import, _have_imported
 
 import os as _os
 
-import queue as _queue
-import subprocess as _subprocess
 
 import warnings as _warnings
 
@@ -120,18 +115,6 @@ except:
 _sys.stderr = _orig_stderr
 del _sys, _orig_stderr
 
-from sire.legacy import IO as _SireIO
-from sire.legacy import Mol as _SireMol
-from sire.legacy import System as _SireSystem
-
-from ... import _isVerbose
-from ... import Convert as _Convert
-from ... import IO as _IO
-from ..._Exceptions import ConversionError as _ConversionError
-from ..._Exceptions import IncompatibleError as _IncompatibleError
-from ..._Exceptions import ThirdPartyError as _ThirdPartyError
-from ..._SireWrappers import Molecule as _Molecule
-from ... import _Utils
 
 from . import _protocol
 
@@ -210,6 +193,15 @@ class OpenForceField(_protocol.Protocol):
         molecule : BioSimSpace._SireWrappers.Molecule
             The parameterised molecule.
         """
+        from ..._Exceptions import ConversionError as _ConversionError
+        from ... import _isVerbose
+        from ... import _Utils
+        from ... import Convert as _Convert
+        from ..._Exceptions import ThirdPartyError as _ThirdPartyError
+        from ... import IO as _IO
+        import queue as _queue
+        from ..._SireWrappers import Molecule as _Molecule
+        from ..._Exceptions import MissingSoftwareError as _MissingSoftwareError
 
         if not isinstance(molecule, (_Molecule, str)):
             raise TypeError(

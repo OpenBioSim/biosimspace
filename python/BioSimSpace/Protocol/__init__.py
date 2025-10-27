@@ -99,6 +99,11 @@ while restraining the positions of any backbone atoms.
    )
 """
 
+import sire as _sr
+
+_sr.use_new_api()
+del _sr
+
 from ._custom import *
 from ._equilibration import *
 from ._free_energy_equilibration import *

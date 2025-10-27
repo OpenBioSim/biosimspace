@@ -164,5 +164,10 @@ can be done using the ``post_mol_commands`` option, using ``mol`` for the name o
 the molecule.
 """
 
+import sire as _sr
+
+_sr.use_new_api()
+del _sr
+
 from ._parameters import *
 from ._utils import *

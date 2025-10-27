@@ -30,14 +30,9 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["AmberProtein", "GAFF"]
 
-# To override any protocols, just implement a custom "run" method in any
-# of the classes.
 
-import glob as _glob
 import os as _os
-import queue as _queue
 import subprocess as _subprocess
-import warnings as _warnings
 
 from ..._Utils import _try_import, _have_imported
 
@@ -58,21 +53,9 @@ else:
 _sys.stderr = _orig_stderr
 del _sys, _orig_stderr
 
-from sire.legacy import IO as _SireIO
-from sire.legacy import Mol as _SireMol
 
-from ... import _amber_home, _gmx_exe, _isVerbose
-from ... import IO as _IO
+from ... import _amber_home
 from ... import _Utils
-from ...Convert import smiles as _smiles
-from ..._Exceptions import IncompatibleError as _IncompatibleError
-from ..._Exceptions import MissingSoftwareError as _MissingSoftwareError
-from ..._Exceptions import ParameterisationError as _ParameterisationError
-from ..._Exceptions import ThirdPartyError as _ThirdPartyError
-from ..._SireWrappers import Atom as _Atom
-from ..._SireWrappers import Molecule as _Molecule
-from ...Parameters._utils import formalCharge as _formalCharge
-from ...Types import Charge as _Charge
 from ...Types import Length as _Length
 
 from . import _protocol
@@ -206,6 +189,7 @@ class AmberProtein(_protocol.Protocol):
             values. This allows the user to refer to properties with their
             own naming scheme, e.g. { "charge" : "my-charge" }
         """
+        from ..._SireWrappers import Atom as _Atom
 
         # Call the base class constructor.
         super().__init__(
@@ -313,6 +297,13 @@ class AmberProtein(_protocol.Protocol):
         molecule : BioSimSpace._SireWrappers.Molecule
             The parameterised molecule.
         """
+        from ..._Exceptions import MissingSoftwareError as _MissingSoftwareError
+        from ..._Exceptions import ThirdPartyError as _ThirdPartyError
+        from ... import _gmx_exe, _isVerbose
+        import queue as _queue
+        from ..._SireWrappers import Molecule as _Molecule
+        from ...Convert import smiles as _smiles
+        from ... import IO as _IO
 
         if not isinstance(molecule, (_Molecule, str)):
             raise TypeError(
@@ -436,6 +427,11 @@ class AmberProtein(_protocol.Protocol):
         work_dir : str
             The working directory.
         """
+        from ... import _isVerbose
+        from sire.legacy import IO as _SireIO
+        from ..._Exceptions import ParameterisationError as _ParameterisationError
+        from ..._SireWrappers import Molecule as _Molecule
+        from ... import IO as _IO
 
         # Write the system to a PDB file.
         try:
@@ -570,6 +566,10 @@ class AmberProtein(_protocol.Protocol):
         work_dir : str
             The working directory.
         """
+        from ... import _gmx_exe, _isVerbose
+        from ..._Exceptions import ParameterisationError as _ParameterisationError
+        from ... import IO as _IO
+        from ..._Exceptions import IncompatibleError as _IncompatibleError
 
         # A list of supported force fields, mapping to their GROMACS ID string.
         # GROMACS supports a sub-set of the AMBER force fields.
@@ -661,6 +661,8 @@ class AmberProtein(_protocol.Protocol):
             values. This allows the user to refer to properties with their
             own naming scheme, e.g. { "charge" : "my-charge" }
         """
+        from sire.legacy import Mol as _SireMol
+        import warnings as _warnings
 
         if not isinstance(molecule, _SireMol.Molecule):
             raise TypeError("'molecule' must be of type 'Sire.Mol.Molecule'")
@@ -765,6 +767,9 @@ class AmberProtein(_protocol.Protocol):
         bond_records : [str]
             A list of LEaP formatted bond records.
         """
+        from ..._SireWrappers import Atom as _Atom
+        import warnings as _warnings
+        from ..._SireWrappers import Molecule as _Molecule
 
         if bonds is None:
             return []
@@ -903,6 +908,7 @@ class GAFF(_protocol.Protocol):
             Additional keyword arguments. These can be used to pass custom
             parameters to the Antechamber program.
         """
+        from ...Types import Charge as _Charge
 
         if type(version) is not int:
             raise TypeError("'version' must be of type 'int'.")
@@ -985,6 +991,15 @@ class GAFF(_protocol.Protocol):
         molecule : BioSimSpace._SireWrappers.Molecule
             The parameterised molecule.
         """
+        import warnings as _warnings
+        from ..._Exceptions import ThirdPartyError as _ThirdPartyError
+        from ... import _isVerbose
+        import queue as _queue
+        from ..._Exceptions import ParameterisationError as _ParameterisationError
+        from ...Parameters._utils import formalCharge as _formalCharge
+        from ..._SireWrappers import Molecule as _Molecule
+        from ...Convert import smiles as _smiles
+        from ... import IO as _IO
 
         if not isinstance(molecule, (_Molecule, str)):
             raise TypeError(
@@ -1301,6 +1316,7 @@ def _find_force_field(forcefield):
     file : str
         The full path of the matching force field file.
     """
+    import glob as _glob
 
     # Whether the force field is old.
     is_old = False

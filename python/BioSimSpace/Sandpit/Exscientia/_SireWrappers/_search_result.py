@@ -29,8 +29,6 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["SearchResult"]
 
-import sire.legacy as _Sire
-
 
 class SearchResult:
     """A thin wrapper around Sire.Mol.SelectResult."""
@@ -104,6 +102,11 @@ class SearchResult:
 
     def __getitem__(self, key):
         """Get a search result from the container."""
+        from ._bond import Bond as _Bond
+        from ._atom import Atom as _Atom
+        import sire.legacy as _Sire
+        from ._molecule import Molecule as _Molecule
+        from ._residue import Residue as _Residue
 
         # Slice.
         if type(key) is slice:
@@ -323,10 +326,3 @@ class SearchResult:
         object : Sire.Mol.SelectResult
         """
         return self._sire_object
-
-
-# Import at bottom of module to avoid circular dependency.
-from ._atom import Atom as _Atom
-from ._molecule import Molecule as _Molecule
-from ._residue import Residue as _Residue
-from ._bond import Bond as _Bond

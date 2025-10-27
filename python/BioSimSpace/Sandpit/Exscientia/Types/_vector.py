@@ -26,10 +26,6 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["Vector"]
 
-from sire.legacy.Maths import Vector as _Vector
-
-from ._angle import Angle as _Angle
-
 
 class Vector:
     """A three-vector."""
@@ -50,6 +46,7 @@ class Vector:
         z : float
             The z component of the vector.
         """
+        from sire.legacy.Maths import Vector as _Vector
 
         try:
             x = float(x)
@@ -238,6 +235,8 @@ class Vector:
         angle : :class: `Angle <BioSimSpace.Types.Angle>`
             The angle between the two vectors.
         """
+        from ._angle import Angle as _Angle
+
         if not isinstance(other, Vector):
             raise TypeError("'other' must be of type 'BioSimSpace.Types.Vector'")
 

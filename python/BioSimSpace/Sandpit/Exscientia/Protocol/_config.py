@@ -1,17 +1,3 @@
-import math as _math
-import warnings as _warnings
-
-from sire.legacy import Units as _SireUnits
-
-from .. import Protocol as _Protocol, _gmx_version
-from ..Align._alch_ion import _get_protein_com_idx
-from ..Align._squash import _amber_mask_from_indices, _squashed_atom_mapping
-from ..FreeEnergy._restraint import Restraint as _Restraint
-from ..Units.Energy import kj_per_mol as _kj_per_mol
-from ..Units.Length import nanometer as _nanometer
-from .._Exceptions import IncompatibleError as _IncompatibleError
-
-
 class ConfigFactory:
     # TODO: Integrate this class better into the other Protocols.
     """A class for generating a config based on a template protocol."""
@@ -40,6 +26,8 @@ class ConfigFactory:
     @property
     def _has_box(self):
         """Return whether the current system has a box."""
+        import warnings as _warnings
+
         if "space" in self.system._sire_object.property_keys():
             try:
                 # Make sure that we have a periodic box. The system will now have
@@ -61,6 +49,8 @@ class ConfigFactory:
     @property
     def _report_interval(self):
         """Return the report interval based on the protocol value."""
+        from .. import Protocol as _Protocol
+
         if isinstance(self.protocol, _Protocol.Minimisation):
             report_interval = 100
         else:
@@ -84,6 +74,8 @@ class ConfigFactory:
     @property
     def _restart_interval(self):
         """Return the restart interval based on the protocol value."""
+        from .. import Protocol as _Protocol
+
         if isinstance(self.protocol, _Protocol.Minimisation):
             restart_interval = None
         else:
@@ -95,6 +87,9 @@ class ConfigFactory:
     @property
     def _steps(self):
         # Return the number of steps based on the protocol value.
+        import math as _math
+        from .. import Protocol as _Protocol
+
         if isinstance(self.protocol, _Protocol.Minimisation):
             steps = self.protocol.getSteps()
         else:
@@ -116,6 +111,8 @@ class ConfigFactory:
         option_dict : dict
             A dictionary of AMBER-compatible options.
         """
+        from ..Align._squash import _amber_mask_from_indices, _squashed_atom_mapping
+
         # Get the merged to squashed atom mapping of the whole system for both endpoints.
         kwargs = dict(environment=False, explicit_dummies=self.explicit_dummies)
         mcs_mapping0 = _squashed_atom_mapping(
@@ -181,6 +178,12 @@ class ConfigFactory:
         config : list
             The generated config list in an AMBER format.
         """
+        from sire.legacy import Units as _SireUnits
+        from .. import Protocol as _Protocol
+        from ..Align._squash import _amber_mask_from_indices, _squashed_atom_mapping
+        import warnings as _warnings
+        import math as _math
+        from ..Align._alch_ion import _get_protein_com_idx
 
         extra_options = extra_options if extra_options is not None else {}
         extra_lines = extra_lines if extra_lines is not None else []
@@ -456,6 +459,13 @@ class ConfigFactory:
         config : list
             The generated config list in a GROMACS format.
         """
+        from .. import Protocol as _Protocol, _gmx_version
+        import warnings as _warnings
+        from ..FreeEnergy._restraint import Restraint as _Restraint
+        import math as _math
+        from ..Units.Energy import kj_per_mol as _kj_per_mol
+        from ..Units.Length import nanometer as _nanometer
+
         if perturbation_type == "release_restraint" and restraint is None:
             raise ValueError(
                 "Cannot use perturbation_type='release_restraint' without a Restraint object."
@@ -719,6 +729,10 @@ class ConfigFactory:
         config : list
             The generated config list in a SOMD format.
         """
+        import math as _math
+        import warnings as _warnings
+        from .._Exceptions import IncompatibleError as _IncompatibleError
+        from .. import Protocol as _Protocol
 
         extra_options = extra_options if extra_options is not None else {}
         extra_lines = extra_lines if extra_lines is not None else []

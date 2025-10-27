@@ -29,25 +29,8 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["Molecule"]
 
-from math import isclose as _isclose
-from warnings import warn as _warn
-
-import numpy as _np
-from sire.legacy import (
-    Base as _SireBase,
-    IO as _SireIO,
-    MM as _SireMM,
-    Maths as _SireMaths,
-    Mol as _SireMol,
-    System as _SireSystem,
-    Units as _SireUnits,
-)
 
 from ._sire_wrapper import SireWrapper as _SireWrapper
-from .. import _isVerbose
-from ..Types import Coordinate as _Coordinate, Length as _Length, Vector as _BSSVector
-from ..Units.Length import angstrom as _angstrom
-from .._Exceptions import IncompatibleError as _IncompatibleError
 
 
 class Molecule(_SireWrapper):
@@ -63,6 +46,7 @@ class Molecule(_SireWrapper):
         molecule : Sire.Mol.Molecule, :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
             A Sire or BioSimSpace Molecule object.
         """
+        from sire.legacy import Mol as _SireMol
 
         # Set the force field variable. This records the force field with which
         # the molecule has been parameterised, i.e. by BSS.Parameters.
@@ -133,6 +117,8 @@ class Molecule(_SireWrapper):
 
     def __add__(self, other):
         """Addition operator."""
+        from ._system import System as _System
+        from ._molecules import Molecules as _Molecules
 
         # Convert tuple to a list.
         if isinstance(other, tuple):
@@ -178,6 +164,8 @@ class Molecule(_SireWrapper):
 
     def __contains__(self, other):
         """Return whether other is in self."""
+        from ._atom import Atom as _Atom
+        from ._residue import Residue as _Residue
 
         if not isinstance(other, (_Atom, _Residue)):
             raise TypeError(
@@ -198,6 +186,8 @@ class Molecule(_SireWrapper):
         molecule : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
             A copy of the object.
         """
+        from sire.legacy import Mol as _SireMol
+
         # Copy the Sire object.
         mol = self._sire_object.__deepcopy__()
 
@@ -239,6 +229,8 @@ class Molecule(_SireWrapper):
         [coordinates] : [class:`Coordinate <BioSimSpace.Types.Coordinate>`]
             The coordinates of the atoms in the molecule.
         """
+        from ..Types import Coordinate as _Coordinate, Length as _Length
+
         prop = property_map.get("coordinates", "coordinates")
 
         # Get the "coordinates" property from the molecule.
@@ -269,6 +261,8 @@ class Molecule(_SireWrapper):
         residues : [:class:`Residue <BioSimSpace._SireWrappers.Residue>`]
             The list of residues in the molecule.
         """
+        from ._residue import Residue as _Residue
+
         residues = []
         for residue in self._sire_object.residues():
             residues.append(_Residue(residue))
@@ -284,6 +278,8 @@ class Molecule(_SireWrapper):
         atoms : [:class:`Atom <BioSimSpace._SireWrappers.Atom>`]
             The list of atoms in the molecule.
         """
+        from ._atom import Atom as _Atom
+
         atoms = []
         for atom in self._sire_object.atoms():
             atoms.append(_Atom(atom))
@@ -314,6 +310,9 @@ class Molecule(_SireWrapper):
         molecule : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
             The extracted molecule.
         """
+        from sire.legacy import IO as _SireIO, Mol as _SireMol
+        from .._Exceptions import IncompatibleError as _IncompatibleError
+        from .. import _isVerbose
 
         # TODO: This method is slow for large molecules. Re-write in pure C++
         # and provide a suitable wrapper function.
@@ -582,6 +581,7 @@ class Molecule(_SireWrapper):
         is_water : bool
             Whether this is a water molecule.
         """
+        from sire.legacy import IO as _SireIO
 
         if not isinstance(property_map, dict):
             raise TypeError("'property_map' must be of type 'dict'")
@@ -606,6 +606,7 @@ class Molecule(_SireWrapper):
         is_amber_water : bool
             Whether this molecule is an AMBER format water.
         """
+        from sire.legacy import IO as _SireIO
 
         if not isinstance(property_map, dict):
             raise TypeError("'property_map' must be of type 'dict'")
@@ -629,6 +630,7 @@ class Molecule(_SireWrapper):
         is_gromacs_water : bool
             Whether this molecule is a GROMACS format water.
         """
+        from sire.legacy import IO as _SireIO
 
         if not isinstance(property_map, dict):
             raise TypeError("'property_map' must be of type 'dict'")
@@ -644,6 +646,8 @@ class Molecule(_SireWrapper):
 
         system : :class:`System <BioSimSpace._SireWrappers.System>`
         """
+        from ._system import System as _System
+
         return _System(self)
 
     def search(self, query, property_map={}):
@@ -685,6 +689,9 @@ class Molecule(_SireWrapper):
 
         >>> result = molecule.search("atomidx 23")
         """
+        from ._search_result import SearchResult as _SearchResult
+        from sire.legacy import Mol as _SireMol
+        from .. import _isVerbose
 
         if not isinstance(query, str):
             raise TypeError("'query' must be of type 'str'")
@@ -749,6 +756,16 @@ class Molecule(_SireWrapper):
         verbose : bool
             Whether to report status updates to stdout.
         """
+        from .._Exceptions import IncompatibleError as _IncompatibleError
+        from sire.legacy import (
+            Base as _SireBase,
+            IO as _SireIO,
+            MM as _SireMM,
+            Mol as _SireMol,
+            System as _SireSystem,
+        )
+        from .. import _isVerbose
+        from ._system import System as _System
 
         # Validate input.
 
@@ -1396,6 +1413,8 @@ class Molecule(_SireWrapper):
             values. This allows the user to refer to properties with their
             own naming scheme, e.g. { "charge" : "my-charge" }
         """
+        from ..Types import Length as _Length
+        from sire.legacy import Maths as _SireMaths
 
         # Convert tuple to a list.
         if isinstance(vector, tuple):
@@ -1486,6 +1505,7 @@ class Molecule(_SireWrapper):
             values. This allows the user to refer to properties with their
             own naming scheme, e.g. { "charge" : "my-charge" }
         """
+        from sire.legacy import Base as _SireBase, IO as _SireIO
 
         # Convert int to float.
         if type(factor) is int:
@@ -1617,6 +1637,9 @@ class Molecule(_SireWrapper):
             user defined values. This allows the user to refer to properties
             with their own naming scheme, e.g. { "charge" : "my-charge" }
         """
+        from .._Exceptions import IncompatibleError as _IncompatibleError
+        from math import isclose as _isclose
+        from sire.legacy import Units as _SireUnits
 
         # Get the user defined charge property.
         prop = property_map.get("charge", "charge")
@@ -1693,6 +1716,8 @@ class Molecule(_SireWrapper):
         molecule : BioSimSpace._SireWrappers.Molecule
             The molecule at the chosen end state.
         """
+        from sire.legacy import Base as _SireBase, IO as _SireIO, Mol as _SireMol
+        from ._system import System as _System
 
         if not isinstance(is_lambda1, bool):
             raise TypeError("'is_lambda1' must be of type 'bool'")
@@ -1831,6 +1856,8 @@ class Molecule(_SireWrapper):
         dummy_indices : [ int ]
             The indices of any dummy atoms in the original molecule.
         """
+        from .._Exceptions import IncompatibleError as _IncompatibleError
+        from .. import _isVerbose
 
         if not isinstance(is_lambda1, bool):
             raise TypeError("'is_lambda1' must be of type 'bool'")
@@ -1890,6 +1917,7 @@ class Molecule(_SireWrapper):
         idxs : [int]
             The indices of the atoms that are perturbed.
         """
+        from warnings import warn as _warn
 
         idxs = []
 
@@ -1913,6 +1941,10 @@ class Molecule(_SireWrapper):
 
     def getCOMIdx(self):
         """Get the index of the atom that closest to the center of mass."""
+        from ..Types import Vector as _BSSVector
+        from ..Units.Length import angstrom as _angstrom
+        import numpy as _np
+
         if self.isPerturbable():
             property_map = {"coordinates": "coordinates0", "mass": "mass0"}
         else:
@@ -1924,11 +1956,3 @@ class Molecule(_SireWrapper):
         sq_distances = [diff.dot(diff) for diff in diffs]
         idx = int(_np.argmin(sq_distances))
         return idx
-
-
-# Import at bottom of module to avoid circular dependency.
-from ._atom import Atom as _Atom
-from ._molecules import Molecules as _Molecules
-from ._residue import Residue as _Residue
-from ._search_result import SearchResult as _SearchResult
-from ._system import System as _System

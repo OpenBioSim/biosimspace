@@ -26,9 +26,6 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["GeneralUnit"]
 
-import math as _math
-
-from sire.legacy.Units import GeneralUnit as _GeneralUnit
 
 from ._base_units import *
 from ._type import Type as _Type
@@ -69,6 +66,7 @@ class GeneralUnit(_Type):
         no_cast: bool
             Whether to disable casting to a specific type.
         """
+        from sire.legacy.Units import GeneralUnit as _GeneralUnit
 
         # This operator may be called when unpickling an object. Catch empty
         # *args by calling __init__ immediately.
@@ -167,6 +165,7 @@ class GeneralUnit(_Type):
         no_cast: bool
             Whether to disable casting to a specific type.
         """
+        from sire.legacy.Units import GeneralUnit as _GeneralUnit
 
         value = 1
         _args = list(args)
@@ -433,6 +432,7 @@ class GeneralUnit(_Type):
 
     def __pow__(self, other):
         """Power operator."""
+        from sire.legacy.Units import GeneralUnit as _GeneralUnit
 
         if not isinstance(other, (int, float)):
             raise TypeError(
@@ -517,6 +517,7 @@ class GeneralUnit(_Type):
 
     def __eq__(self, other):
         """Equals to operator."""
+        import math as _math
 
         # Compare to another object of the same type and dimensions.
         if isinstance(other, _Type) and other._dimensions == self._dimensions:
@@ -535,6 +536,7 @@ class GeneralUnit(_Type):
 
     def __ne__(self, other):
         """Not equals to operator."""
+        import math as _math
 
         # Compare to another object of the same type and dimensions.
         if isinstance(other, _Type) and other._dimensions == self._dimensions:
@@ -729,6 +731,7 @@ class GeneralUnit(_Type):
         sire_unit : Sire.Units.GeneralUnit
             A Sire GeneralUnit object.
         """
+        from sire.legacy.Units import GeneralUnit as _GeneralUnit
 
         if not isinstance(sire_unit, _GeneralUnit):
             raise TypeError(

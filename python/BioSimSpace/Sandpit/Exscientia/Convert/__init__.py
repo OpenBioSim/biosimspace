@@ -29,7 +29,7 @@ Functions
     :toctree: generated/
 
     smiles
-    supportedFormats
+    supported_formats
     to
     toBioSimSpace
     toOpenMM
@@ -87,5 +87,10 @@ Load a system and convert to various formats.
        "biosimspace"
    )
 """
+
+import sire as _sr
+
+_sr.use_new_api()
+del _sr
 
 from ._convert import *

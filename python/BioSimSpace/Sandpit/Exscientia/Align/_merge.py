@@ -26,15 +26,6 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["merge"]
 
-from sire.legacy import Base as _SireBase
-from sire.legacy import IO as _SireIO
-from sire.legacy import MM as _SireMM
-from sire.legacy import Mol as _SireMol
-from sire.legacy import Units as _SireUnits
-
-from .._Exceptions import IncompatibleError as _IncompatibleError
-from .._SireWrappers import Molecule as _Molecule
-
 
 def merge(
     molecule0,
@@ -93,6 +84,12 @@ def merge(
     merged : Sire.Mol.Molecule
         The merged molecule.
     """
+    from sire.legacy import MM as _SireMM
+    from sire.legacy import Units as _SireUnits
+    from .._SireWrappers import Molecule as _Molecule
+    from .._Exceptions import IncompatibleError as _IncompatibleError
+    from sire.legacy import Base as _SireBase
+    from sire.legacy import Mol as _SireMol
 
     # Validate input.
 
@@ -1586,6 +1583,11 @@ def _removeDummies(molecule, is_lambda1):
     is_lambda1 : bool
        Whether to use the molecule at lambda = 1.
     """
+    from .._SireWrappers import Molecule as _Molecule
+    from .._Exceptions import IncompatibleError as _IncompatibleError
+    from sire.legacy import Mol as _SireMol
+    from sire.legacy import IO as _SireIO
+
     if not molecule._is_perturbable:
         raise _IncompatibleError("'molecule' is not a perturbable molecule")
 

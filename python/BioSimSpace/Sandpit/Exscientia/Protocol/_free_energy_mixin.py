@@ -1,9 +1,5 @@
 __all__ = ["_FreeEnergyMixin"]
 
-import warnings
-
-import numpy as _np
-import pandas as _pd
 
 from ._protocol import Protocol as _Protocol
 
@@ -165,6 +161,9 @@ class _FreeEnergyMixin(_Protocol):
     @staticmethod
     def _check_column_name(df):
         """Check if the dataframe or series has the right column name."""
+        import pandas as _pd
+        import warnings
+
         permitted_names = [
             "fep",
             "bonded",
@@ -207,6 +206,8 @@ class _FreeEnergyMixin(_Protocol):
         lam : float or pd.Series
             The value of the perturbation parameter.
         """
+        import warnings
+
         if type.lower() == "float":
             if len(self._lambda) == 1:
                 return float(self._lambda.iloc[0])
@@ -250,6 +251,8 @@ class _FreeEnergyMixin(_Protocol):
         lam_vals : [float, ] or pd.DataFrame
             The lambda values.
         """
+        import warnings
+
         if type.lower() == "list":
             lambda_list = self._lambda_vals.values.tolist()
             if len(lambda_list[0]) == 1:
@@ -276,6 +279,8 @@ class _FreeEnergyMixin(_Protocol):
         lam : float or pandas.Series
             The perturbation parameter: [0.0, 1.0]
         """
+        import pandas as _pd
+
         if not isinstance(lam, _pd.Series):
             # For pandas < 1.4, TypeError won't be raised if the type cannot
             # be converted to float
@@ -314,6 +319,9 @@ class _FreeEnergyMixin(_Protocol):
         lam_vals : pandas.DataFrame
             The pd.DataFrame representing the checked lambda values.
         """
+        import pandas as _pd
+        import numpy as _np
+
         # A list of lambda values takes precedence.
         if lam_vals is not None:
             if not isinstance(lam_vals, _pd.DataFrame):

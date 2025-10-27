@@ -1,31 +1,3 @@
-######################################################################
-# BioSimSpace: Making biomolecular simulation a breeze!
-#
-# Copyright: 2017-2025
-#
-# Authors: Lester Hedges <lester.hedges@gmail.com>
-#          Matthew Burman <matthew@openbiosim.org>
-#
-# BioSimSpace is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# BioSimSpace is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with BioSimSpace. If not, see <http://www.gnu.org/licenses/>.
-######################################################################
-
-import math as _math
-import warnings as _warnings
-
-from .._Exceptions import IncompatibleError as _IncompatibleError
-from .. import Protocol as _Protocol
-from ._atm_utils import _ATMUtils
 from ._openmm import OpenMM as _OpenMM
 
 
@@ -50,6 +22,8 @@ class OpenMMATM(_OpenMM):
     ):
         # Look for the is_testing flag in the kwargs.
         # Only used for calculating single point energies.
+        import warnings as _warnings
+
         if "_is_testing" in kwargs:
             _warnings.warn("NOW IN TESTING MODE")
             self._is_testing = kwargs["_is_testing"]
@@ -69,6 +43,8 @@ class OpenMMATM(_OpenMM):
         )
 
     def _generate_config(self):
+        from .. import Protocol as _Protocol
+
         if isinstance(self._protocol, _Protocol.ATMMinimisation):
             self._generate_config_minimisation()
         elif isinstance(self._protocol, _Protocol.ATMEquilibration):
@@ -82,6 +58,8 @@ class OpenMMATM(_OpenMM):
 
     def _check_space(self):
         # Get the "space" property from the user mapping.
+        import warnings as _warnings
+
         prop = self._property_map.get("space", "space")
 
         # Check whether the system contains periodic box information.
@@ -132,6 +110,8 @@ class OpenMMATM(_OpenMM):
 
     def _add_pressure_check(self, pressure, temperature, is_periodic):
         # Add a Monte Carlo barostat if the simulation is at constant pressure.
+        import warnings as _warnings
+
         is_constant_pressure = False
         if pressure is not None:
             # Cannot use a barostat with a non-periodic system.
@@ -173,6 +153,8 @@ class OpenMMATM(_OpenMM):
         self.addToConfig("    simulation.context.setPeriodicBoxVectors(*box_vectors)")
 
     def _generate_config_minimisation(self):
+        from ._atm_utils import _ATMUtils
+
         util = _ATMUtils(self._protocol)
         # Clear the existing configuration list.
         self._config = []
@@ -229,6 +211,9 @@ class OpenMMATM(_OpenMM):
         self._protocol._setCustomised(False)
 
     def _generate_config_equilibration(self):
+        from ._atm_utils import _ATMUtils
+        import math as _math
+
         util = _ATMUtils(self._protocol)
         # Clear the existing configuration list.
         self._config = []
@@ -366,6 +351,9 @@ class OpenMMATM(_OpenMM):
                 self.addToConfig("    simulation.step(1)")
 
     def _generate_config_annealing(self):
+        from ._atm_utils import _ATMUtils
+        import math as _math
+
         self._protocol._set_current_index(0)
         util = _ATMUtils(self._protocol)
         # Clear the existing configuration list.
@@ -499,6 +487,10 @@ class OpenMMATM(_OpenMM):
         self.addToConfig(annealing_protocol)
 
     def _generate_config_production(self):
+        from .._Exceptions import IncompatibleError as _IncompatibleError
+        from ._atm_utils import _ATMUtils
+        import math as _math
+
         self._protocol.set_current_index(0)
         analysis_method = self._protocol.getAnalysisMethod()
         util = _ATMUtils(self._protocol)
@@ -701,6 +693,11 @@ class OpenMMATM(_OpenMM):
         # Designed as a hidden method - uses a production protocol to
         # calculate single point energies for each lambda window
         # quite hacky, but not designed to be exposed to the user anyway
+        from .._Exceptions import IncompatibleError as _IncompatibleError
+        from ._atm_utils import _ATMUtils
+        import math as _math
+        from .. import Protocol as _Protocol
+
         self._protocol.set_current_index(0)
         if not isinstance(self._protocol, _Protocol.ATMProduction):
             raise _IncompatibleError(

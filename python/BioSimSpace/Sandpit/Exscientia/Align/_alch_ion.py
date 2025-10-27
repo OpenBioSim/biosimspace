@@ -1,6 +1,4 @@
-import warnings
-
-from .._SireWrappers import Molecule as _Molecule, System as _System
+from .._SireWrappers import System as _System
 
 
 def _mark_alchemical_ion(molecule):
@@ -26,6 +24,9 @@ def _mark_alchemical_ion(molecule):
     alchemical_ion : BSS._SireWrappers.Molecule
         The molecule marked as being alchemical ion.
     """
+    import warnings
+    from .._SireWrappers import Molecule as _Molecule
+
     # Validate input.
 
     if not isinstance(molecule, _Molecule):

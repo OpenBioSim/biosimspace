@@ -214,24 +214,28 @@ if _gmx_exe is not None:
     del _shlex
     del _subprocess
 
-from . import Align
-from . import Box
-from . import Convert
-from . import FreeEnergy
-from . import Gateway
-from . import IO
-from . import Metadynamics
-from . import MD
-from . import Node
-from . import Notebook
-from . import Parameters
-from . import Process
-from . import Protocol
-from . import Solvent
-from . import Stream
-from . import Trajectory
-from . import Types
-from . import Units
+import lazy_import as _lazy_import
+
+Align = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Align")
+Box = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Box")
+Convert = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Convert")
+FreeEnergy = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.FreeEnergy")
+Gateway = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Gateway")
+IO = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.IO")
+Metadynamics = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Metadynamics")
+MD = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.MD")
+Node = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Node")
+Notebook = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Notebook")
+Parameters = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Parameters")
+Process = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Process")
+Protocol = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Protocol")
+Solvent = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Solvent")
+Stream = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Stream")
+Trajectory = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Trajectory")
+Types = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Types")
+Units = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Units")
+
+del _lazy_import
 
 # Import Versioneer from the package root.
 from ... import _version

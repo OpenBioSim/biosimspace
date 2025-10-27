@@ -26,30 +26,14 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["Process"]
 
-import collections as _collections
-import glob as _glob
-import os as _os
 
 from .._Utils import _try_import
 
 _pygtail = _try_import("pygtail")
 
-import random as _random
-import timeit as _timeit
-import warnings as _warnings
-import sys as _sys
-import zipfile as _zipfile
 
-from sire.legacy import Mol as _SireMol
-
-from .. import _is_interactive, _is_notebook
-from .._Exceptions import IncompatibleError as _IncompatibleError
-from ..Protocol import Metadynamics as _Metadynamics
-from ..Protocol._protocol import Protocol as _Protocol
-from .._SireWrappers import System as _System
-from ..Types._type import Type as _Type
+from .. import _is_notebook
 from .. import Units as _Units
-from .. import _Utils as _Utils
 
 if _is_notebook:
     from IPython.display import FileLink as _FileLink
@@ -124,6 +108,14 @@ class Process:
             values. This allows the user to refer to properties with their
             own naming scheme, e.g. { "charge" : "my-charge" }
         """
+        from .._SireWrappers import System as _System
+        from .. import _is_interactive
+        from .._Exceptions import IncompatibleError as _IncompatibleError
+        import os as _os
+        from .. import _Utils as _Utils
+        import collections as _collections
+        from ..Protocol._protocol import Protocol as _Protocol
+        from sire.legacy import Mol as _SireMol
 
         # Don't allow user to create an instance of this base class.
         if type(self) is Process:
@@ -338,6 +330,8 @@ class Process:
 
     def _clear_output(self):
         """Reset stdout and stderr."""
+        import glob as _glob
+        import os as _os
 
         # Create the files. This makes sure that the 'stdout' and 'stderr'
         # methods can be called when the files are empty.
@@ -385,6 +379,7 @@ class Process:
             The list of PLUMED configuration strings, or a path to a configuration
             file.
         """
+        import os as _os
 
         # Check that the passed configuration is a list of strings.
         if _is_list_of_strings(config):
@@ -441,6 +436,7 @@ class Process:
         time : :class:`Time <BioSimSpace.Types.Time>`
             The current simulation time in nanoseconds.
         """
+        from ..Protocol import Metadynamics as _Metadynamics
 
         # Check that this is a metadynamics simulation.
         if not isinstance(self._protocol, _Metadynamics):
@@ -477,6 +473,7 @@ class Process:
         collective_variable : :class:`Type <BioSimSpace.Types>`
             The value of the collective variable.
         """
+        from ..Protocol import Metadynamics as _Metadynamics
 
         # Check that this is a metadynamics simulation.
         if not isinstance(self._protocol, _Metadynamics):
@@ -520,6 +517,7 @@ class Process:
                            [[:class:`Type <BioSimSpace.Types>`, :class:`Type <BioSimSpace.Types>`, ...], ...]
                The free energy estimate for the chosen collective variables.
         """
+        from ..Protocol import Metadynamics as _Metadynamics
 
         # Check that this is a metadynamics simulation.
         if not isinstance(self._protocol, _Metadynamics):
@@ -561,6 +559,9 @@ class Process:
         collective_variables : [(:class:`Type <BioSimSpace.Types>`, int, float, ...)]
             The value of the collective variable for each configuration.
         """
+        import sys as _sys
+        import warnings as _warnings
+        import random as _random
 
         if not type(number) is int:
             raise TypeError("'number' must be of type 'int'")
@@ -711,6 +712,8 @@ class Process:
         system : :class:`System <BioSimSpace._SireWrappers.System>`
             The molecular system at a given end state.
         """
+        from .._SireWrappers import System as _System
+        import warnings as _warnings
 
         # Check that the system is valid.
         if not isinstance(system, _System):
@@ -796,6 +799,8 @@ class Process:
         process : :class:`Procees <BioSimSpace.Process>`
             The new process object.
         """
+        from .._SireWrappers import System as _System
+        from ..Protocol._protocol import Protocol as _Protocol
 
         # Try to get the current system.
         if not restart:
@@ -891,6 +896,7 @@ class Process:
         seed : int
             The random number seed.
         """
+        import warnings as _warnings
 
         if not type(seed) is int:
             _warnings.warn("The seed must be an integer. Disabling seeding.")
@@ -908,6 +914,7 @@ class Process:
         max_time : :class:`Time <BioSimSpace.Types.Time>`, int, float
             The maximum time to wait (in minutes).
         """
+        from ..Types._type import Type as _Type
 
         # The process isn't running.
         if not self.isRunning():
@@ -1170,6 +1177,9 @@ class Process:
         output : str, IPython.display.FileLink
             A path, or file link, to an archive of the process input.
         """
+        from IPython.display import FileLink as _FileLink
+        import zipfile as _zipfile
+        import os as _os
 
         if name is None:
             name = self._name + "_input"
@@ -1226,6 +1236,10 @@ class Process:
         output : str, IPython.display.FileLink
             A path, or file link, to an archive of the process output.
         """
+        import os as _os
+        from IPython.display import FileLink as _FileLink
+        import zipfile as _zipfile
+        import glob as _glob
 
         if name is None:
             name = self._name + "_output"
@@ -1295,6 +1309,7 @@ class Process:
             The list of configuration strings, or a path to a configuration
             file.
         """
+        import os as _os
 
         # Check that the passed configuration is a list of strings.
         if _is_list_of_strings(config):
@@ -1331,6 +1346,7 @@ class Process:
             A configuration string, a list of configuration strings, or a
             path to a configuration file.
         """
+        import os as _os
 
         # Append a single string.
         if isinstance(config, str):
@@ -1466,6 +1482,8 @@ class Process:
         args : dict, collections.OrderedDict
             A dictionary of command-line arguments.
         """
+        import collections as _collections
+
         if isinstance(args, _collections.OrderedDict):
             self._args = args
 
@@ -1535,6 +1553,8 @@ class Process:
         args : dict, collections.OrderedDict
             A dictionary of command line arguments.
         """
+        import collections as _collections
+
         if isinstance(args, dict) or isinstance(args, _collections.OrderedDict):
             for arg, value in args.items():
                 self._args[arg] = value
@@ -1577,6 +1597,7 @@ class Process:
         runtime : :class:`Time <BioSimSpace.Types.Time>`
             The runtime in minutes.
         """
+        import timeit as _timeit
 
         # The process is still running.
         if self.isRunning():

@@ -47,19 +47,11 @@ _amber_protein_forcefields = {
     "ff19SB": False,
 }
 
-from .. import _amber_home, _gmx_exe, _gmx_path, _isVerbose
+from .. import _isVerbose
 
-from .._Exceptions import IncompatibleError as _IncompatibleError
-from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
-from .._SireWrappers import Atom as _Atom
-from .._SireWrappers import Molecule as _Molecule
-from ..Solvent import waterModels as _waterModels
-from ..Types import Charge as _Charge
 from ..Types import Length as _Length
 from .._Utils import _try_import, _have_imported
-from .. import _Utils
 
-from ._process import Process as _Process
 from . import _Protocol
 
 
@@ -213,6 +205,9 @@ def _parameterise_amber_protein(
         .getMolecule() method on the returned process to block until the
         parameterisation is complete and get the parameterised molecule.
     """
+    from ._process import Process as _Process
+    from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
+    from .. import _amber_home, _gmx_exe, _gmx_path
 
     if not isinstance(forcefield, str):
         raise TypeError("'forcefield' must be of type 'str'.")
@@ -321,6 +316,10 @@ def gaff(
         .getMolecule() method on the returned process to block until the
         parameterisation is complete and get the parameterised molecule.
     """
+    from ._process import Process as _Process
+    from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
+    from ..Types import Charge as _Charge
+    from .. import _amber_home
 
     if _amber_home is None:
         raise _MissingSoftwareError(
@@ -417,6 +416,10 @@ def gaff2(
         .getMolecule() method on the returned process to block until the
         parameterisation is complete and get the parameterised molecule.
     """
+    from ._process import Process as _Process
+    from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
+    from ..Types import Charge as _Charge
+    from .. import _amber_home
 
     if _amber_home is None:
         raise _MissingSoftwareError(
@@ -519,6 +522,8 @@ def _parameterise_openff(
         .getMolecule() method on the returned process to block until the
         parameterisation is complete and get the parameterised molecule.
     """
+    from .._SireWrappers import Molecule as _Molecule
+    from ._process import Process as _Process
 
     # Validate arguments.
 
@@ -628,6 +633,8 @@ def _validate_water_model(water_model):
     is_valid : bool
         Whether the water model is supported.
     """
+    from ..Solvent import waterModels as _waterModels
+
     # Srip whitespace and convert to lower case.
     water_model = water_model.replace(" ", "").lower()
 
@@ -837,6 +844,9 @@ def _validate(
         values. This allows the user to refer to properties with their
         own naming scheme, e.g. { "charge" : "my-charge" }
     """
+    from ..Solvent import waterModels as _waterModels
+    from .._SireWrappers import Molecule as _Molecule
+    from .._SireWrappers import Atom as _Atom
 
     if molecule is not None:
         if not isinstance(molecule, (_Molecule, str)):

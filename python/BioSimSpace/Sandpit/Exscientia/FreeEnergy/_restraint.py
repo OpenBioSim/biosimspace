@@ -22,35 +22,14 @@
 """
 A class for holding restraints.
 """
-import math as _math
-import warnings as _warnings
 from typing import Literal
-
-import numpy as _np
-from scipy import integrate as _integrate
-from scipy.special import erf as _erf
-from sire.legacy.Units import (
-    angstrom3 as _Sire_angstrom3,
-    k_boltz as _k_boltz,
-    meter3 as _Sire_meter3,
-    mole as _Sire_mole,
-)
-from sire.units import GeneralUnit as _sire_GeneralUnit
-
-from ..Types._general_unit import (
-    GeneralUnit as _GeneralUnit,
-)
-from ..Types import Angle as _Angle, Length as _Length, Temperature as _Temperature
-from ..Units.Angle import degree as _degree, radian as _radian
-from ..Units.Area import angstrom2 as _angstrom2
-from ..Units.Energy import kcal_per_mol as _kcal_per_mol, kj_per_mol as _kj_per_mol
-from ..Units.Length import angstrom as _angstrom, nanometer as _nanometer
-from ..Units.Temperature import kelvin as _kelvin
-from ..Units.Volume import angstrom3 as _angstrom3
-from .._SireWrappers import Atom as _Atom, System as _System
 
 
 def sqrt(u):
+    from sire.units import GeneralUnit as _sire_GeneralUnit
+    import math as _math
+    from ..Types._general_unit import GeneralUnit as _GeneralUnit
+
     dims = u._sire_unit.dimensions()
     for dim in dims:
         if dim % 2 != 0:
@@ -63,11 +42,19 @@ def sqrt(u):
 
 
 def exp(u):
+    from sire.units import GeneralUnit as _sire_GeneralUnit
+    import math as _math
+    from ..Types._general_unit import GeneralUnit as _GeneralUnit
+
     dims = u._sire_unit.dimensions()
     return _GeneralUnit(_sire_GeneralUnit(_math.exp(u.value()), dims))
 
 
 def erf(u):
+    from sire.units import GeneralUnit as _sire_GeneralUnit
+    from scipy.special import erf as _erf
+    from ..Types._general_unit import GeneralUnit as _GeneralUnit
+
     dims = u._sire_unit.dimensions()
     return _GeneralUnit(_sire_GeneralUnit(_erf(u.value()), dims))
 
@@ -160,6 +147,19 @@ class Restraint:
         restraint_type : str
             The type of the restraint. (`Boresch`, `multiple_distance`)
         """
+        import warnings as _warnings
+        from ..Types import (
+            Angle as _Angle,
+            Length as _Length,
+            Temperature as _Temperature,
+        )
+        import numpy as _np
+        from sire.legacy.Units import k_boltz as _k_boltz
+        from ..Units.Temperature import kelvin as _kelvin
+        from .._SireWrappers import Atom as _Atom
+        from ..Units.Angle import radian as _radian
+        from ..Units.Energy import kcal_per_mol as _kcal_per_mol
+
         if not isinstance(temperature, _Temperature):
             raise ValueError(
                 "temperature must be of type 'BioSimSpace.Types.Temperature'"
@@ -353,6 +353,8 @@ class Restraint:
         system : :class:`System <BioSimSpace._SireWrappers.System>`
             The molecular system.
         """
+        from .._SireWrappers import System as _System
+
         if not isinstance(system, _System):
             raise TypeError(
                 "'system' must be of type 'BioSimSpace._SireWrappers.System'"
@@ -407,6 +409,8 @@ class Restraint:
 
     def _gromacs_boresch(self, perturbation_type=None, restraint_lambda=False):
         """Format the Gromacs string for boresch restraint."""
+        from ..Units.Energy import kcal_per_mol as _kcal_per_mol
+        from ..Units.Angle import degree as _degree, radian as _radian
 
         # Format the atoms into index list
         def format_index(key_list):
@@ -435,6 +439,9 @@ class Restraint:
             Format the bonds equilibrium values and force constant
             in into the Gromacs topology format.
             """
+            from ..Units.Energy import kj_per_mol as _kj_per_mol
+            from ..Units.Length import nanometer as _nanometer
+
             converted_equ_val = (
                 self._restraint_dict["equilibrium_values"][equilibrium_values]
                 / _nanometer
@@ -467,6 +474,11 @@ class Restraint:
 
             When restraint_lambda is True, the dihedrals will be stored in the dihedral_restraints.
             """
+            from ..Types._general_unit import GeneralUnit as _GeneralUnit
+            from ..Types import Angle as _Angle
+            from ..Units.Angle import degree as _degree, radian as _radian
+            from ..Units.Energy import kj_per_mol as _kj_per_mol
+
             if isinstance(equilibrium_values, _Angle):
                 converted_equ_val = equilibrium_values / _degree
             else:
@@ -654,6 +666,8 @@ class Restraint:
             Get the text line specifying a distance restraint restraint
             (unaffected by any lambdas).
             """
+            from ..Units.Length import nanometer as _nanometer
+
             # Calculate parameters.
             ai = self._system.getIndex(r1) + 1
             aj = self._system.getIndex(l1) + 1
@@ -682,6 +696,9 @@ class Restraint:
             Get the text line specifying a restraint potential bond
             (affected by bonded-lambda).
             """
+            from ..Units.Energy import kj_per_mol as _kj_per_mol
+            from ..Units.Length import nanometer as _nanometer
+
             # Calculate parameters.
             ai = self._system.getIndex(r1) + 1
             aj = self._system.getIndex(l1) + 1
@@ -753,6 +770,9 @@ class Restraint:
 
     def _somd_boresch(self, perturbation_type=None):
         """Format the SOMD string for the Boresch restraints."""
+        from ..Units.Energy import kcal_per_mol as _kcal_per_mol
+        from ..Units.Angle import radian as _radian
+        from ..Units.Length import angstrom as _angstrom
 
         # Indices
         r1 = self._system.getIndex(self._restraint_dict["anchor_points"]["r1"])
@@ -808,6 +828,9 @@ class Restraint:
 
         def _add_restr_to_str(restr, restr_string):
             """Apend the information for a single restraint to the string."""
+            from ..Units.Energy import kcal_per_mol as _kcal_per_mol
+            from ..Units.Length import angstrom as _angstrom
+
             # Indices
             r1 = self._system.getIndex(restr["r1"])
             l1 = self._system.getIndex(restr["l1"])
@@ -916,6 +939,21 @@ class Restraint:
             Free energy of releasing the restraint to the standard state volume,
             in kcal / mol.
         """
+        import warnings as _warnings
+        from sire.legacy.Units import (
+            angstrom3 as _Sire_angstrom3,
+            k_boltz as _k_boltz,
+            meter3 as _Sire_meter3,
+            mole as _Sire_mole,
+        )
+        from ..Units.Length import angstrom as _angstrom
+        import numpy as _np
+        from scipy import integrate as _integrate
+        from ..Units.Temperature import kelvin as _kelvin
+        from ..Units.Angle import radian as _radian
+        from ..Units.Energy import kcal_per_mol as _kcal_per_mol
+        from ..Units.Area import angstrom2 as _angstrom2
+
         # Constants. Take .value() to avoid issues with ** and log of GeneralUnit
         v0 = (
             ((_Sire_meter3 / 1000) / _Sire_mole) / _Sire_angstrom3
@@ -965,6 +1003,8 @@ class Restraint:
                     ----------
                         float : Value of integrand
                     """
+                    import numpy as _np
+
                     return (r**2) * _np.exp(-(kr * (r - r0) ** 2) / (2 * R * T))
 
                 def numerical_angle_integrand(theta, theta0, ktheta):
@@ -983,6 +1023,8 @@ class Restraint:
                     ----------
                         float: Value of integrand
                     """
+                    import numpy as _np
+
                     return _np.sin(theta) * _np.exp(
                         -(ktheta * (theta - theta0) ** 2) / (2 * R * T)
                     )
@@ -1003,6 +1045,8 @@ class Restraint:
                     ----------
                         float: Value of integrand
                     """
+                    import numpy as _np
+
                     d_phi = abs(phi - phi0)
                     d_phi_corrected = min(
                         d_phi, 2 * _np.pi - d_phi
@@ -1100,6 +1144,8 @@ class Restraint:
                     The domain of the integrand is [0, infinity], but this will
                     be truncated to [0, 8 RT] for practicality.
                     """
+                    import numpy as _np
+
                     r_eff = abs(r - r0) - r_fb
                     if r_eff < 0:
                         r_eff = 0
@@ -1128,6 +1174,10 @@ class Restraint:
                     The domain of the integrand is [0, infinity], but this will
                     be truncated to [0, 8 RT] for practicality.
                     """
+                    import numpy as _np
+                    from ..Units.Energy import kcal_per_mol as _kcal_per_mol
+                    from scipy import integrate as _integrate
+
                     dist_at_8RT = (
                         4 * _np.sqrt((R * T) / kr) + r_fb
                     )  # Dist. which gives restraint energy = 8 RT
@@ -1162,6 +1212,13 @@ class Restraint:
 
     def _schrodinger_analytical_correction(self):
         # Adapted from DOI: 10.1021/acs.jcim.3c00013
+        from ..Types._general_unit import GeneralUnit as _GeneralUnit
+        import numpy as _np
+        from scipy.special import erf as _erf
+        from sire.legacy.Units import k_boltz as _k_boltz
+        from ..Units.Volume import angstrom3 as _angstrom3
+        from ..Units.Angle import radian as _radian
+
         k_boltz = _GeneralUnit(_k_boltz)
         beta = 1 / (k_boltz * self.T)
         V = 1660 * _angstrom3
@@ -1214,6 +1271,19 @@ class Restraint:
         return dG
 
     def _boresch_analytical_correction(self):
+        from sire.legacy.Units import (
+            angstrom3 as _Sire_angstrom3,
+            k_boltz as _k_boltz,
+            meter3 as _Sire_meter3,
+            mole as _Sire_mole,
+        )
+        from ..Units.Length import angstrom as _angstrom
+        import numpy as _np
+        from ..Units.Temperature import kelvin as _kelvin
+        from ..Units.Angle import radian as _radian
+        from ..Units.Energy import kcal_per_mol as _kcal_per_mol
+        from ..Units.Area import angstrom2 as _angstrom2
+
         R = (
             _k_boltz.value() * _kcal_per_mol / _kelvin
         ).value()  # molar gas constant in kcal mol-1 K-1

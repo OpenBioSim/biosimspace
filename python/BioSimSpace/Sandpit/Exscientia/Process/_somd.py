@@ -26,33 +26,13 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["Somd"]
 
-import os as _os
 
 from .._Utils import _try_import
 
 _pygtail = _try_import("pygtail")
-import glob as _glob
-import random as _random
 import string as _string
-import sys as _sys
-import timeit as _timeit
-import warnings as _warnings
 
-from sire.legacy import CAS as _SireCAS
-from sire.legacy import IO as _SireIO
-from sire.legacy import MM as _SireMM
-from sire.legacy import Base as _SireBase
-from sire.legacy import Mol as _SireMol
-from sire.legacy import Units as _SireUnits
 
-from .. import IO as _IO
-from .. import Protocol as _Protocol
-from .. import Trajectory as _Trajectory
-from .. import _isVerbose, _Utils
-from .._Exceptions import IncompatibleError as _IncompatibleError
-from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
-from .._SireWrappers import Molecule as _Molecule
-from .._SireWrappers import System as _System
 from . import _process
 
 
@@ -121,6 +101,11 @@ class Somd(_process.Process):
             The Restraint object that contains information for the ABFE
             calculations.
         """
+        import sys as _sys
+        from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
+        from .. import Protocol as _Protocol
+        import os as _os
+        from sire.legacy import Base as _SireBase
 
         # Call the base class constructor.
         super().__init__(
@@ -259,6 +244,13 @@ class Somd(_process.Process):
 
     def _setup(self):
         """Setup the input files and working directory ready for simulation."""
+        from .. import _isVerbose
+        from .._SireWrappers import System as _System
+        from .. import Protocol as _Protocol
+        import os as _os
+        from .. import IO as _IO
+        from sire.legacy import IO as _SireIO
+
         # Create the input files...
 
         # First create a copy of the system.
@@ -397,6 +389,11 @@ class Somd(_process.Process):
 
     def _generate_config(self):
         """Generate SOMD configuration file strings."""
+        from .._SireWrappers import System as _System
+        import warnings as _warnings
+        from .. import Protocol as _Protocol
+        import os as _os
+        from .._Exceptions import IncompatibleError as _IncompatibleError
 
         # Clear the existing configuration list.
         self._config = []
@@ -469,6 +466,7 @@ class Somd(_process.Process):
 
     def _generate_args(self):
         """Generate the dictionary of command-line arguments."""
+        from .. import Protocol as _Protocol
 
         # Clear the existing arguments.
         self.clearArgs()
@@ -491,6 +489,10 @@ class Somd(_process.Process):
         process : :class:`Process.Somd <BioSimSpace.Process.Somd>`
             A handle to the running process.
         """
+        import timeit as _timeit
+        import os as _os
+        from .. import _Utils
+        from sire.legacy import Base as _SireBase
 
         # The process is currently queued.
         if self.isQueued():
@@ -548,6 +550,9 @@ class Somd(_process.Process):
         system : :class:`System <BioSimSpace._SireWrappers.System>`
             The latest molecular system.
         """
+        import warnings as _warnings
+        from .. import IO as _IO
+        from sire.legacy import IO as _SireIO
 
         # Wait for the process to finish.
         if block is True:
@@ -643,6 +648,8 @@ class Somd(_process.Process):
         trajectory : :class:`Trajectory <BioSimSpace.Trajectory.trajectory>`
             The latest trajectory object.
         """
+        import warnings as _warnings
+        from .. import Trajectory as _Trajectory
 
         if not isinstance(backend, str):
             raise TypeError("'backend' must be of type 'str'")
@@ -682,6 +689,8 @@ class Somd(_process.Process):
         frame : :class:`System <BioSimSpace._SireWrappers.System>`
             The System object of the corresponding frame.
         """
+        from .. import Trajectory as _Trajectory
+        from sire.legacy import IO as _SireIO
 
         if not type(index) is int:
             raise TypeError("'index' must be of type 'int'")
@@ -759,6 +768,8 @@ class Somd(_process.Process):
         time : :class:`Time <BioSimSpace.Types.Time>`
             The current simulation time in nanoseconds.
         """
+        import warnings as _warnings
+        from .. import Protocol as _Protocol
 
         # Warn the user if the process has exited with an error.
         if self.isError():
@@ -829,6 +840,8 @@ class Somd(_process.Process):
         gradient : float
             The free energy gradient.
         """
+        import warnings as _warnings
+        import os as _os
 
         # Wait for the process to finish.
         if block is True:
@@ -878,6 +891,9 @@ class Somd(_process.Process):
 
     def _clear_output(self):
         """Reset stdout and stderr."""
+        from .. import Protocol as _Protocol
+        import glob as _glob
+        import os as _os
 
         # Call the base class method.
         super()._clear_output()
@@ -968,6 +984,14 @@ def _to_pert_file(
     molecule : :class:`System <BioSimSpace._SireWrappers.Molecule>`
         The molecule with properties corresponding to the lamda = 0 state.
     """
+    from sire.legacy import Mol as _SireMol
+    from sire.legacy import MM as _SireMM
+    from sire.legacy import CAS as _SireCAS
+    from .._SireWrappers import Molecule as _Molecule
+    from sire.legacy import Units as _SireUnits
+    import random as _random
+    from .._Exceptions import IncompatibleError as _IncompatibleError
+
     if not isinstance(molecule, _Molecule):
         raise TypeError(
             "'molecule' must be of type 'BioSimSpace._SireWrappers.Molecule'"
@@ -3333,6 +3357,7 @@ def _has_dummy(mol, idxs, is_lambda1=False):
     has_dummy : bool
         Whether a dummy atom is present.
     """
+    from sire.legacy import Mol as _SireMol
 
     # Set the element and ambertype property associated with the end state.
     # We need to check by ambertype too since this molecule may have been
@@ -3385,6 +3410,7 @@ def _is_dummy(mol, idxs, is_lambda1=False):
     is_dummy : [bool]
         Whether each atom is a dummy.
     """
+    from sire.legacy import Mol as _SireMol
 
     # Set the element and ambertype property associated with the end state.
     # We need to check by ambertype too since this molecule may have been
@@ -3460,6 +3486,8 @@ def _random_suffix(basename, size=4, chars=_string.ascii_uppercase + _string.dig
     suffix : str
         The randomly generated suffix.
     """
+    import random as _random
+
     basename_size = len(basename)
     if basename_size >= size:
         raise ValueError(

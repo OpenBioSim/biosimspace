@@ -1,13 +1,3 @@
-import warnings
-
-from sire.legacy import Base as _SireBase
-from sire.legacy import Mol as _SireMol
-from sire.legacy import MM as _SireMM
-from sire.legacy import Units as _SireUnits
-
-from .._Exceptions import IncompatibleError as _IncompatibleError
-from .._SireWrappers import Molecule as _Molecule
-
 __all__ = ["decouple"]
 
 
@@ -54,6 +44,10 @@ def decouple(
     decoupled : Sire.Mol.Molecule
         The molecule marked as being decoupled.
     """
+    from .._Exceptions import IncompatibleError as _IncompatibleError
+    from .._SireWrappers import Molecule as _Molecule
+    from sire.legacy import Base as _SireBase
+
     # Validate input.
 
     if not isinstance(molecule, _Molecule):

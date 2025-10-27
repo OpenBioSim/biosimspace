@@ -26,13 +26,10 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["plot", "plotContour", "plotOverlapMatrix"]
 
-import numpy as _np
 
-from warnings import warn as _warn
 from os import environ as _environ
 
-from .. import _is_interactive, _is_notebook
-from ..Types._type import Type as _Type
+from .. import _is_notebook
 
 # Check to see if DISPLAY is set.
 if "DISPLAY" in _environ:
@@ -122,6 +119,9 @@ def plot(
     logy : bool
         Whether the y axis is logarithmic.
     """
+    from ..Types._type import Type as _Type
+    from warnings import warn as _warn
+    from .. import _is_interactive
 
     # Make sure were running interactively.
     if not _is_interactive:
@@ -355,6 +355,10 @@ def plotContour(x, y, z, xlabel=None, ylabel=None, zlabel=None):
     zlabel : str
         The z axis label string.
     """
+    import numpy as _np
+    from warnings import warn as _warn
+    from ..Types._type import Type as _Type
+    from .. import _is_interactive
 
     import numpy as _np
     import scipy.interpolate as _interp
@@ -557,6 +561,10 @@ def plotOverlapMatrix(
         matrix. This is used for both the continuous and discrete color bars.
         Can not contain more than 3 elements.
     """
+    import numpy as _np
+    import matplotlib.colors as _colors
+    from warnings import warn as _warn
+    from .. import _is_interactive
 
     # Make sure were running interactively.
     if not _is_interactive:

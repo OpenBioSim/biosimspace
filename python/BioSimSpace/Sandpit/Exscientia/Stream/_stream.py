@@ -28,19 +28,6 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["save", "load", "getMetadata", "getSireMetadata"]
 
-import os as _os
-
-from sire.legacy import Mol as _SireMol
-from sire.legacy import System as _SireSystem
-
-from sire import stream as _NewSireStream
-from sire import system as _NewSireSystem
-
-from .. import _isVerbose
-from .._Exceptions import StreamError as _StreamError
-from .._SireWrappers._sire_wrapper import SireWrapper as _SireWrapper
-from .. import _SireWrappers
-
 
 def save(sire_object, filebase):
     """
@@ -55,6 +42,12 @@ def save(sire_object, filebase):
     filebase : str
         The base name of the binary output file.
     """
+    from .. import _isVerbose
+    from .. import _SireWrappers
+    from sire import stream as _NewSireStream
+    from .._Exceptions import StreamError as _StreamError
+    from .._SireWrappers._sire_wrapper import SireWrapper as _SireWrapper
+    from sire import system as _NewSireSystem
 
     # Validate input.
 
@@ -98,6 +91,13 @@ def load(file):
     file : str
         The path to the binary file containing the streamed object.
     """
+    from .. import _isVerbose
+    from .. import _SireWrappers
+    from sire import stream as _NewSireStream
+    from sire.legacy import Mol as _SireMol
+    import os as _os
+    from .._Exceptions import StreamError as _StreamError
+    from sire import system as _NewSireSystem
 
     # Validate input.
 
@@ -151,6 +151,8 @@ def getMetadata(file):
         The metadata associated with the file. If none is present, then an
         empty dictionary will be returned.
     """
+    from sire import stream as _NewSireStream
+    import os as _os
 
     if not _os.path.isfile(file):
         raise ValueError(f"Unable to locate stream file: {file}")
@@ -180,6 +182,8 @@ def getSireMetadata(file):
         The Sire metadata associated with the file. If none is present, then an
         empty dictionary will be returned.
     """
+    from sire import stream as _NewSireStream
+    import os as _os
 
     if not _os.path.isfile(file):
         raise ValueError(f"Unable to locate stream file: {file}")
@@ -237,6 +241,9 @@ def _add_metadata(sire_object):
     metadata : dict
         The metadata associated with the object.
     """
+    from sire import stream as _NewSireStream
+    from .._SireWrappers._sire_wrapper import SireWrapper as _SireWrapper
+    from .. import _SireWrappers
 
     if not isinstance(sire_object, _SireWrapper) and not isinstance(
         sire_object, _SireWrappers.SearchResult

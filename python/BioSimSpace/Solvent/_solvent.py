@@ -26,35 +26,10 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["solvate", "spc", "spce", "tip3p", "tip4p", "tip5p", "opc", "waterModels"]
 
-import os as _os
-import re as _re
-import subprocess as _subprocess
-import shlex as _shlex
-import shutil as _shutil
 import sys as _sys
-import warnings as _warnings
 
-from sire.legacy import Base as _SireBase
-from sire.legacy import IO as _SireIO
-from sire.legacy import Mol as _SireMol
-from sire.legacy.Maths import Vector as _Vector
-from sire.legacy.Vol import TriclinicBox as _TriclinicBox
 
-from sire.legacy.Units import degree as _degree
-
-from .. import _gmx_exe, _gmx_path
-from .. import _isVerbose
-
-from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
-from .._SireWrappers import System as _System
-from .._SireWrappers import Molecule as _Molecule
-from .._SireWrappers import Molecules as _Molecules
-from ..Types import Coordinate as _Coordinate
 from ..Types import Angle as _Angle
-from ..Types import Length as _Length
-
-from .. import IO as _IO
-from .. import _Utils
 
 
 def solvate(
@@ -212,6 +187,8 @@ def spc(
     system : :class:`System <BioSimSpace._SireWrappers.System>`
         The solvated molecular system.
     """
+    from .. import _gmx_exe, _gmx_path
+    from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
 
     if _gmx_exe is None or _gmx_path is None:
         raise _MissingSoftwareError(
@@ -314,6 +291,8 @@ def spce(
     system : :class:`System <BioSimSpace._SireWrappers.System>`
         The solvated molecular system.
     """
+    from .. import _gmx_exe
+    from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
 
     if _gmx_exe is None:
         raise _MissingSoftwareError(
@@ -416,6 +395,8 @@ def tip3p(
     system : :class:`System <BioSimSpace._SireWrappers.System>`
         The solvated molecular system.
     """
+    from .. import _gmx_exe
+    from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
 
     if _gmx_exe is None:
         raise _MissingSoftwareError(
@@ -518,6 +499,8 @@ def tip4p(
     system : :class:`System <BioSimSpace._SireWrappers.System>`
         The solvated molecular system.
     """
+    from .. import _gmx_exe
+    from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
 
     if _gmx_exe is None:
         raise _MissingSoftwareError(
@@ -620,6 +603,8 @@ def tip5p(
     system : :class:`System <BioSimSpace._SireWrappers.System>`
         The solvated molecular system.
     """
+    from .. import _gmx_exe
+    from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
 
     if _gmx_exe is None:
         raise _MissingSoftwareError(
@@ -722,6 +707,8 @@ def opc(
     system : :class:`System <BioSimSpace._SireWrappers.System>`
         The solvated molecular system.
     """
+    from .. import _gmx_exe
+    from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
 
     if _gmx_exe is None:
         raise _MissingSoftwareError(
@@ -828,6 +815,12 @@ def _validate_input(
     (molecule, box, angles, shell, work_dir, property_map) : tuple
         The validated input arguments.
     """
+    from .._SireWrappers import Molecule as _Molecule
+    from ..Types import Coordinate as _Coordinate
+    from .._SireWrappers import System as _System
+    import warnings as _warnings
+    from .._SireWrappers import Molecules as _Molecules
+    from ..Types import Length as _Length
 
     # Whether to check the box size.
     check_box = True
@@ -1056,6 +1049,21 @@ def _solvate(
     system : :class:`System <BioSimSpace._SireWrappers.System>`
         The solvated system.
     """
+    from sire.legacy import Base as _SireBase
+    from .. import _Utils
+    from .. import IO as _IO
+    from .. import _gmx_exe
+    from .._SireWrappers import System as _System
+    import subprocess as _subprocess
+    import warnings as _warnings
+    from sire.legacy.Vol import TriclinicBox as _TriclinicBox
+    from .. import _isVerbose
+    import re as _re
+    import os as _os
+    from sire.legacy.Maths import Vector as _Vector
+    import shutil as _shutil
+    from sire.legacy.Units import degree as _degree
+    from ..Types import Length as _Length
 
     if molecule is not None:
         # Get the axis aligned bounding box.
@@ -1608,6 +1616,7 @@ def _check_box_size(molecule, box, property_map={}):
     is_okay : True
         Whether the box is large enough.
     """
+    from ..Types import Length as _Length
 
     # Get the axis-aligned bounding box of the molecule/system.
     aabox = molecule._getAABox(property_map)
@@ -1642,6 +1651,7 @@ def _rename_water_molecule(molecule):
     molecule : Sire.Mol.Molecule
         The updated Sire Molecule object.
     """
+    from sire.legacy import Mol as _SireMol
 
     # Make the molecule editable.
     molecule = molecule.edit()

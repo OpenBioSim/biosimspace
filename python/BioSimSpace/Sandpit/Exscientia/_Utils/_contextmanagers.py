@@ -28,10 +28,6 @@ __all__ = ["cd"]
 
 from contextlib import contextmanager as _contextmanager
 
-import os as _os
-
-from ._workdir import WorkDir as _WorkDir
-
 
 # Adapted from: http://ralsina.me/weblog/posts/BB963.html
 @_contextmanager
@@ -45,6 +41,8 @@ def cd(work_dir):
     work_dir : str
         The working directory for the context.
     """
+    from ._workdir import WorkDir as _WorkDir
+    import os as _os
 
     # Validate the input.
     if not isinstance(work_dir, (str, _WorkDir)):

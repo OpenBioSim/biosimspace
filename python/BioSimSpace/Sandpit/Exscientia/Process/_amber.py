@@ -26,26 +26,13 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["Amber"]
 
-import os
-import shutil
-from pathlib import Path as _Path
 
 from .._Utils import _try_import
 
 _pygtail = _try_import("pygtail")
 
-import os as _os
-import re as _re
-import shutil as _shutil
-import tempfile as _tempfile
-import timeit as _timeit
-import warnings as _warnings
 
-from sire.legacy import Base as _SireBase
-from sire.legacy import IO as _SireIO
-from sire.legacy import Mol as _SireMol
-
-from .._Utils import _assert_imported, _have_imported, _try_import
+from .._Utils import _have_imported, _try_import
 
 # alchemlyb isn't available on all variants of Python that we support, so we
 # need to try_import it.
@@ -54,22 +41,8 @@ _alchemlyb = _try_import("alchemlyb")
 if _have_imported(_alchemlyb):
     from alchemlyb.parsing.amber import extract as _extract
 
-from .. import _amber_home, _isVerbose
-from ..Align._squash import _squash, _unsquash
-from .._Exceptions import IncompatibleError as _IncompatibleError
-from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
-from .._SireWrappers import System as _System
-from ..Types._type import Type as _Type
-
-from .. import IO as _IO
-from .. import Protocol as _Protocol
-from .. import Trajectory as _Trajectory
-from .. import Units as _Units
-from .. import _Utils
 
 from . import _process
-
-from ._plumed import Plumed as _Plumed
 
 
 class Amber(_process.Process):
@@ -132,6 +105,11 @@ class Amber(_process.Process):
             values. This allows the user to refer to properties with their
             own naming scheme, e.g. { "charge" : "my-charge" }
         """
+        import os as _os
+        from .. import _amber_home
+        from .. import Protocol as _Protocol
+        from .._Exceptions import IncompatibleError as _IncompatibleError
+        from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
 
         # Call the base class constructor.
         super().__init__(
@@ -236,6 +214,8 @@ class Amber(_process.Process):
 
     def _setup(self):
         """Setup the input files and working directory ready for simulation."""
+        from .. import Protocol as _Protocol
+        import shutil as _shutil
 
         # Create the input files...
         self._squashed_system, self._mapping = self._write_system(
@@ -294,6 +274,14 @@ class Amber(_process.Process):
         mapping : dict(Sire.Mol.MolIdx, Sire.Mol.MolIdx)
              The corresponding molecule-to-molecule mapping.
         """
+        import os as _os
+        from .. import Protocol as _Protocol
+        from sire.legacy import Mol as _SireMol
+        from .. import _isVerbose
+        from ..Align._squash import _squash
+        from .. import IO as _IO
+        import shutil
+
         # Create a copy of the system.
         system = system.copy()
 
@@ -361,6 +349,12 @@ class Amber(_process.Process):
 
     def _generate_config(self):
         """Generate AMBER configuration file strings."""
+        import os as _os
+        from .. import Protocol as _Protocol
+        from .._Exceptions import IncompatibleError as _IncompatibleError
+        import shutil as _shutil
+        from ._plumed import Plumed as _Plumed
+        import warnings as _warnings
 
         # Clear the existing configuration list.
         self._config = []
@@ -537,6 +531,7 @@ class Amber(_process.Process):
 
     def _generate_args(self):
         """Generate the dictionary of command-line arguments."""
+        from .. import Protocol as _Protocol
 
         # Clear the existing arguments.
         self.clearArgs()
@@ -574,6 +569,9 @@ class Amber(_process.Process):
         process : :class:`Process.Amber <BioSimSpace.Process.Amber>`
             The process object.
         """
+        from sire.legacy import Base as _SireBase
+        import timeit as _timeit
+        from .. import _Utils
 
         # The process is currently queued.
         if self.isQueued():
@@ -626,6 +624,15 @@ class Amber(_process.Process):
         system : :class:`System <BioSimSpace._SireWrappers.System>`
             The latest molecular system.
         """
+        import os as _os
+        from sire.legacy import IO as _SireIO
+        from .. import Protocol as _Protocol
+        from .._SireWrappers import System as _System
+        from sire.legacy import Mol as _SireMol
+        import shutil as _shutil
+        from ..Align._squash import _unsquash
+        import warnings as _warnings
+        import tempfile as _tempfile
 
         # Wait for the process to finish.
         if block is True:
@@ -755,6 +762,8 @@ class Amber(_process.Process):
         trajectory : :class:`Trajectory <BioSimSpace.Trajectory.Trajectory>`
             The latest trajectory object.
         """
+        from .. import Trajectory as _Trajectory
+        import warnings as _warnings
 
         if not isinstance(backend, str):
             raise TypeError("'backend' must be of type 'str'")
@@ -794,6 +803,11 @@ class Amber(_process.Process):
         frame : :class:`System <BioSimSpace._SireWrappers.System>`
             The System object of the corresponding frame.
         """
+        from .. import Trajectory as _Trajectory
+        from sire.legacy import IO as _SireIO
+        from .. import Protocol as _Protocol
+        from sire.legacy import Mol as _SireMol
+        from ..Align._squash import _unsquash
 
         if not type(index) is int:
             raise TypeError("'index' must be of type 'int'")
@@ -972,6 +986,7 @@ class Amber(_process.Process):
         record : :class:`Type <BioSimSpace.Types>`
             The matching record.
         """
+        import warnings as _warnings
 
         # Wait for the process to finish.
         if block is True:
@@ -1027,6 +1042,7 @@ class Amber(_process.Process):
         record : :class:`Type <BioSimSpace.Types>`
             The matching record.
         """
+        import warnings as _warnings
 
         # Warn the user if the process has exited with an error.
         if self.isError():
@@ -1065,6 +1081,7 @@ class Amber(_process.Process):
         records : :class:`MultiDict <BioSimSpace.Process._process._MultiDict>`
            The dictionary of time-series records.
         """
+        import warnings as _warnings
 
         # Validate the degree of freedom.
         if not isinstance(region, int):
@@ -1146,6 +1163,8 @@ class Amber(_process.Process):
         time : :class:`Time <BioSimSpace.Types.Time>`
             The current simulation time in nanoseconds.
         """
+        from .. import Units as _Units
+        from .. import Protocol as _Protocol
 
         # No time records for minimisation protocols.
         if isinstance(self._protocol, _Protocol.Minimisation):
@@ -1288,6 +1307,8 @@ class Amber(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The bond energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "BOND",
             time_series=time_series,
@@ -1356,6 +1377,8 @@ class Amber(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The angle energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "ANGLE",
             time_series=time_series,
@@ -1424,6 +1447,8 @@ class Amber(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The total dihedral energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "DIHED",
             time_series=time_series,
@@ -1492,6 +1517,8 @@ class Amber(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The electrostatic energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "EEL",
             time_series=time_series,
@@ -1562,6 +1589,8 @@ class Amber(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The electrostatic energy between atoms 1 and 4.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "14EEL",
             time_series=time_series,
@@ -1632,6 +1661,8 @@ class Amber(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The Van der Vaals energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "VDW",
             time_series=time_series,
@@ -1700,6 +1731,8 @@ class Amber(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The Van der Vaals energy between atoms 1 and 4.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "14VDW",
             time_series=time_series,
@@ -1770,6 +1803,8 @@ class Amber(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The hydrogen bond energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "EHBOND",
             time_series=time_series,
@@ -1840,6 +1875,8 @@ class Amber(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The restraint energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "RESTRAINT",
             time_series=time_series,
@@ -1911,6 +1948,8 @@ class Amber(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The potential energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "EPTOT",
             time_series=time_series,
@@ -1979,6 +2018,8 @@ class Amber(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The kinetic energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "EKTOT",
             time_series=time_series,
@@ -2047,6 +2088,8 @@ class Amber(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The non-bonded energy between atoms 1 and 4.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "14NB",
             time_series=time_series,
@@ -2115,6 +2158,8 @@ class Amber(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The total energy.
         """
+        from .. import Units as _Units
+        from .. import Protocol as _Protocol
 
         if not isinstance(region, int):
             raise TypeError("'region' must be of type 'int'")
@@ -2207,6 +2252,8 @@ class Amber(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The centre of mass kinetic energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "EKCMT",
             time_series=time_series,
@@ -2342,6 +2389,8 @@ class Amber(_process.Process):
         temperature : :class:`Temperature <BioSimSpace.Types.Temperature>`
            The temperature.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "TEMP(K)",
             time_series=time_series,
@@ -2408,6 +2457,8 @@ class Amber(_process.Process):
         pressure : :class:`Pressure <BioSimSpace.Types.Pressure>`
            The pressure.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "PRESS",
             time_series=time_series,
@@ -2474,6 +2525,8 @@ class Amber(_process.Process):
         volume : :class:`Volume <BioSimSpace.Types.Volume>`
            The volume.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "VOLUME",
             time_series=time_series,
@@ -2652,6 +2705,8 @@ class Amber(_process.Process):
         n : int
             The number of lines to print.
         """
+        import re as _re
+        from .. import Protocol as _Protocol
 
         # Ensure that the number of lines is positive.
         if n < 0:
@@ -2829,6 +2884,8 @@ class Amber(_process.Process):
         record :
             The matching stdout record.
         """
+        from ..Types._type import Type as _Type
+        import warnings as _warnings
 
         # Update the standard output dictionary.
         self.stdout(0)
@@ -2916,6 +2973,9 @@ class Amber(_process.Process):
         into the working directory, start and wait again. In this case, the result will
         be a combination of both runs. This function ensures that the results are
         regenerated from the new output file."""
+        import os
+        from pathlib import Path as _Path
+
         # Initialise dictionaries to hold stdout records for all possible
         # degrees of freedom. For regular simulations there will be one,
         # for free-energy simulations there will be three, i.e. one for
@@ -2953,6 +3013,12 @@ class Amber(_process.Process):
         is Free Energy protocol, the dHdl and the u_nk data will be saved in the
         same parquet format as well.
         """
+        from alchemlyb.parsing.amber import extract as _extract
+        from .. import Units as _Units
+        from .. import Protocol as _Protocol
+        from .._Utils import _assert_imported
+        import warnings as _warnings
+
         if filename is not None:
             self._init_stdout_dict()
             if isinstance(self._protocol, _Protocol.Minimisation):

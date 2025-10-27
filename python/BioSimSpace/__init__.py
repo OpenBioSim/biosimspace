@@ -214,24 +214,28 @@ if _gmx_exe is not None:
     del _shlex
     del _subprocess
 
-from . import Align
-from . import Box
-from . import Convert
-from . import FreeEnergy
-from . import Gateway
-from . import IO
-from . import Metadynamics
-from . import MD
-from . import Node
-from . import Notebook
-from . import Parameters
-from . import Process
-from . import Protocol
-from . import Solvent
-from . import Stream
-from . import Trajectory
-from . import Types
-from . import Units
+import lazy_import as _lazy_import
+
+Align = _lazy_import.lazy_module("BioSimSpace.Align")
+Box = _lazy_import.lazy_module("BioSimSpace.Box")
+Convert = _lazy_import.lazy_module("BioSimSpace.Convert")
+FreeEnergy = _lazy_import.lazy_module("BioSimSpace.FreeEnergy")
+Gateway = _lazy_import.lazy_module("BioSimSpace.Gateway")
+IO = _lazy_import.lazy_module("BioSimSpace.IO")
+Metadynamics = _lazy_import.lazy_module("BioSimSpace.Metadynamics")
+MD = _lazy_import.lazy_module("BioSimSpace.MD")
+Node = _lazy_import.lazy_module("BioSimSpace.Node")
+Notebook = _lazy_import.lazy_module("BioSimSpace.Notebook")
+Parameters = _lazy_import.lazy_module("BioSimSpace.Parameters")
+Process = _lazy_import.lazy_module("BioSimSpace.Process")
+Protocol = _lazy_import.lazy_module("BioSimSpace.Protocol")
+Solvent = _lazy_import.lazy_module("BioSimSpace.Solvent")
+Stream = _lazy_import.lazy_module("BioSimSpace.Stream")
+Trajectory = _lazy_import.lazy_module("BioSimSpace.Trajectory")
+Types = _lazy_import.lazy_module("BioSimSpace.Types")
+Units = _lazy_import.lazy_module("BioSimSpace.Units")
+
+del _lazy_import
 
 from . import _version
 

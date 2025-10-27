@@ -1,17 +1,3 @@
-import itertools as _it
-import os as _os
-import shutil as _shutil
-import tempfile
-
-import numpy as _np
-from sire.legacy import IO as _SireIO
-from sire.legacy import Mol as _SireMol
-
-from ._merge import _removeDummies
-from ..IO import readMolecules as _readMolecules, saveMolecules as _saveMolecules
-from .._SireWrappers import Molecule as _Molecule
-
-
 def _squash(system, explicit_dummies=False):
     """Internal function which converts a merged BioSimSpace system into an AMBER-compatible format, where all perturbed
     molecules are represented sequentially, instead of in a mixed topology, like in GROMACS. In the current
@@ -49,6 +35,8 @@ def _squash(system, explicit_dummies=False):
          molecules are contained in this mapping as the perturbable ones do not
          have a one-to-one mapping and cannot be expressed as a dictionary.
     """
+    from sire.legacy import Mol as _SireMol
+
     # Create a copy of the original system.
     new_system = system.copy()
 
@@ -108,6 +96,13 @@ def _squash_molecule(molecule, explicit_dummies=False):
     system : BioSimSpace._SireWrappers.System
          The output squashed system.
     """
+    from ..IO import readMolecules as _readMolecules, saveMolecules as _saveMolecules
+    from ._merge import _removeDummies
+    import shutil as _shutil
+    import tempfile
+    import os as _os
+    from .._SireWrappers import Molecule as _Molecule
+
     if not molecule.isPerturbable():
         return molecule
 
@@ -224,6 +219,8 @@ def _unsquash(system, squashed_system, mapping, **kwargs):
     system : BioSimSpace._SireWrappers.System
          The output unsquashed system.
     """
+    from sire.legacy import IO as _SireIO
+
     # Create a copy of the original new_system.
     new_system = system.copy()
 
@@ -291,6 +288,9 @@ def _unsquash_molecule(molecule, squashed_molecules, explicit_dummies=False):
     molecule : BioSimSpace._SireWrappers.Molecule
          The output updated merged molecule.
     """
+    from sire.legacy import Mol as _SireMol
+    from .._SireWrappers import Molecule as _Molecule
+
     # Get the common core atoms
     atom_mapping0_common = _squashed_atom_mapping(
         molecule,
@@ -443,6 +443,9 @@ def _squashed_atom_mapping(system, is_lambda1=False, environment=True, **kwargs)
     mapping : dict(int, int)
         The corresponding atom mapping.
     """
+    from .._SireWrappers import Molecule as _Molecule
+    import numpy as _np
+
     if isinstance(system, _Molecule):
         return _squashed_atom_mapping(
             system.toSystem(), is_lambda1=is_lambda1, environment=environment, **kwargs
@@ -544,6 +547,8 @@ def _squashed_atom_mapping_molecule(
     n_atoms : int
         The number of squashed atoms that correspond to the squashed molecule.
     """
+    import numpy as _np
+
     if molecule.isDecoupled():
         # Check if the state 0 is coupled
         coupled_at_lambda0 = _check_decouple(molecule)
@@ -738,6 +743,8 @@ def _amber_mask_from_indices(atom_idxs):
     mask : str
         The AMBER mask.
     """
+    import itertools as _it
+
     # AMBER has a restriction on the number of characters in the restraint
     # mask (not documented) so we can't just use comma-separated atom
     # indices. Instead we loop through the indices and use hyphens to

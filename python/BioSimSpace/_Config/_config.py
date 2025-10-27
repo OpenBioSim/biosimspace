@@ -26,14 +26,6 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["Config"]
 
-import math as _math
-import warnings as _warnings
-
-from ..Protocol._protocol import Protocol as _ProtocolBase
-from .._SireWrappers import System as _System
-
-from .. import Protocol as _Protocol
-
 
 class Config:
     """Base class for generating configuration files for molecular dynamics engines."""
@@ -56,6 +48,8 @@ class Config:
             values. This allows the user to refer to properties with their
             own naming scheme, e.g. { "charge" : "my-charge" }
         """
+        from .._SireWrappers import System as _System
+        from ..Protocol._protocol import Protocol as _ProtocolBase
 
         # Don't allow user to create an instance of this base class.
         if type(self) is Config:
@@ -101,6 +95,8 @@ class Config:
         has_box : bool
             Whether the system has a simulation box.
         """
+        from .._SireWrappers import System as _System
+        import warnings as _warnings
 
         if not isinstance(system, _System):
             raise TypeError(
@@ -141,6 +137,8 @@ class Config:
         has_water : bool
             Whether the system contains water molecules.
         """
+        from .._SireWrappers import System as _System
+
         if not isinstance(system, _System):
             raise TypeError(
                 "'system' must be of type 'BioSimSpace._SireWrappers.System'"
@@ -158,6 +156,8 @@ class Config:
         report_interval : int
             The report interval in integration steps.
         """
+        from .. import Protocol as _Protocol
+
         if isinstance(self._protocol, _Protocol.Minimisation):
             return 100
         else:
@@ -191,6 +191,8 @@ class Config:
         restart_interval : int
             The restart interval in integration steps.
         """
+        from .. import Protocol as _Protocol
+
         if isinstance(self._protocol, _Protocol.Minimisation):
             return None
         else:
@@ -209,6 +211,9 @@ class Config:
         steps : int
             The number of integration steps.
         """
+        import math as _math
+        from .. import Protocol as _Protocol
+
         if isinstance(self._protocol, _Protocol.Minimisation):
             steps = self._protocol.getSteps()
         else:

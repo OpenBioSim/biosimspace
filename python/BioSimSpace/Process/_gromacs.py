@@ -28,45 +28,11 @@ __all__ = ["Gromacs"]
 
 from .._Utils import _try_import
 
-from pathlib import Path as _Path
-from tempfile import TemporaryDirectory as _TemporaryDirectory
-
-import glob as _glob
-import numpy as _np
-import os as _os
 
 _pygtail = _try_import("pygtail")
-import shutil as _shutil
-import shlex as _shlex
-import subprocess as _subprocess
-import timeit as _timeit
-import warnings as _warnings
 
-from sire.legacy import Base as _SireBase
-from sire.legacy import IO as _SireIO
-from sire.legacy import Maths as _SireMaths
-from sire.legacy import Units as _SireUnits
-from sire.legacy import Vol as _SireVol
-
-from .. import _gmx_exe, _gmx_version
-from .. import _isVerbose
-from .._Config import Gromacs as _GromacsConfig
-from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
-from ..Protocol._free_energy_mixin import _FreeEnergyMixin
-from ..Protocol._position_restraint_mixin import _PositionRestraintMixin
-from .._SireWrappers import System as _System
-from ..Types._type import Type as _Type
-
-from .. import IO as _IO
-from .. import Protocol as _Protocol
-from .. import Trajectory as _Trajectory
-from .. import Types as _Types
-from .. import Units as _Units
-from .. import _Utils
 
 from . import _process
-
-from ._plumed import Plumed as _Plumed
 
 
 class Gromacs(_process.Process):
@@ -152,6 +118,9 @@ class Gromacs(_process.Process):
         kwargs : dict
             Additional keyword arguments.
         """
+        import os as _os
+        from .. import _gmx_exe
+        from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
 
         # Call the base class constructor.
         super().__init__(
@@ -249,6 +218,10 @@ class Gromacs(_process.Process):
 
     def _setup(self, **kwargs):
         """Setup the input files and working directory ready for simulation."""
+        from ..Protocol._free_energy_mixin import _FreeEnergyMixin
+        from .. import IO as _IO
+        import os as _os
+        from .. import Protocol as _Protocol
 
         # Create the input files...
 
@@ -333,6 +306,17 @@ class Gromacs(_process.Process):
 
     def _generate_config(self):
         """Generate GROMACS configuration file strings."""
+        import os as _os
+        from .. import Protocol as _Protocol
+        from sire.legacy import IO as _SireIO
+        from ._plumed import Plumed as _Plumed
+        from sire.legacy import Maths as _SireMaths
+        import warnings as _warnings
+        from .._Config import Gromacs as _GromacsConfig
+        from ..Protocol._position_restraint_mixin import _PositionRestraintMixin
+        import shutil as _shutil
+        from .. import _gmx_version
+        from sire.legacy import Vol as _SireVol
 
         # Check whether the system contains periodic box information.
         space_prop = self._property_map.get("space", "space")
@@ -457,6 +441,7 @@ class Gromacs(_process.Process):
 
     def _generate_args(self):
         """Generate the dictionary of command-line arguments."""
+        from .. import Protocol as _Protocol
 
         # Clear the existing arguments.
         self.clearArgs()
@@ -529,6 +514,9 @@ class Gromacs(_process.Process):
         **kwargs : dict
             Additional keyword arguments.
         """
+        from .. import _Utils
+        import subprocess as _subprocess
+        import os as _os
 
         if not isinstance(mdp_file, str):
             raise ValueError("'mdp_file' must be of type 'str'.")
@@ -744,6 +732,9 @@ class Gromacs(_process.Process):
         process : :class:`Process.Gromacs <BioSimSpace.Process.Gromacs>`
             A handle to the GROMACS process.
         """
+        import timeit as _timeit
+        from .. import _Utils
+        from sire.legacy import Base as _SireBase
 
         # The process is currently queued.
         if self.isQueued():
@@ -804,6 +795,9 @@ class Gromacs(_process.Process):
         system : :class:`System <BioSimSpace._SireWrappers.System>`
             The latest molecular system.
         """
+        from .. import Units as _Units
+        import warnings as _warnings
+        from .. import Protocol as _Protocol
 
         # Wait for the process to finish.
         if block is True:
@@ -861,6 +855,8 @@ class Gromacs(_process.Process):
         trajectory : :class:`System <BioSimSpace.Trajectory.Trajectory>`
             The latest trajectory object.
         """
+        import warnings as _warnings
+        from .. import Trajectory as _Trajectory
 
         if not isinstance(backend, str):
             raise TypeError("'backend' must be of type 'str'")
@@ -908,6 +904,7 @@ class Gromacs(_process.Process):
         frame : :class:`System <BioSimSpace._SireWrappers.System>`
             The System object of the corresponding frame.
         """
+        import warnings as _warnings
 
         if not type(index) is int:
             raise TypeError("'index' must be of type 'int'")
@@ -963,6 +960,7 @@ class Gromacs(_process.Process):
         record : :class:`Type <BioSimSpace.Types>`
             The matching record.
         """
+        import warnings as _warnings
 
         # Wait for the process to finish.
         if block is True:
@@ -999,6 +997,8 @@ class Gromacs(_process.Process):
         record : :class:`Type <BioSimSpace.Types>`
             The matching record.
         """
+        import warnings as _warnings
+
         # Warn the user if the process has exited with an error.
         if self.isError():
             _warnings.warn("The process exited with an error!")
@@ -1022,6 +1022,8 @@ class Gromacs(_process.Process):
         records : :class:`MultiDict <BioSimSpace.Process._process._MultiDict>`
            The dictionary of time-series records.
         """
+        import warnings as _warnings
+
         # Wait for the process to finish.
         if block is True:
             self.wait()
@@ -1072,6 +1074,8 @@ class Gromacs(_process.Process):
         time : :class:`Time <BioSimSpace.Types.Time>`
             The current simulation time in nanoseconds.
         """
+        from .. import Units as _Units
+        from .. import Protocol as _Protocol
 
         if isinstance(self._protocol, _Protocol.Minimisation):
             return None
@@ -1119,6 +1123,8 @@ class Gromacs(_process.Process):
         step : int
             The current number of integration steps.
         """
+        from .. import Units as _Units
+
         records = self.getRecord("TIME", time_series, _Units.Time.picosecond, block)
         time_step = self._protocol.getTimeStep()
         if time_series:
@@ -1163,6 +1169,8 @@ class Gromacs(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
             The bond energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord("BOND", time_series, _Units.Energy.kj_per_mol, block)
 
     def getCurrentBondEnergy(self, time_series=False):
@@ -1202,6 +1210,8 @@ class Gromacs(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
             The angle energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord("ANGLE", time_series, _Units.Energy.kj_per_mol, block)
 
     def getCurrentAngleEnergy(self, time_series=False):
@@ -1241,6 +1251,8 @@ class Gromacs(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
             The total dihedral energy.
         """
+        from .. import Units as _Units
+
         # Get the proper and improper energies.
         proper = self.getRecord(
             "PROPERDIH", time_series, _Units.Energy.kj_per_mol, block
@@ -1299,6 +1311,8 @@ class Gromacs(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
             The proper dihedral energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord("PROPERDIH", time_series, _Units.Energy.kj_per_mol, block)
 
     def getCurrentProperEnergy(self, time_series=False):
@@ -1338,6 +1352,8 @@ class Gromacs(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
             The improper energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "IMPROPERDIH", time_series, _Units.Energy.kj_per_mol, block
         )
@@ -1379,6 +1395,8 @@ class Gromacs(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
             The Lennard-Jones energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord("LJ14", time_series, _Units.Energy.kj_per_mol, block)
 
     def getCurrentLennardJones14(self, time_series=False):
@@ -1418,6 +1436,8 @@ class Gromacs(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
             The short-range Lennard-Jones energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord("LJSR", time_series, _Units.Energy.kj_per_mol, block)
 
     def getCurrentLennardJonesSR(self, time_series=False):
@@ -1457,6 +1477,8 @@ class Gromacs(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
             The Coulomb energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord("COULOMB14", time_series, _Units.Energy.kj_per_mol, block)
 
     def getCurrentCoulomb14(self, time_series=False):
@@ -1496,6 +1518,8 @@ class Gromacs(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
             The Coulomb energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord("COULOMBSR", time_series, _Units.Energy.kj_per_mol, block)
 
     def getCurrentCoulombSR(self, time_series=False):
@@ -1535,6 +1559,8 @@ class Gromacs(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
             The Coulomb energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord("COULRECIP", time_series, _Units.Energy.kj_per_mol, block)
 
     def getCurrentCoulombReciprocal(self, time_series=False):
@@ -1574,6 +1600,8 @@ class Gromacs(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
             The dispersion correction.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "DISPERCORR", time_series, _Units.Energy.kj_per_mol, block
         )
@@ -1615,6 +1643,8 @@ class Gromacs(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
             The dispersion correction.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "POSITIONREST", time_series, _Units.Energy.kj_per_mol, block
         )
@@ -1656,6 +1686,8 @@ class Gromacs(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
             The potential energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord("POTENTIAL", time_series, _Units.Energy.kj_per_mol, block)
 
     def getCurrentPotentialEnergy(self, time_series=False):
@@ -1695,6 +1727,8 @@ class Gromacs(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
             The kinetic energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord("KINETICEN", time_series, _Units.Energy.kj_per_mol, block)
 
     def getCurrentKineticEnergy(self, time_series=False):
@@ -1734,6 +1768,8 @@ class Gromacs(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
             The total energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "TOTALENERGY", time_series, _Units.Energy.kj_per_mol, block
         )
@@ -1775,6 +1811,8 @@ class Gromacs(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
             The conserved energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "CONSERVEDEN", time_series, _Units.Energy.kj_per_mol, block
         )
@@ -1816,6 +1854,8 @@ class Gromacs(_process.Process):
         temperature : :class:`Temperature <BioSimSpace.Types.Temperature>`
             The temperature.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "TEMPERATURE", time_series, _Units.Temperature.kelvin, block
         )
@@ -1857,6 +1897,8 @@ class Gromacs(_process.Process):
         pressure : :class:`Pressure <BioSimSpace.Types.Pressure>`
             The pressure.
         """
+        from .. import Units as _Units
+
         return self.getRecord("PRESSURE", time_series, _Units.Pressure.bar, block)
 
     def getCurrentPressure(self, time_series=False):
@@ -1896,6 +1938,8 @@ class Gromacs(_process.Process):
         pressure : :class:`Pressure <BioSimSpace.Types.Pressure>`
             The DC pressure.
         """
+        from .. import Units as _Units
+
         return self.getRecord("PRESDC", time_series, _Units.Pressure.bar, block)
 
     def getCurrentPressureDC(self, time_series=False):
@@ -1973,6 +2017,8 @@ class Gromacs(_process.Process):
         volume : :class:`Volume <BioSimSpace.Types.Volume>`
            The volume.
         """
+        from .. import Units as _Units
+
         return self.getRecord("VOLUME", time_series, _Units.Volume.nanometer3, block)
 
     def getCurrentVolume(self, time_series=False):
@@ -2029,6 +2075,12 @@ class Gromacs(_process.Process):
 
     def _add_position_restraints(self):
         """Helper function to add position restraints."""
+        from ..Protocol._free_energy_mixin import _FreeEnergyMixin
+        import os as _os
+        from sire.legacy import IO as _SireIO
+        from sire.legacy import Base as _SireBase
+        from .. import _isVerbose
+        from sire.legacy import Units as _SireUnits
 
         # Get the restraint type.
         restraint = self._protocol.getRestraint()
@@ -2278,6 +2330,9 @@ class Gromacs(_process.Process):
 
     def _initialise_energy_dict(self):
         """Helper function to intialise the energy dictionary."""
+        from .. import _Utils
+        import subprocess as _subprocess
+
         # Grab the available energy terms
         command = f"{self._exe} energy -f {self._energy_file}"
         proc = _subprocess.run(
@@ -2335,6 +2390,8 @@ class Gromacs(_process.Process):
         U-B, Proper-Dih.. Note that this order is absolute and will not be
         changed by the input to `gmx energy`.
         """
+        import numpy as _np
+
         sections = text.split("---")
         # Remove the empty sections
         sections = [section for section in sections if section]
@@ -2383,6 +2440,10 @@ class Gromacs(_process.Process):
         The order that the energy unit is printed will obey the order obtained
         from :meth:`~BioSimSpace.Process.Gromacs._parse_energy_terms`.
         """
+        from .. import Types as _Types
+        import warnings as _warnings
+        from .. import Units as _Units
+
         section = text.split("---")[-1]
         lines = section.split("\n")
         units = [
@@ -2458,6 +2519,11 @@ class Gromacs(_process.Process):
 
     def _update_energy_dict(self):
         """Internal function to update the energy dictionary with the latest data."""
+        from tempfile import TemporaryDirectory as _TemporaryDirectory
+        from .. import _Utils
+        from pathlib import Path as _Path
+        import subprocess as _subprocess
+        import numpy as _np
 
         if len(self._energy_dict) == 0:
             self._initialise_energy_dict()
@@ -2520,6 +2586,8 @@ class Gromacs(_process.Process):
         record :
             The matching stdout record.
         """
+        import warnings as _warnings
+        from ..Types._type import Type as _Type
 
         # No data!
         if len(self._energy_dict) == 0:
@@ -2570,6 +2638,12 @@ class Gromacs(_process.Process):
         system : :class:`System <BioSimSpace._SireWrappers.System>`
             The molecular system from the final frame.
         """
+        from .. import IO as _IO
+        import os as _os
+        from .. import _Utils
+        from sire.legacy import IO as _SireIO
+        import warnings as _warnings
+
         # Grab the last frame from the GRO file.
         with _Utils.cd(self._work_dir):
             # Do we need to get coordinates for the lambda=1 state.
@@ -2656,6 +2730,13 @@ class Gromacs(_process.Process):
         system : :class:`System <BioSimSpace._SireWrappers.System>`
             The molecular system from the closest trajectory frame.
         """
+        from .. import IO as _IO
+        import os as _os
+        from .. import _Utils
+        from sire.legacy import IO as _SireIO
+        from .. import Types as _Types
+        import warnings as _warnings
+        import subprocess as _subprocess
 
         if not isinstance(time, _Types.Time):
             raise TypeError("'time' must be of type 'BioSimSpace.Types.Time'")
@@ -2779,6 +2860,9 @@ class Gromacs(_process.Process):
         traj_file : str
             The path to the trajectory file.
         """
+        import warnings as _warnings
+        import glob as _glob
+        import os as _os
 
         # Check that the current trajectory file is found.
         if not _os.path.isfile(self._traj_file):

@@ -36,39 +36,13 @@ __all__ = [
 ]
 
 from collections import OrderedDict as _OrderedDict
-from glob import glob as _glob
-from io import StringIO as _StringIO
 
-import json as _json
-import os as _os
-import shlex as _shlex
-import shutil as _shutil
-import sys as _sys
-import subprocess as _subprocess
-import warnings as _warnings
 
 # Flag that we've not yet raised a warning about GROMACS not being installed.
 _has_gmx_warned = False
 
-import sire as _sire
 
-from sire.legacy import Base as _SireBase
 from sire.legacy import IO as _SireIO
-from sire.legacy import Mol as _SireMol
-from sire.legacy import System as _SireSystem
-
-from .. import _amber_home
-from .. import _gmx_path
-from .. import _isVerbose
-from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
-from .._SireWrappers import Molecule as _Molecule
-from .._SireWrappers import Molecules as _Molecules
-from .._SireWrappers import System as _System
-from .. import _Utils
-
-from ._file_cache import _check_cache
-from ._file_cache import _update_cache
-from ._file_cache import _cache_active
 
 
 # Context manager for capturing stdout.
@@ -76,11 +50,16 @@ from ._file_cache import _cache_active
 # https://stackoverflow.com/questions/16571150/how-to-capture-stdout-output-from-a-python-function-call
 class _Capturing(list):
     def __enter__(self):
+        import sys as _sys
+        from io import StringIO as _StringIO
+
         self._stdout = _sys.stdout
         _sys.stdout = self._stringio = _StringIO()
         return self
 
     def __exit__(self, *args):
+        import sys as _sys
+
         self.extend(self._stringio.getvalue().splitlines())
         del self._stringio
         _sys.stdout = self._stdout
@@ -132,6 +111,7 @@ def expand(base, path, suffix=None):
     path : [str]
         The list of expanded filenames or URLs.
     """
+    import sire as _sire
 
     if not isinstance(base, str):
         raise TypeError("'base' must be of type 'str'")
@@ -250,6 +230,12 @@ def readPDB(id, pdb4amber=False, work_dir=None, show_warnings=False, property_ma
     >>> import BioSimSpace as BSS
     >>> system = BSS.IO.readPDB("file.pdb", pdb4amber=True)
     """
+    from .._SireWrappers import System as _System
+    from .. import _amber_home
+    import os as _os
+    from .. import _Utils
+    from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
+    import subprocess as _subprocess
 
     if not isinstance(id, str):
         raise TypeError("'id' must be of type 'str'")
@@ -422,6 +408,14 @@ def readMolecules(
     >>> import BioSimSpace as BSS
     >>> system = BSS.IO.readMolecules(["mol.gro87", "mol.grotop"], property_map={"GROMACS_PATH" : "/path/to/gromacs/topology"})
     """
+    import warnings as _warnings
+    from sire.legacy import Base as _SireBase
+    from .._SireWrappers import System as _System
+    from .. import _isVerbose
+    from .. import _gmx_path
+    from glob import glob as _glob
+    import os as _os
+    from .. import _Utils
 
     global _has_gmx_warned
     if _gmx_path is None and not _has_gmx_warned:
@@ -661,6 +655,17 @@ def saveMolecules(
     >>> system = BSS.IO.readMolecules(files, property_map={"charge" : "my-charge"})
     >>> BSS.IO.saveMolecules("test", system, ["gro87", "grotop"], property_map={"charge" : "my-charge"})
     """
+    import warnings as _warnings
+    from .._SireWrappers import Molecule as _Molecule
+    from .._SireWrappers import System as _System
+    from sire.legacy import Base as _SireBase
+    from ._file_cache import _update_cache
+    from .. import _isVerbose
+    from ._file_cache import _check_cache
+    from .. import _gmx_path
+    from .._SireWrappers import Molecules as _Molecules
+    import os as _os
+    from ._file_cache import _cache_active
 
     global _has_gmx_warned
     if _gmx_path is None and not _has_gmx_warned:
@@ -903,6 +908,9 @@ def savePerturbableSystem(filebase, system, save_velocities=True, property_map={
         values. This allows the user to refer to properties with their
         own naming scheme, e.g. { "charge" : "my-charge" }
     """
+    from .._SireWrappers import Molecule as _Molecule
+    from .._SireWrappers import System as _System
+    from .._SireWrappers import Molecules as _Molecules
 
     # Check that the filebase is a string.
     if not isinstance(filebase, str):
@@ -1006,6 +1014,9 @@ def readPerturbableSystem(top0, coords0, top1, coords1, property_map={}):
     system : :class:`System <BioSimSpace._SireWrappers.System>`
         A molecular system.
     """
+    from .._SireWrappers import Molecule as _Molecule
+    from sire.legacy import Base as _SireBase
+    from .. import _isVerbose
 
     if not isinstance(top0, str):
         raise TypeError("'top0' must be of type 'str'.")
@@ -1258,6 +1269,7 @@ def _patch_sire_load(path, *args, show_warnings=True, property_map={}, **kwargs)
         The molecules that have been loaded are returned as
         a sire.legacy.System.System.
     """
+    import sire as _sire
 
     if type(path) is not list:
         paths = [path]

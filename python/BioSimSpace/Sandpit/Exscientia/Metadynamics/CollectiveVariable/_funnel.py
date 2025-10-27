@@ -26,22 +26,11 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["Funnel", "makeFunnel", "viewFunnel"]
 
-import math as _math
 
-from sire.legacy.Maths import Vector as _SireVector
-import sire.legacy.Mol as _SireMol
-
-from ... import _is_notebook
 from ._collective_variable import CollectiveVariable as _CollectiveVariable
 from .._bound import Bound as _Bound
 from .._grid import Grid as _Grid
-from ..._Exceptions import IncompatibleError as _IncompatibleError
-from ..._SireWrappers import Molecule as _Molecule
-from ..._SireWrappers import System as _System
-from ...Types import Coordinate as _Coordinate
-from ...Types import Energy as _Energy
 from ...Types import Length as _Length
-from ...Types import Volume as _Volume
 
 
 class Funnel(_CollectiveVariable):
@@ -529,6 +518,9 @@ class Funnel(_CollectiveVariable):
         correction : :class:`Energy <BioSimSpace.Types.Energy>`
             The funnel correction.
         """
+        import math as _math
+        from ...Types import Volume as _Volume
+        from ...Types import Energy as _Energy
 
         if proj_min is None:
             if proj_max is None:
@@ -616,6 +608,7 @@ class Funnel(_CollectiveVariable):
         extent : :class:`Length <BioSimSpace.Types.Length>`
             The distance along the extent axis.
         """
+        import math as _math
 
         if not isinstance(projection, _Length):
             raise TypeError("'projection' must be of type 'BioSimSpace.Types.Length'.")
@@ -636,6 +629,7 @@ class Funnel(_CollectiveVariable):
 
     def _validate(self):
         """Internal function to check that the object is in a consistent state."""
+        import math as _math
 
         if self._lower_bound is not None:
             if not isinstance(self._lower_bound.getValue(), _Length):
@@ -752,6 +746,11 @@ def makeFunnel(
     atoms1 : [int]
         A list of atom indices that define the inflection point of the funnel.
     """
+    from ..._Exceptions import IncompatibleError as _IncompatibleError
+    from ...Types import Coordinate as _Coordinate
+    from sire.legacy.Maths import Vector as _SireVector
+    from ..._SireWrappers import Molecule as _Molecule
+    from ..._SireWrappers import System as _System
 
     # Validate the input.
 
@@ -1018,6 +1017,11 @@ def viewFunnel(system, collective_variable, property_map={}):
     view : :class:`View <BioSimSpace.Notebook.View>`
         A view object showing the system and funnel.
     """
+    import sire.legacy.Mol as _SireMol
+    from sire.legacy.Maths import Vector as _SireVector
+    from ..._SireWrappers import Molecule as _Molecule
+    from ..._SireWrappers import System as _System
+    from ... import _is_notebook
 
     # The following is adapted from funnel_maker.py by Dominykas Lukauskis.
 
