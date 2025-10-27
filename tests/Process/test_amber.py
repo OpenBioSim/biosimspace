@@ -317,7 +317,7 @@ def test_parse_fep_output(perturbable_system, protocol):
 
     # Use the first instance of sander in the path so that we can
     # test without pmemd.
-    exe = findExe("sander").absoluteFilePath()
+    exe = findExe("sander").absolute_file_path()
     process = BSS.Process.Amber(system_copy, protocol, exe=exe)
 
     # Assign the path to the output file.
