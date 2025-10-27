@@ -143,24 +143,36 @@ from os import path as _path
 _gmx_exe = None
 if "GROMACSHOME" in _environ:
     try:
-        _gmx_exe = _SireBase.findExe(
-            "%s/bin/gmx" % _environ.get("GROMACSHOME")
-        ).absolute_file_path()
+        _gmx_exe = _SireBase.findExe("%s/bin/gmx" % _environ.get("GROMACSHOME"))
+        if hasattr(_gmx_exe, "absolute_file_path"):
+            _gmx_exe = _gmx_exe.absolute_file_path()
+        else:
+            _gmx_exe = _gmx_exe.absoluteFilePath()
     except:
         try:
-            _gmx_exe = _SireBase.findExe(
-                "%s/bin/gmx_mpi" % _environ.get("GROMACSHOME")
-            ).absolute_file_path()
+            _gmx_exe = _SireBase.findExe("%s/bin/gmx_mpi" % _environ.get("GROMACSHOME"))
+            if hasattr(_gmx_exe, "absolute_file_path"):
+                _gmx_exe = _gmx_exe.absolute_file_path()
+            else:
+                _gmx_exe = _gmx_exe.absoluteFilePath()
         except:
             pass
 
 if _gmx_exe is None:
     # The user has not told us where it is, so need to look in $PATH.
     try:
-        _gmx_exe = _SireBase.findExe("gmx").asboluteFilePath()
+        _gmx_exe = _SireBase.findExe("gmx")
+        if hasattr(_gmx_exe, "absolute_file_path"):
+            _gmx_exe = _gmx_exe.absolute_file_path()
+        else:
+            _gmx_exe = _gmx_exe.absoluteFilePath()
     except:
         try:
-            _gmx_exe = _SireBase.findExe("gmx_mpi").asboluteFilePath()
+            _gmx_exe = _SireBase.findExe("gmx_mpi")
+            if hasattr(_gmx_exe, "absolute_file_path"):
+                _gmx_exe = _gmx_exe.absolute_file_path()
+            else:
+                _gmx_exe = _gmx_exe.absoluteFilePath()
         except:
             pass
 

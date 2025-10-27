@@ -145,7 +145,7 @@ if "GROMACSHOME" in _environ:
     try:
         _gmx_exe = _SireBase.findExe(
             "%s/bin/gmx" % _environ.get("GROMACSHOME")
-        ).absolute_file_path()
+        ).absoluteFilePath()
     except:
         try:
             _gmx_exe = _SireBase.findExe(
