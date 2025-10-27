@@ -398,7 +398,7 @@ class Gromacs(_process.Process):
             with open(self._top_file, "a") as f:
                 f.write("\n")
                 f.write(
-                    self._restraint.to_string(
+                    self._restraint.toString(
                         engine="GROMACS",
                         perturbation_type=self._protocol.getPerturbationType(),
                         restraint_lambda="restraint"
