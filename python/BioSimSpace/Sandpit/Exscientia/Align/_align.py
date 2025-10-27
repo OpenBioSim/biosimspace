@@ -988,7 +988,7 @@ def matchAtoms(
 
         # Regular match. Include light atoms, but don't allow matches between heavy
         # and light atoms.
-        m0 = mol0.evaluate().findMCSmatches(
+        m0 = mol0.evaluate().find_mcs_matches(
             mol1,
             _SireMol.AtomResultMatcher(_to_sire_mapping(prematch)),
             timeout,
@@ -1001,7 +1001,7 @@ def matchAtoms(
 
         # Include light atoms, and allow matches between heavy and light atoms.
         # This captures mappings such as O --> H in methane to methanol.
-        m1 = mol0.evaluate().findMCSmatches(
+        m1 = mol0.evaluate().find_mcs_matches(
             mol1,
             _SireMol.AtomResultMatcher(_to_sire_mapping(prematch)),
             timeout,

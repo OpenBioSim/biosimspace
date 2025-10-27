@@ -46,3 +46,4 @@ _sr.use_new_api()
 del _sr
 
 from ._align import *
+from . import _squash

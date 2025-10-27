@@ -142,7 +142,7 @@ def test_merge():
     m2 = BSS.Align.merge(m0, m1, mapping, allow_ring_breaking=True)
 
     # Store the number of atoms in m0.
-    n0 = m0._sire_object.nAtoms()
+    n0 = m0._sire_object.num_atoms()
 
     # Test that the intramolecular energies are the same.
 
@@ -196,23 +196,23 @@ def test_merge():
     # bond, angle, dihedral, and improper energies are correct.
 
     internalff0 = InternalFF("internal")
-    internalff0.setStrict(True)
+    internalff0.set_strict(True)
     internalff0.add(m0._sire_object)
 
     internalff1 = InternalFF("internal")
-    internalff1.setStrict(True)
+    internalff1.set_strict(True)
     internalff1.add(m1._sire_object)
 
     # First extract a partial molecule using the atoms from molecule0 in
     # the merged molecule.
     selection = m2._sire_object.selection()
-    selection.deselectAll()
+    selection.deselect_all()
     for atom in m0._sire_object.atoms():
         selection.select(atom.index())
     partial_mol = PartialMolecule(m2._sire_object, selection)
 
     internalff2 = InternalFF("internal")
-    internalff2.setStrict(True)
+    internalff2.set_strict(True)
     internalff2.add(partial_mol, pmap0)
 
     assert internalff0.energy().value() == pytest.approx(internalff2.energy().value())
@@ -221,7 +221,7 @@ def test_merge():
     amber_mol, _ = m2._extractMolecule()
 
     internalff2 = InternalFF("internal")
-    internalff2.setStrict(True)
+    internalff2.set_strict(True)
     internalff2.add(amber_mol._sire_object)
 
     assert internalff0.energy().value() == pytest.approx(internalff2.energy().value())
@@ -229,15 +229,15 @@ def test_merge():
     # Now extract a partial molecule using the atoms from molecule1 in
     # the merged molecule.
     selection = m2._sire_object.selection()
-    selection.deselectAll()
+    selection.deselect_all()
     for idx in mapping.keys():
         selection.select(AtomIdx(idx))
-    for idx in range(n0, m2._sire_object.nAtoms()):
+    for idx in range(n0, m2._sire_object.num_atoms()):
         selection.select(AtomIdx(idx))
     partial_mol = PartialMolecule(m2._sire_object, selection)
 
     internalff2 = InternalFF("internal")
-    internalff2.setStrict(True)
+    internalff2.set_strict(True)
     internalff2.add(partial_mol, pmap1)
 
     assert internalff1.energy().value() == pytest.approx(internalff2.energy().value())
@@ -246,7 +246,7 @@ def test_merge():
     amber_mol, _ = m2._extractMolecule(is_lambda1=True)
 
     internalff2 = InternalFF("internal")
-    internalff2.setStrict(True)
+    internalff2.set_strict(True)
     internalff2.add(amber_mol._sire_object)
 
     assert internalff1.energy().value() == pytest.approx(internalff2.energy().value())
@@ -372,7 +372,7 @@ def roi_intraff1(roi_mol1):
 @pytest.fixture(scope="module")
 def roi_internal0(roi_mol0):
     res = InternalFF("internal")
-    res.setStrict(True)
+    res.set_strict(True)
     res.add(roi_mol0._sire_object)
     return res
 
@@ -380,7 +380,7 @@ def roi_internal0(roi_mol0):
 @pytest.fixture(scope="module")
 def roi_internal1(roi_mol1):
     res = InternalFF("internal")
-    res.setStrict(True)
+    res.set_strict(True)
     res.add(roi_mol1._sire_object)
     return res
 
@@ -437,7 +437,7 @@ def test_roi_bonded0(roi_mol0, roi_merged_mol, roi_pmap0, roi_internal0):
     # In this test, we extract the original molecule for the lambda=0 end state.
     amber_mol, _ = roi_merged_mol._extractMolecule()
     roi_internal_merged = InternalFF("internal")
-    roi_internal_merged.setStrict(True)
+    roi_internal_merged.set_strict(True)
     roi_internal_merged.add(amber_mol._sire_object)
     assert roi_internal0.energy().value() == pytest.approx(
         roi_internal_merged.energy().value()
@@ -450,7 +450,7 @@ def test_roi_bonded1(roi_mol1, roi_merged_mol, roi_pmap1, roi_internal1):
     # In this test, we extract the original molecule for the lambda=1 end state.
     amber_mol, _ = roi_merged_mol._extractMolecule(is_lambda1=True)
     roi_internal_merged = InternalFF("internal")
-    roi_internal_merged.setStrict(True)
+    roi_internal_merged.set_strict(True)
     roi_internal_merged.add(amber_mol._sire_object)
     assert roi_internal1.energy().value() == pytest.approx(
         roi_internal_merged.energy().value()

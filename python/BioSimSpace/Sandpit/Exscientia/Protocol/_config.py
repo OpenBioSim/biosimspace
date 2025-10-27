@@ -921,7 +921,7 @@ class ConfigFactory:
                         "multiple distance restraints."
                     )
                 total_lines.append("use boresch restraints = True")
-                total_lines.append(restraint.to_string(engine="SOMD"))
+                total_lines.append(restraint.toString(engine="SOMD"))
 
             # Handle multiple distance restraints.
             elif restraint._restraint_type == "multiple_distance":
@@ -930,7 +930,7 @@ class ConfigFactory:
                     # In this case, we want to ensure that the "permanent" distance restraint is active
                     total_lines.append("use permanent distance restraints = True")
                 total_lines.append(
-                    restraint.to_string(
+                    restraint.toString(
                         engine="SOMD", perturbation_type=perturbation_type
                     )
                 )

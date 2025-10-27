@@ -218,8 +218,8 @@ def test_amber(protocol, system, ref_system, tmp_path):
     # We have generated a separate restraint reference
     assert os.path.exists(proc._ref_file)
 
-    ref = AmberRst(proc._ref_file).getFrame(0)
-    rst = AmberRst(proc._rst_file).getFrame(0)
+    ref = AmberRst(proc._ref_file).get_frame(0)
+    rst = AmberRst(proc._rst_file).get_frame(0)
 
     assert ref != rst
 

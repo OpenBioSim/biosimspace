@@ -179,7 +179,7 @@ def merge(
         raise _IncompatibleError("Cannot determine 'forcefield' of 'molecule1'!")
 
     # The force fields are incompatible.
-    if not molecule0.property(ff0).isCompatibleWith(molecule1.property(ff1)):
+    if not molecule0.property(ff0).is_compatible_with(molecule1.property(ff1)):
         raise _IncompatibleError(
             "Cannot merge molecules with incompatible force fields!"
         )
@@ -997,8 +997,8 @@ def merge(
     # and "bond1" properties, unless a ring is broken or changes size.
     if not (allow_ring_breaking or allow_ring_size_change):
         if (
-            edit_mol.property("bond0").nFunctions()
-            != edit_mol.property("bond1").nFunctions()
+            edit_mol.property("bond0").num_functions()
+            != edit_mol.property("bond1").num_functions()
         ):
             raise _IncompatibleError(
                 "Inconsistent number of bonds in merged molecule! "
@@ -1093,7 +1093,9 @@ def merge(
                     )
 
                 # The connectivity has changed.
-                if c0.connectionType(idx, idy) != conn.connectionType(idx_map, idy_map):
+                if c0.connection_type(idx, idy) != conn.connection_type(
+                    idx_map, idy_map
+                ):
                     # The connectivity changed for an unknown reason.
                     if not (is_ring_broken or is_ring_size_change) and not force:
                         raise _IncompatibleError(
@@ -1149,7 +1151,9 @@ def merge(
                     )
 
                 # The connectivity has changed.
-                if c1.connectionType(idx, idy) != conn.connectionType(idx_map, idy_map):
+                if c1.connection_type(idx, idy) != conn.connection_type(
+                    idx_map, idy_map
+                ):
                     # The connectivity changed for an unknown reason.
                     if not (is_ring_broken or is_ring_size_change) and not force:
                         raise _IncompatibleError(
@@ -1167,7 +1171,7 @@ def merge(
     ff = molecule0.property(ff0)
 
     scale_factor_14 = _SireMM.CLJScaleFactor(
-        ff.electrostatic14ScaleFactor(), ff.vdw14ScaleFactor()
+        ff.electrostatic14_scale_factor(), ff.vdw14_scale_factor()
     )
     clj_nb_pairs0 = _SireMM.CLJNBPairs(conn0, scale_factor_14)
     clj_nb_pairs1 = _SireMM.CLJNBPairs(conn1, scale_factor_14)
@@ -1183,7 +1187,7 @@ def merge(
             idx1 = mol1_merged_mapping[idx1]
 
             # Work out the connection type between the atoms, in molecule 0.
-            conn_type0 = conn0.connectionType(idx0, idx1)
+            conn_type0 = conn0.connection_type(idx0, idx1)
 
             # The atoms aren't bonded.
             if conn_type0 == 0:
@@ -1193,7 +1197,7 @@ def merge(
             # The atoms are part of a dihedral.
             elif conn_type0 == 4:
                 clj_scale_factor = _SireMM.CLJScaleFactor(
-                    ff.electrostatic14ScaleFactor(), ff.vdw14ScaleFactor()
+                    ff.electrostatic14_scale_factor(), ff.vdw14_scale_factor()
                 )
                 clj_nb_pairs0.set(idx0, idx1, clj_scale_factor)
 
@@ -1203,7 +1207,7 @@ def merge(
                 clj_nb_pairs0.set(idx0, idx1, clj_scale_factor)
 
             # Work out the connection type between the atoms, in molecule 1.
-            conn_type1 = conn1.connectionType(idx0, idx1)
+            conn_type1 = conn1.connection_type(idx0, idx1)
 
             # The atoms aren't bonded.
             if conn_type1 == 0:
@@ -1213,7 +1217,7 @@ def merge(
             # The atoms are part of a dihedral.
             elif conn_type1 == 4:
                 clj_scale_factor = _SireMM.CLJScaleFactor(
-                    ff.electrostatic14ScaleFactor(), ff.vdw14ScaleFactor()
+                    ff.electrostatic14_scale_factor(), ff.vdw14_scale_factor()
                 )
                 clj_nb_pairs1.set(idx0, idx1, clj_scale_factor)
 
@@ -1248,7 +1252,7 @@ def merge(
             # Map the index to its position in the merged molecule.
             idy_map = mol1_merged_mapping[idy]
 
-            conn_type = conn0.connectionType(idx_map, idy_map)
+            conn_type = conn0.connection_type(idx_map, idy_map)
             # The atoms aren't bonded.
             if conn_type == 0:
                 clj_scale_factor = _SireMM.CLJScaleFactor(1, 1)
@@ -1257,7 +1261,7 @@ def merge(
             # The atoms are part of a dihedral.
             elif conn_type == 4:
                 clj_scale_factor = _SireMM.CLJScaleFactor(
-                    ff.electrostatic14ScaleFactor(), ff.vdw14ScaleFactor()
+                    ff.electrostatic14_scale_factor(), ff.vdw14_scale_factor()
                 )
                 clj_nb_pairs0.set(idx_map, idy_map, clj_scale_factor)
 
@@ -1293,7 +1297,7 @@ def merge(
             # Map the index to its position in the merged molecule.
             idy_map = mol0_merged_mapping[idy]
 
-            conn_type = conn0.connectionType(idx_map, idy_map)
+            conn_type = conn0.connection_type(idx_map, idy_map)
             # The atoms aren't bonded.
             if conn_type == 0:
                 clj_scale_factor = _SireMM.CLJScaleFactor(1, 1)
@@ -1302,7 +1306,7 @@ def merge(
             # The atoms are part of a dihedral.
             elif conn_type == 4:
                 clj_scale_factor = _SireMM.CLJScaleFactor(
-                    ff.electrostatic14ScaleFactor(), ff.vdw14ScaleFactor()
+                    ff.electrostatic14_scale_factor(), ff.vdw14_scale_factor()
                 )
                 clj_nb_pairs0.set(idx_map, idy_map, clj_scale_factor)
 
@@ -1337,7 +1341,7 @@ def merge(
             # Map the index to its position in the merged molecule.
             idy = mol1_merged_mapping[idy]
 
-            conn_type = conn1.connectionType(idx, idy)
+            conn_type = conn1.connection_type(idx, idy)
 
             if conn_type == 0:
                 clj_scale_factor = _SireMM.CLJScaleFactor(1, 1)
@@ -1346,7 +1350,7 @@ def merge(
             # The atoms are part of a dihedral.
             elif conn_type == 4:
                 clj_scale_factor = _SireMM.CLJScaleFactor(
-                    ff.electrostatic14ScaleFactor(), ff.vdw14ScaleFactor()
+                    ff.electrostatic14_scale_factor(), ff.vdw14_scale_factor()
                 )
                 clj_nb_pairs1.set(idx, idy, clj_scale_factor)
 
@@ -1416,10 +1420,10 @@ def _is_ring_broken(conn0, conn1, idx0, idy0, idx1, idy1):
     # isn't in the other state.
 
     # Whether each atom is in a ring in both end states.
-    in_ring_idx0 = conn0.inRing(idx0)
-    in_ring_idy0 = conn0.inRing(idy0)
-    in_ring_idx1 = conn1.inRing(idx1)
-    in_ring_idy1 = conn1.inRing(idy1)
+    in_ring_idx0 = conn0.in_ring(idx0)
+    in_ring_idy0 = conn0.in_ring(idy0)
+    in_ring_idx1 = conn1.in_ring(idx1)
+    in_ring_idy1 = conn1.in_ring(idy1)
 
     # Whether each atom is on a ring in both end states.
     on_ring_idx0 = _is_on_ring(idx0, conn0)
@@ -1432,8 +1436,8 @@ def _is_ring_broken(conn0, conn1, idx0, idy0, idx1, idy1):
         return True
 
     # Both atoms are on a ring in one end state and at least one isn't in the other.
-    if (on_ring_idx0 & on_ring_idy0 & (conn0.connectionType(idx0, idy0) == 4)) ^ (
-        on_ring_idx1 & on_ring_idy1 & (conn1.connectionType(idx1, idy1) == 4)
+    if (on_ring_idx0 & on_ring_idy0 & (conn0.connection_type(idx0, idy0) == 4)) ^ (
+        on_ring_idx1 & on_ring_idy1 & (conn1.connection_type(idx1, idy1) == 4)
     ):
         # Make sure that the change isn't a result of ring growth, i.e. one of
         # the atoms isn't in a ring in one end state, while its "on" ring status
@@ -1448,26 +1452,30 @@ def _is_ring_broken(conn0, conn1, idx0, idy0, idx1, idy1):
     if (
         (in_ring_idx0 | on_ring_idx0)
         & (in_ring_idy0 | on_ring_idy0)
-        & (conn0.connectionType(idx0, idy0) == 3)
+        & (conn0.connection_type(idx0, idy0) == 3)
     ) ^ (
         (in_ring_idx1 | on_ring_idx1)
         & (in_ring_idy1 | on_ring_idy1)
-        & (conn1.connectionType(idx1, idy1) == 3)
+        & (conn1.connection_type(idx1, idy1) == 3)
     ):
-        iscn0 = set(conn0.connectionsTo(idx0)).intersection(
-            set(conn0.connectionsTo(idy0))
+        iscn0 = set(conn0.connections_to(idx0)).intersection(
+            set(conn0.connections_to(idy0))
         )
         if len(iscn0) != 1:
             return True
         common_idx = iscn0.pop()
-        in_ring_bond0 = conn0.inRing(idx0, common_idx) | conn0.inRing(idy0, common_idx)
-        iscn1 = set(conn1.connectionsTo(idx1)).intersection(
-            set(conn1.connectionsTo(idy1))
+        in_ring_bond0 = conn0.in_ring(idx0, common_idx) | conn0.in_ring(
+            idy0, common_idx
+        )
+        iscn1 = set(conn1.connections_to(idx1)).intersection(
+            set(conn1.connections_to(idy1))
         )
         if len(iscn1) != 1:
             return True
         common_idx = iscn1.pop()
-        in_ring_bond1 = conn1.inRing(idx1, common_idx) | conn1.inRing(idy1, common_idx)
+        in_ring_bond1 = conn1.in_ring(idx1, common_idx) | conn1.in_ring(
+            idy1, common_idx
+        )
         if in_ring_bond0 ^ in_ring_bond1:
             return True
 
@@ -1509,8 +1517,8 @@ def _is_ring_size_changed(conn0, conn1, idx0, idy0, idx1, idy1, max_ring_size=12
     # two atoms will have changed.
 
     # Work out the paths connecting the atoms in the two end states.
-    paths0 = conn0.findPaths(idx0, idy0, max_ring_size)
-    paths1 = conn1.findPaths(idx1, idy1, max_ring_size)
+    paths0 = conn0.find_paths(idx0, idy0, max_ring_size)
+    paths1 = conn1.find_paths(idx1, idy1, max_ring_size)
 
     # Initialise the ring size in each end state.
     ring0 = None
@@ -1561,9 +1569,9 @@ def _is_on_ring(idx, conn):
     """
 
     # Loop over all atoms connected to this atom.
-    for x in conn.connectionsTo(idx):
+    for x in conn.connections_to(idx):
         # The neighbour is in a ring.
-        if conn.inRing(x) and (not conn.inRing(x, idx)):
+        if conn.in_ring(x) and (not conn.in_ring(x, idx)):
             return True
 
     # If we get this far, then the atom is not adjacent to a ring.

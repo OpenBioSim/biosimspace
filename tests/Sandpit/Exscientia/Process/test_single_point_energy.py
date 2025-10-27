@@ -63,7 +63,7 @@ def test_amber_gromacs_triclinic(system):
     # Swap the space for a triclinic cell (truncated octahedron).
     from sire.legacy.Vol import TriclinicBox
 
-    triclinic_box = TriclinicBox.truncatedOctahedron(50)
+    triclinic_box = TriclinicBox.truncated_octahedron(50)
     system._sire_object.set_property("space", triclinic_box)
 
     # Create a single-step minimisation protocol.
