@@ -258,6 +258,10 @@ if _can_lazy_import:
     Types = _lazy_import.lazy_module("BioSimSpace.Types")
     Units = _lazy_import.lazy_module("BioSimSpace.Units")
 
+    _Exceptions = _lazy_import.lazy_module("BioSimSpace._Exceptions")
+    _SireWrappers = _lazy_import.lazy_module("BioSimSpace._SireWrappers")
+    _Utils = _lazy_import.lazy_module("BioSimSpace._Utils")
+
     del _lazy_import
 else:
     from . import Align
@@ -278,6 +282,10 @@ else:
     from . import Trajectory
     from . import Types
     from . import Units
+
+    from . import _Exceptions
+    from . import _SireWrappers
+    from . import _Utils
 
 del _can_lazy_import
 del _environ
