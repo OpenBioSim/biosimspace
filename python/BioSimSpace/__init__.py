@@ -176,7 +176,6 @@ if _gmx_exe is None:
         except:
             pass
 
-del _environ
 del _SireBase
 
 _gmx_path = None
@@ -226,28 +225,18 @@ if _gmx_exe is not None:
     del _shlex
     del _subprocess
 
-# Don't lazy load submodules if in a notebook environment.
-if _is_notebook:
-    from . import Align
-    from . import Box
-    from . import Convert
-    from . import FreeEnergy
-    from . import Gateway
-    from . import IO
-    from . import Metadynamics
-    from . import MD
-    from . import Node
-    from . import Notebook
-    from . import Parameters
-    from . import Process
-    from . import Protocol
-    from . import Solvent
-    from . import Stream
-    from . import Trajectory
-    from . import Types
-    from . import Units
-
+# Whether to lazy load submodules.
+if (
+    "SIRE_NO_LAZY_IMPORT" in _environ
+    or "BSS_NO_LAZY_IMPORT" in _environ
+    or _is_notebook
+):
+    _can_lazy_import = False
 else:
+    _can_lazy_import = True
+
+# Lazy import submodules if possible.
+if _can_lazy_import:
     import lazy_import as _lazy_import
 
     Align = _lazy_import.lazy_module("BioSimSpace.Align")
@@ -270,6 +259,28 @@ else:
     Units = _lazy_import.lazy_module("BioSimSpace.Units")
 
     del _lazy_import
+else:
+    from . import Align
+    from . import Box
+    from . import Convert
+    from . import FreeEnergy
+    from . import Gateway
+    from . import IO
+    from . import Metadynamics
+    from . import MD
+    from . import Node
+    from . import Notebook
+    from . import Parameters
+    from . import Process
+    from . import Protocol
+    from . import Solvent
+    from . import Stream
+    from . import Trajectory
+    from . import Types
+    from . import Units
+
+del _can_lazy_import
+del _environ
 
 from . import _version
 
