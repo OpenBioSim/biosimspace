@@ -2440,6 +2440,9 @@ def _draw_molecules(
         molA_atom_idx, molB_atom_idx]
         default None
     """
+    # Adapted from GUFE: https://github.com/OpenFreeEnergy/gufe
+    # Licensed under the MIT license.
+
     from rdkit.Chem import Draw
     from rdkit.Chem import AllChem
 
@@ -2456,10 +2459,6 @@ def _draw_molecules(
         d2d = Draw.rdMolDraw2D.MolDraw2DCairo(
             grid_x * pixels, grid_y * pixels, pixels, pixels
         )
-
-    # get molecule name labels
-    # labels = [m.GetProp("ofe-name") if(m.HasProp("ofe-name"))
-    #           else "test" for m in mols]
 
     labels = ["molecule0", "molecule1"]
 
@@ -2519,6 +2518,9 @@ def _draw_mapping(
     pixels : int
         Size of the 2D image in pixels.
     """
+    # Adapted from GUFE: https://github.com/OpenFreeEnergy/gufe
+    # Licensed under the MIT license.
+
     # highlight core element changes differently from unique atoms
     # RGBA color value needs to be between 0 and 1, so divide by 255
     RED = (220 / 255, 50 / 255, 32 / 255, 1.0)
