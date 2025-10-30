@@ -42,6 +42,11 @@ Classes
     Volume
 """
 
+import sire as _sr
+
+_sr.use_new_api()
+del _sr
+
 from ._angle import *
 from ._area import *
 from ._charge import *

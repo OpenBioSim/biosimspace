@@ -57,5 +57,10 @@ Examples
    process = BSS.MD.run(system, protocol)
 """
 
+import sire as _sr
+
+_sr.use_new_api()
+del _sr
+
 from ._md import *
 from ._utils import *

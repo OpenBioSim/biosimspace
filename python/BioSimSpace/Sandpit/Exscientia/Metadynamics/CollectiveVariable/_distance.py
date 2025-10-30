@@ -26,12 +26,8 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["Distance"]
 
-from math import ceil as _ceil
 
 from ._collective_variable import CollectiveVariable as _CollectiveVariable
-from .._bound import Bound as _Bound
-from .._grid import Grid as _Grid
-from ...Types import Coordinate as _Coordinate
 from ...Types import Length as _Length
 
 
@@ -217,6 +213,7 @@ class Distance(_CollectiveVariable):
             The atom, group of atoms, or coordinate, that the distance
             will be measured from.
         """
+        from ...Types import Coordinate as _Coordinate
 
         # Convert tuples to a list.
         if isinstance(atom0, tuple):
@@ -281,6 +278,7 @@ class Distance(_CollectiveVariable):
             The atom, group of atoms, or coordinate, that the distance
             will be measured to.
         """
+        from ...Types import Coordinate as _Coordinate
 
         # Convert tuples to a list.
         if isinstance(atom1, tuple):
@@ -649,6 +647,7 @@ class Distance(_CollectiveVariable):
 
     def _validate(self):
         """Internal function to check that the object is in a consistent state."""
+        from math import ceil as _ceil
 
         if self._weights0 is not None:
             if not isinstance(self._atom0, list):

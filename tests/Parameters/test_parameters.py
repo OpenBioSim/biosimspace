@@ -222,4 +222,4 @@ def test_ff19SB():
     mol = BSS.Parameters.ff19SB(mol).getMolecule()
 
     # Make sure the molecule has CMAP terms.
-    assert mol._sire_object.hasProperty("cmap")
+    assert mol._sire_object.has_property("cmap")

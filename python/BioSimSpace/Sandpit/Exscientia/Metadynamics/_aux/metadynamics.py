@@ -28,13 +28,7 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 
-import openmm as mm
-from openmm import unit
-
 from collections import namedtuple
-from functools import reduce
-import os
-import re
 
 try:
     import numpy as np
@@ -114,6 +108,10 @@ class Metadynamics(object):
             the directory to which biases should be written, and from which biases written by
             other processes should be loaded
         """
+        from openmm import unit
+        import numpy as np
+        import openmm as mm
+
         if not unit.is_quantity(temperature):
             temperature = temperature * unit.kelvin
         if not unit.is_quantity(height):
@@ -202,6 +200,9 @@ class Metadynamics(object):
         steps : int
             the number of time steps to integrate
         """
+        from openmm import unit
+        import numpy as np
+
         stepsToGo = steps
         while stepsToGo > 0:
             nextSteps = stepsToGo
@@ -236,6 +237,8 @@ class Metadynamics(object):
         variables.  The values are in kJ/mole.  The i'th position along an axis corresponds to
         minValue + i*(maxValue-minValue)/gridWidth.
         """
+        from openmm import unit
+
         return (
             -((self.temperature + self._deltaT) / self._deltaT)
             * self._totalBias
@@ -248,6 +251,9 @@ class Metadynamics(object):
 
     def getHillHeight(self, simulation):
         """Get the current height of the Gaussian hill in kJ/mol."""
+        from openmm import unit
+        import numpy as np
+
         energy = simulation.context.getState(
             getEnergy=True, groups={31}
         ).getPotentialEnergy()
@@ -260,6 +266,10 @@ class Metadynamics(object):
 
     def _addGaussian(self, position, height, context):
         """Add a Gaussian to the bias function."""
+        from openmm import unit
+        from functools import reduce
+        import numpy as np
+
         # Compute a Gaussian along each axis.
 
         axisGaussians = []
@@ -295,6 +305,10 @@ class Metadynamics(object):
 
     def _syncWithDisk(self):
         """Save biases to disk, and check for updated files created by other processes."""
+        import re
+        import os
+        import numpy as np
+
         if self.biasDir is None:
             return
 
@@ -370,6 +384,8 @@ class BiasVariable(object):
             the number of grid points to use when tabulating the bias function.  If this is omitted,
             a reasonable value is chosen automatically.
         """
+        import numpy as np
+
         self.force = force
         self.minValue = self._standardize(minValue)
         self.maxValue = self._standardize(maxValue)
@@ -384,6 +400,8 @@ class BiasVariable(object):
         self._scaledVariance = (self.biasWidth / (self.maxValue - self.minValue)) ** 2
 
     def _standardize(self, quantity):
+        from openmm import unit
+
         if unit.is_quantity(quantity):
             return quantity.value_in_unit_system(unit.md_unit_system)
         else:

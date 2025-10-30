@@ -121,6 +121,8 @@ class Area(_Type):
 
     def __mul__(self, other):
         """Multiplication operator."""
+        from ._length import Length as _Length
+        from ._volume import Volume as _Volume
 
         # Handle containers by converting each item in the container to
         # this type.
@@ -173,6 +175,7 @@ class Area(_Type):
 
     def __truediv__(self, other):
         """Division operator."""
+        from ._length import Length as _Length
 
         # Convert int to float.
         if type(other) is int:
@@ -399,8 +402,3 @@ class Area(_Type):
         unit = unit.replace("meter-2", "(1/meter2)")
 
         return unit
-
-
-# Import at bottom of module to avoid circular dependency.
-from ._length import Length as _Length
-from ._volume import Volume as _Volume

@@ -34,29 +34,11 @@ __all__ = [
     "toSire",
 ]
 
-from .._Utils import _try_import, _have_imported
+from .._Utils import _try_import
 
 _openmm = _try_import("openmm")
 
 import os as _os
-
-from rdkit.Chem.rdchem import Mol as _RDMol
-
-import rdkit.Chem as _Chem
-
-from sire import convert as _sire_convert
-from sire import smiles as _sire_smiles
-
-import sire.legacy.Base as _SireBase
-import sire.legacy.Mol as _SireMol
-import sire.legacy.System as _SireSystem
-import sire.legacy.Vol as _SireVol
-
-import sire.system as _NewSireSystem
-
-from .._Exceptions import ConversionError as _ConversionError
-from .. import IO as _IO
-from .. import _SireWrappers
 
 
 def smiles(
@@ -90,6 +72,9 @@ def smiles(
     molecule : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
         A BioSimSpace molecule.
     """
+    from sire import smiles as _sire_smiles
+    from .. import _SireWrappers
+    from .._Exceptions import ConversionError as _ConversionError
 
     if not isinstance(smiles_string, str):
         raise TypeError("'smiles_string' must be of type 'str'.")
@@ -144,6 +129,8 @@ def supportedFormats():
     formats : [str]
         The supported formats.
     """
+    from sire import convert as _sire_convert
+
     return _sire_convert.supported_formats()
 
 
@@ -171,6 +158,16 @@ def to(obj, format="biosimspace", property_map={}, **kwargs):
     converted_obj :
        The object in the converted format.
     """
+    from .._Exceptions import ConversionError as _ConversionError
+    from sire import convert as _sire_convert
+    from rdkit.Chem.rdchem import Mol as _RDMol
+    from .._Utils import _have_imported
+    import sire.system as _NewSireSystem
+    from .. import _SireWrappers
+    import sire.legacy.Base as _SireBase
+    import sire.legacy.Mol as _SireMol
+    import sire.legacy.System as _SireSystem
+    import sire.legacy.Vol as _SireVol
 
     # Validate the input.
 
@@ -233,7 +230,7 @@ def to(obj, format="biosimspace", property_map={}, **kwargs):
                 space = _SireVol.Cartesian()
 
             # Set a shared space property.
-            obj._sire_object.addSharedProperty(prop, space)
+            obj._sire_object.add_shared_property(prop, space)
 
             # Now try to convert the object to OpenMM format.
             try:
@@ -508,6 +505,8 @@ def toOpenMM(obj, property_map={}):
     converted_obj :
        The object in RDKit format.
     """
+    from .._Utils import _have_imported
+
     if _have_imported(_openmm):
         return to(obj, format="openmm", property_map=property_map)
     else:
@@ -542,6 +541,7 @@ def toRDKit(obj, force_stereo_inference=False, property_map={}):
     converted_obj :
        The object in OpenMM format.
     """
+    import sire.legacy.Base as _SireBase
 
     if not isinstance(force_stereo_inference, bool):
         raise TypeError("'force_stereo_inference' must be of type 'bool'.")
@@ -610,6 +610,10 @@ def _to_rdkit(molecule, work_dir=_os.getcwd(), direct=True, property_map={}):
     rdmol : rdkit.Chem.rdchem.Mol
         The molecule in RDKit format.
     """
+    from .._Exceptions import ConversionError as _ConversionError
+    import rdkit.Chem as _Chem
+    from .. import IO as _IO
+    from .. import _SireWrappers
 
     if not isinstance(molecule, _SireWrappers.Molecule):
         raise TypeError(
@@ -642,7 +646,7 @@ def _to_rdkit(molecule, work_dir=_os.getcwd(), direct=True, property_map={}):
             filebase = work_dir + "/tmp"
 
             # Try to go via SDF format to preserve bond orders.
-            if molecule._sire_object.hasProperty("fileformat"):
+            if molecule._sire_object.has_property("fileformat"):
                 if "SDF" in molecule._sire_object.property("fileformat").value():
                     _IO.saveMolecules(
                         filebase, molecule, "SDF", property_map=property_map

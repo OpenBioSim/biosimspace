@@ -36,39 +36,13 @@ __all__ = [
 ]
 
 from collections import OrderedDict as _OrderedDict
-from glob import glob as _glob
-from io import StringIO as _StringIO
 
-import json as _json
-import os as _os
-import shlex as _shlex
-import shutil as _shutil
-import sys as _sys
-import subprocess as _subprocess
-import warnings as _warnings
 
 # Flag that we've not yet raised a warning about GROMACS not being installed.
 _has_gmx_warned = False
 
-import sire as _sire
 
-from sire.legacy import Base as _SireBase
 from sire.legacy import IO as _SireIO
-from sire.legacy import Mol as _SireMol
-from sire.legacy import System as _SireSystem
-
-from .. import _amber_home
-from .. import _gmx_path
-from .. import _isVerbose
-from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
-from .._SireWrappers import Molecule as _Molecule
-from .._SireWrappers import Molecules as _Molecules
-from .._SireWrappers import System as _System
-from .. import _Utils
-
-from ._file_cache import _check_cache
-from ._file_cache import _update_cache
-from ._file_cache import _cache_active
 
 
 # Context manager for capturing stdout.
@@ -76,11 +50,16 @@ from ._file_cache import _cache_active
 # https://stackoverflow.com/questions/16571150/how-to-capture-stdout-output-from-a-python-function-call
 class _Capturing(list):
     def __enter__(self):
+        import sys as _sys
+        from io import StringIO as _StringIO
+
         self._stdout = _sys.stdout
         _sys.stdout = self._stringio = _StringIO()
         return self
 
     def __exit__(self, *args):
+        import sys as _sys
+
         self.extend(self._stringio.getvalue().splitlines())
         del self._stringio
         _sys.stdout = self._stdout
@@ -88,7 +67,7 @@ class _Capturing(list):
 
 # Capture the supported format information
 with _Capturing() as format_info:
-    print(r"%s" % _SireIO.MoleculeParser.supportedFormats())
+    print(r"%s" % _SireIO.MoleculeParser.supported_formats())
 
 # Create a list of the supported formats.
 _formats = []
@@ -132,6 +111,7 @@ def expand(base, path, suffix=None):
     path : [str]
         The list of expanded filenames or URLs.
     """
+    import sire as _sire
 
     if not isinstance(base, str):
         raise TypeError("'base' must be of type 'str'")
@@ -250,6 +230,12 @@ def readPDB(id, pdb4amber=False, work_dir=None, show_warnings=False, property_ma
     >>> import BioSimSpace as BSS
     >>> system = BSS.IO.readPDB("file.pdb", pdb4amber=True)
     """
+    from .._SireWrappers import System as _System
+    from .. import _amber_home
+    import os as _os
+    from .. import _Utils
+    from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
+    import subprocess as _subprocess
 
     if not isinstance(id, str):
         raise TypeError("'id' must be of type 'str'")
@@ -422,6 +408,14 @@ def readMolecules(
     >>> import BioSimSpace as BSS
     >>> system = BSS.IO.readMolecules(["mol.gro87", "mol.grotop"], property_map={"GROMACS_PATH" : "/path/to/gromacs/topology"})
     """
+    import warnings as _warnings
+    from sire.legacy import Base as _SireBase
+    from .._SireWrappers import System as _System
+    from .. import _isVerbose
+    from .. import _gmx_path
+    from glob import glob as _glob
+    import os as _os
+    from .. import _Utils
 
     global _has_gmx_warned
     if _gmx_path is None and not _has_gmx_warned:
@@ -557,7 +551,7 @@ def readMolecules(
 
     # Add a file format shared property.
     prop = property_map.get("fileformat", "fileformat")
-    system.addSharedProperty(prop, system.property(prop))
+    system.add_shared_property(prop, system.property(prop))
 
     # Remove "space" and "time" shared properties since this causes incorrect
     # behaviour when extracting molecules and recombining them to make other
@@ -566,14 +560,14 @@ def readMolecules(
         # Space.
         prop = property_map.get("space", "space")
         space = system.property(prop)
-        system.removeSharedProperty(prop)
-        system.setProperty(prop, space)
+        system.remove_shared_property(prop)
+        system.set_property(prop, space)
 
         # Time.
         prop = property_map.get("time", "time")
         time = system.property(prop)
-        system.removeSharedProperty(prop)
-        system.setProperty(prop, time)
+        system.remove_shared_property(prop)
+        system.set_property(prop, time)
     except:
         pass
 
@@ -661,6 +655,17 @@ def saveMolecules(
     >>> system = BSS.IO.readMolecules(files, property_map={"charge" : "my-charge"})
     >>> BSS.IO.saveMolecules("test", system, ["gro87", "grotop"], property_map={"charge" : "my-charge"})
     """
+    import warnings as _warnings
+    from .._SireWrappers import Molecule as _Molecule
+    from .._SireWrappers import System as _System
+    from sire.legacy import Base as _SireBase
+    from ._file_cache import _update_cache
+    from .. import _isVerbose
+    from ._file_cache import _check_cache
+    from .. import _gmx_path
+    from .._SireWrappers import Molecules as _Molecules
+    import os as _os
+    from ._file_cache import _cache_active
 
     global _has_gmx_warned
     if _gmx_path is None and not _has_gmx_warned:
@@ -793,9 +798,9 @@ def saveMolecules(
 
             # Loop over all molecules in the system.
             for mol in system.getMolecules():
-                if mol._sire_object.hasProperty(forcefield):
+                if mol._sire_object.has_property(forcefield):
                     if (
-                        mol._sire_object.property(forcefield).combiningRules()
+                        mol._sire_object.property(forcefield).combining_rules()
                         == "geometric"
                     ):
                         _warnings.warn(
@@ -903,6 +908,9 @@ def savePerturbableSystem(filebase, system, save_velocities=True, property_map={
         values. This allows the user to refer to properties with their
         own naming scheme, e.g. { "charge" : "my-charge" }
     """
+    from .._SireWrappers import Molecule as _Molecule
+    from .._SireWrappers import System as _System
+    from .._SireWrappers import Molecules as _Molecules
 
     # Check that the filebase is a string.
     if not isinstance(filebase, str):
@@ -1006,6 +1014,9 @@ def readPerturbableSystem(top0, coords0, top1, coords1, property_map={}):
     system : :class:`System <BioSimSpace._SireWrappers.System>`
         A molecular system.
     """
+    from .._SireWrappers import Molecule as _Molecule
+    from sire.legacy import Base as _SireBase
+    from .. import _isVerbose
 
     if not isinstance(top0, str):
         raise TypeError("'top0' must be of type 'str'.")
@@ -1059,7 +1070,7 @@ def readPerturbableSystem(top0, coords0, top1, coords1, property_map={}):
                 raise IOError(msg) from e
             else:
                 raise IOError(msg) from None
-        if parser.isEmpty():
+        if parser.is_empty():
             raise ValueError(
                 f"Unable to read topology file for lamba=0 end state: {top0}"
             )
@@ -1073,7 +1084,7 @@ def readPerturbableSystem(top0, coords0, top1, coords1, property_map={}):
                 raise IOError(msg) from e
             else:
                 raise IOError(msg) from None
-        if parser.isEmpty():
+        if parser.is_empty():
             raise ValueError(
                 f"Unable to read topology file for lamba=1 end state: {top1}"
             )
@@ -1124,35 +1135,35 @@ def readPerturbableSystem(top0, coords0, top1, coords1, property_map={}):
     # Rename all properties in the molecule for the lambda=0 end state,
     # e.g.: "prop" --> "prop0". Then delete all properties named "prop"
     # and "prop1".
-    for prop in mol.propertyKeys():
+    for prop in mol.property_keys():
         # See if this property exists in the user map.
         new_prop = property_map.get(prop, prop) + "0"
 
         # Copy the property using the updated name.
-        mol = mol.setProperty(new_prop, mol.property(prop)).molecule()
+        mol = mol.set_property(new_prop, mol.property(prop)).molecule()
 
         # Delete the redundant property.
-        mol = mol.removeProperty(prop).molecule()
+        mol = mol.remove_property(prop).molecule()
 
     # Now add the properties for the lambda=1 end state.
     mol1 = system1[idx]._sire_object
-    for prop in mol1.propertyKeys():
+    for prop in mol1.property_keys():
         # See if this property exists in the user map.
         new_prop = property_map.get(prop, prop) + "1"
 
         # Copy the property using the updated name.
-        mol = mol.setProperty(new_prop, mol1.property(prop)).molecule()
+        mol = mol.set_property(new_prop, mol1.property(prop)).molecule()
 
     # Flag that the molecule is perturbable.
-    mol.setProperty("is_perturbable", _SireBase.wrap(True))
+    mol.set_property("is_perturbable", _SireBase.wrap(True))
 
     # Get the two molecules.
     mol0 = system0[idx]._sire_object
     mol1 = system1[idx]._sire_object
 
     # Add the molecule0 and molecule1 properties.
-    mol.setProperty("molecule0", mol0)
-    mol.setProperty("molecule1", mol1)
+    mol.set_property("molecule0", mol0)
+    mol.set_property("molecule1", mol1)
 
     # Get the connectivity property name.
     conn_prop = property_map.get("connectivity", "connectivity")
@@ -1165,28 +1176,28 @@ def readPerturbableSystem(top0, coords0, top1, coords1, property_map={}):
     if conn0 == conn1:
         # The connectivity is the same, so we can use the connectivity
         # from the lambda=0 end state.
-        mol = mol.setProperty(conn_prop, conn0).molecule()
+        mol = mol.set_property(conn_prop, conn0).molecule()
 
         # Delete the end state properties.
-        mol = mol.removeProperty(conn_prop + "0").molecule()
-        mol = mol.removeProperty(conn_prop + "1").molecule()
+        mol = mol.remove_property(conn_prop + "0").molecule()
+        mol = mol.remove_property(conn_prop + "1").molecule()
 
     # Reconstruct the intrascale matrices using the GroTop parser.
     intra0 = (
         _SireIO.GroTop(_Molecule(mol0).toSystem()._sire_object)
-        .toSystem()[0]
+        .to_system()[0]
         .property("intrascale")
     )
     intra1 = (
         _SireIO.GroTop(_Molecule(mol1).toSystem()._sire_object)
-        .toSystem()[0]
+        .to_system()[0]
         .property("intrascale")
     )
 
     # Set the "intrascale" properties.
     intrascale_prop = property_map.get("intrascale", "intrascale")
-    mol.setProperty(intrascale_prop + "0", intra0)
-    mol.setProperty(intrascale_prop + "1", intra0)
+    mol.set_property(intrascale_prop + "0", intra0)
+    mol.set_property(intrascale_prop + "1", intra0)
 
     # Commit the changes.
     mol = _Molecule(mol.commit())
@@ -1201,14 +1212,14 @@ def readPerturbableSystem(top0, coords0, top1, coords1, property_map={}):
         # Space.
         prop = property_map.get("space", "space")
         space = system0._sire_object.property(prop)
-        system0._sire_object.removeSharedProperty(prop)
-        system0._sire_object.setProperty(prop, space)
+        system0._sire_object.remove_shared_property(prop)
+        system0._sire_object.set_property(prop, space)
 
         # Time.
         prop = property_map.get("time", "time")
         time = system0._sire_object.property(prop)
-        system0._sire_object.removeSharedProperty(prop)
-        system0._sire_object.setProperty(prop, time)
+        system0._sire_object.remove_shared_property(prop)
+        system0._sire_object.set_property(prop, time)
     except:
         pass
 
@@ -1258,6 +1269,7 @@ def _patch_sire_load(path, *args, show_warnings=True, property_map={}, **kwargs)
         The molecules that have been loaded are returned as
         a sire.legacy.System.System.
     """
+    import sire as _sire
 
     if type(path) is not list:
         paths = [path]

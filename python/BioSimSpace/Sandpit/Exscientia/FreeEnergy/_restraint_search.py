@@ -29,48 +29,20 @@ __email__ = "finlay.clark@ed.ac.uk"
 
 __all__ = ["RestraintSearch"]
 
-import matplotlib.pyplot as _plt
-import numpy as _np
-import os as _os
-from scipy.stats import circmean as _circmean
-from sklearn.cluster import KMeans as _KMeans
 import warnings as _warnings
 
-from sire.legacy.Base import getBinDir as _getBinDir
-from sire.legacy.Base import getShareDir as _getShareDir
-from sire.legacy.Units import k_boltz as _k_boltz  # kcal / (mol K)
 
-from .._Exceptions import AnalysisError as _AnalysisError
-from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
-from ..MD._md import _find_md_engines
-from ._restraint import Restraint as _Restraint
-from .._SireWrappers import System as _System
-from ..Trajectory._trajectory import Trajectory as _Trajectory
-from ..Types import Length as _Length
-from ..Types import Temperature as _Temperature
-from ..Types import Length as _Length
-from .. import Units as _Units
 from ..Units.Length import angstrom as _angstrom
-from ..Units.Angle import radian as _radian
-from ..Units.Angle import degree as _degree
-from ..Units.Angle import radian as _radian
-from ..Units.Energy import kcal_per_mol as _kcal_per_mol
 from ..Units.Length import angstrom as _angstrom
-from .. import _gmx_exe
 from .. import _is_notebook
-from .. import Process as _Process
-from .. import Protocol as _Protocol
-from .. import Units as _Units
 
 if _is_notebook:
     from tqdm.notebook import tqdm as _tqdm
 else:
     from tqdm import tqdm as _tqdm
 
-from .._Utils import _try_import, _have_imported, WorkDir as _WorkDir
-from .... import _isVerbose
+from .._Utils import _try_import, _have_imported
 
-from ..MD._md import _find_md_engines
 
 if _is_notebook:
     from IPython.display import FileLink as _FileLink
@@ -179,6 +151,12 @@ class RestraintSearch:
         kwargs :
             Keyword arguments to be passed to the BSS.Process.
         """
+        from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
+        from .._SireWrappers import System as _System
+        from .._Utils import WorkDir as _WorkDir
+        from .. import Protocol as _Protocol
+        from ..MD._md import _find_md_engines
+        from .. import _gmx_exe
 
         # Validate the input.
         if not _have_imported(_mda):
@@ -425,6 +403,8 @@ class RestraintSearch:
         kwargs :
             Keyword arguments to be passed to the BSS.Process.
         """
+        from .. import Process as _Process
+        import os as _os
 
         # Convert to an appropriate AMBER topology. (Required by SOMD for its
         # FEP setup.)
@@ -565,6 +545,12 @@ class RestraintSearch:
                The restraints of `restraint_type` which best mimic the strongest receptor-ligand
                interactions.
         """
+        from ..Trajectory._trajectory import Trajectory as _Trajectory
+        from ..Types import Temperature as _Temperature
+        from .._SireWrappers import System as _System
+        import os as _os
+        from ..Types import Length as _Length
+
         _supported_methods = {
             "boresch": ["BSS", "MDRestraintsGenerator"],
             "multiple_distance": ["BSS"],
@@ -879,6 +865,15 @@ class RestraintSearch:
             The restraints of `restraint_type` which best mimic the strongest receptor-ligand
             interactions.
         """
+        from ._restraint import Restraint as _Restraint
+        from ..Units.Angle import degree as _degree
+        from ..Units.Energy import kcal_per_mol as _kcal_per_mol
+        from ..Units.Angle import radian as _radian
+        from MDRestraintsGenerator import search as _search
+        from MDRestraintsGenerator.restraints import (
+            FindBoreschRestraint as _FindBoreschRestraint,
+        )
+
         print(
             "Using MDRestraintsGenerator to generate Boresch restraints. If you publish "
             "any results using this method, please cite: 10.5281/zenodo.4570556 "
@@ -1030,6 +1025,10 @@ class RestraintSearch:
             List of receptor-ligand atom pairs ordered by increasing variance of distance over
             the trajectory.
         """
+        from .._Exceptions import AnalysisError as _AnalysisError
+        from MDAnalysis.analysis.distances import dist as _dist
+        import numpy as _np
+        from tqdm import tqdm as _tqdm
 
         lig_selection = u.select_atoms(ligand_selection_str)
 
@@ -1112,6 +1111,8 @@ class RestraintSearch:
         distance : float
             The distance between the two atoms in Angstroms.
         """
+        from MDAnalysis.analysis.distances import dist as _dist
+
         distance = _dist(
             _mda.AtomGroup([u.atoms[idx1]]),
             _mda.AtomGroup([u.atoms[idx2]]),
@@ -1227,6 +1228,8 @@ class RestraintSearch:
                 The indices of all three selected anchor atoms to be used in
                 Boresch restraints.
             """
+            from .._Exceptions import AnalysisError as _AnalysisError
+
             # Get the atoms bonded to the first anchor point which satisfy
             # selection string
             a1_at = u.atoms[a1_idx]
@@ -1276,6 +1279,8 @@ class RestraintSearch:
             angle : float
                 The angle between the three atoms in radians.
             """
+            import numpy as _np
+
             angle = sum(
                 u.atoms[idx] for idx in [idx1, idx2, idx3]
             ).angle.value()  # Degrees
@@ -1305,6 +1310,8 @@ class RestraintSearch:
             dihedral : float
                 The dihedral angle between the four atoms in radians.
             """
+            import numpy as _np
+
             dihedral = sum(
                 u.atoms[idx] for idx in [idx1, idx2, idx3, idx4]
             ).dihedral.value()  # Degrees
@@ -1354,6 +1361,9 @@ class RestraintSearch:
                 The configurational volume accessible to the restrained decoupled ligand,
                 in Angstrom^3.
             """
+            import numpy as _np
+            from sire.legacy.Units import k_boltz as _k_boltz
+
             RT = _k_boltz.value() * temp  # in kcal / mol
             numerator1 = (
                 (equil_vals["r"] ** 2)
@@ -1426,6 +1436,13 @@ class RestraintSearch:
                 Dictionary of statistics for the Boresch restraints obtained over the
                 trajectory. Keys are the pair tuples supplied in pair_list.
             """
+            from .._Exceptions import AnalysisError as _AnalysisError
+            from sire.legacy.Units import k_boltz as _k_boltz
+            from ..Units.Energy import kcal_per_mol as _kcal_per_mol
+            from scipy.stats import circmean as _circmean
+            import numpy as _np
+            from tqdm import tqdm as _tqdm
+
             boresch_dof_list = [
                 "r",
                 "thetaA",
@@ -1630,6 +1647,8 @@ class RestraintSearch:
             dof_to_plot : list
                 List of DOF to plot.
             """
+            import matplotlib.pyplot as _plt
+
             # The labels for each DOF to use on the plots
             dof_labels = {
                 "r": r"$r$ / $\mathrm{\AA}$",
@@ -1705,6 +1724,12 @@ class RestraintSearch:
                 The restraint defined by boresch_dof_data and labelled by pair.
 
             """
+            from ._restraint import Restraint as _Restraint
+            from .. import Units as _Units
+            from .._Exceptions import AnalysisError as _AnalysisError
+            from ..Units.Energy import kcal_per_mol as _kcal_per_mol
+            from ..Units.Angle import radian as _radian
+
             anchor_idxs = {
                 "l1": boresch_dof_data[pair]["anchor_ats"][0],
                 "l2": boresch_dof_data[pair]["anchor_ats"][1],
@@ -1941,6 +1966,9 @@ class RestraintSearch:
             The restraints of `restraint_type` which best mimic the strongest receptor-ligand
             interactions.
         """
+        import numpy as _np
+        from ._restraint import Restraint as _Restraint
+        from .._Exceptions import AnalysisError as _AnalysisError
 
         def _get_norm_vector(frame, pair):
             """
@@ -1958,6 +1986,8 @@ class RestraintSearch:
             vector : np.ndarray
                 The normalised interatomic vector between the two atoms.
             """
+            import numpy as _np
+
             inter_vec = frame.positions[pair[1]] - frame.positions[pair[0]]
             # Check the length of this is not excessive (e.g. due to PBCs)
             norm = _np.linalg.norm(inter_vec)
@@ -1990,6 +2020,8 @@ class RestraintSearch:
                 The pairs of atoms ordered by SD and clustered by direction.
                 The third element of each tuple is the cluster number.
             """
+            from sklearn.cluster import KMeans as _KMeans
+
             # Get the normalised interatomic vectors for each pair of atoms,
             # using the final frame of the trajectory.
             vectors_dict = {
@@ -2068,6 +2100,9 @@ class RestraintSearch:
                 the keys are the pair indices and the values are lists of
                 distances in Angstroms.
             """
+            import numpy as _np
+            import matplotlib.pyplot as _plt
+
             n_pairs = len(distance_dict)
             n_columns = 6
             n_rows = int(_np.ceil(n_pairs / n_columns))
@@ -2152,6 +2187,9 @@ class RestraintSearch:
             restraint_dict : dict
                 The multiple distance restraints dictionary.
             """
+            import numpy as _np
+            from ..Units.Energy import kcal_per_mol as _kcal_per_mol
+
             # For each pair, get a list of the distances over the trajectory.
             distances = {pair: [] for pair in pairs_ordered}
             for _ in u.trajectory:

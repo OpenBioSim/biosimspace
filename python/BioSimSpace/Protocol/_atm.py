@@ -1,36 +1,6 @@
-######################################################################
-# BioSimSpace: Making biomolecular simulation a breeze!
-#
-# Copyright: 2017-2025
-#
-# Authors: Lester Hedges <lester.hedges@gmail.com>
-#          Matthew Burman <matthew@openbiosim.org>
-#
-# BioSimSpace is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# BioSimSpace is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with BioSimSpace. If not, see <http://www.gnu.org/licenses/>.
-#####################################################################
-
-import json as _json
-import math as _math
-import numpy as _np
-import warnings as _warnings
-
-from .._SireWrappers import System as _System
-from .. import Types as _Types
 from ._protocol import Protocol as _Protocol
 from ._position_restraint_mixin import _PositionRestraintMixin
 from .. import Units as _Units
-from ..Types import Vector as _Vector
 
 __all__ = ["ATMMinimisation", "ATMEquilibration", "ATMAnnealing", "ATMProduction"]
 
@@ -56,6 +26,11 @@ class _ATM(_Protocol, _PositionRestraintMixin):
         soft_core_a=0.0625,
     ):
         # Call the base class constructor.
+        import json as _json
+        from .._SireWrappers import System as _System
+        from ..Types import Vector as _Vector
+        import warnings as _warnings
+
         super().__init__()
 
         # first check that EITHER system or data is passed
@@ -164,6 +139,8 @@ class _ATM(_Protocol, _PositionRestraintMixin):
         core_alignment : bool
             Whether to use core alignment.
         """
+        import warnings as _warnings
+
         if isinstance(core_alignment, bool):
             self._core_alignment = core_alignment
         else:
@@ -192,6 +169,8 @@ class _ATM(_Protocol, _PositionRestraintMixin):
         com_distance_restraint : bool
             Whether to use the CMCM restraint.
         """
+        import warnings as _warnings
+
         if isinstance(com_distance_restraint, bool):
             self._com_distance_restraint = com_distance_restraint
         else:
@@ -222,6 +201,8 @@ class _ATM(_Protocol, _PositionRestraintMixin):
         positional_restraint_width : int, float, str, :class:`Length <BioSimSpace.Types.Length>`
             The width of the position restraint.
         """
+        from .. import Types as _Types
+
         # Convert int to float.
         if type(positional_restraint_width) is int:
             positional_restraint_width = float(positional_restraint_width)
@@ -276,6 +257,8 @@ class _ATM(_Protocol, _PositionRestraintMixin):
         align_k_distance : int, float, str, :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>`, float
             Length value for the alignment restraint kcal/mol angstrom**2.
         """
+        from .. import Types as _Types
+
         # Convert int to float.
         if type(align_k_distance) is int:
             align_k_distance = float(align_k_distance)
@@ -329,6 +312,8 @@ class _ATM(_Protocol, _PositionRestraintMixin):
             Force constant for the alignment angular constraint in kcal/mol.
 
         """
+        from .. import Types as _Types
+
         # Convert int to float.
         if type(align_k_theta) is int:
             align_k_theta = float(align_k_theta)
@@ -381,6 +366,8 @@ class _ATM(_Protocol, _PositionRestraintMixin):
         align_k_psi : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
             Force constant for the alignment dihedral constraint in kcal/mol.
         """
+        from .. import Types as _Types
+
         # Convert int to float.
         if type(align_k_psi) is int:
             align_k_psi = float(align_k_psi)
@@ -431,6 +418,8 @@ class _ATM(_Protocol, _PositionRestraintMixin):
         soft_core_umax : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
             The softcore Umax value in kcal/mol.
         """
+        from .. import Types as _Types
+
         # Convert int to float.
         if type(soft_core_umax) is int:
             soft_core_umax = float(soft_core_umax)
@@ -483,6 +472,8 @@ class _ATM(_Protocol, _PositionRestraintMixin):
         soft_core_u0 : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
             The softcore u0 value in kcal/mol.
         """
+        from .. import Types as _Types
+
         # Convert int to float.
         if type(soft_core_u0) is int:
             soft_core_u0 = float(soft_core_u0)
@@ -560,6 +551,8 @@ class _ATM(_Protocol, _PositionRestraintMixin):
         com_k : int, float, str, :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>
             The force constant for the CM-CM force in kcal/mol A**2.
         """
+        from .. import Types as _Types
+
         # Convert int to float.
         if type(com_k) is int:
             com_k = float(com_k)
@@ -610,6 +603,8 @@ class _ATM(_Protocol, _PositionRestraintMixin):
         com_restraint_width : int, float, str, :class:`Length <BioSimSpace.Types.Length>
             The com_restraint_width value in angstroms.
         """
+        from .. import Types as _Types
+
         # Convert int to float.
         if type(com_restraint_width) is int:
             com_restraint_width = float(com_restraint_width)
@@ -723,7 +718,6 @@ class ATMMinimisation(_ATM):
 
         pos_restrained_atoms : [int]
             The atoms to be restrained.
-
 
 
         soft_core_umax : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
@@ -1085,6 +1079,8 @@ class ATMEquilibration(_ATM):
         time : str, :class:`Time <BioSimSpace.Types.Time>`
             The integration time step.
         """
+        from .. import Types as _Types
+
         if isinstance(timestep, str):
             try:
                 self._timestep = _Types.Time(timestep)
@@ -1119,6 +1115,8 @@ class ATMEquilibration(_ATM):
         runtime : str, :class:`Time <BioSimSpace.Types.Time>`
             The simulation run time.
         """
+        from .. import Types as _Types
+
         if isinstance(runtime, str):
             try:
                 self._runtime = _Types.Time(runtime)
@@ -1153,6 +1151,8 @@ class ATMEquilibration(_ATM):
         temperature : str, :class:`Temperature <BioSimSpace.Types.Temperature>`
             The starting temperature.
         """
+        import math as _math
+        from .. import Types as _Types
 
         if isinstance(temperature, str):
             try:
@@ -1190,6 +1190,9 @@ class ATMEquilibration(_ATM):
         temperature : str, :class:`Temperature <BioSimSpace.Types.Temperature>`
             The final temperature.
         """
+        import math as _math
+        from .. import Types as _Types
+
         if isinstance(temperature, str):
             try:
                 temperature = _Types.Temperature(temperature)
@@ -1226,6 +1229,8 @@ class ATMEquilibration(_ATM):
         pressure : str, :class:`Pressure <BioSimSpace.Types.Pressure>`
             The pressure.
         """
+        from .. import Types as _Types
+
         if isinstance(pressure, str):
             try:
                 self._pressure = _Types.Pressure(pressure)
@@ -1260,6 +1265,8 @@ class ATMEquilibration(_ATM):
         thermostat_time_constant : str, :class:`Time <BioSimSpace.Types.Time>`
             The time constant for the thermostat.
         """
+        from .. import Types as _Types
+
         if isinstance(thermostat_time_constant, str):
             try:
                 self._thermostat_time_constant = _Types.Time(thermostat_time_constant)
@@ -1294,6 +1301,8 @@ class ATMEquilibration(_ATM):
         report_interval : int
             The number of integration steps between reporting statistics.
         """
+        import warnings as _warnings
+
         if not type(report_interval) is int:
             raise TypeError("'report_interval' must be of type 'int'")
 
@@ -1329,6 +1338,8 @@ class ATMEquilibration(_ATM):
             The number of integration steps between saving restart
             configurations and/or trajectory frames.
         """
+        import warnings as _warnings
+
         if not type(restart_interval) is int:
             raise TypeError("'restart_interval' must be of type 'int'")
 
@@ -1468,6 +1479,8 @@ class ATMEquilibration(_ATM):
         alpha : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
             The alpha value for the ATM force in kcal/mol. Ignored if use_atm_force is False.
         """
+        from .. import Types as _Types
+
         # Convert int to float.
         if type(alpha) is int:
             alpha = float(alpha)
@@ -1518,6 +1531,8 @@ class ATMEquilibration(_ATM):
         uh : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
             The uh value for the ATM force in kcal/mol. Ignored if use_atm_force is False.
         """
+        from .. import Types as _Types
+
         # Convert int to float.
         if type(uh) is int:
             uh = float(uh)
@@ -1568,6 +1583,8 @@ class ATMEquilibration(_ATM):
         W0 :int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
             The W0 value for the ATM force in kcal/mol. Ignored if use_atm_force is False.
         """
+        from .. import Types as _Types
+
         # Convert int to float.
         if type(W0) is int:
             W0 = float(W0)
@@ -1916,6 +1933,8 @@ class ATMAnnealing(_ATM):
         time : str, :class:`Time <BioSimSpace.Types.Time>`
             The integration time step.
         """
+        from .. import Types as _Types
+
         if isinstance(timestep, str):
             try:
                 self._timestep = _Types.Time(timestep)
@@ -1950,6 +1969,8 @@ class ATMAnnealing(_ATM):
         runtime : str, :class:`Time <BioSimSpace.Types.Time>`
             The simulation run time.
         """
+        from .. import Types as _Types
+
         if isinstance(runtime, str):
             try:
                 self._runtime = _Types.Time(runtime)
@@ -1984,6 +2005,8 @@ class ATMAnnealing(_ATM):
         temperature : str, :class:`Temperature <BioSimSpace.Types.Temperature>`
             The simulation temperature.
         """
+        from .. import Types as _Types
+
         if isinstance(temperature, str):
             try:
                 self._temperature = _Types.Temperature(temperature)
@@ -2018,6 +2041,8 @@ class ATMAnnealing(_ATM):
         pressure : str, :class:`Pressure <BioSimSpace.Types.Pressure>`
             The pressure.
         """
+        from .. import Types as _Types
+
         if isinstance(pressure, str):
             try:
                 self._pressure = _Types.Pressure(pressure)
@@ -2052,6 +2077,8 @@ class ATMAnnealing(_ATM):
         thermostat_time_constant : str, :class:`Time <BioSimSpace.Types.Time>`
             The time constant for the thermostat.
         """
+        from .. import Types as _Types
+
         if isinstance(thermostat_time_constant, str):
             try:
                 self._thermostat_time_constant = _Types.Time(thermostat_time_constant)
@@ -2086,6 +2113,8 @@ class ATMAnnealing(_ATM):
         report_interval : int
             The number of integration steps between reporting statistics.
         """
+        import warnings as _warnings
+
         if not type(report_interval) is int:
             raise TypeError("'report_interval' must be of type 'int'")
 
@@ -2121,6 +2150,8 @@ class ATMAnnealing(_ATM):
             The number of integration steps between saving restart
             configurations and/or trajectory frames.
         """
+        import warnings as _warnings
+
         if not type(restart_interval) is int:
             raise TypeError("'restart_interval' must be of type 'int'")
 
@@ -2234,6 +2265,8 @@ class ATMAnnealing(_ATM):
         alpha : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
             The alpha value for the ATM force in kcal/mol. Ignored if use_atm_force is False.
         """
+        from .. import Types as _Types
+
         # Convert int to float.
         if type(alpha) is int:
             alpha = float(alpha)
@@ -2284,6 +2317,8 @@ class ATMAnnealing(_ATM):
         uh : int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
             The uh value for the ATM force in kcal/mol. Ignored if use_atm_force is False.
         """
+        from .. import Types as _Types
+
         # Convert int to float.
         if type(uh) is int:
             uh = float(uh)
@@ -2334,6 +2369,8 @@ class ATMAnnealing(_ATM):
         W0 :int, float, str, :class:`Energy <BioSimSpace.Types.Energy>`
             The W0 value for the ATM force in kcal/mol. Ignored if use_atm_force is False.
         """
+        from .. import Types as _Types
+
         # Convert int to float.
         if type(W0) is int:
             W0 = float(W0)
@@ -2782,6 +2819,8 @@ class ATMProduction(_ATM):
         time : str, :class:`Time <BioSimSpace.Types.Time>`
             The integration time step.
         """
+        from .. import Types as _Types
+
         if isinstance(timestep, str):
             try:
                 self._timestep = _Types.Time(timestep)
@@ -2816,6 +2855,8 @@ class ATMProduction(_ATM):
         runtime : str, :class:`Time <BioSimSpace.Types.Time>`
             The simulation run time.
         """
+        from .. import Types as _Types
+
         if isinstance(runtime, str):
             try:
                 self._runtime = _Types.Time(runtime)
@@ -2850,6 +2891,8 @@ class ATMProduction(_ATM):
         temperature : str, :class:`Temperature <BioSimSpace.Types.Temperature>`
             The simulation temperature.
         """
+        from .. import Types as _Types
+
         if isinstance(temperature, str):
             try:
                 self._temperature = _Types.Temperature(temperature)
@@ -2884,6 +2927,8 @@ class ATMProduction(_ATM):
         pressure : str, :class:`Pressure <BioSimSpace.Types.Pressure>`
             The pressure.
         """
+        from .. import Types as _Types
+
         if isinstance(pressure, str):
             try:
                 self._pressure = _Types.Pressure(pressure)
@@ -2918,6 +2963,8 @@ class ATMProduction(_ATM):
         thermostat_time_constant : str, :class:`Time <BioSimSpace.Types.Time>`
             The time constant for the thermostat.
         """
+        from .. import Types as _Types
+
         if isinstance(thermostat_time_constant, str):
             try:
                 self._thermostat_time_constant = _Types.Time(thermostat_time_constant)
@@ -2952,6 +2999,8 @@ class ATMProduction(_ATM):
         report_interval : int
             The number of integration steps between reporting statistics.
         """
+        import warnings as _warnings
+
         if not type(report_interval) is int:
             raise TypeError("'report_interval' must be of type 'int'")
 
@@ -2987,6 +3036,8 @@ class ATMProduction(_ATM):
             The number of integration steps between saving restart
             configurations and/or trajectory frames.
         """
+        import warnings as _warnings
+
         if not type(restart_interval) is int:
             raise TypeError("'restart_interval' must be of type 'int'")
 
@@ -3018,6 +3069,8 @@ class ATMProduction(_ATM):
         restart : bool
             Whether this is a restart simulation.
         """
+        import warnings as _warnings
+
         if isinstance(restart, bool):
             self._restart = restart
         else:
@@ -3046,6 +3099,8 @@ class ATMProduction(_ATM):
         num_lambda : int
             The number of lambda values.
         """
+        import warnings as _warnings
+
         if isinstance(num_lambda, int) and num_lambda > 0:
             if num_lambda % 2 != 0:
                 _warnings.warn(
@@ -3079,6 +3134,8 @@ class ATMProduction(_ATM):
         directions : [int]
             The directions.
         """
+        import math as _math
+
         if isinstance(directions, list):
             if len(directions) != self._num_lambda:
                 raise ValueError(
@@ -3117,6 +3174,9 @@ class ATMProduction(_ATM):
         lambda1 : [float]
             The lambda1 values.
         """
+        import numpy as _np
+        import math as _math
+
         if isinstance(lambda1, list):
             if len(lambda1) != self._num_lambda:
                 raise ValueError("'lambda1' must have the same length as 'num_lambda'")
@@ -3163,6 +3223,9 @@ class ATMProduction(_ATM):
         lambda2 : [float]
             The lambda2 values.
         """
+        import numpy as _np
+        import math as _math
+
         if isinstance(lambda2, list):
             if len(lambda2) != self._num_lambda:
                 raise ValueError("'lambda2' must have the same length as 'num_lambda'")
@@ -3211,6 +3274,8 @@ class ATMProduction(_ATM):
         alpha : [`Energy <BioSimSpace.Types.Energy>] or [int], [float], [str]
             The alpha values in kcal/mol.
         """
+        from .. import Types as _Types
+
         if isinstance(alpha, list):
             if len(alpha) != self._num_lambda:
                 raise ValueError("'alpha' must have the same length as 'num_lambda'")
@@ -3274,6 +3339,8 @@ class ATMProduction(_ATM):
         uh : [:class:`Energy <BioSimSpace.Types.Energy>]
             The uh values in kcal/mol.
         """
+        from .. import Types as _Types
+
         if isinstance(uh, list):
             if len(uh) != self._num_lambda:
                 raise ValueError("'uh' must have the same length as 'num_lambda'")
@@ -3337,6 +3404,8 @@ class ATMProduction(_ATM):
         W0 : [:class:`Energy <BioSimSpace.Types.Energy>] or [int], [float], [str]
             The W0 values in kcal/mol.
         """
+        from .. import Types as _Types
+
         if isinstance(W0, list):
             if len(W0) != self._num_lambda:
                 raise ValueError("'W0' must have the same length as 'num_lambda'")
@@ -3381,6 +3450,8 @@ class ATMProduction(_ATM):
     def _set_lambda_values(self):
         # Internal function to set the 'master lambda'
         # This lambda value serves as the master for all other window-dependent parameters
+        import numpy as _np
+
         self._lambda_values = _np.linspace(0, 1, self._num_lambda).tolist()
 
     def _get_lambda_values(self):

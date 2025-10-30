@@ -26,8 +26,6 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["Restraint"]
 
-from ..Types._type import Type as _Type
-
 
 class Restraint:
     def __init__(self, value, force_constant=100.0, slope=0.0):
@@ -91,6 +89,8 @@ class Restraint:
         value : int, float, :class:`Type <BioSimSpace.Types>`
             The value of the bound.
         """
+        from ..Types._type import Type as _Type
+
         if not isinstance(value, (float, _Type)) and not type(value) is int:
             raise TypeError(
                 "'value' must be of type 'int', 'float', or 'BioSimSpace.Types._type.Type'"

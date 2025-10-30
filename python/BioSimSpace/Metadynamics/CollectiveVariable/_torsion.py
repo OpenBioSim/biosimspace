@@ -26,9 +26,6 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["Torsion"]
 
-from math import ceil as _ceil
-from math import isclose as _isclose
-from math import pi as _pi
 
 from ._collective_variable import CollectiveVariable as _CollectiveVariable
 from ...Types import Angle as _Angle
@@ -234,6 +231,9 @@ class Torsion(_CollectiveVariable):
 
     def _validate(self):
         """Internal function to check that the object is in a consistent state."""
+        from math import isclose as _isclose
+        from math import pi as _pi
+        from math import ceil as _ceil
 
         if self._lower_bound is not None:
             if not isinstance(self._lower_bound.getValue(), _Angle):

@@ -444,13 +444,13 @@ class Temperature(_Type):
         if isinstance(sire_unit, _SireUnits.GeneralUnit):
             # Create a mask for the dimensions of the object.
             dimensions = (
-                sire_unit.MASS(),
-                sire_unit.LENGTH(),
-                sire_unit.TIME(),
-                sire_unit.CHARGE(),
-                sire_unit.TEMPERATURE(),
-                sire_unit.QUANTITY(),
-                sire_unit.ANGLE(),
+                sire_unit.mass(),
+                sire_unit.length(),
+                sire_unit.time(),
+                sire_unit.charge(),
+                sire_unit.temperature(),
+                sire_unit.quantity(),
+                sire_unit.angle(),
             )
 
             # Make sure the dimensions match.

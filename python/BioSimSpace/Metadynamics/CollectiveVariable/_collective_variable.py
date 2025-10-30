@@ -26,9 +26,6 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["CollectiveVariable"]
 
-from .._bound import Bound as _Bound
-from .._grid import Grid as _Grid
-
 
 class CollectiveVariable:
     """A base class for holding collective variables."""
@@ -63,6 +60,7 @@ class CollectiveVariable:
         lower_bound : :class:`Bound <BioSimSpace.Metadynamics.Bound>`
             A lower bound on the value of the collective variable.
         """
+        from .._bound import Bound as _Bound
 
         if lower_bound is None:
             self._lower_bound = None
@@ -109,6 +107,7 @@ class CollectiveVariable:
         upper_bound : :class:`Bound <BioSimSpace.Metadynamics.Bound>`
             An upper bound on the value of the collective variable.
         """
+        from .._bound import Bound as _Bound
 
         if upper_bound is None:
             self._upper_bound = None
@@ -156,6 +155,7 @@ class CollectiveVariable:
         grid : :class:`Grid <BioSimSpace.Metadynamics.Grid>`
             A grid for the collective variable.
         """
+        from .._grid import Grid as _Grid
 
         if grid is None:
             self._grid = None

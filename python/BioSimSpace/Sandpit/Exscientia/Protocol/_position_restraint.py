@@ -1,7 +1,6 @@
 __all__ = ["_PositionRestraintMixin"]
 
 
-from .. import Types as _Types
 from .. import Units as _Units
 
 
@@ -161,6 +160,7 @@ class _PositionRestraintMixin:
 
         force_constant : :class:`GeneralUnit <BioSimSpace.Types._GeneralUnit>`, float, str
         """
+        from .. import Types as _Types
 
         # Convert int to float.
         if type(force_constant) is int:

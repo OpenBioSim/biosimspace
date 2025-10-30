@@ -26,24 +26,8 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["RMSD"]
 
-from math import ceil as _ceil
-from math import sqrt as _sqrt
-
-from sire.legacy import IO as _SireIO
-from sire.legacy import Mol as _SireMol
-
-from sire.mol import selection_to_atoms as _selection_to_atoms
-
-from ... import _isVerbose
-from ..._Exceptions import IncompatibleError as _IncompatibleError
-from ..._SireWrappers import Atom as _Atom
-from ..._SireWrappers import Molecule as _Molecule
-from ..._SireWrappers import System as _System
-from ...Align import rmsdAlign as _rmsdAlign
 
 from ._collective_variable import CollectiveVariable as _CollectiveVariable
-from .._bound import Bound as _Bound
-from .._grid import Grid as _Grid
 from ...Types import Length as _Length
 
 
@@ -118,6 +102,14 @@ class RMSD(_CollectiveVariable):
             values. This allows the user to refer to properties with their
             own naming scheme, e.g. { "charge" : "my-charge" }
         """
+        from sire.legacy import IO as _SireIO
+        from sire.legacy import Mol as _SireMol
+        from ..._SireWrappers import Atom as _Atom
+        from ... import _isVerbose
+        from ..._SireWrappers import System as _System
+        from sire.mol import selection_to_atoms as _selection_to_atoms
+        from ..._SireWrappers import Molecule as _Molecule
+        from ..._Exceptions import IncompatibleError as _IncompatibleError
 
         # Call the base class constructor.
         super().__init__()
@@ -317,7 +309,7 @@ class RMSD(_CollectiveVariable):
             selection = new_molecule.selection()
 
             # Unselect all of the atoms.
-            selection.selectNone()
+            selection.select_none()
 
             # Now add all of the atoms that appear in the reference.
             for idx in selected:
@@ -336,7 +328,7 @@ class RMSD(_CollectiveVariable):
 
         # Parse as a PDB file and store the lines.
         pdb = _SireIO.PDB2(new_system._sire_object)
-        lines = pdb.toLines()
+        lines = pdb.to_lines()
 
         # Format for PLUMED, making sure to use the same indices as in the system.
         # Also strip any TER records.
@@ -586,6 +578,10 @@ class RMSD(_CollectiveVariable):
          rmsd : :class:`Length <BioSimSpace.Types.Length>`
              The initial value of the RMSD.
         """
+        from sire.legacy import Mol as _SireMol
+        from ...Align import rmsdAlign as _rmsdAlign
+        from math import sqrt as _sqrt
+        from ..._SireWrappers import System as _System
 
         # Note that we need to do this manually, since Sire.Mol.Evaluator doesn't
         # work correctly for molecules with different numbers of coordinate groups.
@@ -713,7 +709,7 @@ class RMSD(_CollectiveVariable):
                         raise ValueError(
                             "Could not calculate initial RMSD due to missing coordinates!"
                         )
-                    dist2 += space.calcDist2(coord0, coord1)
+                    dist2 += space.calc_dist2(coord0, coord1)
                     num_rmsd += 1
 
         # Compute the RMSD.
@@ -724,6 +720,7 @@ class RMSD(_CollectiveVariable):
 
     def _validate(self):
         """Internal function to check that the object is in a consistent state."""
+        from math import ceil as _ceil
 
         if self._lower_bound is not None:
             if type(self._lower_bound.getValue()) not in self._types:

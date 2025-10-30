@@ -29,12 +29,6 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["Molecules"]
 
-from sire.legacy import Mol as _SireMol
-from sire.legacy import System as _SireSystem
-
-from .. import _isVerbose
-from ..Types import Length as _Length
-from .. import Units as _Units
 
 from ._sire_wrapper import SireWrapper as _SireWrapper
 
@@ -55,6 +49,10 @@ class Molecules(_SireWrapper):
             A Sire Molecues object, a Sire or BioSimSpace System object,
             or a list of BioSimSpace Molecule objects.
         """
+        from sire.legacy import Mol as _SireMol
+        from sire.legacy import System as _SireSystem
+        from ._system import System as _System
+        from ._molecule import Molecule as _Molecule
 
         # Check that the molecules argument is valid.
 
@@ -107,7 +105,7 @@ class Molecules(_SireWrapper):
             )
 
         # Store the number of molecules.
-        self._num_mols = self._sire_object.nMolecules()
+        self._num_mols = self._sire_object.num_molecules()
 
         # Initialise the iterator counter.
         self._iter_count = 0
@@ -122,6 +120,8 @@ class Molecules(_SireWrapper):
 
     def __add__(self, other):
         """Addition operator."""
+        from ._system import System as _System
+        from ._molecule import Molecule as _Molecule
 
         # Convert tuple to a list.
         if isinstance(other, tuple):
@@ -131,7 +131,7 @@ class Molecules(_SireWrapper):
         molecules = self._sire_object.__deepcopy__()
 
         # Extract the MolNums.
-        mol_nums0 = molecules.molNums()
+        mol_nums0 = molecules.mol_nums()
 
         # Validate the input. Convert all valid input to another
         # Molecules object.
@@ -162,7 +162,7 @@ class Molecules(_SireWrapper):
 
         # Extract the molecule numbers for the current system and
         # the molecules to add.
-        mol_nums1 = other._sire_object.molNums()
+        mol_nums1 = other._sire_object.mol_nums()
 
         # There are molecule numbers in both sets, or the molecules
         # to add contains duplicates.
@@ -181,6 +181,8 @@ class Molecules(_SireWrapper):
 
     def __getitem__(self, key):
         """Get a molecule from the container."""
+        from sire.legacy import Mol as _SireMol
+        from ._molecule import Molecule as _Molecule
 
         # Slice.
         if isinstance(key, slice):
@@ -279,6 +281,8 @@ class Molecules(_SireWrapper):
 
         system : :class:`System <BioSimSpace._SireWrappers.System>`
         """
+        from ._system import System as _System
+
         return _System(self)
 
     def charge(self, property_map={}, is_lambda1=False):
@@ -302,6 +306,7 @@ class Molecules(_SireWrapper):
         charge : :class:`Charge <BioSimSpace.Types.Charge>`
             The molecular charge.
         """
+        from .. import Units as _Units
 
         # Zero the charge.
         charge = 0 * _Units.Charge.electron_charge
@@ -328,6 +333,7 @@ class Molecules(_SireWrapper):
             values. This allows the user to refer to properties with their
             own naming scheme, e.g. { "charge" : "my-charge" }
         """
+        from ..Types import Length as _Length
 
         # Convert tuple to a list.
         if isinstance(vector, tuple):
@@ -393,6 +399,8 @@ class Molecules(_SireWrapper):
 
         >>> result = molecule.search("atomidx 23")
         """
+        from .. import _isVerbose
+        from ._search_result import SearchResult as _SearchResult
 
         if not isinstance(query, str):
             raise TypeError("'query' must be of type 'str'")
@@ -432,9 +440,3 @@ class Molecules(_SireWrapper):
             The axis-aligned bounding box for the molecule.
         """
         return self.toSystem()._getAABox()
-
-
-# Import at bottom of module to avoid circular dependency.
-from ._molecule import Molecule as _Molecule
-from ._search_result import SearchResult as _SearchResult
-from ._system import System as _System

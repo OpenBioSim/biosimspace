@@ -24,29 +24,9 @@
 
 __all__ = ["ATMSetup", "ATM"]
 
-import copy as _copy
-import json as _json
-import os as _os
-import pathlib as _pathlib
-import shutil as _shutil
-import warnings as _warnings
-import zipfile as _zipfile
 
-from sire.legacy import IO as _SireIO
-
-from .._SireWrappers import Molecule as _Molecule
-from .._SireWrappers import System as _System
-from .. import _Utils
-from ..Types import Length as _Length
-from ..Types import Vector as _Vector
-from ..Types import Coordinate as _Coordinate
-from ..Align import matchAtoms as _matchAtoms
-from ..Align import rmsdAlign as _rmsdAlign
 from ..Notebook import View as _View
-from .. import _isVerbose
 from .. import _is_notebook
-from ..Process import OpenMM as _OpenMM
-from ..Process import ProcessRunner as _ProcessRunner
 
 if _is_notebook:
     from IPython.display import FileLink as _FileLink
@@ -101,6 +81,9 @@ class ATMSetup:
             If passing a pre-prepared system, the index of the free ligand
             molecule in the system (Default 2).
         """
+        from .._SireWrappers import System as _System
+        from .._SireWrappers import Molecule as _Molecule
+
         # make sure that either system or protein, ligand_bound and ligand_free are given
         if system is None and not all(
             x is not None for x in [receptor, ligand_bound, ligand_free]
@@ -141,6 +124,8 @@ class ATMSetup:
         system : BioSimSpace._SireWrappers.System
             The system for the ATM simulation.
         """
+        from .._SireWrappers import System as _System
+
         if system is not None:
             if not isinstance(system, _System):
                 raise ValueError(
@@ -176,6 +161,8 @@ class ATMSetup:
         protein : BioSimSpace._SireWrappers.Molecule
             The protein for the ATM simulation.
         """
+        from .._SireWrappers import Molecule as _Molecule
+
         if protein is not None:
             if not isinstance(protein, _Molecule):
                 raise ValueError("The protein must be a BioSimSpace Molecule object.")
@@ -203,6 +190,8 @@ class ATMSetup:
         ligand_bound : BioSimSpace._SireWrappers.Molecule
             The bound ligand for the ATM simulation.
         """
+        from .._SireWrappers import Molecule as _Molecule
+
         if ligand_bound is not None:
             if not isinstance(ligand_bound, _Molecule):
                 raise ValueError(
@@ -232,6 +221,8 @@ class ATMSetup:
         ligand_free : BioSimSpace._SireWrappers.Molecule
             The free ligand for the ATM simulation.
         """
+        from .._SireWrappers import Molecule as _Molecule
+
         if ligand_free is not None:
             if not isinstance(ligand_free, _Molecule):
                 raise ValueError(
@@ -254,6 +245,9 @@ class ATMSetup:
 
     def _setDisplacement(self, displacement):
         """Set the displacement of the free ligand along the normal vector."""
+        from ..Types import Vector as _Vector
+        from ..Types import Length as _Length
+
         if isinstance(displacement, str):
             try:
                 self._displacement = _Length(displacement)
@@ -374,6 +368,8 @@ class ATMSetup:
         protein_index : list
             The index or indices of the protein in the system.
         """
+        import warnings as _warnings
+
         if isinstance(protein_index, list):
             # check that all elements are ints
             if not all(isinstance(x, int) for x in protein_index):
@@ -410,6 +406,8 @@ class ATMSetup:
         ligand_bound_index : int
             The index of the bound ligand molecule in the system.
         """
+        import warnings as _warnings
+
         if not isinstance(ligand_bound_index, int):
             raise ValueError("ligand_bound_index must be an integer.")
         else:
@@ -440,6 +438,8 @@ class ATMSetup:
         ligand_free_index : int
             The index of the free ligand molecule in the system.
         """
+        import warnings as _warnings
+
         if not isinstance(ligand_free_index, int):
             raise ValueError("ligand_free_index must be an integer.")
         else:
@@ -513,6 +513,8 @@ class ATMSetup:
             also encoded in the system for consistency, but is returned so that the
             user can easily query and validate the data.
         """
+        import json as _json
+
         if self._is_prepared:
             self._systemInfo()
             self._setLigandBoundRigidCore(ligand_bound_rigid_core)
@@ -531,7 +533,7 @@ class ATMSetup:
             ]
             temp_data = self.data.copy()
             temp_data["displacement"] = serialisable_disp
-            self._system._sire_object.setProperty("atom_data", _json.dumps(temp_data))
+            self._system._sire_object.set_property("atom_data", _json.dumps(temp_data))
             return self._system, self.data
 
         else:
@@ -562,7 +564,7 @@ class ATMSetup:
             temp_data = self.data.copy()
             temp_data["displacement"] = serialisable_disp
             # encode data in system for consistency
-            self._system._sire_object.setProperty("atom_data", _json.dumps(temp_data))
+            self._system._sire_object.set_property("atom_data", _json.dumps(temp_data))
             return self._system, self.data
 
     @staticmethod
@@ -590,9 +592,17 @@ class ATMSetup:
         BioSimSpace._SireWrappers.System
             The system for the ATM simulation.
         """
+        from ..Align import matchAtoms as _matchAtoms
+        from ..Align import rmsdAlign as _rmsdAlign
+        from ..Types import Vector as _Vector
 
         def _findTranslationVector(system, displacement, protein, ligand):
 
+            from .._SireWrappers import System as _System
+            from ..Types import Length as _Length
+            from .._SireWrappers import Molecule as _Molecule
+            import warnings as _warnings
+            from ..Types import Coordinate as _Coordinate
             from sire.legacy.Maths import Vector
 
             if not isinstance(system, _System):
@@ -666,7 +676,7 @@ class ATMSetup:
                 atoms1.append(system.getIndex(atom))
             com /= search.nResults()
 
-            initial_normal_vector = (non_protein_coords - com).toVector().normalise()
+            initial_normal_vector = (non_protein_coords - com).to_vector().normalise()
 
             out_of_protein = displacement.value() * initial_normal_vector
             return out_of_protein
@@ -694,6 +704,8 @@ class ATMSetup:
         """
         If the user gives a pre-prepared ATM system, extract the needed information.
         """
+        import warnings as _warnings
+
         for p in self.protein_index:
             if self._system[p].isWater():
                 _warnings.warn(
@@ -921,9 +933,13 @@ class ATMSetup:
         ligand_free_rigid_core : list
             The indices for the rigid core atoms of the free ligand.
         """
+        from .._SireWrappers import Molecule as _Molecule
+        import json as _json
         import math as _math
 
         def move_to_origin(lig):
+            from ..Types import Coordinate as _Coordinate
+
             com = _Coordinate(*lig._getCenterOfMass())
             lig.translate([-com.x().value(), -com.y().value(), -com.z().value()])
 
@@ -1193,6 +1209,7 @@ class ATM:
             own naming scheme, e.g. { "charge" : "my-charge" }
 
         """
+        from .. import _Utils
 
         self._system = system.copy()
 
@@ -1243,6 +1260,8 @@ class ATM:
         serial : bool
             Whether to run the individual processes for the lambda windows
         """
+        import warnings as _warnings
+
         if not isinstance(serial, bool):
             raise TypeError("'serial' must be of type 'bool'.")
 
@@ -1253,6 +1272,8 @@ class ATM:
 
     def wait(self):
         """Wait for the simulation to finish."""
+        import warnings as _warnings
+
         if self._setup_only:
             _warnings.warn("No processes exist! Object created in 'setup_only' mode.")
         else:
@@ -1311,6 +1332,10 @@ class ATM:
         output : str, IPython.display.FileLink
             A path, or file link, to an archive of the process input.
         """
+        from IPython.display import FileLink as _FileLink
+        import pathlib as _pathlib
+        import os as _os
+        import zipfile as _zipfile
 
         if self._work_dir is None:
             raise ValueError("'work_dir' must be set!")
@@ -1379,6 +1404,11 @@ class ATM:
         system : :class:`System <BioSimSpace._SireWrappers.System>`
             The molecular system.
         """
+        from ..Process import ProcessRunner as _ProcessRunner
+        from ..Process import OpenMM as _OpenMM
+        import os as _os
+        import copy as _copy
+        import shutil as _shutil
 
         # This protocol will have to be minimal - cannot guess rigid core atoms
         if self._protocol is None:
@@ -1609,6 +1639,9 @@ class _ViewAtoM(_View):
 
     def _create_view(self, system=None, view=None, gui=True, **kwargs):
 
+        from sire.legacy import IO as _SireIO
+        from .. import _isVerbose
+
         if system is None and view is None:
             raise ValueError("Both 'system' and 'view' cannot be 'None'.")
 
@@ -1636,7 +1669,7 @@ class _ViewAtoM(_View):
         if system is not None:
             try:
                 pdb = _SireIO.PDB2(system, self._property_map)
-                pdb.writeToFile(filename)
+                pdb.write_to_file(filename)
             except Exception as e:
                 msg = "Failed to write system to 'PDB' format."
                 if _isVerbose():

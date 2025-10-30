@@ -29,7 +29,7 @@ def system_vel(system):
     # Edit the molecule
     mol_edit = mol_sire.edit()
 
-    mol_edit.setProperty("velocity", 1)
+    mol_edit.set_property("velocity", 1)
 
     # Update the Sire molecule object of the new molecule.
     mol._sire_object = mol_edit.commit()
@@ -44,7 +44,7 @@ def system_vel0(system):
     # Edit the molecule
     mol_edit = mol_sire.edit()
 
-    mol_edit.setProperty("velocity0", 1)
+    mol_edit.set_property("velocity0", 1)
 
     # Update the Sire molecule object of the new molecule.
     mol._sire_object = mol_edit.commit()

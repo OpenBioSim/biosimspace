@@ -26,22 +26,16 @@
 __all__ = ["analyse_UWHAM", "analyse_MBAR"]
 
 
-import functools as _functools
-import numpy as _numpy
-import os as _os
-import pandas as _pd
-import pathlib as _pathlib
-import scipy.optimize as _optimize
-import scipy.special as _special
-import warnings as _warnings
-
-
 def _compute_weights(ln_z, ln_q, factor):
+    import numpy as _numpy
+
     q_ij = _numpy.exp(ln_q - ln_z)
     return q_ij / (factor * q_ij).sum(axis=-1, keepdims=True)
 
 
 def _compute_kappa_hessian(ln_z, ln_q, factor, n):
+    import numpy as _numpy
+
     ln_z = _numpy.insert(ln_z, 0, 0.0)
 
     w = (factor * _compute_weights(ln_z, ln_q, factor))[:, 1:]
@@ -49,6 +43,9 @@ def _compute_kappa_hessian(ln_z, ln_q, factor, n):
 
 
 def _compute_kappa(ln_z, ln_q, factor, n):
+    import scipy.special as _special
+    import numpy as _numpy
+
     ln_z = _numpy.insert(ln_z, 0, 0.0)
 
     ln_q_ij_sum = _special.logsumexp(a=ln_q - ln_z, b=factor, axis=1)
@@ -61,6 +58,8 @@ def _compute_kappa(ln_z, ln_q, factor, n):
 
 
 def _compute_variance(ln_z, w, factor, n):
+    import numpy as _numpy
+
     o = w.T @ w / n
 
     b = o * factor - _numpy.eye(len(ln_z))
@@ -78,6 +77,8 @@ def _bias_fcn(epert, lam1, lam2, alpha, u0, w0):
     This is for the bias ilogistic potential
     (lambda2-lambda1) ln[1+exp(-alpha (u-u0))]/alpha + lambda2 u + w0
     """
+    import numpy as _numpy
+
     ebias1 = _numpy.zeros_like(epert)
     if alpha > 0:
         ee = 1 + _numpy.exp(-alpha * (epert - u0))
@@ -102,6 +103,11 @@ def _estimate_f_i(ln_q, n_k):
     Returns:
         The estimated reduced free energies and their estimated variance.
     """
+    import warnings as _warnings
+    import functools as _functools
+    import numpy as _numpy
+    import scipy.optimize as _optimize
+
     n_k = _numpy.array(n_k)
 
     ln_q = _numpy.array(ln_q).T
@@ -163,6 +169,8 @@ def _sort_folders(work_dir):
     folders : dict
         A dictionary of folder names and their corresponding lambda values.
     """
+    import pathlib as _pathlib
+
     folders = {}
     for folder in _pathlib.Path(work_dir).iterdir():
         if folder.is_dir() and folder.name.startswith("lambda_"):
@@ -180,6 +188,8 @@ def _get_inflection_indices(folders):
     # NOTE: this assumes that the folders are correctly sorted
 
     # check that the keys are sorted
+    import pandas as _pd
+
     keys = list(folders.keys())
     if keys != sorted(keys):
         raise ValueError(f"Folders are not sorted correctly. {keys} != {sorted(keys)}")
@@ -229,6 +239,9 @@ def analyse_UWHAM(work_dir, ignore_lower, ignore_upper, inflection_indices=None)
     ddg_total_error : :class:`BioSimSpace.Types.Energy`
         The error in the free energy.
     """
+    import pandas as _pd
+    import numpy as _numpy
+
     # NOTE: This code is not designed to work with repex
     # It always assumes that each window is at the same temperature
     dataframes = []
@@ -360,6 +373,10 @@ def analyse_MBAR(work_dir):
     Analyse the MBAR-compatible outputs.
     Adapted version of BioSimSpace _analyse_internal function
     """
+    import numpy as _numpy
+    import pandas as _pd
+    import os as _os
+    import pathlib as _pathlib
     from ._relative import Relative as _Relative
     from alchemlyb.postprocessors.units import to_kcalmol as _to_kcalmol
     from .. import Units as _Units

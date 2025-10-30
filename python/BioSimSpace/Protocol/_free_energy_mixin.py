@@ -26,10 +26,6 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["_FreeEnergyMixin"]
 
-import warnings as _warnings
-
-from .. import Types as _Types
-
 
 class _FreeEnergyMixin:
     """A mixin for alchemical free energy protocols."""

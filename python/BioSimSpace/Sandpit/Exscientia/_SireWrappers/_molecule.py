@@ -29,25 +29,8 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["Molecule"]
 
-from math import isclose as _isclose
-from warnings import warn as _warn
-
-import numpy as _np
-from sire.legacy import (
-    Base as _SireBase,
-    IO as _SireIO,
-    MM as _SireMM,
-    Maths as _SireMaths,
-    Mol as _SireMol,
-    System as _SireSystem,
-    Units as _SireUnits,
-)
 
 from ._sire_wrapper import SireWrapper as _SireWrapper
-from .. import _isVerbose
-from ..Types import Coordinate as _Coordinate, Length as _Length, Vector as _BSSVector
-from ..Units.Length import angstrom as _angstrom
-from .._Exceptions import IncompatibleError as _IncompatibleError
 
 
 class Molecule(_SireWrapper):
@@ -63,6 +46,7 @@ class Molecule(_SireWrapper):
         molecule : Sire.Mol.Molecule, :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
             A Sire or BioSimSpace Molecule object.
         """
+        from sire.legacy import Mol as _SireMol
 
         # Set the force field variable. This records the force field with which
         # the molecule has been parameterised, i.e. by BSS.Parameters.
@@ -81,16 +65,16 @@ class Molecule(_SireWrapper):
         # A Sire Molecule object.
         if isinstance(molecule, _SireMol._Mol.Molecule):
             super().__init__(molecule)
-            if self._sire_object.hasProperty("is_perturbable"):
+            if self._sire_object.has_property("is_perturbable"):
                 # Flag that the molecule is perturbable.
                 self._is_perturbable = True
 
                 # Extract the end states.
-                if molecule.hasProperty("molecule0"):
+                if molecule.has_property("molecule0"):
                     self._molecule0 = Molecule(molecule.property("molecule0"))
                 else:
                     self._molecule0, _ = self._extractMolecule()
-                if molecule.hasProperty("molecule1"):
+                if molecule.has_property("molecule1"):
                     self._molecule1 = Molecule(molecule.property("molecule1"))
                 else:
                     self._molecule1, _ = self._extractMolecule(is_lambda1=True)
@@ -133,6 +117,8 @@ class Molecule(_SireWrapper):
 
     def __add__(self, other):
         """Addition operator."""
+        from ._system import System as _System
+        from ._molecules import Molecules as _Molecules
 
         # Convert tuple to a list.
         if isinstance(other, tuple):
@@ -178,6 +164,8 @@ class Molecule(_SireWrapper):
 
     def __contains__(self, other):
         """Return whether other is in self."""
+        from ._atom import Atom as _Atom
+        from ._residue import Residue as _Residue
 
         if not isinstance(other, (_Atom, _Residue)):
             raise TypeError(
@@ -198,11 +186,15 @@ class Molecule(_SireWrapper):
         molecule : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
             A copy of the object.
         """
+        from sire.legacy import Mol as _SireMol
+
         # Copy the Sire object.
         mol = self._sire_object.__deepcopy__()
 
         # Give the molecule a unique number.
-        mol = mol.edit().renumber(_SireMol.MolNum.getUniqueNumber()).commit().molecule()
+        mol = (
+            mol.edit().renumber(_SireMol.MolNum.get_unique_number()).commit().molecule()
+        )
 
         return Molecule(mol)
 
@@ -237,11 +229,13 @@ class Molecule(_SireWrapper):
         [coordinates] : [class:`Coordinate <BioSimSpace.Types.Coordinate>`]
             The coordinates of the atoms in the molecule.
         """
+        from ..Types import Coordinate as _Coordinate, Length as _Length
+
         prop = property_map.get("coordinates", "coordinates")
 
         # Get the "coordinates" property from the molecule.
         try:
-            sire_coord = self._sire_object.property(prop).toVector()
+            sire_coord = self._sire_object.property(prop).to_vector()
             coordinates = []
             for coord in sire_coord:
                 coordinates.append(
@@ -267,6 +261,8 @@ class Molecule(_SireWrapper):
         residues : [:class:`Residue <BioSimSpace._SireWrappers.Residue>`]
             The list of residues in the molecule.
         """
+        from ._residue import Residue as _Residue
+
         residues = []
         for residue in self._sire_object.residues():
             residues.append(_Residue(residue))
@@ -282,6 +278,8 @@ class Molecule(_SireWrapper):
         atoms : [:class:`Atom <BioSimSpace._SireWrappers.Atom>`]
             The list of atoms in the molecule.
         """
+        from ._atom import Atom as _Atom
+
         atoms = []
         for atom in self._sire_object.atoms():
             atoms.append(_Atom(atom))
@@ -312,6 +310,9 @@ class Molecule(_SireWrapper):
         molecule : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
             The extracted molecule.
         """
+        from sire.legacy import IO as _SireIO, Mol as _SireMol
+        from .._Exceptions import IncompatibleError as _IncompatibleError
+        from .. import _isVerbose
 
         # TODO: This method is slow for large molecules. Re-write in pure C++
         # and provide a suitable wrapper function.
@@ -349,7 +350,7 @@ class Molecule(_SireWrapper):
         try:
             # Create an empty atom selection for this molecule.
             selection = self._sire_object.selection()
-            selection.selectNone()
+            selection.select_none()
 
             # Add the atom indices to the selection.
             for idx in indices_:
@@ -359,9 +360,9 @@ class Molecule(_SireWrapper):
             sire_mol = self._sire_object
 
             # Remove the "parameters" property, if it exists.
-            if sire_mol.hasProperty("parameters"):
+            if sire_mol.has_property("parameters"):
                 sire_mol = (
-                    sire_mol.edit().removeProperty("parameters").commit().molecule()
+                    sire_mol.edit().remove_property("parameters").commit().molecule()
                 )
 
             partial_mol = (
@@ -378,13 +379,13 @@ class Molecule(_SireWrapper):
         intrascale = property_map.get("intrascale", "intrascale")
 
         # Flag whether the molecule has an intrascale property.
-        has_intrascale = self._sire_object.hasProperty(intrascale)
+        has_intrascale = self._sire_object.has_property(intrascale)
 
         # Remove the "intrascale" property, since this doesn't correspond to the
         # extracted molecule.
         if has_intrascale:
             partial_mol = (
-                partial_mol.edit().removeProperty(intrascale).molecule().commit()
+                partial_mol.edit().remove_property(intrascale).molecule().commit()
             )
 
             # Recreate the molecule.
@@ -402,11 +403,11 @@ class Molecule(_SireWrapper):
                     raise _IncompatibleError(msg) from None
 
             # Convert back to a Sire system.
-            gro_sys = gro_top.toSystem()
+            gro_sys = gro_top.to_system()
 
             # Add the intrascale property back into the molecule.
             edit_mol = mol._sire_object.edit()
-            edit_mol.setProperty(
+            edit_mol.set_property(
                 intrascale, gro_sys[_SireMol.MolIdx(0)].property("intrascale")
             )
 
@@ -463,7 +464,7 @@ class Molecule(_SireWrapper):
         num_atoms : int
             The number of atoms in the molecule.
         """
-        return self._sire_object.nAtoms()
+        return self._sire_object.num_atoms()
 
     def nResidues(self):
         """
@@ -475,7 +476,7 @@ class Molecule(_SireWrapper):
         num_residues : int
             The number of residues in the molecule.
         """
-        return self._sire_object.nResidues()
+        return self._sire_object.num_residues()
 
     def nChains(self):
         """
@@ -487,7 +488,7 @@ class Molecule(_SireWrapper):
         num_chains : int
             The number of chains in the molecule.
         """
-        return self._sire_object.nChains()
+        return self._sire_object.num_chains()
 
     def isPerturbable(self):
         """
@@ -513,7 +514,7 @@ class Molecule(_SireWrapper):
         is_decoupled : bool
             Whether the molecule is decoupled.
         """
-        if self._sire_object.hasProperty("decouple"):
+        if self._sire_object.has_property("decouple"):
             return True
         else:
             return False
@@ -529,7 +530,7 @@ class Molecule(_SireWrapper):
         is_decoupled : bool
             Whether the molecule is decoupled.
         """
-        if self._sire_object.hasProperty("lipid"):
+        if self._sire_object.has_property("lipid"):
             return True
         else:
             return False
@@ -545,7 +546,7 @@ class Molecule(_SireWrapper):
         is_ML : bool
             Whether the molecule is marked as ML.
         """
-        if self._sire_object.hasProperty("ML"):
+        if self._sire_object.has_property("ML"):
             return True
         else:
             return False
@@ -560,7 +561,7 @@ class Molecule(_SireWrapper):
         isAlchemicalIon : bool
             Whether the molecule is marked as Alchemical Ion.
         """
-        return self._sire_object.hasProperty("AlchemicalIon")
+        return self._sire_object.has_property("AlchemicalIon")
 
     def isWater(self, property_map={}):
         """
@@ -580,6 +581,7 @@ class Molecule(_SireWrapper):
         is_water : bool
             Whether this is a water molecule.
         """
+        from sire.legacy import IO as _SireIO
 
         if not isinstance(property_map, dict):
             raise TypeError("'property_map' must be of type 'dict'")
@@ -604,6 +606,7 @@ class Molecule(_SireWrapper):
         is_amber_water : bool
             Whether this molecule is an AMBER format water.
         """
+        from sire.legacy import IO as _SireIO
 
         if not isinstance(property_map, dict):
             raise TypeError("'property_map' must be of type 'dict'")
@@ -627,6 +630,7 @@ class Molecule(_SireWrapper):
         is_gromacs_water : bool
             Whether this molecule is a GROMACS format water.
         """
+        from sire.legacy import IO as _SireIO
 
         if not isinstance(property_map, dict):
             raise TypeError("'property_map' must be of type 'dict'")
@@ -642,6 +646,8 @@ class Molecule(_SireWrapper):
 
         system : :class:`System <BioSimSpace._SireWrappers.System>`
         """
+        from ._system import System as _System
+
         return _System(self)
 
     def search(self, query, property_map={}):
@@ -683,6 +689,9 @@ class Molecule(_SireWrapper):
 
         >>> result = molecule.search("atomidx 23")
         """
+        from ._search_result import SearchResult as _SearchResult
+        from sire.legacy import Mol as _SireMol
+        from .. import _isVerbose
 
         if not isinstance(query, str):
             raise TypeError("'query' must be of type 'str'")
@@ -747,6 +756,16 @@ class Molecule(_SireWrapper):
         verbose : bool
             Whether to report status updates to stdout.
         """
+        from .._Exceptions import IncompatibleError as _IncompatibleError
+        from sire.legacy import (
+            Base as _SireBase,
+            IO as _SireIO,
+            MM as _SireMM,
+            Mol as _SireMol,
+            System as _SireSystem,
+        )
+        from .. import _isVerbose
+        from ._system import System as _System
 
         # Validate input.
 
@@ -782,13 +801,13 @@ class Molecule(_SireWrapper):
         mol0 = self._sire_object
 
         # Store the number of atoms to match.
-        num_atoms0 = mol0.nAtoms()
+        num_atoms0 = mol0.num_atoms()
 
         # Work out the number of atoms in mol1.
         if is_system:
             num_atoms1 = _System(mol1).nAtoms()
         else:
-            num_atoms1 = mol1.nAtoms()
+            num_atoms1 = mol1.num_atoms()
 
         # The new molecule must have the same number of atoms.
         if num_atoms1 != num_atoms0:
@@ -831,11 +850,11 @@ class Molecule(_SireWrapper):
                     raise _IncompatibleError("Failed to match all atoms!")
 
                 # Are the atoms in the same order?
-                is_reordered = matcher.changesOrder(mol0, mol1)
+                is_reordered = matcher.changes_order(mol0, mol1)
 
             else:
                 # Are the atoms in the same order?
-                is_reordered = matcher.changesOrder(mol0, mol1)
+                is_reordered = matcher.changes_order(mol0, mol1)
 
             if verbose:
                 print(
@@ -844,8 +863,8 @@ class Molecule(_SireWrapper):
                 )
 
             # Get a list of the property keys for each molecule.
-            props0 = mol0.propertyKeys()
-            props1 = mol1.propertyKeys()
+            props0 = mol0.property_keys()
+            props1 = mol1.property_keys()
 
             # Copy the property map.
             _property_map = property_map.copy()
@@ -875,11 +894,11 @@ class Molecule(_SireWrapper):
                     # Skip 'parameters' property, since it contains references to other parameters.
                     if prop != param:
                         # This is a new property, or we are allowed to overwrite.
-                        if (not mol0.hasProperty(_property_map[prop])) or overwrite:
+                        if (not mol0.has_property(_property_map[prop])) or overwrite:
                             if verbose:
                                 print("  %s" % _property_map[prop])
                             try:
-                                edit_mol = edit_mol.setProperty(
+                                edit_mol = edit_mol.set_property(
                                     _property_map[prop], mol1.property(prop)
                                 )
                             except Exception as e:
@@ -906,12 +925,12 @@ class Molecule(_SireWrapper):
                 # Loop over all of the keys in the new molecule.
                 for prop in props1:
                     # This is a new property, or we are allowed to overwrite.
-                    if (not mol0.hasProperty(_property_map[prop])) or overwrite:
+                    if (not mol0.has_property(_property_map[prop])) or overwrite:
                         # Loop over all of the atom mapping pairs and set the property.
                         for idx0, idx1 in matches.items():
                             # Does the atom have this property?
                             # If so, add it to the matching atom in this molecule.
-                            if mol1.atom(idx1).hasProperty(prop):
+                            if mol1.atom(idx1).has_property(prop):
                                 if verbose:
                                     print(
                                         "  %-20s %s --> %s"
@@ -920,7 +939,7 @@ class Molecule(_SireWrapper):
                                 try:
                                     edit_mol = (
                                         edit_mol.atom(idx0)
-                                        .setProperty(
+                                        .set_property(
                                             _property_map[prop],
                                             mol1.atom(idx1).property(prop),
                                         )
@@ -954,7 +973,9 @@ class Molecule(_SireWrapper):
                         # Skip 'parameters' property, since it contains references to other parameters.
                         if prop != "parameters":
                             # This is a new property, or we are allowed to overwrite.
-                            if (not mol0.hasProperty(_property_map[prop])) or overwrite:
+                            if (
+                                not mol0.has_property(_property_map[prop])
+                            ) or overwrite:
                                 if verbose:
                                     print("  %s" % _property_map[prop])
 
@@ -978,7 +999,7 @@ class Molecule(_SireWrapper):
                                             raise _IncompatibleError(msg) from None
 
                                 # Now try to set the property.
-                                edit_mol.setProperty(_property_map[prop], propty)
+                                edit_mol.set_property(_property_map[prop], propty)
 
             # Finally, rename the atoms.
 
@@ -1021,7 +1042,7 @@ class Molecule(_SireWrapper):
             num_matches = 0
 
             # Get the molecule numbers in the system.
-            mol_nums = mol1.molNums()
+            mol_nums = mol1.mol_nums()
 
             # Loop over all molecules in mol1.
             for num in mol_nums:
@@ -1064,8 +1085,8 @@ class Molecule(_SireWrapper):
                 mol = mol1[num]
 
                 # Get the molecule and atom properties.
-                props_mol = mol.propertyKeys()
-                props_atom = mol.atoms()[0].propertyKeys()
+                props_mol = mol.property_keys()
+                props_atom = mol.atoms()[0].property_keys()
 
                 # Check the atomic properties and add any new ones to the list.
                 for prop in props_atom:
@@ -1131,13 +1152,13 @@ class Molecule(_SireWrapper):
                     # Loop over all atom properties.
                     for prop in atom_props:
                         # This is a new property, or we're allowed to overwrite.
-                        if (not mol0.hasProperty(prop)) or overwrite:
+                        if (not mol0.has_property(prop)) or overwrite:
                             if verbose:
                                 print("  %-20s %s --> %s" % (prop, idx1, idx0))
                             try:
                                 edit_mol = (
                                     edit_mol.atom(idx0)
-                                    .setProperty(prop, mol.atom(idx1).property(prop))
+                                    .set_property(prop, mol.atom(idx1).property(prop))
                                     .molecule()
                                 )
                             except Exception as e:
@@ -1158,7 +1179,7 @@ class Molecule(_SireWrapper):
 
                     # This is a new property, or we're allowed to overwrite, and it's not excluded.
                     if (
-                        (not mol0.hasProperty(prop)) or overwrite
+                        (not mol0.has_property(prop)) or overwrite
                     ) and prop not in excluded_props:
                         if verbose:
                             print("  %s" % prop)
@@ -1178,19 +1199,19 @@ class Molecule(_SireWrapper):
                                     raise _IncompatibleError(msg) from None
 
                         # Now try to set the property.
-                        edit_mol.setProperty(prop, propty)
+                        edit_mol.set_property(prop, propty)
 
                 # Now re-map and build the properties for each of the potential terms.
 
                 # Bonds.
                 prop = property_map.get("bond", "bond")
-                if mol.hasProperty(prop):
+                if mol.has_property(prop):
                     if verbose:
                         print("  %s" % prop)
                     for bond in mol.property(prop).potentials():
                         # Extract the bond information.
-                        atom0 = info.atomIdx(bond.atom0())
-                        atom1 = info.atomIdx(bond.atom1())
+                        atom0 = info.atom_idx(bond.atom0())
+                        atom1 = info.atom_idx(bond.atom1())
                         exprn = bond.function()
 
                         # Map the atom indices to their position in the merged molecule.
@@ -1202,14 +1223,14 @@ class Molecule(_SireWrapper):
 
                 # Angles.
                 prop = property_map.get("angle", "angle")
-                if mol.hasProperty(prop):
+                if mol.has_property(prop):
                     if verbose:
                         print("  %s" % prop)
                     for angle in mol.property(prop).potentials():
                         # Extract the angle information.
-                        atom0 = info.atomIdx(angle.atom0())
-                        atom1 = info.atomIdx(angle.atom1())
-                        atom2 = info.atomIdx(angle.atom2())
+                        atom0 = info.atom_idx(angle.atom0())
+                        atom1 = info.atom_idx(angle.atom1())
+                        atom2 = info.atom_idx(angle.atom2())
                         exprn = angle.function()
 
                         # Map the atom indices to their position in the merged molecule.
@@ -1222,15 +1243,15 @@ class Molecule(_SireWrapper):
 
                 # Dihedrals.
                 prop = property_map.get("dihedral", "dihedral")
-                if mol.hasProperty(prop):
+                if mol.has_property(prop):
                     if verbose:
                         print("  %s" % prop)
                     for dihedral in mol.property(prop).potentials():
                         # Extract the dihedral information.
-                        atom0 = info.atomIdx(dihedral.atom0())
-                        atom1 = info.atomIdx(dihedral.atom1())
-                        atom2 = info.atomIdx(dihedral.atom2())
-                        atom3 = info.atomIdx(dihedral.atom3())
+                        atom0 = info.atom_idx(dihedral.atom0())
+                        atom1 = info.atom_idx(dihedral.atom1())
+                        atom2 = info.atom_idx(dihedral.atom2())
+                        atom3 = info.atom_idx(dihedral.atom3())
                         exprn = dihedral.function()
 
                         # Map the atom indices to their position in the merged molecule.
@@ -1244,15 +1265,15 @@ class Molecule(_SireWrapper):
 
                 # Impropers.
                 prop = property_map.get("improper", "improper")
-                if mol.hasProperty(prop):
+                if mol.has_property(prop):
                     if verbose:
                         print("  %s" % prop)
                     for improper in mol.property(prop).potentials():
                         # Extract the improper information.
-                        atom0 = info.atomIdx(improper.atom0())
-                        atom1 = info.atomIdx(improper.atom1())
-                        atom2 = info.atomIdx(improper.atom2())
-                        atom3 = info.atomIdx(improper.atom3())
+                        atom0 = info.atom_idx(improper.atom0())
+                        atom1 = info.atom_idx(improper.atom1())
+                        atom2 = info.atom_idx(improper.atom2())
+                        atom3 = info.atom_idx(improper.atom3())
                         exprn = improper.function()
 
                         # Map the atom indices to their position in the merged molecule.
@@ -1267,12 +1288,12 @@ class Molecule(_SireWrapper):
             # Set properties for the molecular potential.
 
             # Bonds.
-            if bonds.nFunctions() > 0:
+            if bonds.num_functions() > 0:
                 prop = property_map.get("bond", "bond")
                 if verbose:
                     print("  %s" % prop)
                 try:
-                    edit_mol.setProperty(prop, bonds)
+                    edit_mol.set_property(prop, bonds)
                 except Exception as e:
                     msg = "Incompatible property: %s" % prop
                     if _isVerbose():
@@ -1281,12 +1302,12 @@ class Molecule(_SireWrapper):
                         raise _IncompatibleError(msg) from None
 
             # Angles.
-            if angles.nFunctions() > 0:
+            if angles.num_functions() > 0:
                 prop = property_map.get("angle", "angle")
                 if verbose:
                     print("  %s" % prop)
                 try:
-                    edit_mol.setProperty(prop, angles)
+                    edit_mol.set_property(prop, angles)
                 except Exception as e:
                     msg = "Incompatible property: %s" % prop
                     if _isVerbose():
@@ -1295,12 +1316,12 @@ class Molecule(_SireWrapper):
                         raise _IncompatibleError(msg) from None
 
             # Dihedrals.
-            if dihedrals.nFunctions() > 0:
+            if dihedrals.num_functions() > 0:
                 prop = property_map.get("dihedral", "dihedral")
                 if verbose:
                     print("  %s" % prop)
                 try:
-                    edit_mol.setProperty(prop, dihedrals)
+                    edit_mol.set_property(prop, dihedrals)
                 except Exception as e:
                     msg = "Incompatible property: %s" % prop
                     if _isVerbose():
@@ -1309,12 +1330,12 @@ class Molecule(_SireWrapper):
                         raise _IncompatibleError(msg) from None
 
             # Impropers.
-            if impropers.nFunctions() > 0:
+            if impropers.num_functions() > 0:
                 prop = property_map.get("improper", "improper")
                 if verbose:
                     print("  %s" % prop)
                 try:
-                    edit_mol.setProperty(prop, impropers)
+                    edit_mol.set_property(prop, impropers)
                 except Exception as e:
                     msg = "Incompatible property: %s" % prop
                     if _isVerbose():
@@ -1323,7 +1344,7 @@ class Molecule(_SireWrapper):
                         raise _IncompatibleError(msg) from None
 
             # Now generate the molecular connectivity.
-            if bonds.nFunctions() > 0:
+            if bonds.num_functions() > 0:
                 prop = property_map.get("connectivity", "connectivity")
                 if verbose:
                     print("  %s" % prop)
@@ -1336,7 +1357,7 @@ class Molecule(_SireWrapper):
                 conn = conn.commit()
 
                 try:
-                    edit_mol.setProperty(prop, conn)
+                    edit_mol.set_property(prop, conn)
                 except Exception as e:
                     msg = "Incompatible property: %s" % prop
                     if _isVerbose():
@@ -1350,23 +1371,23 @@ class Molecule(_SireWrapper):
             # back into the original system.
 
             prop = property_map.get("intrascale", "intrascale")
-            if (not mol0.hasProperty(prop)) or overwrite:
+            if (not mol0.has_property(prop)) or overwrite:
                 if verbose:
                     print("  %s" % prop)
                 # Delete any existing intrascale property from the molecule.
-                if mol0.hasProperty(prop):
-                    edit_mol.removeProperty(prop)
+                if mol0.has_property(prop):
+                    edit_mol.remove_property(prop)
                 mol = edit_mol.commit()
                 # Convert to a "GROMACS system" using the GroTop parser.
                 gro_system = _SireIO.GroTop(
                     Molecule(mol).toSystem()._sire_object,
                     _SireBase.PropertyMap(property_map),
-                ).toSystem()
+                ).to_system()
                 # Extract the only molecule in the system.
                 gro_mol = gro_system[_SireMol.MolIdx(0)]
                 edit_mol = mol.edit()
                 try:
-                    edit_mol.setProperty(prop, gro_mol.property(prop))
+                    edit_mol.set_property(prop, gro_mol.property(prop))
                 except Exception as e:
                     msg = "Incompatible property: %s" % prop
                     if _isVerbose():
@@ -1392,6 +1413,8 @@ class Molecule(_SireWrapper):
             values. This allows the user to refer to properties with their
             own naming scheme, e.g. { "charge" : "my-charge" }
         """
+        from ..Types import Length as _Length
+        from sire.legacy import Maths as _SireMaths
 
         # Convert tuple to a list.
         if isinstance(vector, tuple):
@@ -1482,6 +1505,7 @@ class Molecule(_SireWrapper):
             values. This allows the user to refer to properties with their
             own naming scheme, e.g. { "charge" : "my-charge" }
         """
+        from sire.legacy import Base as _SireBase, IO as _SireIO
 
         # Convert int to float.
         if type(factor) is int:
@@ -1564,11 +1588,11 @@ class Molecule(_SireWrapper):
             for dummy in dummies0:
                 idx = dummy._sire_object.index()
                 mass1 = self._sire_object.atom(idx).property("mass1")
-                edit_mol = edit_mol.atom(idx).setProperty("mass0", mass1).molecule()
+                edit_mol = edit_mol.atom(idx).set_property("mass0", mass1).molecule()
             for dummy in dummies1:
                 idx = dummy._sire_object.index()
                 mass0 = self._sire_object.atom(idx).property("mass0")
-                edit_mol = edit_mol.atom(idx).setProperty("mass1", mass0).molecule()
+                edit_mol = edit_mol.atom(idx).set_property("mass1", mass0).molecule()
 
             self._sire_object = edit_mol.commit()
 
@@ -1583,7 +1607,7 @@ class Molecule(_SireWrapper):
         property_map = {}
 
         if self._is_perturbable:
-            for prop in self._sire_object.propertyKeys():
+            for prop in self._sire_object.property_keys():
                 if prop[-1] == "0":
                     property_map[prop[:-1]] = prop
 
@@ -1595,7 +1619,7 @@ class Molecule(_SireWrapper):
         property_map = {}
 
         if self._is_perturbable:
-            for prop in self._sire_object.propertyKeys():
+            for prop in self._sire_object.property_keys():
                 if prop[-1] == "1":
                     property_map[prop[:-1]] = prop
 
@@ -1613,11 +1637,14 @@ class Molecule(_SireWrapper):
             user defined values. This allows the user to refer to properties
             with their own naming scheme, e.g. { "charge" : "my-charge" }
         """
+        from .._Exceptions import IncompatibleError as _IncompatibleError
+        from math import isclose as _isclose
+        from sire.legacy import Units as _SireUnits
 
         # Get the user defined charge property.
         prop = property_map.get("charge", "charge")
 
-        if not self._sire_object.hasProperty(prop):
+        if not self._sire_object.has_property(prop):
             raise _IncompatibleError(
                 "Molecule does not have charge property: '%s'." % prop
             )
@@ -1646,7 +1673,7 @@ class Molecule(_SireWrapper):
             charge = -(charge + delta)
             edit_mol = (
                 edit_mol.atom(atom.index())
-                .setProperty(prop, charge * _SireUnits.e_charge)
+                .set_property(prop, charge * _SireUnits.e_charge)
                 .molecule()
             )
 
@@ -1689,6 +1716,8 @@ class Molecule(_SireWrapper):
         molecule : BioSimSpace._SireWrappers.Molecule
             The molecule at the chosen end state.
         """
+        from sire.legacy import Base as _SireBase, IO as _SireIO, Mol as _SireMol
+        from ._system import System as _System
 
         if not isinstance(is_lambda1, bool):
             raise TypeError("'is_lambda1' must be of type 'bool'")
@@ -1711,47 +1740,47 @@ class Molecule(_SireWrapper):
         mol = mol.edit()
 
         # Remove the perturbable molecule flag.
-        mol = mol.removeProperty("is_perturbable").molecule()
+        mol = mol.remove_property("is_perturbable").molecule()
 
         # Flag that the molecule was perturbable, so that dummies should be
         # treated as "normal" atoms.
-        mol = mol.setProperty("was_perturbable", _SireBase.wrap(True)).molecule()
+        mol = mol.set_property("was_perturbable", _SireBase.wrap(True)).molecule()
 
         # Rename all properties in the molecule for the corresponding end state,
         # e.g.: "prop0" --> "prop". Then delete all properties named "prop0"
         # and "prop1".
-        for prop in mol.propertyKeys():
+        for prop in mol.property_keys():
             if prop[-1] == lam:
                 # See if this property exists in the user map.
                 new_prop = property_map.get(prop[:-1], prop[:-1])
 
                 # Copy the property using the updated name.
-                mol = mol.setProperty(new_prop, mol.property(prop)).molecule()
+                mol = mol.set_property(new_prop, mol.property(prop)).molecule()
 
                 # Store the amber types in the opposite end state.
                 if prop[:-1] == "ambertype":
                     if lam == "0":
-                        amber_types = mol.property("ambertype1").toVector()
+                        amber_types = mol.property("ambertype1").to_vector()
                     else:
-                        amber_types = mol.property("ambertype0").toVector()
+                        amber_types = mol.property("ambertype0").to_vector()
 
                 elif prop[:-1] == "element":
                     if lam == "0":
-                        elements = mol.property("element1").toVector()
+                        elements = mol.property("element1").to_vector()
                     else:
-                        elements = mol.property("element0").toVector()
+                        elements = mol.property("element0").to_vector()
 
                 else:
                     # Delete redundant properties.
-                    mol = mol.removeProperty(prop[:-1] + "1").molecule()
-                    mol = mol.removeProperty(prop[:-1] + "0").molecule()
+                    mol = mol.remove_property(prop[:-1] + "1").molecule()
+                    mol = mol.remove_property(prop[:-1] + "0").molecule()
 
         # Convert ambertype and element property of dummies to those of the
         # other end state.
         if convert_amber_dummies:
             amber_type = property_map.get("ambertype", "ambertype")
             element = property_map.get("element", "element")
-            if mol.hasProperty(amber_type) and mol.hasProperty(element):
+            if mol.has_property(amber_type) and mol.has_property(element):
                 # Search for any dummy atoms.
                 try:
                     search = mol.atoms("element Xx")
@@ -1773,27 +1802,29 @@ class Molecule(_SireWrapper):
 
                     mol = (
                         mol.atom(index)
-                        .setProperty(amber_type, amber_type_value)
+                        .set_property(amber_type, amber_type_value)
                         .molecule()
                     )
-                    mol = mol.atom(index).setProperty(element, element_value).molecule()
+                    mol = (
+                        mol.atom(index).set_property(element, element_value).molecule()
+                    )
 
                 # Delete redundant properties.
-                mol = mol.removeProperty("ambertype0").molecule()
-                mol = mol.removeProperty("ambertype1").molecule()
-                mol = mol.removeProperty("element0").molecule()
-                mol = mol.removeProperty("element1").molecule()
+                mol = mol.remove_property("ambertype0").molecule()
+                mol = mol.remove_property("ambertype1").molecule()
+                mol = mol.remove_property("element0").molecule()
+                mol = mol.remove_property("element1").molecule()
 
         if generate_intrascale:
             # First we regenerate the connectivity based on the bonds.
             conn = _SireMol.Connectivity(mol.info()).edit()
             for bond in mol.property("bond").potentials():
                 conn.connect(bond.atom0(), bond.atom1())
-            mol.setProperty("connectivity", conn.commit())
+            mol.set_property("connectivity", conn.commit())
 
             # Now we have the correct connectivity, we can regenerate the exclusions.
-            gro_sys = _SireIO.GroTop(_System(mol)._sire_object).toSystem()
-            mol.setProperty("intrascale", gro_sys[0].property("intrascale"))
+            gro_sys = _SireIO.GroTop(_System(mol)._sire_object).to_system()
+            mol.set_property("intrascale", gro_sys[0].property("intrascale"))
 
         # Return the updated molecule.
         return Molecule(mol.commit())
@@ -1825,6 +1856,8 @@ class Molecule(_SireWrapper):
         dummy_indices : [ int ]
             The indices of any dummy atoms in the original molecule.
         """
+        from .._Exceptions import IncompatibleError as _IncompatibleError
+        from .. import _isVerbose
 
         if not isinstance(is_lambda1, bool):
             raise TypeError("'is_lambda1' must be of type 'bool'")
@@ -1884,6 +1917,7 @@ class Molecule(_SireWrapper):
         idxs : [int]
             The indices of the atoms that are perturbed.
         """
+        from warnings import warn as _warn
 
         idxs = []
 
@@ -1907,6 +1941,10 @@ class Molecule(_SireWrapper):
 
     def getCOMIdx(self):
         """Get the index of the atom that closest to the center of mass."""
+        from ..Types import Vector as _BSSVector
+        from ..Units.Length import angstrom as _angstrom
+        import numpy as _np
+
         if self.isPerturbable():
             property_map = {"coordinates": "coordinates0", "mass": "mass0"}
         else:
@@ -1914,15 +1952,7 @@ class Molecule(_SireWrapper):
         coords = self.coordinates(property_map=property_map)
         com = self._getCenterOfMass(property_map=property_map)
         com = _BSSVector(*[e / _angstrom for e in com])
-        diffs = [coord.toVector() - com for coord in coords]
+        diffs = [coord.to_vector() - com for coord in coords]
         sq_distances = [diff.dot(diff) for diff in diffs]
         idx = int(_np.argmin(sq_distances))
         return idx
-
-
-# Import at bottom of module to avoid circular dependency.
-from ._atom import Atom as _Atom
-from ._molecules import Molecules as _Molecules
-from ._residue import Residue as _Residue
-from ._search_result import SearchResult as _SearchResult
-from ._system import System as _System

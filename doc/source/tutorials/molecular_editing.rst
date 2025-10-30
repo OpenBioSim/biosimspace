@@ -108,8 +108,8 @@ SireMol::AtomCharges( size=9
 
 .. Note::
    To see the full list of properties available for a molecule, you can use the
-   ``propertyKeys()`` method on the underlying Sire molecule object, e.g.
-   ``ethanol._sire_object.propertyKeys()``.
+   ``property_keys()`` method on the underlying Sire molecule object, e.g.
+   ``ethanol._sire_object.property_keys()``.
 
 Editing bonds
 -------------
@@ -122,7 +122,7 @@ constant for all existing bonds:
 >>> bonds = TwoAtomFunctions(ethanol._sire_object.info())
 >>> for bond in ethanol._sire_object.property("bond").potentials():
 ...     amber_bond = AmberBond(0, 0)
-...     bonds.set(bond.atom0(), bond.atom1(), amber_bond.toExpression(Symbol("r")))
+...     bonds.set(bond.atom0(), bond.atom1(), amber_bond.to_expression(Symbol("r")))
 >>> cursor = ethanol._sire_object.cursor()
 >>> cursor["bond"] = bonds
 >>> ethanol._sire_object = cursor.commit()
@@ -163,7 +163,7 @@ and modifying the desired angle:
 >>> for angle in ethanol._sire_object.property("angle").potentials():
 ...     if ethanol._sire_object.atom(angle.atom1()).name().value() == "O3":
 ...         amber_angle = AmberAngle(100, 1.5)
-...         angles.set(angle.atom0(), angle.atom1(), angle.atom2(), amber_angle.toExpression(Symbol("theta")))
+...         angles.set(angle.atom0(), angle.atom1(), angle.atom2(), amber_angle.to_expression(Symbol("theta")))
 ...     else:
 ...         angles.set(angle.atom0(), angle.atom1(), angle.atom2(), angle.function())
 
@@ -247,7 +247,7 @@ A regular AMBER-style dihedral series where all terms have positive cosine facto
 >>> d = AmberDihedral(f, Phi)
 >>> print("AMBER:", d)
 AMBER: AmberDihedral( k[0] = 0.3, periodicity[0] = 1, phase[0] = 0, k[1] = 0.8, periodicity[1] = 4, phase[1] = 0 )
->>> assert d.toExpression(Phi) == f
+>>> assert d.to_expression(Phi) == f
 
 An AMBER-style dihedral containing positive and negative cosine factors, which
 can appear in the CHARMM force field:
@@ -256,7 +256,7 @@ can appear in the CHARMM force field:
 >>> d = AmberDihedral(f, Phi)
 >>> print("CHARMM:", d)
 CHARMM: AmberDihedral( k[0] = 0.3, periodicity[0] = 1, phase[0] = 0, k[1] = -0.8, periodicity[1] = 4, phase[1] = 0 )
->>> assert d.toExpression(Phi) == f
+>>> assert d.to_expression(Phi) == f
 
 An AMBER-style dihedral containing positive and negative cosine factors, with
 the negative of the form ``k [1 - Cos(Phi)]`` rather than ``-k [1 + Cos(Phi)]``.
@@ -269,7 +269,7 @@ GROMACS: AmberDihedral( k[0] = 0.3, periodicity[0] = 1, phase[0] = 0, k[1] = 0.8
 >>> from math import isclose
 >>> from sire.legacy.CAS import SymbolValue, Values
 >>> val = Values(SymbolValue(Phi.ID(), 2.0))
->>> assert isclose(f.evaluate(val), d.toExpression(Phi).evaluate(val))
+>>> assert isclose(f.evaluate(val), d.to_expression(Phi).evaluate(val))
 
 Finally, a three-term expression that mixes all formats:
 
@@ -280,7 +280,7 @@ Finally, a three-term expression that mixes all formats:
 ...     + 0.8 * (1 - Cos(4 * Phi))
 ... )
 >>> d = AmberDihedral(f, Phi)
->>> assert isclose(f.evaluate(val), d.toExpression(Phi).evaluate(val))
+>>> assert isclose(f.evaluate(val), d.to_expression(Phi).evaluate(val))
 
 .. Note::
    Impropers are also stored as ``FourAtomFunction`` objects, which can be
@@ -428,8 +428,8 @@ the editor, reparenting them to the appropriate chain, then adding the atoms:
 ...     cg = editor.add(sr.legacy.Mol.CGName(str(i)))
 ...     new_res = editor.add(res.number())
 ...     new_res.rename(res.name())
-...     new_res.reparent(chain_ids[i // 3])
-...     for j, atom in enumerate(res.atoms()):
+...     new_res.reparent(sr.legacy.Mol.ChainName(chain_ids[i]))
+...     for atom in res.atoms():
 ...         new_atom = cg.add(atom.number())
 ...         new_atom.rename(atom.name())
 ...         new_atom.reparent(res.index())
@@ -437,8 +437,8 @@ the editor, reparenting them to the appropriate chain, then adding the atoms:
 
 Next we need to copy across the molecular properties, e.g. charges and bonded terms.
 
->>> for prop in ala._sire_object.propertKeys():
-...     editor = editor.setProperty(prop, ala._sire_object.property(prop)).molecule()
+>>> for prop in ala._sire_object.property_keys():
+...     editor = editor.set_property(prop, ala._sire_object.property(prop)).molecule()
 
 Finally, we can commit the changes to create the new molecule:
 

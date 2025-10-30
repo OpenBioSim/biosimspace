@@ -40,13 +40,13 @@ def alchemical_ion_system():
         atomtype = pert_ion._sire_object.property(f"atomtype{lambda_}")
         pert_ion._sire_object = (
             pert_ion._sire_object.edit()
-            .setProperty(f"ambertype{lambda_}", atomtype)
+            .set_property(f"ambertype{lambda_}", atomtype)
             .molecule()
         )
     pert_ion._sire_object = (
         pert_ion.getAtoms()[0]
         ._sire_object.edit()
-        .setProperty("charge1", 0 * SireUnits.mod_electron)
+        .set_property("charge1", 0 * SireUnits.mod_electron)
         .molecule()
     )
 
@@ -218,8 +218,8 @@ def test_amber(protocol, system, ref_system, tmp_path):
     # We have generated a separate restraint reference
     assert os.path.exists(proc._ref_file)
 
-    ref = AmberRst(proc._ref_file).getFrame(0)
-    rst = AmberRst(proc._rst_file).getFrame(0)
+    ref = AmberRst(proc._ref_file).get_frame(0)
+    rst = AmberRst(proc._rst_file).get_frame(0)
 
     assert ref != rst
 

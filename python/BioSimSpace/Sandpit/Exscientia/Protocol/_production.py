@@ -26,8 +26,6 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["Production"]
 
-import math as _math
-import warnings as _warnings
 
 from ._position_restraint import _PositionRestraintMixin
 from ._protocol import Protocol as _Protocol
@@ -382,6 +380,8 @@ class Production(_Protocol, _PositionRestraintMixin):
         report_interval : int
             The number of integration steps between reporting statistics.
         """
+        import warnings as _warnings
+
         if not type(report_interval) is int:
             raise TypeError("'report_interval' must be of type 'int'")
 
@@ -417,6 +417,8 @@ class Production(_Protocol, _PositionRestraintMixin):
             The number of integration steps between saving restart
             configurations and/or trajectory frames.
         """
+        import warnings as _warnings
+
         if not type(restart_interval) is int:
             raise TypeError("'restart_interval' must be of type 'int'")
 
@@ -448,6 +450,9 @@ class Production(_Protocol, _PositionRestraintMixin):
         step : int
             The first time step.
         """
+        import math as _math
+        import warnings as _warnings
+
         if not type(first_step) is int:
             raise TypeError("'first_step' must be of type 'int'")
 
@@ -479,6 +484,8 @@ class Production(_Protocol, _PositionRestraintMixin):
         restart : bool
             Whether this is a restart simulation.
         """
+        import warnings as _warnings
+
         if isinstance(restart, bool):
             self._restart = restart
         else:

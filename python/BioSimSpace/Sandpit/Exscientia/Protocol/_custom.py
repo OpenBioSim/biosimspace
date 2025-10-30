@@ -29,7 +29,6 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["Custom"]
 
-import os as _os
 
 from ._protocol import Protocol as _Protocol
 
@@ -84,6 +83,8 @@ class Custom(_Protocol):
         config : str, [ str ]
             A config file, or list of configuration strings.
         """
+        import os as _os
+
         # Check that the passed configuration is a list of strings.
         if _is_list_of_strings(config):
             self._config = config

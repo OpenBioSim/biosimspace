@@ -26,22 +26,11 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["Funnel", "makeFunnel", "viewFunnel"]
 
-import math as _math
 
-from sire.legacy.Maths import Vector as _SireVector
-import sire.legacy.Mol as _SireMol
-
-from ... import _is_notebook
 from ._collective_variable import CollectiveVariable as _CollectiveVariable
 from .._bound import Bound as _Bound
 from .._grid import Grid as _Grid
-from ..._Exceptions import IncompatibleError as _IncompatibleError
-from ..._SireWrappers import Molecule as _Molecule
-from ..._SireWrappers import System as _System
-from ...Types import Coordinate as _Coordinate
-from ...Types import Energy as _Energy
 from ...Types import Length as _Length
-from ...Types import Volume as _Volume
 
 
 class Funnel(_CollectiveVariable):
@@ -529,6 +518,9 @@ class Funnel(_CollectiveVariable):
         correction : :class:`Energy <BioSimSpace.Types.Energy>`
             The funnel correction.
         """
+        import math as _math
+        from ...Types import Energy as _Energy
+        from ...Types import Volume as _Volume
 
         if proj_min is None:
             if proj_max is None:
@@ -616,6 +608,7 @@ class Funnel(_CollectiveVariable):
         extent : :class:`Length <BioSimSpace.Types.Length>`
             The distance along the extent axis.
         """
+        import math as _math
 
         if not isinstance(projection, _Length):
             raise TypeError("'projection' must be of type 'BioSimSpace.Types.Length'.")
@@ -636,6 +629,7 @@ class Funnel(_CollectiveVariable):
 
     def _validate(self):
         """Internal function to check that the object is in a consistent state."""
+        import math as _math
 
         if self._lower_bound is not None:
             if not isinstance(self._lower_bound.getValue(), _Length):
@@ -752,6 +746,11 @@ def makeFunnel(
     atoms1 : [int]
         A list of atom indices that define the inflection point of the funnel.
     """
+    from ..._Exceptions import IncompatibleError as _IncompatibleError
+    from ..._SireWrappers import Molecule as _Molecule
+    from sire.legacy.Maths import Vector as _SireVector
+    from ..._SireWrappers import System as _System
+    from ...Types import Coordinate as _Coordinate
 
     # Validate the input.
 
@@ -800,7 +799,7 @@ def makeFunnel(
 
     # Get the "coordinates" property from the user mapping.
     coordinates = property_map.get("coordinates", "coordinates")
-    if not protein._sire_object.hasProperty(coordinates):
+    if not protein._sire_object.has_property(coordinates):
         raise ValueError(
             f"The 'protein' molecule doesn't have a {coordinates} property!"
         )
@@ -847,7 +846,7 @@ def makeFunnel(
 
     # Get the "space" property from the user map.
     space_prop = property_map.get("space", "space")
-    if space_prop not in system._sire_object.propertyKeys():
+    if space_prop not in system._sire_object.property_keys():
         raise _IncompatibleError("The system contains no simulation box property!")
 
     # Store the space.
@@ -954,11 +953,11 @@ def makeFunnel(
     com /= search.nResults()
 
     # Compute the normal vector for the funnel.
-    initial_funnel_normal_vector = (non_protein - com).toVector().normalise()
+    initial_funnel_normal_vector = (non_protein - com).to_vector().normalise()
 
     # Compute the location of a point 10 Angstom in the direction of the funnel
     # normal vector in the direction of the protein.
-    into_the_protein = com.toVector() - 10 * initial_funnel_normal_vector
+    into_the_protein = com.to_vector() - 10 * initial_funnel_normal_vector
 
     # Search for all alpha carbons within 7 Angstrom of the point.
 
@@ -1018,6 +1017,11 @@ def viewFunnel(system, collective_variable, property_map={}):
     view : :class:`View <BioSimSpace.Notebook.View>`
         A view object showing the system and funnel.
     """
+    from ..._SireWrappers import Molecule as _Molecule
+    from ... import _is_notebook
+    from sire.legacy.Maths import Vector as _SireVector
+    from ..._SireWrappers import System as _System
+    import sire.legacy.Mol as _SireMol
 
     # The following is adapted from funnel_maker.py by Dominykas Lukauskis.
 
@@ -1049,7 +1053,7 @@ def viewFunnel(system, collective_variable, property_map={}):
 
     # Get the "coordinates" property from the user mapping.
     coordinates = property_map.get("coordinates", "coordinates")
-    if not protein._sire_object.hasProperty(coordinates):
+    if not protein._sire_object.has_property(coordinates):
         raise ValueError(
             f"The 'protein' molecule doesn't have a {coordinates} property!"
         )
@@ -1160,12 +1164,12 @@ def viewFunnel(system, collective_variable, property_map={}):
     helium = _SireMol.Element("He")
 
     # Add the coordinaates and element property.
-    for x in range(0, funnel_mol.nAtoms()):
+    for x in range(0, funnel_mol.num_atoms()):
         idx = _SireMol.AtomIdx(x)
         funnel_mol = (
-            funnel_mol.atom(idx).setProperty(coordinates, funnel_coords[x]).molecule()
+            funnel_mol.atom(idx).set_property(coordinates, funnel_coords[x]).molecule()
         )
-        funnel_mol = funnel_mol.atom(idx).setProperty(element, helium).molecule()
+        funnel_mol = funnel_mol.atom(idx).set_property(element, helium).molecule()
 
     # Add the funnel pseudoatoms to the system.
     new_system = system + _Molecule(funnel_mol.commit())

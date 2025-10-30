@@ -29,15 +29,6 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["SireWrapper"]
 
-from sire.legacy import Maths as _SireMaths
-from sire.legacy import Mol as _SireMol
-from sire.legacy import Vol as _SireVol
-
-from .. import _isVerbose
-from .._Exceptions import IncompatibleError as _IncompatibleError
-from ..Types import Length as _Length
-from .. import Units as _Units
-
 
 class SireWrapper:
     """A base class for wrapping Sire objects."""
@@ -120,6 +111,7 @@ class SireWrapper:
         charge : :class:`Charge <BioSimSpace.Types.Charge>`
             The charge.
         """
+        from .. import Units as _Units
 
         if not isinstance(property_map, dict):
             raise TypeError("'property_map' must be of type 'dict'.")
@@ -179,6 +171,10 @@ class SireWrapper:
             values. This allows the user to refer to properties with their
             own naming scheme, e.g. { "charge" : "my-charge" }
         """
+        from .._Exceptions import IncompatibleError as _IncompatibleError
+        from .. import _isVerbose
+        from ..Types import Length as _Length
+        from sire.legacy import Maths as _SireMaths
 
         # Convert tuple to a list.
         if isinstance(vector, tuple):
@@ -264,10 +260,12 @@ class SireWrapper:
             The minimum coordinates of the axis-aligned bounding box in
             each dimension.
         """
+        from .. import Units as _Units
+
         aabox = self._getAABox(property_map)
 
-        box_min = [x.value() * _Units.Length.angstrom for x in aabox.minCoords()]
-        box_max = [x.value() * _Units.Length.angstrom for x in aabox.maxCoords()]
+        box_min = [x.value() * _Units.Length.angstrom for x in aabox.min_coords()]
+        box_max = [x.value() * _Units.Length.angstrom for x in aabox.max_coords()]
 
         return box_min, box_max
 
@@ -292,6 +290,8 @@ class SireWrapper:
         com: [:class:`Length <BioSimSpace.Types.Length>`]
             The center of mass of the object.
         """
+        from .. import Units as _Units
+        from sire.legacy import Vol as _SireVol
 
         if space is None:
             space_prop = property_map.get("space", "space")
@@ -357,6 +357,8 @@ class SireWrapper:
             """
             Helper function to compute the center of mass of a set of atoms.
             """
+            from sire.legacy import Maths as _SireMaths
+
             for atom in atoms:
                 # Update the total mass.
                 try:
@@ -372,7 +374,7 @@ class SireWrapper:
                 try:
                     coord = atom._sire_object.property(coord_prop)
                     coord = ref_coord + _SireMaths.Vector(
-                        space.calcDistVector(ref_coord, coord)
+                        space.calc_dist_vector(ref_coord, coord)
                     )
                 except:
                     ValueError(
@@ -411,6 +413,8 @@ class SireWrapper:
         filebase : str
             The base name of the binary output file.
         """
+        from BioSimSpace.Stream import save as _save
+
         _save(self, filebase)
 
     def _getSireObject(self):
@@ -443,6 +447,9 @@ class SireWrapper:
         aabox : Sire.Vol.AABox
             The axis-aligned bounding box for the object.
         """
+        from sire.legacy import Vol as _SireVol
+        from .._Exceptions import IncompatibleError as _IncompatibleError
+        from .. import _isVerbose
 
         # Initialise the coordinates vector.
         coord = []
@@ -456,7 +463,7 @@ class SireWrapper:
         # Residues now have a coordinates property, but this is returned as a
         # Python list.
         try:
-            c = self._sire_object.property(prop).toVector()
+            c = self._sire_object.property(prop).to_vector()
         except:
             try:
                 c = self._sire_object.property(prop)
@@ -480,7 +487,3 @@ class SireWrapper:
 
         # Return the AABox for the coordinates.
         return _SireVol.AABox(coord)
-
-
-# Import at bottom of module to avoid circular dependency.
-from BioSimSpace.Stream import save as _save

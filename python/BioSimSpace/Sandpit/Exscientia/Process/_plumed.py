@@ -28,32 +28,11 @@ __all__ = ["Plumed"]
 
 from .._Utils import _try_import
 
-import glob as _glob
-import os as _os
 
 _pygtail = _try_import("pygtail")
-import shlex as _shlex
-import shutil as _shutil
-import subprocess as _subprocess
-import warnings as _warnings
 
-from sire.legacy.Base import findExe as _findExe
-from sire.legacy.Maths import Vector as _Vector
-from sire.legacy.Mol import MolNum as _MolNum
-import sire.legacy.Vol as _SireVol
 
-from .._SireWrappers import System as _System
-from ..Metadynamics import CollectiveVariable as _CollectiveVariable
-from ..Protocol import Metadynamics as _Metadynamics
-from ..Protocol import Steering as _Steering
-from ..Types import Coordinate as _Coordinate
-
-from .. import _Exceptions
 from .. import Types as _Types
-from .. import _Utils
-from .. import Units as _Units
-
-from ._process import _MultiDict
 
 
 class Plumed:
@@ -70,6 +49,12 @@ class Plumed:
             The working directory of the process that is interfacing
             with PLUMED.
         """
+        import subprocess as _subprocess
+        from sire.legacy.Base import findExe as _findExe
+        from .. import _Utils
+        from .. import _Exceptions
+        import os as _os
+        from ._process import _MultiDict
 
         # Check that the working directory is valid.
         if not isinstance(work_dir, str):
@@ -80,7 +65,7 @@ class Plumed:
 
         # Try to locate the PLUMED executable.
         try:
-            self._exe = _findExe("plumed").absoluteFilePath()
+            self._exe = _findExe("plumed").absolute_file_path()
         except:
             raise _Exceptions.MissingSoftwareError(
                 "Metadynamics simulations required "
@@ -180,6 +165,9 @@ class Plumed:
             The list of PLUMED configuration strings and paths to any auxiliary
             files required by the collective variables.
         """
+        from ..Protocol import Metadynamics as _Metadynamics
+        from .._SireWrappers import System as _System
+        from ..Protocol import Steering as _Steering
 
         if not isinstance(system, _System):
             raise TypeError(
@@ -225,6 +213,15 @@ class Plumed:
             The list of PLUMED configuration strings and paths to any auxiliary
             files required by the collective variables.
         """
+        from ..Protocol import Metadynamics as _Metadynamics
+        import sire.legacy.Vol as _SireVol
+        from ..Metadynamics import CollectiveVariable as _CollectiveVariable
+        from .. import _Exceptions
+        from sire.legacy.Maths import Vector as _Vector
+        from ..Types import Coordinate as _Coordinate
+        from .._SireWrappers import System as _System
+        import os as _os
+        from .. import Units as _Units
 
         if not isinstance(system, _System):
             raise TypeError(
@@ -325,7 +322,7 @@ class Plumed:
 
                     # Check whether the system has a space. If not, vacuum
                     # simulations are okay.
-                    if space_prop in system._sire_object.propertyKeys():
+                    if space_prop in system._sire_object.property_keys():
                         # Get the space property.
                         space = system._sire_object.property(space_prop)
 
@@ -419,7 +416,7 @@ class Plumed:
                     )
 
                 # Get the molecule numbers in this system.
-                mol_nums = system._sire_object.molNums()
+                mol_nums = system._sire_object.mol_nums()
 
                 # Loop over each molecule and find the one that contains this atom.
                 for x, num in enumerate(mol_nums):
@@ -441,7 +438,7 @@ class Plumed:
             idx = system._atom_index_tally[molecule]
 
             # Get the number of atoms in the molecule.
-            num_atoms = system._sire_object.molecule(molecule).nAtoms()
+            num_atoms = system._sire_object.molecule(molecule).num_atoms()
 
             # Create the entity record. Remember to one-index the atoms.
             string += " ENTITY%d=%d-%d" % (x, idx + 1, idx + num_atoms)
@@ -676,7 +673,7 @@ class Plumed:
                 idx = system._atom_index_tally[molecules[1]]
 
                 # Get the number of atoms in the ligand.
-                num_atoms = system._sire_object.molecule(molecule).nAtoms()
+                num_atoms = system._sire_object.molecule(molecule).num_atoms()
 
                 # Create the ligand record. Remember to one-index the atoms.
                 colvar_string = "lig: COM ATOMS=%d-%d" % (idx + 1, idx + num_atoms)
@@ -931,6 +928,13 @@ class Plumed:
             The list of PLUMED configuration strings and paths to any auxiliary
             files required by the collective variables.
         """
+        from ..Metadynamics import CollectiveVariable as _CollectiveVariable
+        from .. import _Exceptions
+        from ..Types import Coordinate as _Coordinate
+        from .._SireWrappers import System as _System
+        from ..Protocol import Steering as _Steering
+        import os as _os
+        from .. import Units as _Units
 
         if not isinstance(system, _System):
             raise TypeError(
@@ -1033,7 +1037,7 @@ class Plumed:
                     )
 
                 # Get the molecule numbers in this system.
-                mol_nums = system._sire_object.molNums()
+                mol_nums = system._sire_object.mol_nums()
 
                 # Loop over each molecule and find the one that contains this atom.
                 for x, num in enumerate(mol_nums):
@@ -1055,7 +1059,7 @@ class Plumed:
             idx = system._atom_index_tally[molecule]
 
             # Get the number of atoms in the molecule.
-            num_atoms = system._sire_object.molecule(molecule).nAtoms()
+            num_atoms = system._sire_object.molecule(molecule).num_atoms()
 
             # Create the entity record. Remember to one-index the atoms.
             string += " ENTITY%d=%d-%d" % (x, idx + 1, idx + num_atoms)
@@ -1344,6 +1348,8 @@ class Plumed:
         time : :class:`Time <BioSimSpace.Types.Time>`
             The simulation run time.
         """
+        from .. import _Exceptions
+        from .. import Units as _Units
 
         # We need to have generated a valid config before being able to parse
         # the COLVAR records.
@@ -1383,6 +1389,7 @@ class Plumed:
         collective_variable : :class:`Type <BioSimSpace.Types>`
             The value of the collective variable.
         """
+        from .. import _Exceptions
 
         # We need to have generated a valid config before being able to parse
         # the COLVAR records.
@@ -1435,6 +1442,13 @@ class Plumed:
                         [[:class:`Type <BioSimSpace.Types>`, :class:`Type <BioSimSpace.Types>`, ...], ...]
             The free energy estimate for the chosen collective variables.
         """
+        import subprocess as _subprocess
+        import shutil as _shutil
+        from .. import _Utils
+        from .. import _Exceptions
+        import glob as _glob
+        import os as _os
+        from .. import Units as _Units
 
         # We need to have generated a valid config before being able to compute
         # free energies.
@@ -1580,6 +1594,7 @@ class Plumed:
 
     def _update_colvar_dict(self):
         """Read the COLVAR file and update any records."""
+        import os as _os
 
         # Exit if the COLVAR file hasn't been created.
         if not _os.path.isfile(self._colvar_file):
@@ -1619,6 +1634,7 @@ class Plumed:
 
     def _update_hills_dict(self):
         """Read the HILLS file and update any records."""
+        import os as _os
 
         # Exit if the HILLS file hasn't been created.
         if not _os.path.isfile(self._hills_file):
@@ -1658,6 +1674,7 @@ class Plumed:
         record :
             The matching stdout record.
         """
+        import warnings as _warnings
 
         # No data!
         if len(self._colvar_dict) == 0:
@@ -1724,6 +1741,7 @@ class Plumed:
         record :
             The matching stdout record.
         """
+        import warnings as _warnings
 
         # No data!
         if len(self._hills_dict) == 0:

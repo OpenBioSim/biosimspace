@@ -37,6 +37,11 @@ Classes
     SearchResult
 """
 
+import sire as _sr
+
+_sr.use_new_api()
+del _sr
+
 from ._atom import *
 from ._bond import *
 from ._molecule import *

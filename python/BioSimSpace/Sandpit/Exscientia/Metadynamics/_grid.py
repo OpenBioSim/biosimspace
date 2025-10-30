@@ -26,8 +26,6 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["Grid"]
 
-from ..Types._type import Type as _Type
-
 
 class Grid:
     def __init__(self, minimum, maximum, num_bins=None):
@@ -94,6 +92,8 @@ class Grid:
         minimum : int, float, :class:`Type <BioSimSpace.Types>`
             The minimum value of the grid.
         """
+        from ..Types._type import Type as _Type
+
         if not isinstance(minimum, (float, _Type)) and not type(minimum) is int:
             raise TypeError(
                 "'minimum' must be of type 'int', 'float', or 'BioSimSpace.Types._type.Type'"
@@ -128,6 +128,8 @@ class Grid:
         maximum : int, float, :class:`Type <BioSimSpace.Types>`
             The maximum value of the grid.
         """
+        from ..Types._type import Type as _Type
+
         if not isinstance(maximum, (float, _Type)) and not type(maximum) is int:
             raise TypeError(
                 "'maximum' must be of type 'int', 'float', or 'BioSimSpace.Types._type.Type'"

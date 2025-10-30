@@ -26,35 +26,10 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["solvate", "spc", "spce", "tip3p", "tip4p", "tip5p", "opc", "waterModels"]
 
-import os as _os
-import re as _re
-import subprocess as _subprocess
-import shlex as _shlex
-import shutil as _shutil
 import sys as _sys
-import warnings as _warnings
 
-from sire.legacy import Base as _SireBase
-from sire.legacy import IO as _SireIO
-from sire.legacy import Mol as _SireMol
-from sire.legacy.Maths import Vector as _Vector
-from sire.legacy.Vol import TriclinicBox as _TriclinicBox
 
-from sire.legacy.Units import degree as _degree
-
-from .. import _gmx_exe, _gmx_path
-from .. import _isVerbose
-
-from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
-from .._SireWrappers import System as _System
-from .._SireWrappers import Molecule as _Molecule
-from .._SireWrappers import Molecules as _Molecules
-from ..Types import Coordinate as _Coordinate
 from ..Types import Angle as _Angle
-from ..Types import Length as _Length
-
-from .. import IO as _IO
-from .. import _Utils
 
 
 def solvate(
@@ -212,6 +187,8 @@ def spc(
     system : :class:`System <BioSimSpace._SireWrappers.System>`
         The solvated molecular system.
     """
+    from .. import _gmx_exe, _gmx_path
+    from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
 
     if _gmx_exe is None or _gmx_path is None:
         raise _MissingSoftwareError(
@@ -314,6 +291,8 @@ def spce(
     system : :class:`System <BioSimSpace._SireWrappers.System>`
         The solvated molecular system.
     """
+    from .. import _gmx_exe
+    from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
 
     if _gmx_exe is None:
         raise _MissingSoftwareError(
@@ -416,6 +395,8 @@ def tip3p(
     system : :class:`System <BioSimSpace._SireWrappers.System>`
         The solvated molecular system.
     """
+    from .. import _gmx_exe
+    from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
 
     if _gmx_exe is None:
         raise _MissingSoftwareError(
@@ -518,6 +499,8 @@ def tip4p(
     system : :class:`System <BioSimSpace._SireWrappers.System>`
         The solvated molecular system.
     """
+    from .. import _gmx_exe
+    from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
 
     if _gmx_exe is None:
         raise _MissingSoftwareError(
@@ -620,6 +603,8 @@ def tip5p(
     system : :class:`System <BioSimSpace._SireWrappers.System>`
         The solvated molecular system.
     """
+    from .. import _gmx_exe
+    from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
 
     if _gmx_exe is None:
         raise _MissingSoftwareError(
@@ -722,6 +707,8 @@ def opc(
     system : :class:`System <BioSimSpace._SireWrappers.System>`
         The solvated molecular system.
     """
+    from .. import _gmx_exe
+    from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
 
     if _gmx_exe is None:
         raise _MissingSoftwareError(
@@ -828,6 +815,12 @@ def _validate_input(
     (molecule, box, angles, shell, work_dir, property_map) : tuple
         The validated input arguments.
     """
+    from .._SireWrappers import Molecule as _Molecule
+    from .._SireWrappers import Molecules as _Molecules
+    import warnings as _warnings
+    from ..Types import Coordinate as _Coordinate
+    from .._SireWrappers import System as _System
+    from ..Types import Length as _Length
 
     # Whether to check the box size.
     check_box = True
@@ -941,7 +934,7 @@ def _validate_input(
 
         # Work out the box size based on axis-aligned bounding box.
         # We take the maximum dimension as the base length of our box.
-        base_length = max(2 * molecule._getAABox().halfExtents())
+        base_length = max(2 * molecule._getAABox().half_extents())
 
         # Now add the shell thickness.
         base_length = _Length(base_length, "A") + shell
@@ -1056,6 +1049,21 @@ def _solvate(
     system : :class:`System <BioSimSpace._SireWrappers.System>`
         The solvated system.
     """
+    from sire.legacy.Maths import Vector as _Vector
+    from sire.legacy import Base as _SireBase
+    import subprocess as _subprocess
+    from sire.legacy.Vol import TriclinicBox as _TriclinicBox
+    from sire.legacy.Units import degree as _degree
+    from .. import IO as _IO
+    import shutil as _shutil
+    from .. import _isVerbose
+    from .. import _Utils
+    from .. import _gmx_exe
+    import warnings as _warnings
+    from .._SireWrappers import System as _System
+    import re as _re
+    from ..Types import Length as _Length
+    import os as _os
 
     if molecule is not None:
         # Get the axis aligned bounding box.
@@ -1077,7 +1085,7 @@ def _solvate(
         )
 
         # Work out the center of the triclinic cell.
-        box_center = triclinic_box.cellMatrix() * _Vector(0.5, 0.5, 0.5)
+        box_center = triclinic_box.cell_matrix() * _Vector(0.5, 0.5, 0.5)
 
         # Work out the offset between the molecule and box centers.
         shift = [
@@ -1305,11 +1313,13 @@ def _solvate(
                 system = molecule.toSystem() + water
 
             # Add all of the water box properties to the new system.
-            for prop in water._sire_object.propertyKeys():
+            for prop in water._sire_object.property_keys():
                 prop = _property_map.get(prop, prop)
 
                 # Add the space property from the water system.
-                system._sire_object.setProperty(prop, water._sire_object.property(prop))
+                system._sire_object.set_property(
+                    prop, water._sire_object.property(prop)
+                )
         else:
             system = water
 
@@ -1545,7 +1555,7 @@ def _solvate(
                                 for water in original_waters:
                                     water._sire_object = (
                                         water._sire_object.edit()
-                                        .setProperty(
+                                        .set_property(
                                             "is_non_searchable_water",
                                             _SireBase.wrap(True),
                                         )
@@ -1566,9 +1576,9 @@ def _solvate(
 
                         # Add all of the system properties from the water molecules
                         # to the new system.
-                        for prop in water_ions._sire_object.propertyKeys():
+                        for prop in water_ions._sire_object.property_keys():
                             prop = _property_map.get(prop, prop)
-                            system._sire_object.setProperty(
+                            system._sire_object.set_property(
                                 prop, water_ions._sire_object.property(prop)
                             )
 
@@ -1576,7 +1586,7 @@ def _solvate(
                         system = water_ions
 
         # Store the name of the water model as a system property.
-        system._sire_object.setProperty("water_model", _SireBase.wrap(model))
+        system._sire_object.set_property("water_model", _SireBase.wrap(model))
 
     return system
 
@@ -1606,13 +1616,14 @@ def _check_box_size(molecule, box, property_map={}):
     is_okay : True
         Whether the box is large enough.
     """
+    from ..Types import Length as _Length
 
     # Get the axis-aligned bounding box of the molecule/system.
     aabox = molecule._getAABox(property_map)
 
     # Calculate the box size in each dimension, storing each component as a
     # length in Angstroms.
-    mol_box = [_Length(2 * x, " A") for x in aabox.halfExtents()]
+    mol_box = [_Length(2 * x, " A") for x in aabox.half_extents()]
 
     # Make sure the box is big enough in each dimension.
     for len1, len2 in zip(box, mol_box):
@@ -1640,6 +1651,7 @@ def _rename_water_molecule(molecule):
     molecule : Sire.Mol.Molecule
         The updated Sire Molecule object.
     """
+    from sire.legacy import Mol as _SireMol
 
     # Make the molecule editable.
     molecule = molecule.edit()
@@ -1689,7 +1701,7 @@ def _rename_water_molecule(molecule):
             name = name.replace(" ", "")
 
             # Try to infer the element.
-            element = _SireMol.Element.biologicalElement(name)
+            element = _SireMol.Element.biological_element(name)
 
             # Hydrogen.
             if element == _SireMol.Element("H"):

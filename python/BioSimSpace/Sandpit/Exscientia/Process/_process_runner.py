@@ -26,15 +26,6 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["ProcessRunner"]
 
-import os as _os
-import tempfile as _tempfile
-import threading as _threading
-import time as _time
-
-from .._SireWrappers import System as _System
-
-from ._process import Process as _Process
-
 
 class ProcessRunner:
     """
@@ -76,6 +67,8 @@ class ProcessRunner:
         work_dir : str
             The working directory for the processes.
         """
+        import os as _os
+        from ._process import Process as _Process
 
         # Convert tuple to list.
         if isinstance(processes, tuple):
@@ -222,6 +215,7 @@ class ProcessRunner:
                  [:class:`Process <BioSimSpace.Process>`]
             The process/processes to add.
         """
+        from ._process import Process as _Process
 
         # Convert to a list.
         if not isinstance(process, list):
@@ -546,6 +540,7 @@ class ProcessRunner:
         max_retries : int
             How many times to retry a process if it fails.
         """
+        import threading as _threading
 
         if self.nProcesses() == 0:
             raise ValueError("The ProcessRunner contains no processes!")
@@ -613,6 +608,7 @@ class ProcessRunner:
         max_retries : int
             How many times to retry a process if it fails.
         """
+        import time as _time
 
         if self.nProcesses() == 0:
             raise ValueError("The ProcessRunner contains no processes!")
@@ -736,6 +732,7 @@ class ProcessRunner:
 
     def wait(self):
         """Wait for any running processes to finish."""
+        import time as _time
 
         if self._thread is not None and not self._thread.is_alive():
             self._thread.join()
@@ -836,6 +833,8 @@ class ProcessRunner:
         new_processes : [:class:`Process <BioSimSpace.Process>`]
             A list of procesess with updated working directories.
         """
+        from .._SireWrappers import System as _System
+        import os as _os
 
         # Create the list of new processes.
         new_processes = []

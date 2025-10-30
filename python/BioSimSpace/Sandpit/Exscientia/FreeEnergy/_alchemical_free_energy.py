@@ -27,17 +27,10 @@ __email__ = "lester.hedges@gmail.com"
 __all__ = ["AlchemicalFreeEnergy", "getData"]
 
 
-import copy as _copy
-import math as _math
 import os as _os
-import shutil as _shutil
-import subprocess as _subprocess
 import sys as _sys
-import warnings as _warnings
-import zipfile as _zipfile
-from glob import glob as _glob
 
-from .._Utils import _assert_imported, _have_imported, _try_import
+from .._Utils import _have_imported, _try_import
 
 # alchemlyb isn't available on all variants of Python that we support, so we
 # need to try_import it.
@@ -58,26 +51,13 @@ if _have_imported(_alchemlyb):
     from alchemlyb.estimators import TI as _TI
     from alchemlyb.postprocessors.units import to_kcalmol as _to_kcalmol
 
-import numpy as _np
-import pandas as _pd
 from sire.legacy.Base import getBinDir as _getBinDir
 from sire.legacy.Base import getShareDir as _getShareDir
 
-from ._restraint import Restraint as _Restraint
 
-from .._Exceptions import AnalysisError as _AnalysisError
 from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
-from .._SireWrappers import System as _System
-from .._Utils import cd as _cd
-from .. import _gmx_exe
 from .. import _is_notebook
-from .. import Process as _Process
-from .. import Protocol as _Protocol
-from .. import Types as _Types
-from .. import Units as _Units
-from .. import _Utils
 
-from ..MD._md import _find_md_engines
 
 if _is_notebook:
     from IPython.display import FileLink as _FileLink
@@ -187,6 +167,13 @@ class AlchemicalFreeEnergy:
             values. This allows the user to refer to properties with their
             own naming scheme, e.g. { "charge" : "my-charge" }
         """
+        from ._restraint import Restraint as _Restraint
+        import warnings as _warnings
+        from .. import _gmx_exe
+        from .. import _Utils
+        from ..MD._md import _find_md_engines
+        from .._SireWrappers import System as _System
+        from .. import Protocol as _Protocol
 
         # Validate the input.
 
@@ -396,6 +383,8 @@ class AlchemicalFreeEnergy:
             Whether to run the individual processes for the lambda windows
             in serial.
         """
+        import warnings as _warnings
+
         if not isinstance(serial, bool):
             raise TypeError("'serial' must be of type 'bool'.")
 
@@ -406,6 +395,8 @@ class AlchemicalFreeEnergy:
 
     def wait(self):
         """Wait for the simulation to finish."""
+        import warnings as _warnings
+
         if self._setup_only:
             _warnings.warn("No processes exist! Object created in 'setup_only' mode.")
         else:
@@ -464,6 +455,10 @@ class AlchemicalFreeEnergy:
         output : str, IPython.display.FileLink
             A path, or file link, to an archive of the process input.
         """
+        from glob import glob as _glob
+        from .._Utils import cd as _cd
+        from IPython.display import FileLink as _FileLink
+        import zipfile as _zipfile
 
         if self._work_dir is None:
             raise ValueError("'work_dir' must be set!")
@@ -554,6 +549,9 @@ class AlchemicalFreeEnergy:
             The overlap matrix. This gives the overlap between each lambda
             window.
         """
+        from glob import glob as _glob
+        from .._Utils import _assert_imported
+        from .. import Types as _Types
 
         _assert_imported(_alchemlyb)
 
@@ -610,6 +608,7 @@ class AlchemicalFreeEnergy:
             The overlap matrix. This gives the overlap between each lambda
             window.
         """
+        from .. import Protocol as _Protocol
 
         # Return the result of calling the staticmethod, passing in the working
         # directory and estimator of this object.
@@ -662,6 +661,9 @@ class AlchemicalFreeEnergy:
             The overlap matrix. This gives the overlap between each lambda
             window. For TI, this gives the dhdl.
         """
+        from alchemlyb.workflows import ABFE
+        from alchemlyb.postprocessors.units import to_kcalmol as _to_kcalmol
+        from .. import Units as _Units
 
         if not isinstance(work_dir, str):
             raise TypeError("'work_dir' must be of type 'str'.")
@@ -761,6 +763,15 @@ class AlchemicalFreeEnergy:
             The overlap matrix. This gives the overlap between each lambda
             window. For TI, this gives the dhdl.
         """
+        from alchemlyb.estimators import MBAR as _AutoMBAR
+        from glob import glob as _glob
+        from alchemlyb.postprocessors.units import to_kcalmol as _to_kcalmol
+        from .. import Units as _Units
+        from alchemlyb.preprocessing.subsampling import (
+            statistical_inefficiency as _statistical_inefficiency,
+        )
+        from .._Exceptions import AnalysisError as _AnalysisError
+        from alchemlyb.estimators import TI as _TI
 
         if not isinstance(work_dir, str):
             raise TypeError("'work_dir' must be of type 'str'.")
@@ -828,6 +839,9 @@ class AlchemicalFreeEnergy:
             u_nk : DataFrame
                 Reduced potential for each alchemical state (k) for each frame (n).
             """
+            import pandas as _pd
+            import numpy as _np
+
             # open the file - check if it is okay, if not raise an error
             file = simfile
 
@@ -953,6 +967,11 @@ class AlchemicalFreeEnergy:
             dH/dl : Series
                 dH/dl as a function of time for this lambda window.
             """
+            from alchemlyb.postprocessors.units import R_kJmol as _R_kJmol
+            from alchemlyb.postprocessors.units import kJ2kcal as _kJ2kcal
+            import pandas as _pd
+            import numpy as _np
+
             # open the file
             file = simfile
 
@@ -1188,6 +1207,9 @@ class AlchemicalFreeEnergy:
         free_energy : (:class:`Energy <BioSimSpace.Types.Energy>`, :class:`Energy <BioSimSpace.Types.Energy>`)
             The relative free-energy difference and its associated error.
         """
+        from .. import Units as _Units
+        import math as _math
+        from .. import Types as _Types
 
         if not isinstance(pmf, list):
             raise TypeError("'pmf' must be of type 'list'.")
@@ -1293,6 +1315,9 @@ class AlchemicalFreeEnergy:
         system : :class:`System <BioSimSpace._SireWrappers.System>`
             The molecular system.
         """
+        import shutil as _shutil
+        import copy as _copy
+        from .. import Process as _Process
 
         # Initialise list to store the processes
         processes = []

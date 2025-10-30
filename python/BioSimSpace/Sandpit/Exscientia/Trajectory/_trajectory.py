@@ -26,36 +26,10 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["getFrame", "Trajectory", "backends"]
 
-from .._Utils import _try_import, _have_imported
+from .._Utils import _try_import
 
 _mdanalysis = _try_import("MDAnalysis")
 _mdtraj = _try_import("mdtraj")
-
-import copy as _copy
-import os as _os
-import shutil as _shutil
-import uuid as _uuid
-import warnings as _warnings
-
-from sire.legacy import Base as _SireBase
-from sire.legacy import IO as _SireIO
-from sire.legacy import Mol as _SireMol
-from sire.legacy import Units as _SireUnits
-from sire.legacy import Vol as _SireVol
-
-from sire import load as _sire_load
-from sire._load import _resolve_path
-
-from .. import _isVerbose
-from ..Align._squash import _squash, _unsquash
-from .._Exceptions import IncompatibleError as _IncompatibleError
-from ..Process._process import Process as _Process
-from .._SireWrappers import System as _System
-from ..Types import Time as _Time
-
-from .. import IO as _IO
-from .. import Units as _Units
-from .. import _Utils
 
 
 def backends():
@@ -107,6 +81,16 @@ def getFrame(trajectory, topology, index, system=None, property_map={}):
     frame : :class:`System <BioSimSpace._SireWrappers.System>`
         The System object of the corresponding frame.
     """
+    from .. import _Utils
+    import os as _os
+    from sire.legacy import Mol as _SireMol
+    from sire._load import _resolve_path
+    from .._SireWrappers import System as _System
+    import uuid as _uuid
+    from sire.legacy import IO as _SireIO
+    from .. import _isVerbose
+    from sire import load as _sire_load
+    import warnings as _warnings
 
     if not isinstance(trajectory, str):
         raise TypeError("'trajectory' must be of type 'str'")
@@ -225,10 +209,12 @@ def getFrame(trajectory, topology, index, system=None, property_map={}):
                 )
 
                 # Update the box information in the original system.
-                if "space" in new_system.propertyKeys():
+                if "space" in new_system.property_keys():
                     box = new_system.property("space")
-                    if box.isPeriodic():
-                        sire_system.setProperty(property_map.get("space", "space"), box)
+                    if box.is_periodic():
+                        sire_system.set_property(
+                            property_map.get("space", "space"), box
+                        )
 
                 new_system = _System(sire_system)
 
@@ -245,7 +231,7 @@ def getFrame(trajectory, topology, index, system=None, property_map={}):
                 if is_sire:
                     frame = frame.current()._system
                     pdb = _SireIO.PDB2(frame)
-                    pdb.writeToFile(pdb_file)
+                    pdb.write_to_file(pdb_file)
                     frame = _SireIO.AmberRst7(frame)
                 elif is_mdanalysis:
                     frame = _SireIO.Gro87(frame_file)
@@ -278,7 +264,7 @@ def getFrame(trajectory, topology, index, system=None, property_map={}):
             # Make sure the system has the correct end-state properties.
             if is_squashed:
                 for mol in new_system:
-                    if "is_perturbable" in mol.propertyKeys():
+                    if "is_perturbable" in mol.property_keys():
                         cursor = mol.cursor()
                         cursor["coordinates"] = cursor["coordinates0"]
                         try:
@@ -293,10 +279,12 @@ def getFrame(trajectory, topology, index, system=None, property_map={}):
                 )
 
                 # Update the box information in the original system.
-                if "space" in new_system.propertyKeys():
+                if "space" in new_system.property_keys():
                     box = new_system.property("space")
-                    if box.isPeriodic():
-                        sire_system.setProperty(property_map.get("space", "space"), box)
+                    if box.is_periodic():
+                        sire_system.set_property(
+                            property_map.get("space", "space"), box
+                        )
 
                 new_system = _System(sire_system)
             except Exception as e:
@@ -373,6 +361,14 @@ class Trajectory:
            values. This allows the user to refer to properties with their
            own naming scheme, e.g. { "charge" : "my-charge" }
         """
+        from .. import _Utils
+        import os as _os
+        from sire.legacy import Mol as _SireMol
+        from sire._load import _resolve_path
+        from .._SireWrappers import System as _System
+        from ..Process._process import Process as _Process
+        from sire.legacy import IO as _SireIO
+        import warnings as _warnings
 
         # Set default member variables.
         self._process = None
@@ -541,6 +537,13 @@ class Trajectory:
         trajectory : mdtraj.core.trajectory.Trajectory, MDAnalysis.core.universe.Universe
             The trajectory in MDTraj or MDAnalysis format.
         """
+        import copy as _copy
+        import shutil as _shutil
+        import os as _os
+        import uuid as _uuid
+        from sire import load as _sire_load
+        import warnings as _warnings
+        from .._Exceptions import IncompatibleError as _IncompatibleError
 
         if not isinstance(format, str):
             raise TypeError("'format' must be of type 'str'")
@@ -682,6 +685,14 @@ class Trajectory:
         frames : [:class:`System <BioSimSpace._SireWrappers.System>`]
             The list of System objects.
         """
+        from ..Types import Time as _Time
+        import os as _os
+        from .._SireWrappers import System as _System
+        import uuid as _uuid
+        from sire.legacy import IO as _SireIO
+        from .. import _isVerbose
+        import warnings as _warnings
+        from .._Exceptions import IncompatibleError as _IncompatibleError
 
         # The process is running. Grab the latest trajectory.
         if self._process is not None and self._process.isRunning():
@@ -820,10 +831,10 @@ class Trajectory:
                         )
 
                         # Update the box information in the original system.
-                        if "space" in new_system.propertyKeys():
+                        if "space" in new_system.property_keys():
                             box = new_system.property("space")
-                            if box.isPeriodic():
-                                sire_system.setProperty(
+                            if box.is_periodic():
+                                sire_system.set_property(
                                     self._property_map.get("space", "space"), box
                                 )
 
@@ -841,7 +852,7 @@ class Trajectory:
                         if self._backend == "SIRE":
                             frame = frame.current()._system
                             pdb = _SireIO.PDB2(frame)
-                            pdb.writeToFile(pdb_file)
+                            pdb.write_to_file(pdb_file)
                             frame = _SireIO.AmberRst7(frame)
                         elif self._backend == "MDANALYSIS":
                             frame = _SireIO.Gro87(frame_file)
@@ -878,7 +889,7 @@ class Trajectory:
                     # Make sure the system has the correct end-state properties.
                     if is_squashed:
                         for mol in new_system:
-                            if "is_perturbable" in mol.propertyKeys():
+                            if "is_perturbable" in mol.property_keys():
                                 cursor = mol.cursor()
                                 cursor["coordinates"] = cursor["coordinates0"]
                                 try:
@@ -898,10 +909,10 @@ class Trajectory:
                         )
 
                         # Update the box information in the original system.
-                        if "space" in new_system.propertyKeys():
+                        if "space" in new_system.property_keys():
                             box = new_system.property("space")
-                            if box.isPeriodic():
-                                sire_system.setProperty(
+                            if box.is_periodic():
+                                sire_system.set_property(
                                     self._property_map.get("space", "space"), box
                                 )
 
@@ -994,6 +1005,8 @@ class Trajectory:
         rmsd : [:class:`Length <BioSimSpace.Types.Length>`]
             A list containing the RMSD value at each time point.
         """
+        from .. import _isVerbose
+        from .. import Units as _Units
 
         # Default to the first frame.
         if frame is None:
@@ -1119,6 +1132,14 @@ def _split_molecules(frame, pdb, reference, work_dir, property_map={}):
     is_squashed : bool
         Whether the passed frame was squashed.
     """
+    from sire.legacy import Vol as _SireVol
+    import os as _os
+    from .._SireWrappers import System as _System
+    import uuid as _uuid
+    from ..Align._squash import _squash, _unsquash
+    from sire.legacy import IO as _SireIO
+    from .. import _isVerbose
+    from sire.legacy import Units as _SireUnits
 
     if not isinstance(frame, (_SireIO.AmberRst7, _SireIO.Gro87)):
         raise TypeError(
@@ -1147,7 +1168,7 @@ def _split_molecules(frame, pdb, reference, work_dir, property_map={}):
     vel_prop = property_map.get("velocity", "velocity")
 
     # Whether the frame contains velocity information.
-    has_vels = frame.hasVelocities()
+    has_vels = frame.has_velocities()
 
     # Whether the reference is a perturbable system.
     is_perturbable = reference.nPerturbableMolecules() > 0
@@ -1178,7 +1199,7 @@ def _split_molecules(frame, pdb, reference, work_dir, property_map={}):
     # Write the frame coordinates/velocities to file.
     coord_file = _os.path.join(str(work_dir), f"{str(_uuid.uuid4())}.coords")
     top_file = _os.path.join(str(work_dir), f"{str(_uuid.uuid4())}.top")
-    frame.writeToFile(coord_file)
+    frame.write_to_file(coord_file)
 
     # Whether we've parsed as a PDB file.
     is_pdb = False
@@ -1198,7 +1219,7 @@ def _split_molecules(frame, pdb, reference, work_dir, property_map={}):
             # Write the squashed system to file.
             try:
                 top = _SireIO.AmberPrm(squashed_system._sire_object)
-                top.writeToFile(top_file)
+                top.write_to_file(top_file)
             except Exception as e:
                 msg = "Unable to write squashed reference system to AmberPrm7 format!"
                 if _isVerbose():
@@ -1208,7 +1229,7 @@ def _split_molecules(frame, pdb, reference, work_dir, property_map={}):
         else:
             try:
                 top = _SireIO.GroTop(reference._sire_object)
-                top.writeToFile(top_file)
+                top.write_to_file(top_file)
             except Exception as e:
                 msg = "Unable to write perturbable reference system to GroTop format!"
                 if _isVerbose():
@@ -1219,7 +1240,7 @@ def _split_molecules(frame, pdb, reference, work_dir, property_map={}):
         if "PRM7" in formats:
             try:
                 top = _SireIO.AmberPrm(reference._sire_object)
-                top.writeToFile(top_file)
+                top.write_to_file(top_file)
             except Exception as e:
                 msg = "Unable to write reference system to AmberPrm7 format!"
                 if _isVerbose():
@@ -1230,7 +1251,7 @@ def _split_molecules(frame, pdb, reference, work_dir, property_map={}):
         elif "GroTop" in formats or "GROTOP" in formats:
             try:
                 top = _SireIO.GroTop(reference._sire_object)
-                top.writeToFile(top_file)
+                top.write_to_file(top_file)
             except Exception as e:
                 msg = "Unable to write reference system to GroTop format!"
                 if _isVerbose():
@@ -1241,7 +1262,7 @@ def _split_molecules(frame, pdb, reference, work_dir, property_map={}):
         elif "PSF" in formats:
             try:
                 top = _SireIO.CharmmPSF(reference._sire_object)
-                top.writeToFile(top_file)
+                top.write_to_file(top_file)
             except Exception as e:
                 msg = "Unable to write reference system to CharmmPSF format!"
                 if _isVerbose():
@@ -1254,7 +1275,7 @@ def _split_molecules(frame, pdb, reference, work_dir, property_map={}):
             is_pdb = True
 
             # Get the PDB records.
-            pdb_lines = pdb.toLines()
+            pdb_lines = pdb.to_lines()
 
             # Create a list to hold the new lines.
             new_lines = []
@@ -1276,7 +1297,7 @@ def _split_molecules(frame, pdb, reference, work_dir, property_map={}):
             pdb = _SireIO.PDB2(new_lines)
 
             # Convert to a system.
-            split_system = pdb.toSystem()
+            split_system = pdb.to_system()
 
     if not is_pdb:
         # Try to read the system back in, making sure that the numbering is unique.
@@ -1300,7 +1321,7 @@ def _split_molecules(frame, pdb, reference, work_dir, property_map={}):
                 raise IOError(msg) from None
 
     # Add the space property.
-    split_system.setProperty(property_map.get("space", "space"), box)
+    split_system.set_property(property_map.get("space", "space"), box)
 
     return split_system, is_perturbable and is_amber
 
@@ -1333,6 +1354,9 @@ def _update_water_topology(system, topology, trajectory, property_map):
     system : :class:`System <BioSimSpace._SireWrappers.System>`
         The passed system with updated water topology.
     """
+    from sire.legacy import IO as _SireIO
+    from .._SireWrappers import System as _System
+    import os as _os
 
     if not isinstance(system, _System):
         raise TypeError("'system' must be of type 'BioSimSpace._SireWrappers.System'")
@@ -1362,7 +1386,7 @@ def _update_water_topology(system, topology, trajectory, property_map):
             try:
                 top = _SireIO.AmberPrm(topology)
                 system._set_water_topology("AMBER", property_map=property_map)
-                if top.toString() != "AmberPrm::null":
+                if top.to_string() != "AmberPrm::null":
                     matched_topology = True
                 else:
                     matched_topology = False
