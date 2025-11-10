@@ -26,7 +26,6 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["_PositionRestraintMixin"]
 
-from .. import Types as _Types
 from .. import Units as _Units
 
 
@@ -191,6 +190,7 @@ class _PositionRestraintMixin:
             The force constant for the restraint, in units of
             kcal_per_mol/angstrom**2.
         """
+        from .. import Types as _Types
 
         # Convert int to float.
         if type(force_constant) is int:

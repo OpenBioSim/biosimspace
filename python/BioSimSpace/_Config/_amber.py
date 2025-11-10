@@ -26,15 +26,6 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["Amber"]
 
-import math as _math
-import warnings as _warnings
-
-from sire.legacy import Units as _SireUnits
-
-from ..Align._squash import _amber_mask_from_indices, _squashed_atom_mapping
-from .. import Protocol as _Protocol
-from ..Protocol._free_energy_mixin import _FreeEnergyMixin
-from ..Protocol._position_restraint_mixin import _PositionRestraintMixin
 
 from ._config import Config as _Config
 
@@ -101,6 +92,13 @@ class Amber(_Config):
         config : [str]
             The list of AMBER format configuration strings.
         """
+        from ..Protocol._position_restraint_mixin import _PositionRestraintMixin
+        from .. import Protocol as _Protocol
+        from sire.legacy import Units as _SireUnits
+        from ..Protocol._free_energy_mixin import _FreeEnergyMixin
+        import math as _math
+        import warnings as _warnings
+        from ..Align._squash import _squashed_atom_mapping
 
         # Validate input.
 
@@ -512,6 +510,8 @@ class Amber(_Config):
         option_dict : dict
             A dictionary of AMBER-compatible options.
         """
+        from ..Align._squash import _amber_mask_from_indices, _squashed_atom_mapping
+
         # Get the merged to squashed atom mapping of the whole system for both endpoints.
         kwargs = dict(environment=False, explicit_dummies=explicit_dummies)
         mcs_mapping0 = _squashed_atom_mapping(

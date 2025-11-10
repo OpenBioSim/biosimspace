@@ -17,16 +17,6 @@
    :target: https://joss.theoj.org/papers/4ba84ad443693b5dded90e35bf5f8225
    :alt: Paper
 
-Survey
-------
-
-We are currently conducting a
-`survey <https://docs.google.com/forms/d/1zY0i3lLR9MhmohKjcu0wJp_CXJvBwcWoj6iG4p9LNKk/edit?ts=6836f566>`__
-to help us understand how BioSimSpace is being used and how we can improve it.
-The survey explores your molecular simulation tools and practices, identifies workflow challenges, and
-gathers feedback on the BioSimSpace simulation framework to guide its future development. If you have
-a few minutes, please fill it out!
-
 About
 -----
 

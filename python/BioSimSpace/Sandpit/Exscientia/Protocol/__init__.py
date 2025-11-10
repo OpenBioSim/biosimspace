@@ -92,6 +92,11 @@ while restraining the positions of any backbone atoms.
    )
 """
 
+import sire as _sr
+
+_sr.use_new_api()
+del _sr
+
 from ._config import *
 from ._custom import *
 from ._dummy import Dummy

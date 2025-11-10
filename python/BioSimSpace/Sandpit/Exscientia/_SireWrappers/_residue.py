@@ -29,9 +29,6 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["Residue"]
 
-from sire.legacy import Mol as _SireMol
-
-from .. import _isVerbose
 
 from ._sire_wrapper import SireWrapper as _SireWrapper
 
@@ -49,6 +46,7 @@ class Residue(_SireWrapper):
         residue : Sire.Mol.Residue, :class:`Residue <BioSimSpace._SireWrappers.Residue>`
             A Sire or BioSimSpace Residue object.
         """
+        from sire.legacy import Mol as _SireMol
 
         # Check that the residue is valid.
 
@@ -74,10 +72,10 @@ class Residue(_SireWrapper):
         self._is_multi_atom = True
 
         # Store the number of atoms in the residue.
-        self._num_atoms = self._sire_object.nAtoms()
+        self._num_atoms = self._sire_object.num_atoms()
 
         # Store the atom indices in the residue.
-        self._atom_idxs = self._sire_object.atomIdxs()
+        self._atom_idxs = self._sire_object.atom_idxs()
 
         # Initialise the iterator count.
         self._iter_count = 0
@@ -102,6 +100,7 @@ class Residue(_SireWrapper):
 
     def __contains__(self, other):
         """Return whether other is in self."""
+        from ._atom import Atom as _Atom
 
         if not isinstance(other, _Atom):
             raise TypeError("'other' must be of type 'BioSimSpace._SireWrappers.Atom'.")
@@ -111,6 +110,7 @@ class Residue(_SireWrapper):
 
     def __getitem__(self, key):
         """Get an atom from the residue."""
+        from ._atom import Atom as _Atom
 
         # Slice.
         if isinstance(key, slice):
@@ -260,6 +260,8 @@ class Residue(_SireWrapper):
         atoms : [:class:`Atoms <BioSimSpace._SireWrappers.Atom>`]
             The list of atoms in the residue.
         """
+        from ._atom import Atom as _Atom
+
         atoms = []
         for atom in self._sire_object.atoms():
             atoms.append(_Atom(atom))
@@ -274,6 +276,9 @@ class Residue(_SireWrapper):
 
         system : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
         """
+        from ._molecule import Molecule as _Molecule
+        from sire.legacy import Mol as _SireMol
+
         return _Molecule(
             _SireMol.PartialMolecule(self._sire_object).extract().molecule()
         )
@@ -310,6 +315,9 @@ class Residue(_SireWrapper):
 
         >>> result = residue.search("atomidx 23")
         """
+        from .. import _isVerbose
+        from ._search_result import SearchResult as _SearchResult
+        from sire.legacy import Mol as _SireMol
 
         if not isinstance(query, str):
             raise TypeError("'query' must be of type 'str'")
@@ -332,9 +340,3 @@ class Residue(_SireWrapper):
                 raise ValueError(msg) from None
 
         return _SearchResult(search_result)
-
-
-# Import at bottom of module to avoid circular dependency.
-from ._atom import Atom as _Atom
-from ._molecule import Molecule as _Molecule
-from ._search_result import SearchResult as _SearchResult

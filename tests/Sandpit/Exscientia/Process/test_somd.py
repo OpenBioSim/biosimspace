@@ -351,4 +351,4 @@ def run_process(system, protocol, **kwargs):
 
     # Make sure the space is valid.
     if system.getBox()[0] is not None:
-        assert new_system._sire_object.property("space").isPeriodic()
+        assert new_system._sire_object.property("space").is_periodic()

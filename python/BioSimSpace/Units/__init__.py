@@ -132,6 +132,11 @@ Time units
     Time.femtosecond
 """
 
+import sire as _sr
+
+_sr.use_new_api()
+del _sr
+
 from . import Angle
 from . import Area
 from . import Charge

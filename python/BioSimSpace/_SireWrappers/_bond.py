@@ -29,10 +29,6 @@ __email__ = "Christopher.Woods@bristol.ac.uk"
 
 __all__ = ["Bond"]
 
-from sire.legacy import Mol as _SireMol
-from sire.legacy import MM as _SireMM
-
-from .. import _isVerbose
 
 from ._sire_wrapper import SireWrapper as _SireWrapper
 
@@ -50,6 +46,7 @@ class Bond(_SireWrapper):
         bond : Sire.MM.Bond, :class:`Bond <BioSimSpace._SireWrappers.Bond>`
             A Sire or BioSimSpace Bond object.
         """
+        from sire.legacy import MM as _SireMM
 
         # Check that the bond is valid.
 
@@ -101,6 +98,7 @@ class Bond(_SireWrapper):
 
     def __contains__(self, other):
         """Return whether other is in self."""
+        from ._atom import Atom as _Atom
 
         if not isinstance(other, _Atom):
             raise TypeError("'other' must be of type 'BioSimSpace._SireWrappers.Atom'.")
@@ -110,6 +108,7 @@ class Bond(_SireWrapper):
 
     def __getitem__(self, key):
         """Get an atom from the bond."""
+        from ._atom import Atom as _Atom
 
         # Slice.
         if isinstance(key, slice):
@@ -179,6 +178,8 @@ class Bond(_SireWrapper):
         atom : Atom
              The atom
         """
+        from ._atom import Atom as _Atom
+
         return _Atom(self._sire_object.atom0())
 
     def atom1(self):
@@ -191,6 +192,8 @@ class Bond(_SireWrapper):
         atom : Atom
              The atom
         """
+        from ._atom import Atom as _Atom
+
         return _Atom(self._sire_object.atom1())
 
     def length(self):
@@ -304,6 +307,8 @@ class Bond(_SireWrapper):
         atoms : [:class:`Atoms <BioSimSpace._SireWrappers.Atom>`]
             The list of atoms in the bond.
         """
+        from ._atom import Atom as _Atom
+
         atoms = []
         for atom in self._sire_object.atoms():
             atoms.append(_Atom(atom))
@@ -318,6 +323,9 @@ class Bond(_SireWrapper):
 
         system : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
         """
+        from sire.legacy import Mol as _SireMol
+        from ._molecule import Molecule as _Molecule
+
         return _Molecule(
             _SireMol.PartialMolecule(self._sire_object).extract().molecule()
         )
@@ -354,6 +362,9 @@ class Bond(_SireWrapper):
 
         >>> result = bond.search("atomidx 23")
         """
+        from sire.legacy import Mol as _SireMol
+        from .. import _isVerbose
+        from ._search_result import SearchResult as _SearchResult
 
         if not isinstance(query, str):
             raise TypeError("'query' must be of type 'str'")
@@ -376,9 +387,3 @@ class Bond(_SireWrapper):
                 raise ValueError(msg) from None
 
         return _SearchResult(search_result)
-
-
-# Import at bottom of module to avoid circular dependency.
-from ._atom import Atom as _Atom
-from ._molecule import Molecule as _Molecule
-from ._search_result import SearchResult as _SearchResult

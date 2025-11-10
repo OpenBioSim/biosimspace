@@ -46,17 +46,6 @@ __all__ = [
     "Time",
 ]
 
-import bz2 as _bz2
-import copy as _copy
-import gzip as _gzip
-import os as _os
-import re as _re
-import shutil as _shutil
-import tarfile as _tarfile
-import zipfile as _zipfile
-
-from .. import Types as _Types
-
 
 class Requirement:
     """Base class for BioSimSpace Node requirements."""
@@ -609,6 +598,7 @@ class File(Requirement):
 
     def _validate(self, value):
         """Validate that the value is of the correct type."""
+        import os as _os
 
         # Handle optional requirement.
         if self._is_optional and value is None:
@@ -685,6 +675,8 @@ class FileSet(Requirement):
 
     def _validate(self, value):
         """Validate that the value is of the correct type."""
+        import re as _re
+        import os as _os
 
         # Handle optional requirement.
         if self._is_optional and value is None:
@@ -797,6 +789,7 @@ class Length(Requirement):
         allowed : [:class:`Length <BioSimSpace.Types.Length>`]
             A list of allowed values.
         """
+        from .. import Types as _Types
 
         # Validate the unit.
         if unit is not None:
@@ -829,6 +822,8 @@ class Length(Requirement):
         value : :class:`Length <BioSimSpace.Types.Length>`
             The value of the requirement.
         """
+        import copy as _copy
+
         if self._value is None:
             return None
         else:
@@ -836,6 +831,7 @@ class Length(Requirement):
 
     def _validate(self, value):
         """Validate that the value is of the correct type."""
+        from .. import Types as _Types
 
         if isinstance(value, _Types.Length):
             return value._convert_to(self._unit)
@@ -914,6 +910,7 @@ class Area(Requirement):
         allowed : [:class:`Area <BioSimSpace.Types.Area>`]
             A list of allowed values.
         """
+        from .. import Types as _Types
 
         # Validate the unit.
         if unit is not None:
@@ -946,6 +943,8 @@ class Area(Requirement):
         value : :class:`Area <BioSimSpace.Types.Area>`
             The value of the requirement.
         """
+        import copy as _copy
+
         if self._value is None:
             return None
         else:
@@ -953,6 +952,7 @@ class Area(Requirement):
 
     def _validate(self, value):
         """Validate that the value is of the correct type."""
+        from .. import Types as _Types
 
         if isinstance(value, _Types.Area):
             return value._convert_to(self._unit)
@@ -1031,6 +1031,7 @@ class Volume(Requirement):
         allowed : [:class:`Volume <BioSimSpace.Types.Volume>`]
             A list of allowed values.
         """
+        from .. import Types as _Types
 
         # Validate the unit.
         if unit is not None:
@@ -1063,6 +1064,8 @@ class Volume(Requirement):
         value : :class:`Volume <BioSimSpace.Types.Volume>`
             The value of the requirement.
         """
+        import copy as _copy
+
         if self._value is None:
             return None
         else:
@@ -1070,6 +1073,7 @@ class Volume(Requirement):
 
     def _validate(self, value):
         """Validate that the value is of the correct type."""
+        from .. import Types as _Types
 
         if isinstance(value, _Types.Volume):
             return value._convert_to(self._unit)
@@ -1148,6 +1152,7 @@ class Angle(Requirement):
         allowed : [:class:`Angle <BioSimSpace.Types.Angle>`]
             A list of allowed values.
         """
+        from .. import Types as _Types
 
         # Validate the unit.
         if unit is not None:
@@ -1180,6 +1185,8 @@ class Angle(Requirement):
         value : :class:`Angle <BioSimSpace.Types.Angle>`
             The value of the requirement.
         """
+        import copy as _copy
+
         if self._value is None:
             return None
         else:
@@ -1187,6 +1194,7 @@ class Angle(Requirement):
 
     def _validate(self, value):
         """Validate that the value is of the correct type."""
+        from .. import Types as _Types
 
         if isinstance(value, _Types.Angle):
             return value._convert_to(self._unit)
@@ -1265,6 +1273,7 @@ class Charge(Requirement):
         allowed : [:class:`Charge <BioSimSpace.Types.Charge>`]
             A list of allowed values.
         """
+        from .. import Types as _Types
 
         # Validate the unit.
         if unit is not None:
@@ -1297,6 +1306,8 @@ class Charge(Requirement):
         value : :class:`Charge <BioSimSpace.Types.Charge>`
             The value of the requirement.
         """
+        import copy as _copy
+
         if self._value is None:
             return None
         else:
@@ -1304,6 +1315,7 @@ class Charge(Requirement):
 
     def _validate(self, value):
         """Validate that the value is of the correct type."""
+        from .. import Types as _Types
 
         if isinstance(value, _Types.Charge):
             return value._convert_to(self._unit)
@@ -1382,6 +1394,7 @@ class Energy(Requirement):
         allowed : [:class:`Energy <BioSimSpace.Types.Energy>`]
             A list of allowed values.
         """
+        from .. import Types as _Types
 
         # Validate the unit.
         if unit is not None:
@@ -1413,6 +1426,8 @@ class Energy(Requirement):
 
         value : :class:`Energy <BioSimSpace.Types.Energy>`
         """
+        import copy as _copy
+
         if self._value is None:
             return None
         else:
@@ -1420,6 +1435,7 @@ class Energy(Requirement):
 
     def _validate(self, value):
         """Validate that the value is of the correct type."""
+        from .. import Types as _Types
 
         if isinstance(value, _Types.Energy):
             return value._convert_to(self._unit)
@@ -1497,6 +1513,7 @@ class Mass(Requirement):
         allowed : [:class:`Mass <BioSimSpace.Types.Mass>`]
             A list of allowed values.
         """
+        from .. import Types as _Types
 
         # Validate the unit.
         if unit is not None:
@@ -1529,6 +1546,8 @@ class Mass(Requirement):
         value : :class:`Mass <BioSimSpace.Types.Mass>`
             The value of the requirement.
         """
+        import copy as _copy
+
         if self._value is None:
             return None
         else:
@@ -1536,6 +1555,7 @@ class Mass(Requirement):
 
     def _validate(self, value):
         """Validate that the value is of the correct type."""
+        from .. import Types as _Types
 
         if isinstance(value, _Types.Mass):
             return value._convert_to(self._unit)
@@ -1614,6 +1634,7 @@ class Pressure(Requirement):
         allowed : [:class:`Pressure <BioSimSpace.Types.Pressure>`]
             A list of allowed values.
         """
+        from .. import Types as _Types
 
         # Validate the unit.
         if unit is not None:
@@ -1646,6 +1667,8 @@ class Pressure(Requirement):
         value : :class:`Pressure <BioSimSpace.Types.Pressure>`
             The value of the requirement.
         """
+        import copy as _copy
+
         if self._value is None:
             return None
         else:
@@ -1653,6 +1676,7 @@ class Pressure(Requirement):
 
     def _validate(self, value):
         """Validate that the value is of the correct type."""
+        from .. import Types as _Types
 
         if isinstance(value, _Types.Pressure):
             return value._convert_to(self._unit)
@@ -1731,6 +1755,7 @@ class Temperature(Requirement):
         allowed : [:class:`Temperature <BioSimSpace.Types.Temperature>`]
             A list of allowed values.
         """
+        from .. import Types as _Types
 
         # Validate the unit.
         if unit is not None:
@@ -1763,6 +1788,8 @@ class Temperature(Requirement):
         value : :class:`Temperature <BioSimSpace.Types.Temperature>`
             The value of the requirement.
         """
+        import copy as _copy
+
         if self._value is None:
             return None
         else:
@@ -1770,6 +1797,7 @@ class Temperature(Requirement):
 
     def _validate(self, value):
         """Validate that the value is of the correct type."""
+        from .. import Types as _Types
 
         if isinstance(value, _Types.Temperature):
             return value._convert_to(self._unit)
@@ -1848,6 +1876,7 @@ class Time(Requirement):
         allowed : [:class:`Time <BioSimSpace.Types.Time>`]
             The list of allowed values.
         """
+        from .. import Types as _Types
 
         # Validate the unit.
         if unit is not None:
@@ -1879,6 +1908,8 @@ class Time(Requirement):
 
         value : :class:`Time <BioSimSpace.Types.Time>`
         """
+        import copy as _copy
+
         if self._value is None:
             return None
         else:
@@ -1886,6 +1917,7 @@ class Time(Requirement):
 
     def _validate(self, value):
         """Validate that the value is of the correct type."""
+        from .. import Types as _Types
 
         if isinstance(value, _Types.Time):
             return value._convert_to(self._unit)
@@ -1919,6 +1951,7 @@ def _validate_unit_requirement(value, unit_type):
      (value, unit) : tuple
          The value and unit of the requirement.
     """
+    import re as _re
 
     # No unit by default.
     unit = None
@@ -1987,6 +2020,12 @@ def _unarchive(name):
     files : [ str ]
         A list of file names.
     """
+    import tarfile as _tarfile
+    import gzip as _gzip
+    import os as _os
+    import bz2 as _bz2
+    import zipfile as _zipfile
+    import shutil as _shutil
 
     # Get the directory name.
     dir = _os.path.dirname(name)

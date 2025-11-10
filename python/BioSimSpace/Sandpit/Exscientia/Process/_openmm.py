@@ -28,37 +28,11 @@ __all__ = ["OpenMM"]
 
 from .._Utils import _try_import
 
-import math as _math
-import os as _os
 
 _pygtail = _try_import("pygtail")
-import sys as _sys
-import shutil as _shutil
-import timeit as _timeit
-import warnings as _warnings
 
-from sire.legacy import Base as _SireBase
-from sire.legacy import IO as _SireIO
-from sire.legacy import Units as _SireUnits
-
-
-from .. import _isVerbose
-from .._Exceptions import IncompatibleError as _IncompatibleError
-from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
-from .._SireWrappers import System as _System
-from ..Metadynamics import CollectiveVariable as _CollectiveVariable
-from ..Types._type import Type as _Type
-
-from .. import IO as _IO
-from .. import Protocol as _Protocol
-from .. import Trajectory as _Trajectory
-from .. import Types as _Types
-from .. import Units as _Units
-from .. import _Utils
 
 from . import _process
-
-from ._plumed import Plumed as _Plumed
 
 
 class OpenMM(_process.Process):
@@ -114,6 +88,9 @@ class OpenMM(_process.Process):
             values. This allows the user to refer to properties with their
             own naming scheme, e.g. { "charge" : "my-charge" }
         """
+        from sire.legacy import Base as _SireBase
+        import os as _os
+        import sys as _sys
 
         # Call the base class constructor.
         super().__init__(
@@ -225,6 +202,10 @@ class OpenMM(_process.Process):
 
     def _setup(self):
         """Setup the input files and working directory ready for simulation."""
+        from .. import _isVerbose
+        from .. import IO as _IO
+        import os as _os
+        from .. import Protocol as _Protocol
 
         # Create a copy of the system.
         system = self._system.copy()
@@ -280,6 +261,14 @@ class OpenMM(_process.Process):
 
     def _generate_config(self):
         """Generate OpenMM Python script file strings."""
+        from .. import Protocol as _Protocol
+        import os as _os
+        from ..Metadynamics import CollectiveVariable as _CollectiveVariable
+        import warnings as _warnings
+        from .._Exceptions import IncompatibleError as _IncompatibleError
+        from ._plumed import Plumed as _Plumed
+        import shutil as _shutil
+        import math as _math
 
         # Clear the existing configuration list.
         self._config = []
@@ -290,12 +279,12 @@ class OpenMM(_process.Process):
         # Check whether the system contains periodic box information.
         # For now, we'll not attempt to generate a box if the system property
         # is missing. If no box is present, we'll assume a non-periodic simulation.
-        if prop in self._system._sire_object.propertyKeys():
+        if prop in self._system._sire_object.property_keys():
             try:
                 # Make sure that we have a periodic box. The system will now have
                 # a default cartesian space.
                 box = self._system._sire_object.property(prop)
-                has_box = box.isPeriodic()
+                has_box = box.is_periodic()
             except:
                 has_box = False
         else:
@@ -1215,6 +1204,9 @@ class OpenMM(_process.Process):
         process : :class:`Process.OpenMM <BioSimSpace.Process.OpenMM>`
             A handle to the OpenMM process.
         """
+        from sire.legacy import Base as _SireBase
+        from .. import _Utils
+        import timeit as _timeit
 
         # The process is currently queued.
         if self.isQueued():
@@ -1222,7 +1214,7 @@ class OpenMM(_process.Process):
 
         # Process is already running.
         if self._process is not None:
-            if self._process.isRunning():
+            if self._process.is_running():
                 return
 
         # Clear any existing output.
@@ -1272,6 +1264,8 @@ class OpenMM(_process.Process):
         system : :class:`System <BioSimSpace._SireWrappers.System>`
             The latest molecular system.
         """
+        from sire.legacy import IO as _SireIO
+        from .. import Protocol as _Protocol
 
         # Wait for the process to finish.
         if block is True:
@@ -1320,10 +1314,10 @@ class OpenMM(_process.Process):
                 self._mapping = mapping
 
                 # Update the box information in the original system.
-                if "space" in new_system._sire_object.propertyKeys():
+                if "space" in new_system._sire_object.property_keys():
                     box = new_system._sire_object.property("space")
-                    if box.isPeriodic():
-                        old_system._sire_object.setProperty(
+                    if box.is_periodic():
+                        old_system._sire_object.set_property(
                             self._property_map.get("space", "space"), box
                         )
 
@@ -1390,6 +1384,9 @@ class OpenMM(_process.Process):
         trajectory : :class:`System <BioSimSpace.Trajectory.Trajectory>`
             The latest trajectory object.
         """
+        import warnings as _warnings
+        import os as _os
+        from .. import Trajectory as _Trajectory
 
         if not isinstance(backend, str):
             raise TypeError("'backend' must be of type 'str'")
@@ -1428,6 +1425,9 @@ class OpenMM(_process.Process):
         frame : :class:`System <BioSimSpace._SireWrappers.System>`
             The System object of the corresponding frame.
         """
+        import warnings as _warnings
+        from sire.legacy import IO as _SireIO
+        from .. import Trajectory as _Trajectory
 
         if not type(index) is int:
             raise TypeError("'index' must be of type 'int'")
@@ -1479,9 +1479,9 @@ class OpenMM(_process.Process):
             self._mapping = mapping
 
             # Update the box information in the original system.
-            if "space" in new_system._sire_object.propertyKeys():
+            if "space" in new_system._sire_object.property_keys():
                 box = new_system._sire_object.property("space")
-                old_system._sire_object.setProperty(
+                old_system._sire_object.set_property(
                     self._property_map.get("space", "space"), box
                 )
 
@@ -1515,6 +1515,7 @@ class OpenMM(_process.Process):
         record : :class:`Type <BioSimSpace.Types>`
             The matching record.
         """
+        import warnings as _warnings
 
         # Wait for the process to finish.
         if block is True:
@@ -1551,6 +1552,8 @@ class OpenMM(_process.Process):
         record : :class:`Type <BioSimSpace.Types>`
             The matching record.
         """
+        import warnings as _warnings
+
         # Warn the user if the process has exited with an error.
         if self.isError():
             _warnings.warn("The process exited with an error!")
@@ -1574,6 +1577,8 @@ class OpenMM(_process.Process):
         records : :class:`MultiDict <BioSimSpace.Process._process._MultiDict>`
            The dictionary of time-series records.
         """
+        import warnings as _warnings
+
         # Wait for the process to finish.
         if block is True:
             self.wait()
@@ -1624,6 +1629,8 @@ class OpenMM(_process.Process):
         time : :class:`Time <BioSimSpace.Types.Time>`
             The current simulation time in nanoseconds.
         """
+        from .. import Units as _Units
+
         return self.getRecord("TIME(PS)", time_series, _Units.Time.picosecond, block)
 
     def getCurrentTime(self, time_series=False):
@@ -1705,6 +1712,8 @@ class OpenMM(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
             The potential energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "POTENTIALENERGY(KJ/MOLE)", time_series, _Units.Energy.kj_per_mol, block
         )
@@ -1746,6 +1755,8 @@ class OpenMM(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
             The kinetic energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "KINETICENERGY(KJ/MOLE)", time_series, _Units.Energy.kj_per_mol, block
         )
@@ -1787,6 +1798,8 @@ class OpenMM(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
             The total energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "TOTALENERGY(KJ/MOLE)", time_series, _Units.Energy.kj_per_mol, block
         )
@@ -1828,6 +1841,8 @@ class OpenMM(_process.Process):
         temperature : :class:`Temperature <BioSimSpace.Types.Temperature>`
             The temperature.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "TEMPERATURE(K)", time_series, _Units.Temperature.kelvin, block
         )
@@ -1869,6 +1884,8 @@ class OpenMM(_process.Process):
         volume : :class:`Volume <BioSimSpace.Types.Volume>`
            The volume.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "BOXVOLUME(NM^3)", time_series, _Units.Volume.nanometer3, block
         )
@@ -1951,6 +1968,9 @@ class OpenMM(_process.Process):
         Helper function to add platform information to the OpenMM
         Python script.
         """
+        import warnings as _warnings
+        import os as _os
+
         # Set the simulation platform.
         self.addToConfig("\n# Set the simulation platform.")
         self.addToConfig(f"platform = Platform.getPlatformByName('{self._platform}')")
@@ -1964,6 +1984,9 @@ class OpenMM(_process.Process):
                     "'CUDA' platform selected but 'CUDA_VISIBLE_DEVICES' "
                     "environment variable is unset. Defaulting to '0'."
                 )
+            else:
+                num_devices = len(cuda_devices.split(","))
+                cuda_devices = ",".join([str(x) for x in range(num_devices)])
             self.addToConfig("properties = {'CudaDeviceIndex': '%s'}" % cuda_devices)
         elif self._platform == "OPENCL":
             opencl_devices = _os.environ.get("OPENCL_VISIBLE_DEVICES")
@@ -1973,6 +1996,9 @@ class OpenMM(_process.Process):
                     "'OpenCL' platform selected but 'OPENCL_VISIBLE_DEVICES' "
                     "environment variable is unset. Defaulting to '0'."
                 )
+            else:
+                num_devices = len(opencl_devices.split(","))
+                opencl_devices = ",".join([str(x) for x in range(num_devices)])
             self.addToConfig(
                 "properties = {'OpenCLDeviceIndex': '%s'}" % opencl_devices
             )
@@ -1982,6 +2008,8 @@ class OpenMM(_process.Process):
         # https://github.com/openmm/openmm/issues/2262#issuecomment-464157489
         # Here zero-mass dummy atoms are bonded to the restrained atoms to avoid
         # issues with position rescaling during barostat updates.
+        from .. import Units as _Units
+
         restraint = self._protocol.getRestraint()
         if restraint is not None:
             # Search for the atoms to restrain by keyword.
@@ -2020,6 +2048,7 @@ class OpenMM(_process.Process):
 
     def _add_config_restart(self):
         """Helper function to check for a restart file and load state information."""
+        import os as _os
 
         self.addToConfig("\n# Check for a restart file.")
         self.addToConfig(f"if os.path.isfile('{self._name}.xml'):")
@@ -2104,6 +2133,9 @@ class OpenMM(_process.Process):
         is_restart : bool
             Whether the simulation is a restart.
         """
+        from .. import Protocol as _Protocol
+        import math as _math
+
         if not type(state_interval) is int:
             raise TypeError("'state_interval' must be of type 'int'.")
         if state_interval <= 0:
@@ -2176,6 +2208,8 @@ class OpenMM(_process.Process):
 
     def _update_stdout_dict(self):
         """Update the dictionary of thermodynamic records."""
+        from .._Exceptions import IncompatibleError as _IncompatibleError
+        import os as _os
 
         # Exit if log file hasn't been created.
         if not _os.path.isfile(self._log_file):
@@ -2293,6 +2327,8 @@ class OpenMM(_process.Process):
         record :
             The matching stdout record.
         """
+        import warnings as _warnings
+        from ..Types._type import Type as _Type
 
         # No data!
         if len(self._stdout_dict) == 0:

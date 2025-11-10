@@ -48,4 +48,9 @@ of 10 nanometer lattice separation.
    box, angles = BSS.Box.truncatedOctahedron(10 * BSS.Units.Length.nanometer)
 """
 
+import sire as _sr
+
+_sr.use_new_api()
+del _sr
+
 from ._box import *

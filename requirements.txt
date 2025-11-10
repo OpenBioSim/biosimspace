@@ -1,14 +1,15 @@
 # BioSimSpace runtime requirements.
 
 # main
-sire~=2025.2.0
+sire~=2025.3.0
 
 # devel
-#sire==2025.3.0.dev
+#sire==2025.4.0.dev
 
 configargparse
 ipywidgets
 kcombu_bss
+lazy_import
 loguru
 lomap2
 networkx

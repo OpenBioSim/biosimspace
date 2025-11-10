@@ -26,8 +26,6 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["Metadynamics"]
 
-import os as _os
-import warnings as _warnings
 
 from .. import Types as _Types
 from ..Metadynamics import CollectiveVariable as _CollectiveVariable
@@ -564,6 +562,8 @@ class Metadynamics(_Protocol):
         report_interval : int
             The number of integration steps between reporting statistics.
         """
+        import warnings as _warnings
+
         if not type(report_interval) is int:
             raise TypeError("'report_interval' must be of type 'int'")
 
@@ -599,6 +599,8 @@ class Metadynamics(_Protocol):
             The number of integration steps between saving restart
             configurations and/or trajectory frames.
         """
+        import warnings as _warnings
+
         if not type(restart_interval) is int:
             raise TypeError("'restart_interval' must be of type 'int'")
 

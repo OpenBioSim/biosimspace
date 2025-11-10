@@ -57,26 +57,6 @@ import warnings as _warnings
 
 _warnings.filterwarnings("ignore", module="numpy")
 
-# Make sure we're using the Sire python interpreter.
-# First, load new sire in mixed_api compatibility mode (if it is installed)
-try:
-    import sire as _sr
-
-    _sr.use_mixed_api(support_old_module_names=False)
-    _sr.convert.supported_formats()
-except ImportError:
-    pass
-
-try:
-    import sire
-
-    del sire
-except ModuleNotFoundError:
-    raise ModuleNotFoundError(
-        "BioSimSpace currently requires the Sire "
-        + "Python interpreter: www.siremol.org"
-    )
-
 # Determine whether we're being imported from a Jupyter notebook.
 try:
     _shell = get_ipython().__class__.__name__
@@ -163,28 +143,39 @@ from os import path as _path
 _gmx_exe = None
 if "GROMACSHOME" in _environ:
     try:
-        _gmx_exe = _SireBase.findExe(
-            "%s/bin/gmx" % _environ.get("GROMACSHOME")
-        ).absoluteFilePath()
+        _gmx_exe = _SireBase.findExe("%s/bin/gmx" % _environ.get("GROMACSHOME"))
+        if hasattr(_gmx_exe, "absoluteFilePath"):
+            _gmx_exe = _gmx_exe.absoluteFilePath()
+        else:
+            _gmx_exe = _gmx_exe.absolute_file_path()
     except:
         try:
-            _gmx_exe = _SireBase.findExe(
-                "%s/bin/gmx_mpi" % _environ.get("GROMACSHOME")
-            ).absoluteFilePath()
+            _gmx_exe = _SireBase.findExe("%s/bin/gmx_mpi" % _environ.get("GROMACSHOME"))
+            if hasattr(_gmx_exe, "absoluteFilePath"):
+                _gmx_exe = _gmx_exe.absoluteFilePath()
+            else:
+                _gmx_exe = _gmx_exe.absolute_file_path()
         except:
             pass
 
 if _gmx_exe is None:
     # The user has not told us where it is, so need to look in $PATH.
     try:
-        _gmx_exe = _SireBase.findExe("gmx").absoluteFilePath()
+        _gmx_exe = _SireBase.findExe("gmx")
+        if hasattr(_gmx_exe, "absoluteFilePath"):
+            _gmx_exe = _gmx_exe.absoluteFilePath()
+        else:
+            _gmx_exe = _gmx_exe.absolute_file_path()
     except:
         try:
-            _gmx_exe = _SireBase.findExe("gmx_mpi").absoluteFilePath()
+            _gmx_exe = _SireBase.findExe("gmx_mpi")
+            if hasattr(_gmx_exe, "absoluteFilePath"):
+                _gmx_exe = _gmx_exe.absoluteFilePath()
+            else:
+                _gmx_exe = _gmx_exe.absolute_file_path()
         except:
             pass
 
-del _environ
 del _SireBase
 
 _gmx_path = None
@@ -234,24 +225,70 @@ if _gmx_exe is not None:
     del _shlex
     del _subprocess
 
-from . import Align
-from . import Box
-from . import Convert
-from . import FreeEnergy
-from . import Gateway
-from . import IO
-from . import Metadynamics
-from . import MD
-from . import Node
-from . import Notebook
-from . import Parameters
-from . import Process
-from . import Protocol
-from . import Solvent
-from . import Stream
-from . import Trajectory
-from . import Types
-from . import Units
+# Whether to lazy load submodules.
+if (
+    "SIRE_NO_LAZY_IMPORT" in _environ
+    or "BSS_NO_LAZY_IMPORT" in _environ
+    or _is_notebook
+):
+    _can_lazy_import = False
+else:
+    _can_lazy_import = True
+
+# Lazy import submodules if possible.
+if _can_lazy_import:
+    import lazy_import as _lazy_import
+
+    Align = _lazy_import.lazy_module("BioSimSpace.Align")
+    Box = _lazy_import.lazy_module("BioSimSpace.Box")
+    Convert = _lazy_import.lazy_module("BioSimSpace.Convert")
+    FreeEnergy = _lazy_import.lazy_module("BioSimSpace.FreeEnergy")
+    Gateway = _lazy_import.lazy_module("BioSimSpace.Gateway")
+    IO = _lazy_import.lazy_module("BioSimSpace.IO")
+    Metadynamics = _lazy_import.lazy_module("BioSimSpace.Metadynamics")
+    MD = _lazy_import.lazy_module("BioSimSpace.MD")
+    Node = _lazy_import.lazy_module("BioSimSpace.Node")
+    Notebook = _lazy_import.lazy_module("BioSimSpace.Notebook")
+    Parameters = _lazy_import.lazy_module("BioSimSpace.Parameters")
+    Process = _lazy_import.lazy_module("BioSimSpace.Process")
+    Protocol = _lazy_import.lazy_module("BioSimSpace.Protocol")
+    Solvent = _lazy_import.lazy_module("BioSimSpace.Solvent")
+    Stream = _lazy_import.lazy_module("BioSimSpace.Stream")
+    Trajectory = _lazy_import.lazy_module("BioSimSpace.Trajectory")
+    Types = _lazy_import.lazy_module("BioSimSpace.Types")
+    Units = _lazy_import.lazy_module("BioSimSpace.Units")
+
+    _Exceptions = _lazy_import.lazy_module("BioSimSpace._Exceptions")
+    _SireWrappers = _lazy_import.lazy_module("BioSimSpace._SireWrappers")
+    _Utils = _lazy_import.lazy_module("BioSimSpace._Utils")
+
+    del _lazy_import
+else:
+    from . import Align
+    from . import Box
+    from . import Convert
+    from . import FreeEnergy
+    from . import Gateway
+    from . import IO
+    from . import Metadynamics
+    from . import MD
+    from . import Node
+    from . import Notebook
+    from . import Parameters
+    from . import Process
+    from . import Protocol
+    from . import Solvent
+    from . import Stream
+    from . import Trajectory
+    from . import Types
+    from . import Units
+
+    from . import _Exceptions
+    from . import _SireWrappers
+    from . import _Utils
+
+del _can_lazy_import
+del _environ
 
 from . import _version
 

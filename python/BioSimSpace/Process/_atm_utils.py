@@ -21,18 +21,13 @@
 
 __all__ = ["_ATMUtils"]
 
-import math as _math
-import warnings as _warnings
-
-from .. import Protocol as _Protocol
-from ..Types import Vector as _Vector
-from ..Protocol._atm import _ATM
-
 
 class _ATMUtils:
     # Internal class for creating openmm forces within an ATM process.
     def __init__(self, protocol):
         # Check for proper typing
+        from ..Protocol._atm import _ATM
+
         if not isinstance(protocol, _ATM):
             raise TypeError("Protocol must be an ATM protocol")
         self.protocol = protocol
@@ -78,6 +73,8 @@ class _ATMUtils:
         ).tolist()
 
     def getATMForceConstants(self, index=None):
+        from .. import Protocol as _Protocol
+
         self.lig1_atoms = self.getLigandBoundAtomsAsList()
         self.lig2_atoms = self.getLigandFreeAtomsAsList()
         self.SCUmax = self.protocol.getSoftCoreUmax().value()
@@ -125,6 +122,8 @@ class _ATMUtils:
         return output
 
     def findDisplacement(self):
+        from ..Types import Vector as _Vector
+
         d = self.data["displacement"]
         if isinstance(d, (list)):
             if not all(isinstance(x, float) for x in d):
@@ -332,6 +331,8 @@ class _ATMUtils:
             Group of the force to be added to the system. Shuld only be
             needed when testing single-point energies.
         """
+        from .. import Protocol as _Protocol
+
         self.findDisplacement()
         self.getATMForceConstants(index)
         output = ""

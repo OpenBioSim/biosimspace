@@ -33,12 +33,8 @@ __all__ = [
     "merge",
 ]
 
-import csv as _csv
-import os as _os
-import subprocess as _subprocess
-import sys as _sys
 
-from .._Utils import _try_import, _have_imported, _assert_imported
+from .._Utils import _try_import, _have_imported
 
 import warnings as _warnings
 
@@ -61,19 +57,9 @@ with _warnings.catch_warnings():
         _RDLogger = _rdkit
 
 from sire.legacy import Base as _SireBase
-from sire.legacy import Maths as _SireMaths
-from sire.legacy import Mol as _SireMol
-from sire.legacy import Units as _SireUnits
 
-from .. import _is_notebook, _isVerbose
-from .._Exceptions import AlignmentError as _AlignmentError
-from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
-from .._SireWrappers import Molecule as _Molecule
 
-from .. import Convert as _Convert
-from .. import IO as _IO
 from .. import Units as _Units
-from .. import _Utils
 
 # lomap depends on RDKit and networkx
 _networkx = _try_import("networkx")
@@ -89,13 +75,12 @@ else:
 
     _lomap = _module_stub(name="rdkit, networkx")
 
-from ._merge import merge as _merge
 
 try:
-    _fkcombu_exe = _SireBase.findExe("fkcombu_bss").absoluteFilePath()
+    _fkcombu_exe = _SireBase.findExe("fkcombu_bss").absolute_file_path()
 except:
     try:
-        _fkcombu_exe = _SireBase.findExe("fkcombu").absoluteFilePath()
+        _fkcombu_exe = _SireBase.findExe("fkcombu").absolute_file_path()
     except:
         _fkcombu_exe = None
 
@@ -182,6 +167,14 @@ def generateNetwork(
         perturbation between molecules along an edge is likely to be more
         accurate.
     """
+    from .. import _Utils
+    from .. import _is_notebook, _isVerbose
+    from .._SireWrappers import Molecule as _Molecule
+    from .._Utils import _assert_imported
+    import csv as _csv
+    from .. import IO as _IO
+    from .._Exceptions import AlignmentError as _AlignmentError
+    import os as _os
 
     # Adapted from code by Jenke Scheen (@JenkeScheen).
 
@@ -331,7 +324,7 @@ def generateNetwork(
             # If the molecule came from an SDF file, then use
             # that as the format as it's generally more reliable.
             is_sdf = False
-            if molecule._sire_object.hasProperty("fileformat"):
+            if molecule._sire_object.has_property("fileformat"):
                 if "SDF" in molecule._sire_object.property("fileformat").value():
                     is_sdf = True
                     if is_names:
@@ -844,6 +837,12 @@ def matchAtoms(
     >>> import BioSimSpace as BSS
     >>> mapping = BSS.Align.matchAtoms(molecule0, molecule1, prematch={0 : 10, 3 : 7})
     """
+    from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
+    import sys as _sys
+    from .. import Convert as _Convert
+    from .._SireWrappers import Molecule as _Molecule
+    from sire.legacy import Units as _SireUnits
+    from sire.legacy import Mol as _SireMol
 
     # A list of supported scoring functions.
     scoring_functions = ["RMSD", "RMSDALIGN", "RMSDFLEXALIGN"]
@@ -989,7 +988,7 @@ def matchAtoms(
 
         # Regular match. Include light atoms, but don't allow matches between heavy
         # and light atoms.
-        m0 = mol0.evaluate().findMCSmatches(
+        m0 = mol0.evaluate().find_mcs_matches(
             mol1,
             _SireMol.AtomResultMatcher(_to_sire_mapping(prematch)),
             timeout,
@@ -1002,7 +1001,7 @@ def matchAtoms(
 
         # Include light atoms, and allow matches between heavy and light atoms.
         # This captures mappings such as O --> H in methane to methanol.
-        m1 = mol0.evaluate().findMCSmatches(
+        m1 = mol0.evaluate().find_mcs_matches(
             mol1,
             _SireMol.AtomResultMatcher(_to_sire_mapping(prematch)),
             timeout,
@@ -1111,6 +1110,10 @@ def rmsdAlign(molecule0, molecule1, mapping=None, property_map0={}, property_map
     >>> import BioSimSpace as BSS
     >>> molecule0 = BSS.Align.rmsdAlign(molecule0, molecule1)
     """
+    from .._Exceptions import AlignmentError as _AlignmentError
+    from .._SireWrappers import Molecule as _Molecule
+    from .. import _isVerbose
+    from sire.legacy import Mol as _SireMol
 
     if not isinstance(molecule0, _Molecule):
         raise TypeError(
@@ -1159,7 +1162,7 @@ def rmsdAlign(molecule0, molecule1, mapping=None, property_map0={}, property_map
         mol0 = (
             mol0.edit()
             .atom(idx0)
-            .setProperty(
+            .set_property(
                 property_map0.get("coordinates", "coordinates"),
                 mol1.atom(idx1).property(
                     property_map1.get("coordinates", "coordinates")
@@ -1246,6 +1249,13 @@ def flexAlign(
     >>> import BioSimSpace as BSS
     >>> molecule0 = BSS.Align.flexAlign(molecule0, molecule1)
     """
+    from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
+    from .. import _Utils
+    import subprocess as _subprocess
+    from .._SireWrappers import Molecule as _Molecule
+    from .. import IO as _IO
+    from .._Exceptions import AlignmentError as _AlignmentError
+    import os as _os
 
     # Check that we found fkcombu in the PATH.
     if fkcombu_exe is None:
@@ -1339,7 +1349,7 @@ def flexAlign(
         # Copy the coordinates back into the original molecule.
         molecule0._sire_object = (
             molecule0._sire_object.edit()
-            .setProperty(prop, aligned._sire_object.property("coordinates"))
+            .set_property(prop, aligned._sire_object.property("coordinates"))
             .commit()
         )
 
@@ -1425,6 +1435,8 @@ def merge(
     >>> import BioSimSpace as BSS
     >>> molecule0 = BSS.Align.merge(molecule0, molecule1)
     """
+    from .._SireWrappers import Molecule as _Molecule
+    from ._merge import merge as _merge
 
     if not isinstance(molecule0, _Molecule):
         raise TypeError(
@@ -1548,6 +1560,10 @@ def viewMapping(
         A view of the two molecules with the mapped atoms highlighted and
         labelled.
     """
+    from .. import Convert as _Convert
+    from .._SireWrappers import Molecule as _Molecule
+    from .._Utils import _assert_imported
+    from .. import _is_notebook
 
     # Adapted from: https://gist.github.com/cisert/d05664d4c98ac1cf86ee70b8700e56a9
 
@@ -1758,6 +1774,11 @@ def _score_rdkit_mappings(
     mapping, scores : ([dict], list)
         The ranked mappings and corresponding scores.
     """
+    from .. import _isVerbose
+    from .._SireWrappers import Molecule as _Molecule
+    from sire.legacy import Mol as _SireMol
+    from .._Exceptions import AlignmentError as _AlignmentError
+    from sire.legacy import Maths as _SireMaths
 
     # Adapted from FESetup: https://github.com/CCPBioSim/fesetup
 
@@ -1769,13 +1790,13 @@ def _score_rdkit_mappings(
     if prop0 != "coordinates":
         molecule0 = (
             molecule0.edit()
-            .setProperty("coordinates", molecule0.property(prop0))
+            .set_property("coordinates", molecule0.property(prop0))
             .commit()
         )
     if prop1 != "coordinates":
         molecule1 = (
             molecule1.edit()
-            .setProperty("coordinates", molecule1.property(prop1))
+            .set_property("coordinates", molecule1.property(prop1))
             .commit()
         )
 
@@ -1990,6 +2011,11 @@ def _score_sire_mappings(
     mapping, scores : ([dict], list)
         The ranked mappings and corresponding scores.
     """
+    from .. import _isVerbose
+    from .._SireWrappers import Molecule as _Molecule
+    from sire.legacy import Mol as _SireMol
+    from .._Exceptions import AlignmentError as _AlignmentError
+    from sire.legacy import Maths as _SireMaths
 
     # Make sure to re-map the coordinates property in both molecules, otherwise
     # the move and align functions from Sire will not work.
@@ -1999,13 +2025,13 @@ def _score_sire_mappings(
     if prop0 != "coordinates":
         molecule0 = (
             molecule0.edit()
-            .setProperty("coordinates", molecule0.property(prop0))
+            .set_property("coordinates", molecule0.property(prop0))
             .commit()
         )
     if prop1 != "coordinates":
         molecule1 = (
             molecule1.edit()
-            .setProperty("coordinates", molecule1.property(prop1))
+            .set_property("coordinates", molecule1.property(prop1))
             .commit()
         )
 
@@ -2123,6 +2149,7 @@ def _validate_mapping(molecule0, molecule1, mapping, name):
     name : str
         The name of the mapping. (Used when raising exceptions.)
     """
+    from sire.legacy import Mol as _SireMol
 
     for idx0, idx1 in mapping.items():
         if type(idx0) is int and type(idx1) is int:
@@ -2194,6 +2221,7 @@ def _to_sire_mapping(mapping):
     sire_mapping : {Sire.Mol.AtomIdx:Sire.Mol.AtomIdx}
         The Sire mapping.
     """
+    from sire.legacy import Mol as _SireMol
 
     sire_mapping = {}
 
@@ -2294,6 +2322,8 @@ def _prune_crossing_constraints(molecule0, molecule1, mapping):
     new_mapping : dict(int, int)
         The pruned mapping.
     """
+    from sire.legacy import Mol as _SireMol
+
     connectivity0 = _SireMol.Connectivity(
         molecule0._sire_object, _SireMol.CovalentBondHunter()
     )
@@ -2314,11 +2344,11 @@ def _prune_crossing_constraints(molecule0, molecule1, mapping):
             # Get the neighbours to the atom
             neighbours0 = [
                 molecule0._sire_object.atom(i)
-                for i in connectivity0.connectionsTo(_SireMol.AtomIdx(idx0))
+                for i in connectivity0.connections_to(_SireMol.AtomIdx(idx0))
             ]
             neighbours1 = [
                 molecule1._sire_object.atom(i)
-                for i in connectivity1.connectionsTo(_SireMol.AtomIdx(idx1))
+                for i in connectivity1.connections_to(_SireMol.AtomIdx(idx1))
             ]
 
             # Determine whether there are any constrained bonds between the MCS and softcore part

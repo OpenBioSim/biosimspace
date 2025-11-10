@@ -40,7 +40,7 @@ Print the list of supported force fields.
 
    import BioSimSpace as BSS
 
-   print(BSS.Parameters.forceFields())
+   print(BSS.Parameters.force_fields())
 
 Parameterise a molecule using GAFF.
 
@@ -163,6 +163,11 @@ If you need to apply any additional operations on the loaded molecule, then this
 can be done using the ``post_mol_commands`` option, using ``mol`` for the name of
 the molecule.
 """
+
+import sire as _sr
+
+_sr.use_new_api()
+del _sr
 
 from ._parameters import *
 from ._utils import *

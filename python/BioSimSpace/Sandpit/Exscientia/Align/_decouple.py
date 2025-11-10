@@ -1,13 +1,3 @@
-import warnings
-
-from sire.legacy import Base as _SireBase
-from sire.legacy import Mol as _SireMol
-from sire.legacy import MM as _SireMM
-from sire.legacy import Units as _SireUnits
-
-from .._Exceptions import IncompatibleError as _IncompatibleError
-from .._SireWrappers import Molecule as _Molecule
-
 __all__ = ["decouple"]
 
 
@@ -54,6 +44,10 @@ def decouple(
     decoupled : Sire.Mol.Molecule
         The molecule marked as being decoupled.
     """
+    from .._Exceptions import IncompatibleError as _IncompatibleError
+    from .._SireWrappers import Molecule as _Molecule
+    from sire.legacy import Base as _SireBase
+
     # Validate input.
 
     if not isinstance(molecule, _Molecule):
@@ -98,18 +92,18 @@ def decouple(
     ambertype = inv_property_map.get("ambertype", "ambertype")
 
     # Check for missing information.
-    if not mol_sire.hasProperty(ff):
+    if not mol_sire.has_property(ff):
         raise _IncompatibleError("Cannot determine 'forcefield' of 'molecule'!")
-    if not mol_sire.hasProperty(LJ):
+    if not mol_sire.has_property(LJ):
         raise _IncompatibleError("Cannot determine LJ terms for molecule")
-    if not mol_sire.hasProperty(charge):
+    if not mol_sire.has_property(charge):
         raise _IncompatibleError("Cannot determine charges for molecule")
-    if not mol_sire.hasProperty(element):
+    if not mol_sire.has_property(element):
         raise _IncompatibleError("Cannot determine elements in molecule")
 
     # Check for ambertype property (optional).
     has_ambertype = True
-    if not mol_sire.hasProperty(ambertype):
+    if not mol_sire.has_property(ambertype):
         has_ambertype = False
 
     if not isinstance(intramol, bool):
@@ -119,24 +113,24 @@ def decouple(
     mol_edit = mol_sire.edit()
 
     # Create dictionary to store charge and LJ tuples.
-    mol_edit.setProperty(
+    mol_edit.set_property(
         "decouple", {"charge": charge_tuple, "LJ": LJ_tuple, "intramol": intramol}
     )
 
     # Set the "forcefield0" property.
-    mol_edit.setProperty("forcefield0", molecule._sire_object.property(ff))
+    mol_edit.set_property("forcefield0", molecule._sire_object.property(ff))
 
     # Set starting properties based on fully-interacting molecule.
-    mol_edit.setProperty("charge0", molecule._sire_object.property(charge))
-    mol_edit.setProperty("LJ0", molecule._sire_object.property(LJ))
-    mol_edit.setProperty("element0", molecule._sire_object.property(element))
+    mol_edit.set_property("charge0", molecule._sire_object.property(charge))
+    mol_edit.set_property("LJ0", molecule._sire_object.property(LJ))
+    mol_edit.set_property("element0", molecule._sire_object.property(element))
     if has_ambertype:
-        mol_edit.setProperty("ambertype0", molecule._sire_object.property(ambertype))
+        mol_edit.set_property("ambertype0", molecule._sire_object.property(ambertype))
 
-    mol_edit.setProperty("annihilated", _SireBase.wrap(intramol))
+    mol_edit.set_property("annihilated", _SireBase.wrap(intramol))
 
     # Flag that this molecule is decoupled.
-    mol_edit.setProperty("is_decoupled", _SireBase.wrap(True))
+    mol_edit.set_property("is_decoupled", _SireBase.wrap(True))
 
     # Update the Sire molecule object of the new molecule.
     mol._sire_object = mol_edit.commit()

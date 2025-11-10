@@ -26,12 +26,9 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["Steering"]
 
-import math as _math
-import os as _os
 
 from .. import Types as _Types
 from ..Metadynamics import CollectiveVariable as _CollectiveVariable
-from ..Metadynamics import Restraint as _Restraint
 
 from ._protocol import Protocol as _Protocol
 
@@ -257,6 +254,8 @@ class Steering(_Protocol):
             The schedule for the steering, i.e. the integration time steps
             at which restraints are applied/adjusted.
         """
+        import math as _math
+
         steps = []
         for time in self._schedule:
             steps.append(_math.floor(time / self._timestep))
@@ -329,6 +328,7 @@ class Steering(_Protocol):
             The position of the restraint on each collective variable for
             each stage of the schedule.
         """
+        from ..Metadynamics import Restraint as _Restraint
 
         # Validate type.
         if not isinstance(restraints, (list, tuple)):
@@ -681,6 +681,8 @@ class Steering(_Protocol):
         colvar_file : str
             The path to an existing COLVAR file.
         """
+        import os as _os
+
         if not isinstance(colvar_file, str):
             raise ValueError("'colvar_file' must be of type 'str'")
 

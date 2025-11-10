@@ -29,35 +29,9 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["Process"]
 
-# TODO:
-# Work out a way to safely kill running processes.
-#
-# This is hard because the process launches a thread which itself calls a
-# Protocol.run method, in which multiple subprocesses can be launched. The
-# thread would need access to the PID of the subprocess in order to kill them,
-# and this would affect the logic of the run method (once a subprocess has been
-# killed the method should exit).
-
-# Alternatively, one could use a multiprocessing.Process instead of a thread,
-# which has a terminate method. However, communication between the Process and
-# the run method requires the return type of the method to be picklable, which
-# isn't the case for our Molecule object.
-
-import glob as _glob
-import os as _os
-import queue as _queue
-import sys as _sys
-import threading as _threading
-import warnings as _warnings
-import zipfile as _zipfile
 
 from .. import _is_notebook
-from .. import _isVerbose
-from .._Exceptions import ParameterisationError as _ParameterisationError
-from .._SireWrappers import Molecule as _Molecule
-from .. import _Utils
 
-from . import _Protocol
 
 if _is_notebook:
     from IPython.display import FileLink as _FileLink
@@ -77,6 +51,8 @@ def _wrap_protocol(protocol_function, process):
     process : BioSimSpace.Parameters.Process
         A handle to the parent process.
     """
+    import os as _os
+
     try:
         protocol_function(process._molecule, process._work_dir, process._queue)
     except Exception as e:
@@ -115,6 +91,12 @@ class Process:
         auto_start : bool
             Whether to automatically start the process.
         """
+        from .._SireWrappers import Molecule as _Molecule
+        import sys as _sys
+        from .. import _Utils
+        from . import _Protocol
+        import os as _os
+        import warnings as _warnings
 
         # Validate arguments.
 
@@ -177,6 +159,8 @@ class Process:
 
     def start(self):
         """Start the process."""
+        import threading as _threading
+        import queue as _queue
 
         # Flag that the process has been started.
         if self._is_started:
@@ -206,6 +190,8 @@ class Process:
         molecule : BioSimSpace._SireWrappers.Molecule
             The parameterised molecule.
         """
+        from .._Exceptions import ParameterisationError as _ParameterisationError
+        from .. import _isVerbose
 
         # Start the process, if it's not already started.
         if not self._is_started:
@@ -282,6 +268,10 @@ class Process:
         file_link : str, IPython.lib.display.FileLink
             The name of, or link to, a zipfile containing the output.
         """
+        import zipfile as _zipfile
+        from IPython.display import FileLink as _FileLink
+        import os as _os
+        import glob as _glob
 
         if self._zipfile is None or filename is not None:
             if filename is not None:

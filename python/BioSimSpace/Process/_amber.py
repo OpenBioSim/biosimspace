@@ -30,37 +30,8 @@ from .._Utils import _try_import
 
 _pygtail = _try_import("pygtail")
 
-import os as _os
-import re as _re
-import time as _time
-import shutil as _shutil
-import tempfile as _tempfile
-import timeit as _timeit
-import warnings as _warnings
-
-from sire.legacy import Base as _SireBase
-from sire.legacy import IO as _SireIO
-from sire.legacy import Mol as _SireMol
-
-from .. import _amber_home, _isVerbose
-from ..Align._squash import _squash, _unsquash
-from .._Config import Amber as _AmberConfig
-from .._Exceptions import IncompatibleError as _IncompatibleError
-from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
-from ..Protocol._free_energy_mixin import _FreeEnergyMixin
-from ..Protocol._position_restraint_mixin import _PositionRestraintMixin
-from .._SireWrappers import System as _System
-from ..Types._type import Type as _Type
-
-from .. import IO as _IO
-from .. import Protocol as _Protocol
-from .. import Trajectory as _Trajectory
-from .. import Units as _Units
-from .. import _Utils
 
 from . import _process
-
-from ._plumed import Plumed as _Plumed
 
 
 class Amber(_process.Process):
@@ -139,6 +110,9 @@ class Amber(_process.Process):
         kwargs : dict
             Additional keyword arguments.
         """
+        import os as _os
+        from ..Protocol._free_energy_mixin import _FreeEnergyMixin
+        from .._Config import Amber as _AmberConfig
 
         # Call the base class constructor.
         super().__init__(
@@ -187,7 +161,7 @@ class Amber(_process.Process):
             else:
                 is_free_energy = False
 
-            self._exe = _find_exe(
+            self._exe = _findExe(
                 is_gpu=is_gpu, is_free_energy=is_free_energy, is_vacuum=self._is_vacuum
             )
         else:
@@ -267,6 +241,13 @@ class Amber(_process.Process):
 
     def _setup(self, **kwargs):
         """Setup the input files and working directory ready for simulation."""
+        from .. import IO as _IO
+        import shutil as _shutil
+        from ..Align._squash import _squash
+        import os as _os
+        from .. import _isVerbose
+        from .. import Protocol as _Protocol
+        from ..Protocol._free_energy_mixin import _FreeEnergyMixin
 
         # Create the input files...
 
@@ -401,6 +382,11 @@ class Amber(_process.Process):
 
     def _generate_config(self):
         """Generate AMBER configuration file strings."""
+        import shutil as _shutil
+        import os as _os
+        from .. import Protocol as _Protocol
+        from .._Config import Amber as _AmberConfig
+        from ._plumed import Plumed as _Plumed
 
         extra_options = self._extra_options.copy()
         extra_lines = self._extra_lines.copy()
@@ -459,6 +445,8 @@ class Amber(_process.Process):
 
     def _generate_args(self):
         """Generate the dictionary of command-line arguments."""
+        from .. import Protocol as _Protocol
+        from ..Protocol._position_restraint_mixin import _PositionRestraintMixin
 
         # Clear the existing arguments.
         self.clearArgs()
@@ -497,6 +485,9 @@ class Amber(_process.Process):
         process : :class:`Process.Amber <BioSimSpace.Process.Amber>`
             The process object.
         """
+        from sire.legacy import Base as _SireBase
+        import timeit as _timeit
+        from .. import _Utils
 
         # The process is currently queued.
         if self.isQueued():
@@ -504,7 +495,7 @@ class Amber(_process.Process):
 
         # Process is already running.
         if self._process is not None:
-            if self._process.isRunning():
+            if self._process.is_running():
                 return
 
         # Run the process in the working directory.
@@ -549,6 +540,15 @@ class Amber(_process.Process):
         system : :class:`System <BioSimSpace._SireWrappers.System>`
             The latest molecular system.
         """
+        from .._SireWrappers import System as _System
+        from sire.legacy import Mol as _SireMol
+        import shutil as _shutil
+        from ..Align._squash import _unsquash
+        from sire.legacy import IO as _SireIO
+        import os as _os
+        from ..Protocol._free_energy_mixin import _FreeEnergyMixin
+        import warnings as _warnings
+        import tempfile as _tempfile
 
         # Wait for the process to finish.
         if block is True:
@@ -636,10 +636,10 @@ class Amber(_process.Process):
 
             # Update the box information in the original system.
             if self._has_box:
-                if "space" in new_system._sire_object.propertyKeys():
+                if "space" in new_system._sire_object.property_keys():
                     box = new_system._sire_object.property("space")
-                    if box.isPeriodic():
-                        old_system._sire_object.setProperty(
+                    if box.is_periodic():
+                        old_system._sire_object.set_property(
                             self._property_map.get("space", "space"), box
                         )
 
@@ -681,6 +681,8 @@ class Amber(_process.Process):
         trajectory : :class:`Trajectory <BioSimSpace.Trajectory.Trajectory>`
             The latest trajectory object.
         """
+        from .. import Trajectory as _Trajectory
+        import warnings as _warnings
 
         if not isinstance(backend, str):
             raise TypeError("'backend' must be of type 'str'")
@@ -720,6 +722,11 @@ class Amber(_process.Process):
         frame : :class:`System <BioSimSpace._SireWrappers.System>`
             The System object of the corresponding frame.
         """
+        from ..Align._squash import _unsquash
+        from sire.legacy import IO as _SireIO
+        from .. import Trajectory as _Trajectory
+        from .. import Protocol as _Protocol
+        from sire.legacy import Mol as _SireMol
 
         if not type(index) is int:
             raise TypeError("'index' must be of type 'int'")
@@ -792,9 +799,9 @@ class Amber(_process.Process):
                 self._mapping = mapping
 
             # Update the box information in the original system.
-            if "space" in new_system._sire_object.propertyKeys():
+            if "space" in new_system._sire_object.property_keys():
                 box = new_system._sire_object.property("space")
-                old_system._sire_object.setProperty(
+                old_system._sire_object.set_property(
                     self._property_map.get("space", "space"), box
                 )
 
@@ -898,6 +905,7 @@ class Amber(_process.Process):
         record : :class:`Type <BioSimSpace.Types>`
             The matching record.
         """
+        import warnings as _warnings
 
         # Wait for the process to finish.
         if block is True:
@@ -953,6 +961,7 @@ class Amber(_process.Process):
         record : :class:`Type <BioSimSpace.Types>`
             The matching record.
         """
+        import warnings as _warnings
 
         # Warn the user if the process has exited with an error.
         if self.isError():
@@ -991,6 +1000,7 @@ class Amber(_process.Process):
         records : :class:`MultiDict <BioSimSpace.Process._process._MultiDict>`
            The dictionary of time-series records.
         """
+        import warnings as _warnings
 
         # Validate the region.
         if not isinstance(region, int):
@@ -1072,6 +1082,8 @@ class Amber(_process.Process):
         time : :class:`Time <BioSimSpace.Types.Time>`
             The current simulation time in nanoseconds.
         """
+        from .. import Protocol as _Protocol
+        from .. import Units as _Units
 
         # No time records for minimisation protocols.
         if isinstance(self._protocol, _Protocol.Minimisation):
@@ -1214,6 +1226,8 @@ class Amber(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The bond energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "BOND",
             time_series=time_series,
@@ -1282,6 +1296,8 @@ class Amber(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The angle energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "ANGLE",
             time_series=time_series,
@@ -1350,6 +1366,8 @@ class Amber(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The total dihedral energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "DIHED",
             time_series=time_series,
@@ -1418,6 +1436,8 @@ class Amber(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The electrostatic energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "EEL",
             time_series=time_series,
@@ -1488,6 +1508,8 @@ class Amber(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The electrostatic energy between atoms 1 and 4.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "14EEL",
             time_series=time_series,
@@ -1558,6 +1580,8 @@ class Amber(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The Van der Vaals energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "VDW",
             time_series=time_series,
@@ -1626,6 +1650,8 @@ class Amber(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The Van der Vaals energy between atoms 1 and 4.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "14VDW",
             time_series=time_series,
@@ -1696,6 +1722,8 @@ class Amber(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The hydrogen bond energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "EHBOND",
             time_series=time_series,
@@ -1766,6 +1794,8 @@ class Amber(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The restraint energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "RESTRAINT",
             time_series=time_series,
@@ -1837,6 +1867,8 @@ class Amber(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The potential energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "EPTOT",
             time_series=time_series,
@@ -1905,6 +1937,8 @@ class Amber(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The kinetic energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "EKTOT",
             time_series=time_series,
@@ -1973,6 +2007,8 @@ class Amber(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The non-bonded energy between atoms 1 and 4.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "14NB",
             time_series=time_series,
@@ -2041,6 +2077,8 @@ class Amber(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The total energy.
         """
+        from .. import Protocol as _Protocol
+        from .. import Units as _Units
 
         if not isinstance(region, int):
             raise TypeError("'region' must be of type 'int'")
@@ -2133,6 +2171,8 @@ class Amber(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The centre of mass kinetic energy.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "EKCMT",
             time_series=time_series,
@@ -2268,6 +2308,8 @@ class Amber(_process.Process):
         temperature : :class:`Temperature <BioSimSpace.Types.Temperature>`
            The temperature.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "TEMP(K)",
             time_series=time_series,
@@ -2334,6 +2376,8 @@ class Amber(_process.Process):
         pressure : :class:`Pressure <BioSimSpace.Types.Pressure>`
            The pressure.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "PRESS",
             time_series=time_series,
@@ -2400,6 +2444,8 @@ class Amber(_process.Process):
         volume : :class:`Volume <BioSimSpace.Types.Volume>`
            The volume.
         """
+        from .. import Units as _Units
+
         return self.getRecord(
             "VOLUME",
             time_series=time_series,
@@ -2578,6 +2624,9 @@ class Amber(_process.Process):
         n : int
             The number of lines to print.
         """
+        from .. import Protocol as _Protocol
+        from ..Protocol._free_energy_mixin import _FreeEnergyMixin
+        import re as _re
 
         # Ensure that the number of lines is positive.
         if n < 0:
@@ -2722,7 +2771,7 @@ class Amber(_process.Process):
         """Kill the running process."""
 
         # Kill the process.
-        if not self._process is None and self._process.isRunning():
+        if not self._process is None and self._process.is_running():
             self._process.kill()
 
     def _get_stdout_record(
@@ -2758,6 +2807,8 @@ class Amber(_process.Process):
         record :
             The matching stdout record.
         """
+        from ..Types._type import Type as _Type
+        import warnings as _warnings
 
         # Update the standard output dictionary.
         self.stdout(0)
@@ -2838,7 +2889,7 @@ class Amber(_process.Process):
                 return None
 
 
-def _find_exe(is_gpu=False, is_free_energy=False, is_vacuum=False):
+def _findExe(is_gpu=False, is_free_energy=False, is_vacuum=False):
     """
     Helper function to search for an AMBER executable.
 
@@ -2860,6 +2911,9 @@ def _find_exe(is_gpu=False, is_free_energy=False, is_vacuum=False):
     exe : str
         The path to the executable.
     """
+    from .. import _amber_home
+    from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
+    import os as _os
 
     if not isinstance(is_gpu, bool):
         raise TypeError("'is_gpu' must be of type 'bool'.")
@@ -2894,6 +2948,8 @@ def _find_exe(is_gpu=False, is_free_energy=False, is_vacuum=False):
 
     # Helper function to check whether a file is executable.
     def is_exe(fpath):
+        import os as _os
+
         return _os.path.isfile(fpath) and _os.access(fpath, _os.X_OK)
 
     # Loop over each directory in the path and search for the executable.

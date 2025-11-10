@@ -29,10 +29,7 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["Atom"]
 
-from sire.legacy import Mol as _SireMol
 
-from ..Types import Coordinate as _Coordinate
-from ..Types import Length as _Length
 from ._sire_wrapper import SireWrapper as _SireWrapper
 
 
@@ -49,6 +46,7 @@ class Atom(_SireWrapper):
         atom : Sire.Mol.Atom, :class:`Atom <BioSimSpace._SireWrappers.Atom>`
             A Sire or BioSimSpace Atom object.
         """
+        from sire.legacy import Mol as _SireMol
 
         # Check that the atom is valid.
 
@@ -140,6 +138,9 @@ class Atom(_SireWrapper):
         coordinates : class:`Coordinate <BioSimSpace.Types.Coordinate>`
             The coordinates of the atom.
         """
+        from ..Types import Coordinate as _Coordinate
+        from ..Types import Length as _Length
+
         prop = property_map.get("coordinates", "coordinates")
 
         # Get the "coordinates" property from the atom.
@@ -179,7 +180,7 @@ class Atom(_SireWrapper):
 
         # Get the element property from the atom.
         try:
-            element = self._sire_object.property(prop).toString()
+            element = self._sire_object.property(prop).to_string()
         except:
             element = ""
 
@@ -195,10 +196,9 @@ class Atom(_SireWrapper):
 
         system : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
         """
+        from ._molecule import Molecule as _Molecule
+        from sire.legacy import Mol as _SireMol
+
         return _Molecule(
             _SireMol.PartialMolecule(self._sire_object).extract().molecule()
         )
-
-
-# Import at bottom of module to avoid circular dependency.
-from ._molecule import Molecule as _Molecule

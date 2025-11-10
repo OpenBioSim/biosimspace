@@ -26,9 +26,6 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["Coordinate"]
 
-from ._length import Length as _Length
-from ._vector import Vector as _Vector
-
 
 class Coordinate:
     """A coordinate (position vector)."""
@@ -49,6 +46,8 @@ class Coordinate:
         z : :class: `Length <BioSimSpace.Types.Length>`
             The z position.
         """
+        from ._vector import Vector as _Vector
+        from ._length import Length as _Length
 
         if not isinstance(x, _Length):
             raise TypeError("'x' must be of type 'BioSimSpace.Types.Length'")
@@ -96,6 +95,9 @@ class Coordinate:
         result : :class: `Coordinate <BioSimSpace.Types.Coordinate>`
             The sum of the two coordinates.
         """
+        from ._vector import Vector as _Vector
+        from ._length import Length as _Length
+
         if isinstance(other, Coordinate):
             return self.fromVector(self._vector + other._vector, _Length(1, "A"))
 
@@ -130,6 +132,9 @@ class Coordinate:
         result : :class: `Coordinate <BioSimSpace.Types.Coordinate>`
             The difference of the two coordinates.
         """
+        from ._vector import Vector as _Vector
+        from ._length import Length as _Length
+
         if isinstance(other, Coordinate):
             return self.fromVector(self._vector - other._vector, _Length(1, "A"))
 
@@ -149,6 +154,7 @@ class Coordinate:
 
     def __mul__(self, other):
         """Multiplication operator."""
+        from ._length import Length as _Length
 
         # Convert int to float.
         if type(other) is int:
@@ -172,6 +178,7 @@ class Coordinate:
 
     def __truediv__(self, other):
         """Division operator."""
+        from ._length import Length as _Length
 
         # Convert int to float.
         if type(other) is int:
@@ -197,6 +204,8 @@ class Coordinate:
         x : :class: `Length <BioSimSpace.Types.Length>`
             The x component of the coordinate.
         """
+        from ._length import Length as _Length
+
         return _Length(self._vector.x(), "A")
 
     def y(self):
@@ -209,6 +218,8 @@ class Coordinate:
         y : :class: `Length <BioSimSpace.Types.Length>`
             The y component of the coordinate.
         """
+        from ._length import Length as _Length
+
         return _Length(self._vector.y(), "A")
 
     def z(self):
@@ -221,9 +232,11 @@ class Coordinate:
         z : :class: `Length <BioSimSpace.Types.Length>`
             The z component of the coordinate.
         """
+        from ._length import Length as _Length
+
         return _Length(self._vector.z(), "A")
 
-    def toVector(self):
+    def to_vector(self):
         """
         Convert to a unitless BioSimSpace.Types.Vector object.
 
@@ -249,6 +262,9 @@ class Coordinate:
         unit : :class: `Length <BioSimSpace.Types.Length>`
             The coordinate unit.
         """
+        from ._vector import Vector as _Vector
+        from ._length import Length as _Length
+
         if not isinstance(vector, _Vector):
             raise TypeError("'vector' must be of type 'BioSimSpace.Types.Vector'")
 
@@ -274,6 +290,8 @@ class Coordinate:
         coordinate : :class: `Coordinate <BioSimSpace.Types.Coordinate>`
             A BioSimSpace Coordinate object.
         """
+        from ._length import Length as _Length
+
         # Create a new Coordinate using the x, y, z components.
         return Coordinate(
             _Length(vector.x().value(), "A"),

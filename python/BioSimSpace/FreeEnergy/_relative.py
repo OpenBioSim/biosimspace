@@ -26,22 +26,10 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["Relative", "getData"]
 
-import copy as _copy
-import json as _json
-import math as _math
-import numpy as _np
 import os as _os
-import pandas as _pd
-import pathlib as _pathlib
-import pyarrow.parquet as _pq
-import re as _re
-import shutil as _shutil
-import subprocess as _subprocess
 import sys as _sys
-import warnings as _warnings
-import zipfile as _zipfile
 
-from .._Utils import _assert_imported, _have_imported, _try_import
+from .._Utils import _have_imported, _try_import
 
 # alchemlyb isn't available for all variants of Python that we support, so we
 # need to try_import it.
@@ -80,22 +68,9 @@ if _have_imported(_alchemlyb):
 from sire.legacy.Base import getBinDir as _getBinDir
 from sire.legacy.Base import getShareDir as _getShareDir
 
-from sire.legacy import IO as _SireIO
-from sire.legacy import Mol as _SireMol
 
-from .. import _gmx_exe
 from .. import _is_notebook
-from .. import _isVerbose
-from .._Exceptions import AnalysisError as _AnalysisError
 from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
-from .._SireWrappers import Molecules as _Molecules
-from .._SireWrappers import System as _System
-from .._Utils import cd as _cd
-from .. import Process as _Process
-from .. import Protocol as _Protocol
-from .. import Types as _Types
-from .. import Units as _Units
-from .. import _Utils
 
 if _is_notebook:
     from IPython.display import FileLink as _FileLink
@@ -182,6 +157,9 @@ class Relative:
             Additional keyword arguments to pass to the underlying Process
             objects.
         """
+        from .._SireWrappers import System as _System
+        from .. import _Utils
+        from .. import Protocol as _Protocol
 
         # Validate the input.
 
@@ -303,6 +281,8 @@ class Relative:
             Whether to run the individual processes for the lambda windows
             in serial.
         """
+        import warnings as _warnings
+
         if not isinstance(serial, bool):
             raise TypeError("'serial' must be of type 'bool'.")
 
@@ -313,6 +293,8 @@ class Relative:
 
     def wait(self):
         """Wait for the simulation to finish."""
+        import warnings as _warnings
+
         if self._setup_only:
             _warnings.warn("No processes exist! Object created in 'setup_only' mode.")
         else:
@@ -371,6 +353,10 @@ class Relative:
         output : str, IPython.display.FileLink
             A path, or file link, to an archive of the process input.
         """
+        import zipfile as _zipfile
+        from .._Utils import cd as _cd
+        import pathlib as _pathlib
+        from IPython.display import FileLink as _FileLink
 
         if self._work_dir is None:
             raise ValueError("'work_dir' must be set!")
@@ -459,6 +445,10 @@ class Relative:
             window. This parameter is only computed when available for the
             specified estimator and engine, otherwise None will be returned.
         """
+        import pathlib as _pathlib
+        import warnings as _warnings
+        from .._Exceptions import AnalysisError as _AnalysisError
+        from .._Utils import _assert_imported
 
         if not isinstance(work_dir, str):
             raise TypeError("'work_dir' must be of type 'str'.")
@@ -535,6 +525,9 @@ class Relative:
             The number of off-diagonals that are less than the threshold value.
 
         """
+        import numpy as _np
+        import warnings as _warnings
+
         if not isinstance(overlap, _np.matrix):
             raise TypeError("'overlap' must be of type 'numpy.matrix'.")
 
@@ -588,6 +581,9 @@ class Relative:
         free_energy : (:class:`Energy <BioSimSpace.Types.Energy>`, :class:`Energy <BioSimSpace.Types.Energy>`)
             The relative free-energy difference and its associated error.
         """
+        import math as _math
+        from .. import Types as _Types
+        from .. import Units as _Units
 
         if not isinstance(pmf, list):
             raise TypeError("'pmf' must be of type 'list'.")
@@ -697,6 +693,13 @@ class Relative:
         data : list(pandas.DataFrame)
             A list of dataframes containing the data for each lambda window.
         """
+        from alchemlyb.parsing.gmx import extract_u_nk as _gmx_extract_u_nk
+        from alchemlyb.parsing.amber import extract_dHdl as _amber_extract_dHdl
+        import pathlib as _pathlib
+        from .._Exceptions import AnalysisError as _AnalysisError
+        from alchemlyb.parsing.gmx import extract_dHdl as _gmx_extract_dHdl
+        from .. import _isVerbose
+        from alchemlyb.parsing.amber import extract_u_nk as _amber_extract_u_nk
 
         if not isinstance(files, (tuple, list)):
             raise TypeError("'files' must be of type 'list' or 'tuple'.")
@@ -854,6 +857,11 @@ class Relative:
             frame (n) for MBAR, or dH/dl as a function of time for this lambda
             window for TI.
         """
+        from alchemlyb.postprocessors.units import R_kJmol as _R_kJmol
+        import pandas as _pd
+        import pathlib as _pathlib
+        import numpy as _np
+        from alchemlyb.postprocessors.units import kJ2kcal as _kJ2kcal
 
         if not isinstance(simfile, _pathlib.Path):
             raise TypeError("'simfile' must be of type 'pathlib.Path'.")
@@ -1017,6 +1025,10 @@ class Relative:
             frame (n) for MBAR, or dH/dl as a function of time for this lambda
             window for TI.
         """
+        import json as _json
+        import pandas as _pd
+        import pathlib as _pathlib
+        import pyarrow.parquet as _pq
 
         if not isinstance(parquet_file, _pathlib.Path):
             raise TypeError("'parquet_file' must be of type 'pathlib.Path'.")
@@ -1147,6 +1159,13 @@ class Relative:
             Dataframe of dHdl or u_nk data processed using automated equilibration
             detection followed by statistical inefficiency.
         """
+        from alchemlyb.preprocessing.subsampling import (
+            decorrelate_u_nk,
+            decorrelate_dhdl,
+        )
+        import pandas as _pd
+        import warnings as _warnings
+        from alchemlyb.preprocessing.subsampling import slicing as _slicing
 
         if not isinstance(data, (list, _pd.DataFrame)):
             raise TypeError("'data' must be of type 'list' or 'pandas.DataFrame'.")
@@ -1273,6 +1292,15 @@ class Relative:
             window. Returns None if overlap isn't supported for the chosen
             estimator or engine.
         """
+        from alchemlyb.postprocessors.units import to_kcalmol as _to_kcalmol
+        from alchemlyb.estimators import TI as _TI
+        import numpy as _np
+        import pathlib as _pathlib
+        import warnings as _warnings
+        from .._Exceptions import AnalysisError as _AnalysisError
+        from .. import Units as _Units
+        from alchemlyb.estimators import MBAR as _AutoMBAR
+        from .. import _isVerbose
 
         if not isinstance(files, (tuple, list)):
             raise TypeError("'files' must be of type 'list' or 'tuple'.")
@@ -1422,6 +1450,8 @@ class Relative:
             For MBAR, this returns the overlap matrix for the overlap between
             each lambda window. For TI, this returns None.
         """
+        import re as _re
+        import pathlib as _pathlib
 
         if not isinstance(work_dir, str):
             raise TypeError("'work_dir' must be of type 'str'.")
@@ -1510,6 +1540,14 @@ class Relative:
             For MBAR, this returns the overlap matrix for the overlap between
             each lambda window. For TI, this returns None.
         """
+        import math as _math
+        import subprocess as _subprocess
+        from .. import _Utils
+        import pathlib as _pathlib
+        import warnings as _warnings
+        from .._Exceptions import AnalysisError as _AnalysisError
+        from .. import Units as _Units
+        from .. import _gmx_exe
 
         if not isinstance(work_dir, str):
             raise TypeError("'work_dir' must be of type 'str'.")
@@ -1685,6 +1723,13 @@ class Relative:
             For MBAR, this returns the overlap matrix for the overlap between
             each lambda window. For TI, this returns None.
         """
+        import subprocess as _subprocess
+        from .. import _Utils
+        import numpy as _np
+        import pathlib as _pathlib
+        from .._Exceptions import AnalysisError as _AnalysisError
+        import warnings as _warnings
+        from .. import Units as _Units
 
         if not isinstance(work_dir, str):
             raise TypeError("'work_dir' must be of type 'str'.")
@@ -1873,6 +1918,9 @@ class Relative:
             For MBAR, this returns the overlap matrix for the overlap between
             each lambda window. For TI, this returns None.
         """
+        import pyarrow.parquet as _pq
+        import json as _json
+        import pathlib as _pathlib
 
         if not isinstance(work_dir, str):
             raise TypeError("'work_dir' must be of type 'str'.")
@@ -2000,6 +2048,9 @@ class Relative:
         system : :class:`System <BioSimSpace._SireWrappers.System>`
             The molecular system.
         """
+        import shutil as _shutil
+        from .. import Process as _Process
+        import copy as _copy
 
         # Initialise list to store the processe
         processes = []

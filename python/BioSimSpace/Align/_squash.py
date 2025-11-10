@@ -1,15 +1,27 @@
-import itertools as _it
-import numpy as _np
-import os as _os
-import shutil as _shutil
-import tempfile
+######################################################################
+# BioSimSpace: Making biomolecular simulation a breeze!
+#
+# Copyright: 2017-2025
+#
+# Authors: Lester Hedges <lester.hedges@gmail.com>
+#
+# BioSimSpace is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# BioSimSpace is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with BioSimSpace. If not, see <http://www.gnu.org/licenses/>.
+#####################################################################
 
-from sire.legacy import IO as _SireIO
-from sire.legacy import Mol as _SireMol
-
-from ._merge import _removeDummies
-from ..IO import readMolecules as _readMolecules, saveMolecules as _saveMolecules
-from .._SireWrappers import Molecule as _Molecule
+"""
+Functionality for squashing and unsquashing alchemical systems for AMBER.
+"""
 
 
 def _squash(system, explicit_dummies=False):
@@ -53,6 +65,8 @@ def _squash(system, explicit_dummies=False):
          molecules are contained in this mapping as the perturbable ones do not
          have a one-to-one mapping and cannot be expressed as a dictionary.
     """
+    from sire.legacy import Mol as _SireMol
+
     # Create a copy of the original system.
     new_system = system.copy()
 
@@ -114,6 +128,13 @@ def _squash_molecule(molecule, explicit_dummies=False):
     system : BioSimSpace._SireWrappers.System
          The output squashed system.
     """
+    import tempfile
+    from ..IO import readMolecules as _readMolecules, saveMolecules as _saveMolecules
+    from ._merge import _removeDummies
+    from .._SireWrappers import Molecule as _Molecule
+    import shutil as _shutil
+    import os as _os
+
     if not molecule.isPerturbable():
         return molecule
 
@@ -232,6 +253,8 @@ def _unsquash(system, squashed_system, mapping, **kwargs):
     system : BioSimSpace._SireWrappers.System
          The output unsquashed system.
     """
+    from sire.legacy import IO as _SireIO
+
     # Create a copy of the original new_system.
     new_system = system.copy()
 
@@ -303,6 +326,9 @@ def _unsquash_molecule(molecule, squashed_molecules, explicit_dummies=False):
     molecule : BioSimSpace._SireWrappers.Molecule
          The output updated merged molecule.
     """
+    from .._SireWrappers import Molecule as _Molecule
+    from sire.legacy import Mol as _SireMol
+
     # Get the common core atoms
     atom_mapping0_common = _squashed_atom_mapping(
         molecule,
@@ -329,7 +355,7 @@ def _unsquash_molecule(molecule, squashed_molecules, explicit_dummies=False):
     atom_mapping1 = _squashed_atom_mapping(
         molecule, is_lambda1=True, explicit_dummies=explicit_dummies
     )
-    update_velocity = squashed_molecules[0]._sire_object.hasProperty("velocity")
+    update_velocity = squashed_molecules[0]._sire_object.has_property("velocity")
 
     # Even though the common core of the two molecules should have the same coordinates,
     # they might be PBC wrapped differently.
@@ -371,15 +397,15 @@ def _unsquash_molecule(molecule, squashed_molecules, explicit_dummies=False):
                 coordinates0 -= translation_vec
             coordinates1 -= translation_vec
 
-        siremol = merged_atom.setProperty("coordinates0", coordinates0).molecule()
-        siremol = merged_atom.setProperty("coordinates1", coordinates1).molecule()
+        siremol = merged_atom.set_property("coordinates0", coordinates0).molecule()
+        siremol = merged_atom.set_property("coordinates1", coordinates1).molecule()
 
         # Update the velocities.
         if update_velocity:
             velocities0 = squashed_atom0._sire_object.property("velocity")
             velocities1 = squashed_atom1._sire_object.property("velocity")
-            siremol = merged_atom.setProperty("velocity0", velocities0).molecule()
-            siremol = merged_atom.setProperty("velocity1", velocities1).molecule()
+            siremol = merged_atom.set_property("velocity0", velocities0).molecule()
+            siremol = merged_atom.set_property("velocity1", velocities1).molecule()
 
     return _Molecule(siremol.commit())
 
@@ -457,6 +483,9 @@ def _squashed_atom_mapping(system, is_lambda1=False, environment=True, **kwargs)
     mapping : dict(int, int)
         The corresponding atom mapping.
     """
+    from .._SireWrappers import Molecule as _Molecule
+    import numpy as _np
+
     if isinstance(system, _Molecule):
         return _squashed_atom_mapping(
             system.toSystem(), is_lambda1=is_lambda1, environment=environment, **kwargs
@@ -547,6 +576,8 @@ def _squashed_atom_mapping_molecule(
     n_atoms : int
         The number of squashed atoms that correspond to the squashed molecule.
     """
+    import numpy as _np
+
     if not molecule.isPerturbable():
         if environment:
             return {
@@ -646,7 +677,7 @@ def _squashed_atom_mapping_molecule(
         all_ndummy1 = 0
     else:
         all_ndummy1 = sum(
-            "du" in x for x in molecule._sire_object.property("ambertype0").toVector()
+            "du" in x for x in molecule._sire_object.property("ambertype0").to_vector()
         )
 
     offset_squashed_lambda1 = molecule.nAtoms() - all_ndummy1
@@ -700,6 +731,8 @@ def _amber_mask_from_indices(atom_idxs):
     mask : str
         The AMBER mask.
     """
+    import itertools as _it
+
     # AMBER has a restriction on the number of characters in the restraint
     # mask (not documented) so we can't just use comma-separated atom
     # indices. Instead we loop through the indices and use hyphens to

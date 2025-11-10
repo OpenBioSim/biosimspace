@@ -26,13 +26,6 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["Type"]
 
-import math as _math
-import re as _re
-
-from sire.legacy import Units as _SireUnits
-
-from .._Exceptions import IncompatibleError as _IncompatibleError
-
 
 class Type:
     """A base class for custom types."""
@@ -56,6 +49,7 @@ class Type:
         string : str
             A string representation of the type.
         """
+        from sire.legacy import Units as _SireUnits
 
         # Don't allow user to create an instance of this base class.
         if type(self) is Type:
@@ -380,6 +374,7 @@ class Type:
 
     def __eq__(self, other):
         """Equals to operator."""
+        import math as _math
 
         # Compare to another object of the same type.
         if type(other) is type(self):
@@ -478,6 +473,7 @@ class Type:
         value : float
             The value in the specified unit.
         """
+        from .._Exceptions import IncompatibleError as _IncompatibleError
 
         if not isinstance(unit, str):
             raise TypeError("'unit' must be of type 'str'.")
@@ -609,6 +605,7 @@ class Type:
         type : :class:`Type <BioSimSpace.Types>`
             The type object.
         """
+        import re as _re
 
         if string == "==SUPPRESS==":
             return cls(0, cls._default_unit)
@@ -667,6 +664,7 @@ class Type:
         sire_unit : sire.units.GeneralUnit
             A Sire GeneralUnit object.
         """
+        from sire.legacy import Units as _SireUnits
 
         if not isinstance(sire_unit, _SireUnits.GeneralUnit):
             raise TypeError("'sire_unit' must be of type 'sire.units.GeneralUnit'")

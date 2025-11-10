@@ -18,9 +18,9 @@ def test_system(system):
     # Convert to Sire format.
     sire_system = BSS.Convert.toSire(system)
 
-    assert sire_system.nMolecules() == num_mol
-    assert sire_system.nResidues() == num_res
-    assert sire_system.nAtoms() == num_atm
+    assert sire_system.num_molecules() == num_mol
+    assert sire_system.num_residues() == num_res
+    assert sire_system.num_atoms() == num_atm
 
     # Convert to RDKit format. The result will be a container of
     # RDKit molecules.

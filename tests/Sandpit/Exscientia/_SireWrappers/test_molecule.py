@@ -76,7 +76,7 @@ def test_hydrogen_mass_repartitioning(system, ignore_waters):
     # Work out the initial mass of the system.
     initial_mass = 0
     for molecule in system:
-        for mass in molecule._sire_object.property("mass").toVector():
+        for mass in molecule._sire_object.property("mass").to_vector():
             initial_mass += mass.value()
 
     # Repartition the hydrogen mass.
@@ -85,7 +85,7 @@ def test_hydrogen_mass_repartitioning(system, ignore_waters):
     # Work out the new mass of the system.
     final_mass = 0
     for molecule in system:
-        for mass in molecule._sire_object.property("mass").toVector():
+        for mass in molecule._sire_object.property("mass").to_vector():
             final_mass += mass.value()
 
     # Assert the the masses are approximately the same.
@@ -97,7 +97,7 @@ def test_hydrogen_mass_repartitioning(system, ignore_waters):
     # Work out the new mass of the system.
     final_mass = 0
     for molecule in system:
-        for mass in molecule._sire_object.property("mass").toVector():
+        for mass in molecule._sire_object.property("mass").to_vector():
             final_mass += mass.value()
 
     # Assert the the masses are approximately the same.

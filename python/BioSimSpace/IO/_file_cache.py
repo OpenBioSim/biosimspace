@@ -27,12 +27,6 @@ __email__ = "lester.hedges@gmail.com"
 __all__ = ["clearCache", "disableCache", "enableCache"]
 
 import collections as _collections
-import hashlib as _hashlib
-import os as _os
-import shutil as _shutil
-import sys as _sys
-
-from .._SireWrappers import System as _System
 
 
 class _FixedSizeOrderedDict(_collections.OrderedDict):
@@ -48,6 +42,7 @@ class _FixedSizeOrderedDict(_collections.OrderedDict):
         max : float
             The maximum size in GB.
         """
+        import sys as _sys
 
         # Work out the approximate maximum number of atoms.
         if max > 0:
@@ -165,6 +160,9 @@ def _check_cache(
     extension : str
         The extension for cached file. False if no file was found.
     """
+    from .._SireWrappers import System as _System
+    import shutil as _shutil
+    import os as _os
 
     # Validate input.
 
@@ -196,7 +194,7 @@ def _check_cache(
 
     # Create the key.
     key = (
-        system._sire_object.uid().toString(),
+        system._sire_object.uid().to_string(),
         format,
         _compress_molnum_key(str(system._mol_nums)),
         str(set(excluded_properties)),
@@ -294,6 +292,8 @@ def _update_cache(
     skip_water : bool
         Whether to skip water molecules when comparing systems.
     """
+    from .._SireWrappers import System as _System
+    import os as _os
 
     # Validate input.
 
@@ -331,7 +331,7 @@ def _update_cache(
 
     # Create the key.
     key = (
-        system._sire_object.uid().toString(),
+        system._sire_object.uid().to_string(),
         format,
         _compress_molnum_key(str(system._mol_nums)),
         str(set(excluded_properties)),
@@ -352,6 +352,8 @@ def _get_md5_hash(path):
 
     hash : hashlib.HASH
     """
+    import hashlib as _hashlib
+
     # Get the MD5 hash of the file. Process in chunks in case the file is too
     # large to process.
     hash = _hashlib.md5()

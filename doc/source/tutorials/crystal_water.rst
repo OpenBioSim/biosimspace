@@ -20,7 +20,7 @@ Firstly, let's load the PDB structure:
 >>> import BioSimSpace as BSS
 >>> tyk2_xtal = BSS.IO.readMolecules(
 ...    BSS.IO.expand(
-...        BSS.IO.tutorialUrl(), "tyk2_xtal.pdb"
+...        BSS.tutorialUrl(), "tyk2_xtal.pdb"
 ...    )
 ...)[0]
 

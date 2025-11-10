@@ -142,7 +142,7 @@ def test_merge():
     m2 = BSS.Align.merge(m0, m1, mapping, allow_ring_breaking=True)
 
     # Store the number of atoms in m0.
-    n0 = m0._sire_object.nAtoms()
+    n0 = m0._sire_object.num_atoms()
 
     # Test that the intramolecular energies are the same.
 
@@ -171,7 +171,7 @@ def test_merge():
     # Create maps between property names: { "prop" : "prop0" }, { "prop" : "prop1" }
     pmap0 = {}
     pmap1 = {}
-    for prop in m2._sire_object.propertyKeys():
+    for prop in m2._sire_object.property_keys():
         if prop[-1] == "0":
             pmap0[prop[:-1]] = prop
         elif prop[-1] == "1":
@@ -196,23 +196,23 @@ def test_merge():
     # bond, angle, dihedral, and improper energies are correct.
 
     internalff0 = InternalFF("internal")
-    internalff0.setStrict(True)
+    internalff0.set_strict(True)
     internalff0.add(m0._sire_object)
 
     internalff1 = InternalFF("internal")
-    internalff1.setStrict(True)
+    internalff1.set_strict(True)
     internalff1.add(m1._sire_object)
 
     # First extract a partial molecule using the atoms from molecule0 in
     # the merged molecule.
     selection = m2._sire_object.selection()
-    selection.deselectAll()
+    selection.deselect_all()
     for atom in m0._sire_object.atoms():
         selection.select(atom.index())
     partial_mol = PartialMolecule(m2._sire_object, selection)
 
     internalff2 = InternalFF("internal")
-    internalff2.setStrict(True)
+    internalff2.set_strict(True)
     internalff2.add(partial_mol, pmap0)
 
     assert internalff0.energy().value() == pytest.approx(internalff2.energy().value())
@@ -221,7 +221,7 @@ def test_merge():
     amber_mol, _ = m2._extractMolecule()
 
     internalff2 = InternalFF("internal")
-    internalff2.setStrict(True)
+    internalff2.set_strict(True)
     internalff2.add(amber_mol._sire_object)
 
     assert internalff0.energy().value() == pytest.approx(internalff2.energy().value())
@@ -229,15 +229,15 @@ def test_merge():
     # Now extract a partial molecule using the atoms from molecule1 in
     # the merged molecule.
     selection = m2._sire_object.selection()
-    selection.deselectAll()
+    selection.deselect_all()
     for idx in mapping.keys():
         selection.select(AtomIdx(idx))
-    for idx in range(n0, m2._sire_object.nAtoms()):
+    for idx in range(n0, m2._sire_object.num_atoms()):
         selection.select(AtomIdx(idx))
     partial_mol = PartialMolecule(m2._sire_object, selection)
 
     internalff2 = InternalFF("internal")
-    internalff2.setStrict(True)
+    internalff2.set_strict(True)
     internalff2.add(partial_mol, pmap1)
 
     assert internalff1.energy().value() == pytest.approx(internalff2.energy().value())
@@ -246,7 +246,7 @@ def test_merge():
     amber_mol, _ = m2._extractMolecule(is_lambda1=True)
 
     internalff2 = InternalFF("internal")
-    internalff2.setStrict(True)
+    internalff2.set_strict(True)
     internalff2.add(amber_mol._sire_object)
 
     assert internalff1.energy().value() == pytest.approx(internalff2.energy().value())
@@ -293,7 +293,7 @@ def roi_merged_mol(roi_mol0, roi_mol1):
                 )
                 edit_mol = (
                     edit_mol.atom(AtomIdx(idx))
-                    .setProperty("coordinates", vec)
+                    .set_property("coordinates", vec)
                     .molecule()
                 )
         mol._sire_object = edit_mol.commit()
@@ -372,7 +372,7 @@ def roi_intraff1(roi_mol1):
 @pytest.fixture(scope="module")
 def roi_internal0(roi_mol0):
     res = InternalFF("internal")
-    res.setStrict(True)
+    res.set_strict(True)
     res.add(roi_mol0._sire_object)
     return res
 
@@ -380,7 +380,7 @@ def roi_internal0(roi_mol0):
 @pytest.fixture(scope="module")
 def roi_internal1(roi_mol1):
     res = InternalFF("internal")
-    res.setStrict(True)
+    res.set_strict(True)
     res.add(roi_mol1._sire_object)
     return res
 
@@ -388,7 +388,7 @@ def roi_internal1(roi_mol1):
 @pytest.fixture(scope="module")
 def roi_pmap0(roi_merged_mol):
     res = {}
-    for prop in roi_merged_mol._sire_object.propertyKeys():
+    for prop in roi_merged_mol._sire_object.property_keys():
         if prop[-1] == "0":
             res[prop[:-1]] = prop
     return res
@@ -397,7 +397,7 @@ def roi_pmap0(roi_merged_mol):
 @pytest.fixture(scope="module")
 def roi_pmap1(roi_merged_mol):
     res = {}
-    for prop in roi_merged_mol._sire_object.propertyKeys():
+    for prop in roi_merged_mol._sire_object.property_keys():
         if prop[-1] == "1":
             res[prop[:-1]] = prop
     return res
@@ -437,7 +437,7 @@ def test_roi_bonded0(roi_mol0, roi_merged_mol, roi_pmap0, roi_internal0):
     # In this test, we extract the original molecule for the lambda=0 end state.
     amber_mol, _ = roi_merged_mol._extractMolecule()
     roi_internal_merged = InternalFF("internal")
-    roi_internal_merged.setStrict(True)
+    roi_internal_merged.set_strict(True)
     roi_internal_merged.add(amber_mol._sire_object)
     assert roi_internal0.energy().value() == pytest.approx(
         roi_internal_merged.energy().value()
@@ -450,7 +450,7 @@ def test_roi_bonded1(roi_mol1, roi_merged_mol, roi_pmap1, roi_internal1):
     # In this test, we extract the original molecule for the lambda=1 end state.
     amber_mol, _ = roi_merged_mol._extractMolecule(is_lambda1=True)
     roi_internal_merged = InternalFF("internal")
-    roi_internal_merged.setStrict(True)
+    roi_internal_merged.set_strict(True)
     roi_internal_merged.add(amber_mol._sire_object)
     assert roi_internal1.energy().value() == pytest.approx(
         roi_internal_merged.energy().value()
@@ -678,16 +678,16 @@ def test_hydrogen_mass_repartitioning():
     dummy = Element("Xx")
 
     # Get the elements in either end state.
-    elements0 = merged._sire_object.property("element0").toVector()
-    elements1 = merged._sire_object.property("element1").toVector()
+    elements0 = merged._sire_object.property("element0").to_vector()
+    elements1 = merged._sire_object.property("element1").to_vector()
 
     # Work out the initial mass of the system.
     initial_mass0 = 0
-    for idx, mass in enumerate(merged._sire_object.property("mass0").toVector()):
+    for idx, mass in enumerate(merged._sire_object.property("mass0").to_vector()):
         if elements0[idx] != dummy:
             initial_mass0 += mass.value()
     initial_mass1 = 0
-    for idx, mass in enumerate(merged._sire_object.property("mass1").toVector()):
+    for idx, mass in enumerate(merged._sire_object.property("mass1").to_vector()):
         if elements1[idx] != dummy:
             initial_mass1 += mass.value()
 
@@ -699,8 +699,8 @@ def test_hydrogen_mass_repartitioning():
     dummy_masses1 = []
 
     # Extract the modified end state masses.
-    masses0 = merged._sire_object.property("mass0").toVector()
-    masses1 = merged._sire_object.property("mass1").toVector()
+    masses0 = merged._sire_object.property("mass0").to_vector()
+    masses1 = merged._sire_object.property("mass1").to_vector()
 
     # Work out the final mass of the system.
     final_mass0 = 0
@@ -745,8 +745,8 @@ def test_ion_merge():
     merged = BSS.Align.merge(water, BSS._SireWrappers.Molecule(ion))
 
     # Make sure the ion has the coordintes of the oxygen atom.
-    coords0 = merged._sire_object.property("coordinates0").toVector()[0]
-    coords1 = merged._sire_object.property("coordinates1").toVector()[0]
-    water_coords = water._sire_object.property("coordinates").toVector()[0]
+    coords0 = merged._sire_object.property("coordinates0").to_vector()[0]
+    coords1 = merged._sire_object.property("coordinates1").to_vector()[0]
+    water_coords = water._sire_object.property("coordinates").to_vector()[0]
     assert coords0 == coords1
     assert coords0 == water_coords

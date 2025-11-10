@@ -50,7 +50,7 @@ def traj_mdanalysis(system):
 def traj_mdanalysis_pdb(system):
     """A trajectory object using the MDAnalysis backend."""
     new_system = system.copy()
-    new_system._sire_object.setProperty("fileformat", wrap("PDB"))
+    new_system._sire_object.set_property("fileformat", wrap("PDB"))
     return BSS.Trajectory.Trajectory(
         trajectory="tests/input/ala.trr",
         topology="tests/input/ala.tpr",
@@ -138,7 +138,7 @@ def test_velocities(traj_mdanalysis):
     # Make sure each molecule in each frame has a "velocity" property.
     for frame in frames:
         for mol in frame:
-            assert mol._sire_object.hasProperty("velocity")
+            assert mol._sire_object.has_property("velocity")
 
 
 @pytest.mark.skipif(

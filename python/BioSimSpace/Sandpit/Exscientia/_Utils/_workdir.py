@@ -27,10 +27,6 @@ __email__ = "lester.hedges@gmail.com"
 __all__ = ["WorkDir"]
 
 
-import os as _os
-import tempfile as _tempfile
-
-
 class WorkDir:
     """A utility class to create a working directory."""
 
@@ -45,6 +41,9 @@ class WorkDir:
             The working directory for the context. If None, then a temporary
             working directory will be created.
         """
+        import tempfile as _tempfile
+        import os as _os
+
         # Validate the input.
         if work_dir and not isinstance(work_dir, str):
             raise TypeError("'work_dir' must be of type 'str'")

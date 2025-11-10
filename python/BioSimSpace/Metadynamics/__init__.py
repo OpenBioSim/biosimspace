@@ -42,6 +42,11 @@ Classes
     Restraint
 """
 
+import sire as _sr
+
+_sr.use_new_api()
+del _sr
+
 from ._bound import *
 from ._grid import *
 from ._metadynamics import *

@@ -1,37 +1,10 @@
-######################################################################
-# BioSimSpace: Making biomolecular simulation a breeze!
-#
-# Copyright: 2017-2025
-#
-# Authors: Lester Hedges <lester.hedges@gmail.com>
-#
-# BioSimSpace is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# BioSimSpace is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with BioSimSpace. If not, see <http://www.gnu.org/licenses/>.
-#####################################################################
-
-from glob import glob as _glob
-
 from .._Utils import _try_import
 
-from .. import _Utils
 
 import os as _os
-import shlex as _shlex
-import subprocess as _subprocess
 
 _yaml = _try_import("yaml")
 
-from sire.legacy import Base as _SireBase
 
 # Set the default node directory.
 _node_dir = _os.path.dirname(__file__) + "/_nodes"
@@ -41,6 +14,7 @@ __all__ = ["list", "help", "run", "setNodeDirectory", "getNodeDirectory"]
 
 def list():
     """Return a list of the available nodes."""
+    from glob import glob as _glob
 
     # Glob all Python scripts in the _nodes directory.
     nodes = _glob("%s/*.py" % _node_dir)
@@ -61,6 +35,9 @@ def help(name):
     name : str
         The name of the node.
     """
+    from .. import _Utils
+    from sire.legacy import Base as _SireBase
+    import subprocess as _subprocess
 
     if not isinstance(name, str):
         raise TypeError("'name' must be of type 'str'.")
@@ -114,6 +91,9 @@ def run(name, args={}, work_dir=None):
     output : dict
         A dictionary containing the output of the node.
     """
+    import subprocess as _subprocess
+    from sire.legacy import Base as _SireBase
+    from .. import _Utils
 
     # Validate the input.
 

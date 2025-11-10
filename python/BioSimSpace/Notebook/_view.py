@@ -26,21 +26,6 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["View"]
 
-import glob as _glob
-import os as _os
-import shutil as _shutil
-import tempfile as _tempfile
-import warnings as _warnings
-
-from sire.legacy import IO as _SireIO
-from sire.legacy import Mol as _SireMol
-from sire.legacy import System as _SireSystem
-
-from .. import _is_notebook, _isVerbose
-from .. import IO as _IO
-from ..Process._process import Process as _Process
-from .._SireWrappers import System as _System
-
 
 class View:
     """A class for handling interactive molecular visualisations."""
@@ -70,6 +55,12 @@ class View:
             perturbable molecules. By default, the state at lambda = 0
             is used.
         """
+        from .. import IO as _IO
+        import warnings as _warnings
+        from .._SireWrappers import System as _System
+        from .. import _is_notebook
+        from ..Process._process import Process as _Process
+        import tempfile as _tempfile
 
         # Make sure we're running inside a Jupyter notebook.
         if not _is_notebook:
@@ -149,6 +140,7 @@ class View:
         gui : bool
             Whether to display the gui.
         """
+        from .. import _is_notebook
 
         # Make sure we're running inside a Jupyter notebook.
         if not _is_notebook:
@@ -187,6 +179,9 @@ class View:
         gui : bool
             Whether to display the gui.
         """
+        from .. import _is_notebook
+        from sire.legacy import System as _SireSystem
+        from sire.legacy import Mol as _SireMol
 
         # Make sure we're running inside a Jupyter notebook.
         if not _is_notebook:
@@ -223,7 +218,7 @@ class View:
             system = self._handle
 
         # Extract the molecule numbers.
-        molnums = system.molNums()
+        molnums = system.mol_nums()
 
         # Create a new system.
         s = _SireSystem.System("BioSimSpace_System")
@@ -258,6 +253,9 @@ class View:
         gui : bool
             Whether to display the gui.
         """
+        from .. import _is_notebook
+        from sire.legacy import System as _SireSystem
+        from sire.legacy import Mol as _SireMol
 
         # Make sure we're running inside a Jupyter notebook.
         if not _is_notebook:
@@ -283,7 +281,7 @@ class View:
             system = self._handle
 
         # Extract the molecule numbers.
-        molnums = system.molNums()
+        molnums = system.mol_nums()
 
         # Make sure the index is valid.
         if index < 0:
@@ -313,6 +311,7 @@ class View:
         gui : bool
             Whether to display the gui.
         """
+        from .. import _is_notebook
 
         # Make sure we're running inside a Jupyter notebook.
         if not _is_notebook:
@@ -364,6 +363,8 @@ class View:
         index : int
             The view index.
         """
+        from .. import _is_notebook
+        import shutil as _shutil
 
         # Make sure we're running inside a Jupyter notebook.
         if not _is_notebook:
@@ -388,6 +389,8 @@ class View:
 
     def reset(self):
         """Reset the object, clearing all view files."""
+        import glob as _glob
+        import os as _os
 
         # Glob all of the view PDB structure files.
         files = _glob.glob("%s/*.pdb" % self._work_dir)
@@ -415,6 +418,8 @@ class View:
         gui : bool
             Whether to display the gui.
         """
+        from .. import _isVerbose
+        from sire.legacy import IO as _SireIO
 
         if system is None and view is None:
             raise ValueError("Both 'system' and 'view' cannot be 'None'.")
@@ -443,7 +448,7 @@ class View:
         if system is not None:
             try:
                 pdb = _SireIO.PDB2(system, self._property_map)
-                pdb.writeToFile(filename)
+                pdb.write_to_file(filename)
             except Exception as e:
                 msg = "Failed to write system to 'PDB' format."
                 if _isVerbose():
@@ -476,6 +481,7 @@ class View:
             Whether to use the lambda = 1 end state for reconstructing
             perturbable molecules. By default, the state at lambda = 0
         """
+        from .._SireWrappers import System as _System
 
         # Convert to a BioSimSpace system.
         system = _System(system)

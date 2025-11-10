@@ -73,4 +73,9 @@ Set a custom directory for the node library.
    BSS.Node.setNodeDirectory("/path/to/node/library")
 """
 
+import sire as _sr
+
+_sr.use_new_api()
+del _sr
+
 from ._node import *

@@ -112,4 +112,9 @@ box of pure SPC/E water.
    water = BSS.Solvent.spce(box=3*[50*BSS.Units.Length.angstrom])
 """
 
+import sire as _sr
+
+_sr.use_new_api()
+del _sr
+
 from ._solvent import *
