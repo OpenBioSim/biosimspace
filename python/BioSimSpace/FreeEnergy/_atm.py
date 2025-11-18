@@ -525,6 +525,8 @@ class ATMSetup:
             self._setLig2ComAtoms(ligand_free_com_atoms)
 
             self._findAtomIndices()
+            self._setLig1ProteinDisplacement()
+            self._setLig2ProteinDisplacement()
             self._makeData()
             serialisable_disp = [
                 self._displacement.x(),
@@ -555,6 +557,8 @@ class ATMSetup:
             self._setLig1ComAtoms(ligand_bound_com_atoms)
             self._setLig2ComAtoms(ligand_free_com_atoms)
             self._findAtomIndices()
+            self._setLig1ProteinDisplacement()
+            self._setLig2ProteinDisplacement()
             self._makeData()
             serialisable_disp = [
                 self._displacement.x(),
@@ -878,6 +882,79 @@ class ATMSetup:
                 for a in ligand_free._sire_object[f"atoms within 11 angstrom of {com}"]
             ]
 
+    @staticmethod
+    def _find_separation(com1, com2):
+        """
+        Finds the separation vector between two sets of coordinates.
+
+        Parameters
+        ----------
+        com1 : Coordinates
+            The coordinates of the first molecule of interest.
+        com2 : Coordinates
+            The coordinates of the second molecule of interest.
+
+        Returns
+        -------
+        list
+            A list of floats representing the separation vector between the two molecules.
+        """
+        separation_vector = com2 - com1
+        separation = [i.value() for i in separation_vector]
+        return separation
+
+    def _getLig1ProteinDisplacement(self):
+        """
+        Get the calculated displacement between ligand 1 and the protein.
+
+        Returns
+        -------
+        list
+            A list of floats representing the displacement between ligand 1 and the protein.
+        """
+        return self._lig1_protein_displacement
+
+    def _setLig1ProteinDisplacement(self):
+        """
+        Set the calculated displacement between ligand 1 and the protein.
+        Must be called after MakeSystemFromThree and setting of indices.
+        """
+        # find the ligand atoms that define its center of mass
+        lig1 = self._system[self._ligand_bound_index]
+        lig1_com_coords = lig1._sire_object.atoms()[*self._lig1_com_atoms].coordinates()
+        # protein com coords (assumes that the first index in protein_index is representative of the whole protein)
+        prot = self._system[self.protein_index[0]]
+        prot_com_coords = prot._sire_object.atoms()[*self._mol1_com_atoms].coordinates()
+        self._lig1_protein_displacement = self._find_separation(
+            prot_com_coords, lig1_com_coords
+        )
+
+    def _getLig2ProteinDisplacement(self):
+        """
+        Get the calculated displacement between ligand 2 and the protein.
+
+        Returns
+        -------
+        list
+            A list of floats representing the displacement between ligand 2 and the protein.
+        """
+        return self._lig2_protein_displacement
+
+    def _setLig2ProteinDisplacement(self):
+        """
+        Set the calculated displacement between ligand 2 and the protein.
+        Must be called after MakeSystemFromThree and setting of indices.
+        """
+        # find the ligand atoms that define its center of mass
+        lig2 = self._system[self._ligand_free_index]
+        lig2_com_coords = lig2._sire_object.atoms()[*self._lig2_com_atoms].coordinates()
+        # protein com coords (assumes that the first index in protein_index is representative of the whole protein)
+        prot = self._system[self.protein_index[0]]
+        prot_com_coords = prot._sire_object.atoms()[*self._mol1_com_atoms].coordinates()
+        self._lig2_protein_displacement = self._find_separation(
+            prot_com_coords, lig2_com_coords
+        )
+
     def _makeData(self):
         """
         Make the data dictionary for the ATM system
@@ -901,6 +978,8 @@ class ATMSetup:
         self.data["protein_com_atoms"] = self._mol1_com_atoms
         self.data["ligand_bound_com_atoms"] = self._lig1_com_atoms
         self.data["ligand_free_com_atoms"] = self._lig2_com_atoms
+        self.data["lig1_protein_displacement"] = self._lig1_protein_displacement
+        self.data["lig2_protein_displacement"] = self._lig2_protein_displacement
 
     @staticmethod
     def viewRigidCores(
