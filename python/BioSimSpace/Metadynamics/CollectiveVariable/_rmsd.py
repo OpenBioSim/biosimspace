@@ -38,8 +38,8 @@ class RMSD(_CollectiveVariable):
         self,
         system,
         reference,
-        align_selection,
         rmsd_selection,
+        align_selection=None,
         reference_mapping=None,
         hill_width=_Length(0.1, "nanometer"),
         lower_bound=None,
@@ -61,14 +61,14 @@ class RMSD(_CollectiveVariable):
         reference : :class:`System <BioSimSpace._SireWrappers.System>`
             The reference system, against which the RMSD will be measured.
 
+        rmsd_selection : str
+            A Sire selection string that defines the atoms to be used
+            when calculating the RMSD.
+
         align_selection : str
             A Sire selection string that defines the atoms to be used
             when aligning the two structures. If None, then the RMSD
             will be calculated without alignment.
-
-        rmsd_selection : str
-            A Sire selection string that defines the atoms to be used
-            when calculating the RMSD.
 
         reference_mapping : dict
             A dictionary mapping molecule indices in the reference to
@@ -187,19 +187,23 @@ class RMSD(_CollectiveVariable):
 
             self._reference_mapping = reference_mapping
 
-        # Validate alignment selection string.
-        if not isinstance(align_selection, str):
-            raise TypeError("'align_selection' must be of type 'str'")
-        self._align_selection = align_selection
+        if not align_selection:
+            self._align_selection = None
+            self._aligment_atoms = None
+        else:
+            # Validate alignment selection string.
+            if not isinstance(align_selection, str):
+                raise TypeError("'align_selection' must be of type 'str'")
+            self._align_selection = align_selection
 
-        try:
-            self._aligment_atoms = _selection_to_atoms(sire_reference, align_selection)
-        except Exception as e:
-            msg = "Invalid 'align_selection' string."
-            if _isVerbose():
-                raise IOError(msg) from e
-            else:
-                raise IOError(msg) from None
+            try:
+                self._aligment_atoms = _selection_to_atoms(sire_reference, align_selection)
+            except Exception as e:
+                msg = "Invalid 'align_selection' string."
+                if _isVerbose():
+                    raise IOError(msg) from e
+                else:
+                    raise IOError(msg) from None
 
         # Validate RMSD selection string.
         if not isinstance(rmsd_selection, str):
@@ -223,9 +227,10 @@ class RMSD(_CollectiveVariable):
 
         mol_nums = set()
 
-        for atom in self._aligment_atoms:
-            if atom.molecule().number() not in mol_nums:
-                mol_nums.add(atom.molecule().number())
+        if self._aligment_atoms:
+            for atom in self._aligment_atoms:
+                if atom.molecule().number() not in mol_nums:
+                    mol_nums.add(atom.molecule().number())
 
         for atom in self._rmsd_atoms:
             if atom.molecule().number() not in mol_nums:
@@ -271,7 +276,7 @@ class RMSD(_CollectiveVariable):
                 is_align = False
                 is_rmsd = False
                 # This atom is used for alignment.
-                if atom in self._aligment_atoms:
+                if self._aligment_atoms and atom in self._aligment_atoms:
                     is_align = True
                     try:
                         align_indices[num].append(atom.index())
@@ -608,22 +613,23 @@ class RMSD(_CollectiveVariable):
             if not isinstance(pair[1], int):
                 raise TypeError("'molecule_pairs' must be a list of integer tuples.")
 
-        if not isinstance(align_indices, dict):
-            raise TypeError("'align_indices' must be a dictionary.")
-        for key, value in align_indices.items():
-            if not isinstance(key, _SireMol.MolNum):
-                raise TypeError(
-                    "Keys of 'align_indices' must be of type 'sire.legacy.Mol.MolMolNum'."
-                )
-            if not isinstance(value, list):
-                raise TypeError(
-                    "Values of 'align_indices' must be lists of 'sire.legacy.Mol.AtomIdx' types."
-                )
-            for idx in value:
-                if not isinstance(idx, _SireMol.AtomIdx):
+        if align_indices:
+            if not isinstance(align_indices, dict):
+                raise TypeError("'align_indices' must be a dictionary.")
+            for key, value in align_indices.items():
+                if not isinstance(key, _SireMol.MolNum):
+                    raise TypeError(
+                        "Keys of 'align_indices' must be of type 'sire.legacy.Mol.MolMolNum'."
+                    )
+                if not isinstance(value, list):
                     raise TypeError(
                         "Values of 'align_indices' must be lists of 'sire.legacy.Mol.AtomIdx' types."
                     )
+                for idx in value:
+                    if not isinstance(idx, _SireMol.AtomIdx):
+                        raise TypeError(
+                            "Values of 'align_indices' must be lists of 'sire.legacy.Mol.AtomIdx' types."
+                        )
 
         if not isinstance(rmsd_indices, dict):
             raise TypeError("'rmsd_indices' must be a dictionary.")
@@ -668,29 +674,32 @@ class RMSD(_CollectiveVariable):
             mol = system[idx_system]
             ref = reference[idx_ref]
 
-            align_mapping = {}
+            if align_indices:
+                align_mapping = {}
 
-            try:
-                align_mapping = {
-                    i.value(): i.value()
-                    for i in align_indices[ref._sire_object.number()]
-                }
-            except Exception as e:
-                pass
-
-            if len(align_mapping) > 0:
                 try:
-                    new_mol = _rmsdAlign(
-                        mol,
-                        ref,
-                        align_mapping,
-                        property_map0=property_map,
-                        property_map1=property_map,
-                    )
-                except:
-                    ValueError(
-                        "Unable to align 'molecule' to 'reference' based on 'align_mapping'."
-                    )
+                    align_mapping = {
+                        i.value(): i.value()
+                        for i in align_indices[ref._sire_object.number()]
+                    }
+                except Exception as e:
+                    pass
+
+                if len(align_mapping) > 0:
+                    try:
+                        new_mol = _rmsdAlign(
+                            mol,
+                            ref,
+                            align_mapping,
+                            property_map0=property_map,
+                            property_map1=property_map,
+                        )
+                    except:
+                        ValueError(
+                            "Unable to align 'molecule' to 'reference' based on 'align_mapping'."
+                        )
+            else:
+                new_mol = mol
 
             rmsd_mapping = {}
 
