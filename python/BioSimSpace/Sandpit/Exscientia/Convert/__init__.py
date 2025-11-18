@@ -29,7 +29,7 @@ Functions
     :toctree: generated/
 
     smiles
-    supported_formats
+    supportedFormats
     to
     toBioSimSpace
     toOpenMM

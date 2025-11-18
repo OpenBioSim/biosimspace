@@ -2037,6 +2037,9 @@ class OpenMM(_process.Process):
                     "'CUDA' platform selected but 'CUDA_VISIBLE_DEVICES' "
                     "environment variable is unset. Defaulting to '0'."
                 )
+            else:
+                num_devices = len(cuda_devices.split(","))
+                cuda_devices = ",".join([str(x) for x in range(num_devices)])
             self.addToConfig("properties = {'CudaDeviceIndex': '%s'}" % cuda_devices)
         elif self._platform == "OPENCL":
             opencl_devices = _os.environ.get("OPENCL_VISIBLE_DEVICES")
@@ -2046,6 +2049,9 @@ class OpenMM(_process.Process):
                     "'OpenCL' platform selected but 'OPENCL_VISIBLE_DEVICES' "
                     "environment variable is unset. Defaulting to '0'."
                 )
+            else:
+                num_devices = len(opencl_devices.split(","))
+                opencl_devices = ",".join([str(x) for x in range(num_devices)])
             self.addToConfig(
                 "properties = {'OpenCLDeviceIndex': '%s'}" % opencl_devices
             )

@@ -9,7 +9,18 @@ company supporting open-source development of fostering academic/industrial coll
 within the biomolecular simulation community. Our software is hosted via the `OpenBioSim`
 `GitHub <https://github.com/OpenBioSim/biosimspace>`__ organisation.
 
-`2025.2.0 <https://github.com/openbiosim/biosimspace/compare/2024.5.0...2025.2.0>`_ - Oct 08 2025
+`2025.3.0 <https://github.com/openbiosim/biosimspace/compare/2025.2.0...2025.3.0>`_ - Nov 10 2025
+-------------------------------------------------------------------------------------------------
+
+* Fixed bug that caused trajectory frame reconstruction to be skipped for perturbable systems (`#460 <https://github.com/OpenBioSim/biosimspace/pull/460>`__).
+* Fixed typo in RDKit ``rdMolDraw2D`` attribute name (`#463 <https://github.com/OpenBioSim/biosimspace/pull/463>`__).
+* Fix incorrect context manager name in node runner (`#463 <https://github.com/OpenBioSim/biosimspace/pull/463>`__).
+* Added functionality for quickly getting and setting the coordinates array of a :class:`System <BioSimSpace._SireWrappers.System>` (`#465 <https://github.com/OpenBioSim/biosimspace/pull/465>`__).
+* Reduce depdency import overheads by switching from module level imports to function and method level (`#466 <https://github.com/OpenBioSim/biosimspace/pull/466>`__).
+* Fully switch over to using the new Sire Python API naming convention, allowing BioSimSpace to be used within Sire (`#466 <https://github.com/OpenBioSim/biosimspace/pull/466>`__).
+* Fixed logic used for setting the GPU device index for :class:`Process.OpenMM <BioSimSpace.Process.OpenMM>` (`#468 <https://github.com/OpenBioSim/biosimspace/pull/468>`__).
+
+`2025.2.0 <https://github.com/openbiosim/biosimspace/compare/2025.1.0...2025.2.0>`_ - Oct 08 2025
 -------------------------------------------------------------------------------------------------
 
 * Add support for ``SOMD2`` FEP analysis using data frames with different numbers of samples (`#415 <https://github.com/OpenBioSim/biosimspace/pull/415>`__).
