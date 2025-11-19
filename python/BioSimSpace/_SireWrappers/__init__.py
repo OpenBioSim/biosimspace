@@ -34,6 +34,7 @@ Classes
     Molecules
     Residue
     System
+    ReplicaSystem
     SearchResult
 """
 
@@ -49,3 +50,4 @@ from ._molecules import *
 from ._residue import *
 from ._search_result import *
 from ._system import *
+from ._replica_system import *
