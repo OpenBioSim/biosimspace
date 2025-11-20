@@ -36,7 +36,9 @@ class ReplicaSystem:
     Here a system has a single topology, but multiple coordinate sets (replicas).
     """
 
-    def __init__(self, system, trajectory=None, num_replicas=None):
+    def __init__(
+        self, system, trajectory=None, num_replicas=None, is_squashed=None, **kwargs
+    ):
         """
         Constructor.
 
@@ -54,6 +56,13 @@ class ReplicaSystem:
             coordinate set in `system` will be duplicated this many times. This is
             only used if the system does not already contain multiple frames or a
             trajectory is not provided.
+
+        is_squashed : bool, optional
+            Whether the trajectory is squashed (i.e. atoms for both the reference
+            and perturbed states are stored in a single frame). This will be true
+            for AMBER alchemical trajectories. Default is None, which will attempt to
+            automatically determine this based on the system properties and trajectory
+            format.
         """
 
         from sire.mol._trajectory import TrajectoryIterator as _TrajectoryIterator
@@ -88,6 +97,29 @@ class ReplicaSystem:
         except:
             self._is_perturbable = False
 
+        if is_squashed is not None:
+            if not isinstance(is_squashed, bool):
+                raise TypeError("'is_squashed' must be of type 'bool'.")
+        self._is_squashed = is_squashed
+
+        # If this is a perturbable system and the trajectory is squashed, then
+        # we need to convert the system to squashed format.
+        if self._is_perturbable and self._is_squashed:
+            from ..Align._squash import _squash
+
+            self._explicit_dummies = kwargs.get("explicit_dummies", False)
+            if not isinstance(self._explicit_dummies, bool):
+                self._explicit_dummies = False
+
+            squashed_system, self._mapping = _squash(
+                _System(self._sire_object), explicit_dummies=self._explicit_dummies
+            )
+            self._squashed_system = squashed_system._sire_object
+        else:
+            self._explicit_dummies = False
+            self._squashed_system = None
+            self._mapping = None
+
         # If a trajectory is provided, make sure the file exists.
         if trajectory is not None:
             if self._new_sire_object.num_frames() > 1:
@@ -111,8 +143,12 @@ class ReplicaSystem:
                 # Get the extension of the file so that we can guess the format.
                 _, ext = _os.path.splitext(trajectory)
 
-                # Use a GROMACS topology for XTC files.
-                if self._is_perturbable or ext == ".xtc":
+                # This is an AMBER DCD file, so it will be in squashed format.
+                if self._is_perturbable and ext == ".dcd":
+                    self._is_squashed = True
+                    tmp_top = _NamedTemporaryFile(delete=False, suffix=".prm7")
+                # Use a GROMACS topology for XTC files and non-AMBER perturbable systems.
+                elif self._is_perturbable or ext == ".xtc":
                     tmp_top = _NamedTemporaryFile(delete=False, suffix=".top")
                 # For now, use AMBER PRM7 for all other formats.
                 else:
@@ -122,7 +158,14 @@ class ReplicaSystem:
                 try:
                     from sire import save as _save
 
-                    _save(self._new_sire_object, tmp_top.name, silent=True)
+                    if self._is_perturbable and self._is_squashed:
+                        _save(
+                            _NewSireSystem(self._squashed_system),
+                            tmp_top.name,
+                            silent=True,
+                        )
+                    else:
+                        _save(self._new_sire_object, tmp_top.name, silent=True)
                 except Exception as e:
                     tmp_top.close()
                     _os.unlink(tmp_top.name)
@@ -132,7 +175,7 @@ class ReplicaSystem:
                     if _isVerbose():
                         raise IOError(msg) from e
                     else:
-                        raise IOError(msg)
+                        raise IOError(msg) from None
 
                 # Now try to load the trajectory.
                 try:
@@ -145,7 +188,7 @@ class ReplicaSystem:
                     if _isVerbose():
                         raise IOError(msg) from e
                     else:
-                        raise IOError(msg)
+                        raise IOError(msg) from None
 
                 # Update the internal trajectory.
                 self._trajectory = sire_system.trajectory()
@@ -174,7 +217,12 @@ class ReplicaSystem:
                 try:
                     # Write the first file only.
                     tmp_file = _os.path.join(tmp_dir, f"replica_0000.gro")
-                    _save(self._new_sire_object, tmp_file, silent=True)
+                    if self._is_perturbable and self._is_squashed:
+                        _save(
+                            _NewSireSystem(self._squashed_system), tmp_file, silent=True
+                        )
+                    else:
+                        _save(self._new_sire_object, tmp_file, silent=True)
                     filenames.append(tmp_file)
 
                     # Copy the first file for the remaining replicas.
@@ -188,9 +236,11 @@ class ReplicaSystem:
                     if _isVerbose():
                         raise IOError(msg) from e
                     else:
-                        raise IOError(msg)
+                        raise IOError(msg) from None
 
-                if self._is_perturbable:
+                if self._is_perturbable and self._is_squashed:
+                    top_ext = "prm7"
+                elif self._is_perturbable:
                     top_ext = "top"
                 else:
                     top_ext = "prm7"
@@ -199,14 +249,21 @@ class ReplicaSystem:
                 try:
                     tmp_top = _os.path.join(tmp_dir, f"topology.{top_ext}")
                     filenames.append(tmp_top)
-                    _save(self._new_sire_object, tmp_top, silent=True)
+                    if self._is_perturbable and self._is_squashed:
+                        _save(
+                            _NewSireSystem(self._squashed_system),
+                            tmp_top,
+                            silent=True,
+                        )
+                    else:
+                        _save(self._new_sire_object, tmp_top, silent=True)
                 except Exception as e:
                     msg = "Failed to write temporary topology file for replica duplication."
 
                     if _isVerbose():
                         raise IOError(msg) from e
                     else:
-                        raise IOError(msg)
+                        raise IOError(msg) from None
 
                 # Now load them all back in as a single system with multiple frames.
                 try:
@@ -217,7 +274,7 @@ class ReplicaSystem:
                     if _isVerbose():
                         raise IOError(msg) from e
                     else:
-                        raise IOError(msg)
+                        raise IOError(msg) from None
 
             # Update the internal trajectory.
             self._trajectory = sire_system.trajectory()
@@ -271,7 +328,7 @@ class ReplicaSystem:
 
         return self._trajectory.num_frames()
 
-    def save(self, filename, traj_format="dcd", save_velocities=False):
+    def save(self, filename, save_velocities=False):
         """
         Save the replica system to a stream and trajectory file.
 
@@ -280,10 +337,6 @@ class ReplicaSystem:
 
         filename : str
             The base filename.
-
-        traj_format : str, optional
-            The format to save the trajectory in. Default is 'dcd'.
-            Options are "dcd" or "xtc".
 
         save_velocities : bool, optional
             Whether to save velocities along with coordinates. Default is False.
@@ -305,20 +358,16 @@ class ReplicaSystem:
         if not isinstance(filename, str):
             raise TypeError("'filename' must be of type 'str'.")
 
-        # Validate the trajectory format.
-        valid_formats = ["dcd", "xtc"]
-
-        if not isinstance(traj_format, str):
-            raise TypeError("'traj_format' must be of type 'str'.")
-
-        traj_format = traj_format.lower().replace(" ", "")
-        if traj_format not in valid_formats:
-            raise ValueError(
-                f"'traj_format' must be one of: {', '.join(valid_formats)}"
-            )
-
         if not isinstance(save_velocities, bool):
             raise TypeError("'save_velocities' must be of type 'bool'.")
+
+        # Work out the trajectory format.
+        if self._is_perturbable and self._is_squashed:
+            traj_format = "dcd"
+        elif self._is_perturbable:
+            traj_format = "xtc"
+        else:
+            traj_format = "dcd"
 
         # Save the trajectory first.
         try:
@@ -335,7 +384,7 @@ class ReplicaSystem:
             if _isVerbose():
                 raise IOError(msg) from e
             else:
-                raise IOError(msg)
+                raise IOError(msg) from None
 
         # Now clone the new Sire system so that we can remove the trajectory.
         system = self._new_sire_object.clone()
@@ -351,7 +400,7 @@ class ReplicaSystem:
             if _isVerbose():
                 raise IOError(msg) from e
             else:
-                raise IOError(msg)
+                raise IOError(msg) from None
 
         return stream_filename, traj_filename
 
@@ -393,7 +442,7 @@ class ReplicaSystem:
             if _isVerbose():
                 raise IOError(msg) from e
             else:
-                raise IOError(msg)
+                raise IOError(msg) from None
 
         return ReplicaSystem(sire_system, trajectory=trajectory)
 
@@ -452,18 +501,32 @@ class ReplicaSystem:
         # Get the specific frame.
         frame = self._trajectory[index].current()
 
-        from sire.io import get_coords_array as _get_coords_array
-        from sire.legacy.IO import setCoordinates as _setCoordinates
+        if self._is_perturbable and self._is_squashed:
+            from ..Align._squash import _unsquash
+            from ._system import System as _System
 
-        # Copy the frame coordinates into the system.
-        frame = _setCoordinates(
-            replica_system._system,
-            _get_coords_array(frame).tolist(),
-            is_lambda1=is_lambda1,
-            map=property_map,
-        )
+            frame = _unsquash(
+                _System(self._sire_object),
+                _System(frame._system),
+                self._mapping,
+                explicit_dummies=self._explicit_dummies,
+            )
 
-        return _System(frame)
+        else:
+            from sire.io import get_coords_array as _get_coords_array
+            from sire.legacy.IO import setCoordinates as _setCoordinates
+
+            # Copy the frame coordinates into the system.
+            frame = _setCoordinates(
+                replica_system._system,
+                _get_coords_array(frame).tolist(),
+                is_lambda1=is_lambda1,
+                map=property_map,
+            )
+
+            frame = _System(frame)
+
+        return frame
 
     def saveReplicas(self, filenames, save_velocities=False, is_lambda1=False):
         """
@@ -507,7 +570,7 @@ class ReplicaSystem:
             if _isVerbose():
                 raise IOError(msg) from e
             else:
-                raise IOError(msg)
+                raise IOError(msg) from None
 
     @staticmethod
     def loadReplicas(replica_system, filenames):
@@ -569,7 +632,7 @@ class ReplicaSystem:
             if _isVerbose():
                 raise IOError(msg) from e
             else:
-                raise IOError(msg)
+                raise IOError(msg) from None
 
         # Prepend the temporary topology file to the list of filenames.
         filenames = [tmp_top.name] + filenames
@@ -583,7 +646,7 @@ class ReplicaSystem:
             if _isVerbose():
                 raise IOError(msg) from e
             else:
-                raise IOError(msg)
+                raise IOError(msg) from None
 
         # Clean up the temporary topology file.
         tmp_top.close()

@@ -76,31 +76,20 @@ def test_stream(rs, request):
 
         # Check that files were created.
         assert os.path.exists(f"{tmpdir}/replica_system.bss")
-        assert os.path.exists(f"{tmpdir}/replica_system.dcd")
+        if replica_system._is_perturbable:
+            assert os.path.exists(f"{tmpdir}/replica_system.xtc")
+            traj_ext = "xtc"
+        else:
+            assert os.path.exists(f"{tmpdir}/replica_system.dcd")
+            traj_ext = "dcd"
 
         # Check that we can load the replica system back.
         rs = ReplicaSystem.load(
-            f"{tmpdir}/replica_system.bss", f"{tmpdir}/replica_system.dcd"
+            f"{tmpdir}/replica_system.bss", f"{tmpdir}/replica_system.{traj_ext}"
         )
 
         # Check that the number of replicas matches.
         assert rs.nReplicas() == replica_system.nReplicas()
-
-        # Make sure we can stream using XTC trajectory format.
-        stream_xtc, trajectory_xtc = replica_system.save(
-            f"{tmpdir}/replica_system_xtc", traj_format="xtc"
-        )
-
-        assert os.path.exists(f"{tmpdir}/replica_system_xtc.bss")
-        assert os.path.exists(f"{tmpdir}/replica_system_xtc.xtc")
-
-        # Check that we can load the replica system back.
-        rs_xtc = ReplicaSystem.load(
-            f"{tmpdir}/replica_system_xtc.bss", f"{tmpdir}/replica_system_xtc.xtc"
-        )
-
-        # Check that the number of replicas matches.
-        assert rs_xtc.nReplicas() == replica_system.nReplicas()
 
 
 @pytest.mark.parametrize("rs", ["replica_system", "perturbable_replica_system"])
