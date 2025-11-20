@@ -572,6 +572,37 @@ class ReplicaSystem:
             else:
                 raise IOError(msg) from None
 
+    def getReplicas(self, is_lambda1=False, property_map={}):
+        """
+        Get all replicas (coordinate sets) from the system.
+
+        Parameters
+        ----------
+
+        is_lambda1 : bool, optional
+            Whether to return the systems at lambda = 1. Default is False.
+
+        property_map : dict, optional
+            A dictionary that maps system "properties" to their user defined
+            values. This allows the user to refer to properties with their
+            own naming scheme, e.g. { "charge" : "my-charge" }
+
+        Returns
+        -------
+
+        list of :class:`System <BioSimSpace._SireWrappers.System>`
+            A list of the replicas as BioSimSpace System objects.
+        """
+
+        replicas = []
+        for i in range(self.nReplicas()):
+            replica = self.getReplica(
+                i, is_lambda1=is_lambda1, property_map=property_map
+            )
+            replicas.append(replica)
+
+        return replicas
+
     @staticmethod
     def loadReplicas(replica_system, filenames):
         """
