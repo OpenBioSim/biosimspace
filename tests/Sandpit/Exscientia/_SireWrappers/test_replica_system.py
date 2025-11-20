@@ -37,6 +37,12 @@ def perturbable_replica_system(perturbable_system):
     return ReplicaSystem(perturbable_system, num_replicas=10)
 
 
+@pytest.fixture(scope="module")
+def squashed_perturbable_replica_system(perturbable_system):
+    """A squashed perturbable replica system for testing."""
+    return ReplicaSystem(perturbable_system, num_replicas=10, is_squashed=True)
+
+
 @pytest.mark.parametrize("rs", ["replica_system", "perturbable_replica_system"])
 def test_num_replicas(rs, request):
     """Test the number of replicas in the replica system."""
@@ -75,18 +81,11 @@ def test_stream(rs, request):
         stream, trajectory = replica_system.save(f"{tmpdir}/replica_system")
 
         # Check that files were created.
-        assert os.path.exists(f"{tmpdir}/replica_system.bss")
-        if replica_system._is_perturbable:
-            assert os.path.exists(f"{tmpdir}/replica_system.xtc")
-            traj_ext = "xtc"
-        else:
-            assert os.path.exists(f"{tmpdir}/replica_system.dcd")
-            traj_ext = "dcd"
+        assert os.path.exists(stream)
+        assert os.path.exists(trajectory)
 
         # Check that we can load the replica system back.
-        rs = ReplicaSystem.load(
-            f"{tmpdir}/replica_system.bss", f"{tmpdir}/replica_system.{traj_ext}"
-        )
+        rs = ReplicaSystem.load(stream, trajectory)
 
         # Check that the number of replicas matches.
         assert rs.nReplicas() == replica_system.nReplicas()
@@ -133,3 +132,43 @@ def test_save_load_replicas(rs, request):
 
         # Check that the number of replicas matches.
         assert rs.nReplicas() == 5
+
+
+def test_squashed_representation(squashed_perturbable_replica_system):
+    """Test that the internal squashed trajectory representation works."""
+    # Check that the number of atoms in the internal system is less
+    # than the number of atoms in the internal trajectory.
+    assert (
+        squashed_perturbable_replica_system._new_sire_object.num_atoms()
+        < squashed_perturbable_replica_system._trajectory[0].current().num_atoms()
+    )
+
+    # Check that we can retrieve a replica system.
+    replica = squashed_perturbable_replica_system.getReplica(0)
+    assert isinstance(replica, System)
+
+    # Make sure that the replica has the correct number of atoms.
+    assert (
+        replica.nAtoms()
+        == squashed_perturbable_replica_system._new_sire_object.num_atoms()
+    )
+
+    # Test saving and loading the squashed replica system.
+    with tempfile.TemporaryDirectory(delete=False) as tmpdir:
+        stream, trajectory = squashed_perturbable_replica_system.save(
+            f"{tmpdir}/squashed_replica_system"
+        )
+
+        # Check that files were created.
+        assert os.path.exists(stream)
+        assert os.path.exists(trajectory)
+
+        # Check that we can load the replica system back.
+        rs = ReplicaSystem.load(stream, trajectory)
+
+        # Check that the number of replicas matches.
+        assert rs.nReplicas() == squashed_perturbable_replica_system.nReplicas()
+
+        # Make sure that the trajectory is still squashed.
+        assert rs._is_squashed is True
+        assert rs._new_sire_object.num_atoms() < rs._trajectory[0].current().num_atoms()

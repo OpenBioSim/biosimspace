@@ -102,21 +102,22 @@ class ReplicaSystem:
                 raise TypeError("'is_squashed' must be of type 'bool'.")
         self._is_squashed = is_squashed
 
+        # Check the kwargs to see whether explicit dummies should be used
+        # when generating squashed systems.
+        self._explicit_dummies = kwargs.get("explicit_dummies", False)
+        if not isinstance(self._explicit_dummies, bool):
+            self._explicit_dummies = False
+
         # If this is a perturbable system and the trajectory is squashed, then
         # we need to convert the system to squashed format.
         if self._is_perturbable and self._is_squashed:
             from ..Align._squash import _squash
-
-            self._explicit_dummies = kwargs.get("explicit_dummies", False)
-            if not isinstance(self._explicit_dummies, bool):
-                self._explicit_dummies = False
 
             squashed_system, self._mapping = _squash(
                 _System(self._sire_object), explicit_dummies=self._explicit_dummies
             )
             self._squashed_system = squashed_system._sire_object
         else:
-            self._explicit_dummies = False
             self._squashed_system = None
             self._mapping = None
 
@@ -145,7 +146,17 @@ class ReplicaSystem:
 
                 # This is an AMBER DCD file, so it will be in squashed format.
                 if self._is_perturbable and ext == ".dcd":
-                    self._is_squashed = True
+                    # If the user has not specified whether the trajectory is
+                    # squashed, then we need to assume that it is.
+                    if not self._is_squashed:
+                        from ..Align._squash import _squash
+
+                        squashed_system, self._mapping = _squash(
+                            _System(self._sire_object),
+                            explicit_dummies=self._explicit_dummies,
+                        )
+                        self._squashed_system = squashed_system._sire_object
+                        self._is_squashed = True
                     tmp_top = _NamedTemporaryFile(delete=False, suffix=".prm7")
                 # Use a GROMACS topology for XTC files and non-AMBER perturbable systems.
                 elif self._is_perturbable or ext == ".xtc":
