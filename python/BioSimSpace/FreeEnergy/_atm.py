@@ -921,10 +921,10 @@ class ATMSetup:
         """
         # find the ligand atoms that define its center of mass
         lig1 = self._system[self._ligand_bound_index]
-        lig1_com_coords = lig1._sire_object.atoms()[*self._lig1_com_atoms].coordinates()
+        lig1_com_coords = lig1._sire_object.atoms()[self._lig1_com_atoms].coordinates()
         # protein com coords (assumes that the first index in protein_index is representative of the whole protein)
         prot = self._system[self.protein_index[0]]
-        prot_com_coords = prot._sire_object.atoms()[*self._mol1_com_atoms].coordinates()
+        prot_com_coords = prot._sire_object.atoms()[self._mol1_com_atoms].coordinates()
         self._lig1_protein_displacement = self._find_separation(
             prot_com_coords, lig1_com_coords
         )
@@ -947,10 +947,10 @@ class ATMSetup:
         """
         # find the ligand atoms that define its center of mass
         lig2 = self._system[self._ligand_free_index]
-        lig2_com_coords = lig2._sire_object.atoms()[*self._lig2_com_atoms].coordinates()
+        lig2_com_coords = lig2._sire_object.atoms()[self._lig2_com_atoms].coordinates()
         # protein com coords (assumes that the first index in protein_index is representative of the whole protein)
         prot = self._system[self.protein_index[0]]
-        prot_com_coords = prot._sire_object.atoms()[*self._mol1_com_atoms].coordinates()
+        prot_com_coords = prot._sire_object.atoms()[self._mol1_com_atoms].coordinates()
         self._lig2_protein_displacement = self._find_separation(
             prot_com_coords, lig2_com_coords
         )
