@@ -72,6 +72,10 @@ class _ATMUtils:
             self.lig2_first_atomnum, self.data["ligand_free_com_atoms"]
         ).tolist()
 
+    def findLigProtDisplacements(self):
+        self.lig1_protein_displacement = self.data["lig1_protein_displacement"]
+        self.lig2_protein_displacement = self.data["lig2_protein_displacement"]
+
     def getATMForceConstants(self, index=None):
         from .. import Protocol as _Protocol
 
@@ -404,6 +408,7 @@ class _ATMUtils:
         """
 
         self.findAbsoluteCOMAtoms()
+        self.findLigProtDisplacements()
         # Groups contained within the constraint
         protein_com = self.protein_com_atoms
         lig1_com = self.lig1_com_atoms
@@ -416,6 +421,19 @@ class _ATMUtils:
         output += "protein_com = {}\n".format(protein_com)
         output += "lig1_com = {}\n".format(lig1_com)
         output += "lig2_com = {}\n".format(lig2_com)
+
+        output += "# Displacement values for protein-ligand COM restraint\n"
+        # round to 3 decimal places for clarity
+        output += "displacement_bound = {}\n".format(
+            [round(x, 3) for x in self.lig1_protein_displacement]
+        )
+        output += "displacement_free = {}\n".format(
+            [round(x, 3) for x in self.lig2_protein_displacement]
+        )
+        output += "# Convert displacement to nm from angstrom\n"
+        output += "displacement_bound = [x * 0.1 for x in displacement_bound]\n"
+        output += "displacement_free = [x * 0.1 for x in displacement_free]\n"
+
         output += "# Constants for the CM-CM force in their input units\n"
         output += "kfcm = {} * kilocalorie_per_mole / angstrom**2\n".format(kf_cm)
         output += "tolcm = {} * angstrom \n".format(tol_cm)
@@ -434,9 +452,9 @@ class _ATMUtils:
         output += """parameters_bound = (
         kfcm.value_in_unit(kilojoules_per_mole / nanometer**2),
         tolcm.value_in_unit(nanometer),
-        0.0 * nanometer,
-        0.0 * nanometer,
-        0.0 * nanometer,
+        displacement_bound[0] * nanometer,
+        displacement_bound[1] * nanometer,
+        displacement_bound[2] * nanometer,
         )\n"""
         output += "force_CMCM.addBond((1,0), parameters_bound)\n"
         output += "numgroups = force_CMCM.getNumGroups()\n"
@@ -446,9 +464,9 @@ class _ATMUtils:
         output += """parameters_free = (
         kfcm.value_in_unit(kilojoules_per_mole / nanometer**2),
         tolcm.value_in_unit(nanometer),
-        displacement[0] * nanometer,
-        displacement[1] * nanometer,
-        displacement[2] * nanometer,
+        displacement_free[0] * nanometer,
+        displacement_free[1] * nanometer,
+        displacement_free[2] * nanometer,
         )\n"""
 
         output += "force_CMCM.addBond((numgroups+1,numgroups+0), parameters_free)\n"
