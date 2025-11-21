@@ -69,7 +69,7 @@ def system():
     return BSS.IO.readMolecules(["tests/input/ala.top", "tests/input/ala.crd"])
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def perturbable_system():
     """A vacuum perturbable system."""
     return BSS.IO.readPerturbableSystem(
