@@ -154,7 +154,7 @@ def test_squashed_representation(squashed_perturbable_replica_system):
     )
 
     # Test saving and loading the squashed replica system.
-    with tempfile.TemporaryDirectory(delete=False) as tmpdir:
+    with tempfile.TemporaryDirectory() as tmpdir:
         stream, trajectory = squashed_perturbable_replica_system.save(
             f"{tmpdir}/squashed_replica_system"
         )
