@@ -259,12 +259,12 @@ if _can_lazy_import:
     Trajectory = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Trajectory")
     Types = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Types")
     Units = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Units")
-
-    _Exceptions = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia._Exceptions")
     _SireWrappers = _lazy_import.lazy_module(
         "BioSimSpace.Sandpit.Exscientia._SireWrappers"
     )
-    _Utils = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia._Utils")
+
+    from . import _Exceptions
+    from . import _Utils
 
     del _lazy_import
 else:
