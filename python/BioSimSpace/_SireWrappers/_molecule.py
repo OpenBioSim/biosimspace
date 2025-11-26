@@ -1403,6 +1403,16 @@ class Molecule(_SireWrapper):
             _property_map["coordinates"] = "coordinates1"
             mol = mol.move().translate(_SireMaths.Vector(vec), _property_map).commit()
 
+            # A user might have a custom coordinates property, so we need to check
+            # for this and translate too.
+            coord_prop = property_map.get("coordinates", "coordinates")
+            if self._sire_object.has_property(coord_prop):
+                mol = (
+                    self._sire_object.move()
+                    .translate(_SireMaths.Vector(vec), _property_map)
+                    .commit()
+                )
+
         else:
             mol = (
                 self._sire_object.move()
