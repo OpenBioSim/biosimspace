@@ -33,6 +33,7 @@ def merge(
     mapping,
     allow_ring_breaking=False,
     allow_ring_size_change=False,
+    fix_perturbable_zero_sigmas=False,
     force=False,
     roi=None,
     property_map0={},
@@ -58,6 +59,9 @@ def merge(
 
     allow_ring_size_change : bool
         Whether to allow changes in ring size.
+
+    fix_perturbable_zero_sigmas : bool
+        Whether to prevent sigma values being perturbed to zero.
 
     force : bool
         Whether to try to force the merge, even when the molecular
@@ -121,6 +125,9 @@ def merge(
 
     if not isinstance(allow_ring_size_change, bool):
         raise TypeError("'allow_ring_size_change' must be of type 'bool'")
+
+    if not isinstance(fix_perturbable_zero_sigmas, bool):
+        raise TypeError("'fix_perturbable_zero_sigmas' must be of type 'bool'")
 
     if not isinstance(force, bool):
         raise TypeError("'force' must be of type 'bool'")
@@ -751,33 +758,39 @@ def merge(
                     .molecule()
                 )
 
-    # Tolerance for zero sigma values.
-    null_lj_sigma = 1e-9
+    # Prevent sigma values being perturbed to zero.
+    if fix_perturbable_zero_sigmas:
+        # Tolerance for zero sigma values.
+        null_lj_sigma = 1e-9
 
-    # Atoms with zero LJ sigma values need to have their sigma values set to the
-    # value from the other end state.
-    for atom in edit_mol.atoms():
-        # Get the end state LJ sigma values.
-        lj0 = atom.property("LJ0")
-        lj1 = atom.property("LJ1")
+        # Atoms with zero LJ sigma values need to have their sigma values set to the
+        # value from the other end state.
+        for atom in edit_mol.atoms():
+            # Get the end state LJ sigma values.
+            lj0 = atom.property("LJ0")
+            lj1 = atom.property("LJ1")
 
-        # Lambda = 0 state has a zero sigma value.
-        if abs(lj0.sigma().value()) <= null_lj_sigma:
-            # Use the sigma value from the lambda = 1 state.
-            edit_mol = (
-                edit_mol.atom(atom.index())
-                .set_property("LJ0", _SireMM.LJParameter(lj1.sigma(), lj0.epsilon()))
-                .molecule()
-            )
+            # Lambda = 0 state has a zero sigma value.
+            if abs(lj0.sigma().value()) <= null_lj_sigma:
+                # Use the sigma value from the lambda = 1 state.
+                edit_mol = (
+                    edit_mol.atom(atom.index())
+                    .set_property(
+                        "LJ0", _SireMM.LJParameter(lj1.sigma(), lj0.epsilon())
+                    )
+                    .molecule()
+                )
 
-        # Lambda = 1 state has a zero sigma value.
-        if abs(lj1.sigma().value()) <= null_lj_sigma:
-            # Use the sigma value from the lambda = 0 state.
-            edit_mol = (
-                edit_mol.atom(atom.index())
-                .set_property("LJ1", _SireMM.LJParameter(lj0.sigma(), lj1.epsilon()))
-                .molecule()
-            )
+            # Lambda = 1 state has a zero sigma value.
+            if abs(lj1.sigma().value()) <= null_lj_sigma:
+                # Use the sigma value from the lambda = 0 state.
+                edit_mol = (
+                    edit_mol.atom(atom.index())
+                    .set_property(
+                        "LJ1", _SireMM.LJParameter(lj0.sigma(), lj1.epsilon())
+                    )
+                    .molecule()
+                )
 
     # We now need to merge "bond", "angle", "dihedral", and "improper" parameters.
     # To do so, we extract the properties from molecule1, then add the additional
