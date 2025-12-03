@@ -2031,6 +2031,7 @@ def merge(
     mapping=None,
     allow_ring_breaking=False,
     allow_ring_size_change=False,
+    fix_perturbable_zero_sigmas=False,
     force=False,
     roi=None,
     property_map0={},
@@ -2061,6 +2062,9 @@ def merge(
 
     allow_ring_size_change : bool
         Whether to allow changes in ring size.
+
+    fix_perturbable_zero_sigmas : bool
+        Whether to prevent sigma values being perturbed to zero.
 
     force : bool
         Whether to try to force the merge, even when the molecular
@@ -2135,6 +2139,9 @@ def merge(
     if not isinstance(allow_ring_size_change, bool):
         raise TypeError("'allow_ring_size_change' must be of type 'bool'")
 
+    if not isinstance(fix_perturbable_zero_sigmas, bool):
+        raise TypeError("'fix_perturbable_zero_sigmas' must be of type 'bool'")
+
     if not isinstance(force, bool):
         raise TypeError("'force' must be of type 'bool'")
 
@@ -2170,6 +2177,7 @@ def merge(
         sire_mapping,
         allow_ring_breaking=allow_ring_breaking,
         allow_ring_size_change=allow_ring_size_change,
+        fix_perturbable_zero_sigmas=fix_perturbable_zero_sigmas,
         force=force,
         roi=roi,
         property_map0=property_map0,
