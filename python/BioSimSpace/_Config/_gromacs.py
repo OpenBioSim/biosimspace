@@ -186,8 +186,10 @@ class Gromacs(_Config):
                         protocol_dict["pcoupl"] = "c-rescale"
                     else:
                         protocol_dict["pcoupl"] = "berendsen"
-                    # 1ps time constant for pressure coupling.
-                    protocol_dict["tau-p"] = 1
+                    # Do the MC move every 100 steps to be the same as AMBER.
+                    protocol_dict["nstpcouple"] = 100
+                    # 25 times larger than nstpcouple * dt.
+                    protocol_dict["tau-p"] = 2500 * timestep
                     # Pressure in bar.
                     protocol_dict["ref-p"] = (
                         f"{self._protocol.getPressure().bar().value():.5f}"

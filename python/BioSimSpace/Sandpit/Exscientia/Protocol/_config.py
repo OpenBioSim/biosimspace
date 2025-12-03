@@ -535,9 +535,8 @@ class ConfigFactory:
                         protocol_dict["pcoupl"] = "Berendsen"  # Berendsen barostat.
                     # Do the MC move every 100 steps to be the same as AMBER.
                     protocol_dict["nstpcouple"] = 100
-                    # 4ps time constant for pressure coupling.
-                    # As the tau-p has to be 10 times larger than nstpcouple * dt (4 fs)
-                    protocol_dict["tau-p"] = 4
+                    # 25 times larger than nstpcouple * dt.
+                    protocol_dict["tau-p"] = 2500 * timestep
                     protocol_dict["ref-p"] = (
                         f"{self.protocol.getPressure().bar().value():.5f}"  # Pressure in bar.
                     )
