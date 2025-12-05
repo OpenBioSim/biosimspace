@@ -1267,7 +1267,9 @@ def merge(
             # Map the index to its position in the merged molecule.
             idy_map = mol1_merged_mapping[idy]
 
+            # Get the connection type between the atoms.
             conn_type = conn0.connection_type(idx_map, idy_map)
+
             # The atoms aren't bonded.
             if conn_type == 0:
                 clj_scale_factor = _SireMM.CLJScaleFactor(1, 1)
