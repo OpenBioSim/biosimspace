@@ -89,6 +89,7 @@ def merge(
     merged : Sire.Mol.Molecule
         The merged molecule.
     """
+    from sire.legacy import CAS as _SireCAS
     from sire.legacy import Mol as _SireMol
     from sire.legacy import Base as _SireBase
     from sire.legacy import MM as _SireMM
@@ -1033,10 +1034,16 @@ def merge(
 
     # Connect the bonded atoms in both end states.
     for bond in edit_mol.property("bond0").potentials():
-        conn0.connect(bond.atom0(), bond.atom1())
+        # Only connect bonds with non-zero force constants.
+        ab = _SireMM.AmberBond(bond.function(), _SireCAS.Symbol("r"))
+        if ab.k() != 0.0:
+            conn0.connect(bond.atom0(), bond.atom1())
     conn0 = conn0.commit()
     for bond in edit_mol.property("bond1").potentials():
-        conn1.connect(bond.atom0(), bond.atom1())
+        # Only connect bonds with non-zero force constants.
+        ab = _SireMM.AmberBond(bond.function(), _SireCAS.Symbol("r"))
+        if ab.k() != 0.0:
+            conn1.connect(bond.atom0(), bond.atom1())
     conn1 = conn1.commit()
 
     # Get the original connectivity of the two molecules.
