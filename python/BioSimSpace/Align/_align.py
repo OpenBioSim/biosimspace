@@ -2031,7 +2031,7 @@ def merge(
     mapping=None,
     allow_ring_breaking=False,
     allow_ring_size_change=False,
-    fix_perturbable_zero_sigmas=False,
+    fix_perturbable_zero_sigmas=True,
     force=False,
     roi=None,
     property_map0={},
