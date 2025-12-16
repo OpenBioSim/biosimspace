@@ -264,7 +264,11 @@ def _add_metadata(sire_object):
 
     # Extract the BioSimSpace version and revision ID.
     _bss_version = _version.get_versions()["version"].split("+")[0]
-    _bss_revisionid = _version.get_versions()["full-revisionid"][0:7]
+    _bss_revisionid = _version.get_versions()["full-revisionid"]
+    if _bss_revisionid is not None:
+        _bss_revisionid = _bss_revisionid[0:7]
+    else:
+        _bss_revisionid = "None"
 
     # Create the object name.
     obj_name = f"{sire_object.__module__}.{sire_object.__class__.__name__}"
