@@ -42,12 +42,12 @@ def save(sire_object, filebase):
     filebase : str
         The base name of the binary output file.
     """
-    from .. import _isVerbose
-    from .. import _SireWrappers
     from sire import stream as _NewSireStream
     from .._Exceptions import StreamError as _StreamError
-    from .._SireWrappers._sire_wrapper import SireWrapper as _SireWrapper
+    from .. import _isVerbose
     from sire import system as _NewSireSystem
+    from .. import _SireWrappers
+    from .._SireWrappers._sire_wrapper import SireWrapper as _SireWrapper
 
     # Validate input.
 
@@ -91,13 +91,13 @@ def load(file):
     file : str
         The path to the binary file containing the streamed object.
     """
-    from .. import _isVerbose
-    from .. import _SireWrappers
     from sire import stream as _NewSireStream
     from sire.legacy import Mol as _SireMol
-    import os as _os
     from .._Exceptions import StreamError as _StreamError
+    from .. import _isVerbose
     from sire import system as _NewSireSystem
+    from .. import _SireWrappers
+    import os as _os
 
     # Validate input.
 
@@ -242,8 +242,8 @@ def _add_metadata(sire_object):
         The metadata associated with the object.
     """
     from sire import stream as _NewSireStream
-    from .._SireWrappers._sire_wrapper import SireWrapper as _SireWrapper
     from .. import _SireWrappers
+    from .._SireWrappers._sire_wrapper import SireWrapper as _SireWrapper
 
     if not isinstance(sire_object, _SireWrapper) and not isinstance(
         sire_object, _SireWrappers.SearchResult
@@ -264,7 +264,11 @@ def _add_metadata(sire_object):
 
     # Extract the BioSimSpace version and revision ID.
     _bss_version = _version.get_versions()["version"].split("+")[0]
-    _bss_revisionid = _version.get_versions()["full-revisionid"][0:7]
+    _bss_revisionid = _version.get_versions()["full-revisionid"]
+    if _bss_revisionid is not None:
+        _bss_revisionid = _bss_revisionid[0:7]
+    else:
+        _bss_revisionid = "None"
 
     # Create the object name.
     obj_name = f"{sire_object.__module__}.{sire_object.__class__.__name__}"
