@@ -983,9 +983,9 @@ class Molecule(_SireWrapper):
                                 propty = mol1.property(_property_map[prop])
 
                                 # Try making it compatible with the original molecule.
-                                if hasattr(propty, "makeCompatibleWith"):
+                                if hasattr(propty, "make_compatible_with"):
                                     try:
-                                        propty = propty.makeCompatibleWith(
+                                        propty = propty.make_compatible_with(
                                             mol0, inv_matches
                                         )
                                     except Exception as e:
@@ -1188,9 +1188,9 @@ class Molecule(_SireWrapper):
                         propty = mol.property(prop)
 
                         # Try making the property compatible with the original molecule.
-                        if hasattr(propty, "makeCompatibleWith"):
+                        if hasattr(propty, "make_compatible_with"):
                             try:
-                                propty = propty.makeCompatibleWith(mol0, inv_matches)
+                                propty = propty.make_compatible_with(mol0, inv_matches)
                             except Exception as e:
                                 msg = "Incompatible property: %s" % prop
                                 if _isVerbose():
