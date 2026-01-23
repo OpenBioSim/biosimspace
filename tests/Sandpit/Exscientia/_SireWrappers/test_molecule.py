@@ -143,3 +143,34 @@ def test_lipid(lipid):
         mol._sire_object = c.commit()
 
     assert mol.isLipid() is lipid
+
+
+@pytest.mark.skipif(has_amber is False, reason="Requires AMBER to be installed.")
+def test_makeCompatibleWith_regression():
+    """Test that makeCompatibleWith works correctly for a known regression case."""
+
+    import sire as sr
+
+    # Load the BACE protein.
+    protein_xtal = BSS.IO.readMolecules(BSS.IO.expand(url, "bace.pdb"))
+
+    # Remove waters.
+    protein = protein_xtal[0].extract(
+        [atom.index() for atom in protein_xtal[0].search("not resname WAT").atoms()]
+    )
+
+    # Parameterise with ff14SB.
+    protein = BSS.Parameters.ff14SB(
+        protein, work_dir="debug", ensure_compatible=False
+    ).getMolecule()
+
+    # Convert to a Sire System and compute the energy.
+    system = sr.system.System(protein.toSystem()._sire_object)
+    nrg_compatible = system.energy().value()
+
+    # Load in the tLEaP-generated system and compute the energy.
+    system = sr.load("debug/leap.crd", "debug/leap.top")
+    nrg_leap = system.energy().value()
+
+    # Make sure the energies are approximately equal.
+    assert nrg_compatible == pytest.approx(nrg_leap, rel=1e-5)

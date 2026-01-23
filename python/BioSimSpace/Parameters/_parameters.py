@@ -74,7 +74,7 @@ def parameterise(
         string.
 
     forcefield : str
-        The force field. Run BioSimSpace.Parameters.force_fields() to get a
+        The force field. Run BioSimSpace.Parameters.forceFields() to get a
         list of the supported force fields.
 
     ensure_compatible : bool
