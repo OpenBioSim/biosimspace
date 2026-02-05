@@ -366,7 +366,7 @@ class Trajectory:
         from sire.legacy import Mol as _SireMol
         from sire._load import _resolve_path
         from .._SireWrappers import System as _System
-        from ..Process._process import Process as _Process
+        from ..Process import _process
         from sire.legacy import IO as _SireIO
         import warnings as _warnings
 
@@ -396,7 +396,7 @@ class Trajectory:
 
         # BioSimSpace process.
         if process is not None:
-            if isinstance(process, _Process):
+            if isinstance(process, _process.Process):
                 self._process = process
                 process_name = process.__class__.__name__
                 # Check that the process can generate a trajectory.
