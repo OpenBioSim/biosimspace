@@ -98,16 +98,17 @@ Installing from source
 
 Alternatively, to install BioSimSpace from source:
 
-(Before starting, you'll need a working `Git <https://git-scm.com>`__ installation.)
-
 BioSimSpace is built on top of the `Sire <https://github.com/openbiosim/sire>`__
 molecular simulation framework. To download and install Sire, follow the
-instructions `here <https://github.com/openbiosim/sire#installation>`__, making
-sure that BioSimSpace's dependencies are installed into the Sire conda
-environment at the point at which Sire is installed.
+instructions `here <https://github.com/openbiosim/sire#installation>`__.
 
-Next you will need to download BioSimSpace and install it into your Sire
-Conda environment.
+Once Sire is installed, activate its pixi environment:
+
+.. code-block:: bash
+
+   pixi shell --manifest-path /path/to/sire/pixi.toml -e dev
+
+Then install BioSimSpace into the environment:
 
 .. code-block:: bash
 
@@ -120,13 +121,6 @@ If you plan to develop and want an editable install, use:
 .. code-block:: bash
 
    pip install -e .
-
-If you want to skip the installation of BioSimSpace dependencies, e.g. if they
-are already installed, then you can use:
-
-.. code-block:: bash
-
-   BSS_SKIP_DEPENDENCIES=1 pip install -e .
 
 Once finished, you can test the installation by running:
 
@@ -150,7 +144,7 @@ latest development code into that.
    conda activate openbiosim-dev
    git clone https://github.com/openbiosim/biosimspace
    cd biosimspace/python
-   BSS_SKIP_DEPENDENCIES=1 pip install -e .
+   pip install -e .
 
 (You may also want to install optional dependencies, such as ``ambertools`` and
 ``gromacs`` into your environment.)

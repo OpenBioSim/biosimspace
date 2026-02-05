@@ -1,0 +1,86 @@
+context:
+  name: biosimspace
+
+package:
+  name: ${{ name }}
+  version: ${{ env.get('GIT_DESCRIBE_TAG', default='PR') }}
+
+source:
+  path: ../../biosimspace-source.tar.gz
+
+build:
+  number: ${{ env.get('GIT_DESCRIBE_NUMBER', default='0') }}
+  script:
+    - if: unix
+      then: $RECIPE_DIR/build.sh
+    - if: win
+      then: call %RECIPE_DIR%\build.bat
+
+requirements:
+  host:
+    - pip
+    - python
+    - setuptools
+  run:
+    - configargparse
+    - ipywidgets
+    - kcombu_bss
+    - lazy_import
+    - loguru
+    - lomap2
+    - networkx
+    - nglview
+    - numpy <2.3  # Remove when nglview >=4.1 is released
+    - openff-interchange-base
+    - openff-toolkit-base
+    - parmed
+    - pyarrow
+    - py3dmol
+    - pydot
+    - pygtail
+    - python
+    - pyyaml
+    - rdkit
+    - sire
+    - if: not aarch64
+      then:
+        - alchemlyb
+        - mdanalysis
+        - mdtraj
+
+tests:
+  - python:
+      imports:
+        - BioSimSpace
+  - script:
+      - if: linux and x86_64
+        then:
+          - pytest -vvv --color=yes --black python/BioSimSpace
+      - pytest -vvv --color=yes --import-mode=importlib ./tests
+    files:
+      source:
+        - python/BioSimSpace/
+        - tests/
+    requirements:
+      run:
+        - pytest <8
+        - requests
+        - if: linux and x86_64
+          then:
+            - black ==25
+            - pytest-black
+            - ambertools
+            - gromacs
+
+about:
+  homepage: https://biosimspace.openbiosim.org
+  license: GPL-3.0-or-later
+  license_file: LICENSE
+  summary: "An interoperable Python framework for biomolecular simulation."
+  repository: https://github.com/openbiosim/biosimspace
+  documentation: https://biosimspace.openbiosim.org
+
+extra:
+  recipe-maintainers:
+    - lohedges
+    - chryswoods

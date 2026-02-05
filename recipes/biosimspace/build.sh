@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 
-# Build script for BioSimSpace Conda installation.
+# Build script for BioSimSpace.
 
-cd python && BSS_CONDA_INSTALL=True python setup.py install --single-version-externally-managed --record=record.txt
+cd python && python -m pip install . --no-deps --ignore-installed -vv
