@@ -254,7 +254,7 @@ def _add_metadata(sire_object):
 
     from sire import __version__ as _sire_version
     from sire import __revisionid__ as _sire_revisionid
-    from .. import _version
+    from .._version import __version__ as _bss_full_version
 
     # Work out the name of the Sandpit.
     try:
@@ -263,10 +263,10 @@ def _add_metadata(sire_object):
         sandpit = "None"
 
     # Extract the BioSimSpace version and revision ID.
-    _bss_version = _version.get_versions()["version"].split("+")[0]
-    _bss_revisionid = _version.get_versions()["full-revisionid"]
-    if _bss_revisionid is not None:
-        _bss_revisionid = _bss_revisionid[0:7]
+    _bss_version = _bss_full_version.split("+")[0]
+    # Extract revision from version string (e.g., "1.0+5.gabcdef" -> "abcdef")
+    if "+" in _bss_full_version and ".g" in _bss_full_version:
+        _bss_revisionid = _bss_full_version.split(".g")[-1].split(".")[0]
     else:
         _bss_revisionid = "None"
 

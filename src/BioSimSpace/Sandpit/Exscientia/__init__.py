@@ -144,17 +144,17 @@ _gmx_exe = None
 if "GROMACSHOME" in _environ:
     try:
         _gmx_exe = _SireBase.findExe("%s/bin/gmx" % _environ.get("GROMACSHOME"))
-        if hasattr(_gmx_exe, "absoluteFilePath"):
-            _gmx_exe = _gmx_exe.absoluteFilePath()
-        else:
+        if hasattr(_gmx_exe, "absolute_file_path"):
             _gmx_exe = _gmx_exe.absolute_file_path()
+        else:
+            _gmx_exe = _gmx_exe.absoluteFilePath()
     except:
         try:
             _gmx_exe = _SireBase.findExe("%s/bin/gmx_mpi" % _environ.get("GROMACSHOME"))
-            if hasattr(_gmx_exe, "absoluteFilePath"):
-                _gmx_exe = _gmx_exe.absoluteFilePath()
-            else:
+            if hasattr(_gmx_exe, "absolute_file_path"):
                 _gmx_exe = _gmx_exe.absolute_file_path()
+            else:
+                _gmx_exe = _gmx_exe.absoluteFilePath()
         except:
             pass
 
@@ -162,17 +162,17 @@ if _gmx_exe is None:
     # The user has not told us where it is, so need to look in $PATH.
     try:
         _gmx_exe = _SireBase.findExe("gmx")
-        if hasattr(_gmx_exe, "absoluteFilePath"):
-            _gmx_exe = _gmx_exe.absoluteFilePath()
-        else:
+        if hasattr(_gmx_exe, "absolute_file_path"):
             _gmx_exe = _gmx_exe.absolute_file_path()
+        else:
+            _gmx_exe = _gmx_exe.absoluteFilePath()
     except:
         try:
             _gmx_exe = _SireBase.findExe("gmx_mpi")
-            if hasattr(_gmx_exe, "absoluteFilePath"):
-                _gmx_exe = _gmx_exe.absoluteFilePath()
-            else:
+            if hasattr(_gmx_exe, "absolute_file_path"):
                 _gmx_exe = _gmx_exe.absolute_file_path()
+            else:
+                _gmx_exe = _gmx_exe.absoluteFilePath()
         except:
             pass
 
@@ -235,29 +235,33 @@ if (
 else:
     _can_lazy_import = True
 
-# Lazy import submodules if possible.
+# Lazy load submodules if possible.
 if _can_lazy_import:
     import lazy_import as _lazy_import
 
-    Align = _lazy_import.lazy_module("BioSimSpace.Align")
-    Box = _lazy_import.lazy_module("BioSimSpace.Box")
-    Convert = _lazy_import.lazy_module("BioSimSpace.Convert")
-    FreeEnergy = _lazy_import.lazy_module("BioSimSpace.FreeEnergy")
-    Gateway = _lazy_import.lazy_module("BioSimSpace.Gateway")
-    IO = _lazy_import.lazy_module("BioSimSpace.IO")
-    Metadynamics = _lazy_import.lazy_module("BioSimSpace.Metadynamics")
-    MD = _lazy_import.lazy_module("BioSimSpace.MD")
-    Node = _lazy_import.lazy_module("BioSimSpace.Node")
-    Notebook = _lazy_import.lazy_module("BioSimSpace.Notebook")
-    Parameters = _lazy_import.lazy_module("BioSimSpace.Parameters")
-    Process = _lazy_import.lazy_module("BioSimSpace.Process")
-    Protocol = _lazy_import.lazy_module("BioSimSpace.Protocol")
-    Solvent = _lazy_import.lazy_module("BioSimSpace.Solvent")
-    Stream = _lazy_import.lazy_module("BioSimSpace.Stream")
-    Trajectory = _lazy_import.lazy_module("BioSimSpace.Trajectory")
-    Types = _lazy_import.lazy_module("BioSimSpace.Types")
-    Units = _lazy_import.lazy_module("BioSimSpace.Units")
-    _SireWrappers = _lazy_import.lazy_module("BioSimSpace._SireWrappers")
+    Align = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Align")
+    Box = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Box")
+    Convert = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Convert")
+    FreeEnergy = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.FreeEnergy")
+    Gateway = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Gateway")
+    IO = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.IO")
+    Metadynamics = _lazy_import.lazy_module(
+        "BioSimSpace.Sandpit.Exscientia.Metadynamics"
+    )
+    MD = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.MD")
+    Node = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Node")
+    Notebook = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Notebook")
+    Parameters = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Parameters")
+    Process = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Process")
+    Protocol = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Protocol")
+    Solvent = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Solvent")
+    Stream = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Stream")
+    Trajectory = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Trajectory")
+    Types = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Types")
+    Units = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Units")
+    _SireWrappers = _lazy_import.lazy_module(
+        "BioSimSpace.Sandpit.Exscientia._SireWrappers"
+    )
 
     from . import _Exceptions
     from . import _Utils
@@ -290,7 +294,4 @@ else:
 del _can_lazy_import
 del _environ
 
-from . import _version
-
-__version__ = _version.get_versions()["version"]
-del _version
+from ..._version import __version__

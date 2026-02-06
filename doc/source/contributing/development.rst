@@ -418,7 +418,7 @@ committing. When happy, commit your changes, e.g.
 
 .. code-block:: bash
 
-   git commit python/BioSimSpace/Feature/new_feature.py test/Feature/test_feature \
+   git commit src/BioSimSpace/Feature/new_feature.py test/Feature/test_feature \
        -m "Implementation and test for new feature."
 
 Remember that it is better to make small changes and commit frequently.

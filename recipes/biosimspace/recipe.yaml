@@ -21,6 +21,7 @@ requirements:
     - pip
     - python
     - setuptools
+    - versioningit
   run:
     - configargparse
     - ipywidgets
@@ -55,11 +56,11 @@ tests:
   - script:
       - if: linux and x86_64
         then:
-          - pytest -vvv --color=yes --black python/BioSimSpace
+          - pytest -vvv --color=yes --black src/BioSimSpace
       - pytest -vvv --color=yes --import-mode=importlib ./tests
     files:
       source:
-        - python/BioSimSpace/
+        - src/BioSimSpace/
         - tests/
     requirements:
       run:

@@ -1,0 +1,57 @@
+[workspace]
+name = "biosimspace"
+channels = ["conda-forge", "openbiosim/label/dev"]
+platforms = ["linux-64", "linux-aarch64", "osx-arm64", "win-64"]
+
+[dependencies]
+python = ">=3.10"
+sire = "*"
+configargparse = "*"
+ipywidgets = "*"
+kcombu_bss = "*"
+lazy_import = "*"
+loguru = "*"
+lomap2 = "*"
+networkx = "*"
+nglview = "*"
+openff-interchange-base = "*"
+openff-toolkit-base = "*"
+openmmtools = ">=0.21.5"
+parmed = "*"
+pyarrow = "*"
+py3dmol = "*"
+pydot = "*"
+pygtail = "*"
+pyyaml = "*"
+rdkit = "*"
+
+# Optional but useful for full BioSimSpace functionality
+[target.linux-64.dependencies]
+ambertools = ">=22"
+gromacs = "*"
+alchemlyb = "*"
+mdtraj = "*"
+mdanalysis = "*"
+
+[target.linux-aarch64.dependencies]
+# ambertools not available on linux-aarch64
+gromacs = "*"
+
+[target.osx-arm64.dependencies]
+ambertools = ">=22"
+alchemlyb = "*"
+mdtraj = "*"
+mdanalysis = "*"
+
+[target.win-64.dependencies]
+alchemlyb = "*"
+mdtraj = "*"
+mdanalysis = "*"
+
+[feature.test.dependencies]
+pytest = "*"
+
+[environments]
+default = []
+test = ["test"]
+dev = ["test"]

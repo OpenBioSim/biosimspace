@@ -45,8 +45,9 @@ jobs:
       - name: Compute version info
         run: python ${{ github.workspace }}/actions/update_recipe.py
       #
-      - name: Create source tarball
-        run: tar --exclude='.git' -czf /tmp/biosimspace-source.tar.gz . && mv /tmp/biosimspace-source.tar.gz .
+      - name: Create sdist
+        shell: bash
+        run: pip install build && python -m build --sdist && mv dist/*.tar.gz biosimspace-source.tar.gz
         working-directory: ${{ github.workspace }}
       #
       - name: Install rattler-build
