@@ -31,7 +31,6 @@ requirements:
     - lomap2
     - networkx
     - nglview
-    - numpy <2.3  # Remove when nglview >=4.1 is released
     - openff-interchange-base
     - openff-toolkit-base
     - parmed
