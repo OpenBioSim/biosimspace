@@ -212,10 +212,6 @@ class TestGromacsRBFE:
             assert "init-lambda-state = 6" in mdp_text
 
 
-@pytest.mark.skipif(
-    has_antechamber is False or has_openff is False,
-    reason="Requires ambertools/antechamber and openff to be installed",
-)
 @pytest.fixture(scope="module")
 def system_and_mdr_restraint():
     # Benzene.
@@ -372,6 +368,10 @@ class TestGromacsABFE:
             assert "couple-intramol = no" in mdp_text
 
     @pytest.mark.skipif(
+        has_antechamber is False or has_openff is False,
+        reason="Requires ambertools/antechamber and openff to be installed",
+    )
+    @pytest.mark.skipif(
         has_gromacs is False, reason="Requires GROMACS to be installed."
     )
     def test_mdr_force_constant(self, system, system_and_mdr_restraint):
@@ -526,6 +526,10 @@ class TestSomdABFE:
             for line in lines:
                 assert line in pert_text
 
+    @pytest.mark.skipif(
+        has_antechamber is False or has_openff is False,
+        reason="Requires ambertools/antechamber and openff to be installed",
+    )
     def test_turn_on_restraint_mdr(self, system_and_mdr_restraint):
         """Test for turning on the mdr restraint"""
         system, restraint = system_and_mdr_restraint
@@ -569,6 +573,10 @@ class TestSomdABFE:
             for line in lines:
                 assert line in pert_text
 
+    @pytest.mark.skipif(
+        has_antechamber is False or has_openff is False,
+        reason="Requires ambertools/antechamber and openff to be installed",
+    )
     def test_release_restraint_mdr(self, system_and_mdr_restraint):
         """Test for releasing the non-permanent mdr restraints"""
         system, restraint = system_and_mdr_restraint
