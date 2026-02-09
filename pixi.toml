@@ -5,7 +5,6 @@ platforms = ["linux-64", "linux-aarch64", "osx-arm64", "win-64"]
 
 [dependencies]
 python = ">=3.10"
-sire = "*"
 configargparse = "*"
 ipywidgets = "*"
 kcombu_bss = "*"
@@ -27,23 +26,28 @@ rdkit = "*"
 
 # Optional but useful for full BioSimSpace functionality
 [target.linux-64.dependencies]
+sire = "*"
 ambertools = ">=22"
 gromacs = "*"
 alchemlyb = "*"
 mdtraj = "*"
 mdanalysis = "*"
 
+
 [target.linux-aarch64.dependencies]
-# ambertools not available on linux-aarch64
+# sire and ambertools not available as conda packages on linux-aarch64;
+# build sire from source first, then pip install -e . for BioSimSpace
 gromacs = "*"
 
 [target.osx-arm64.dependencies]
+sire = "*"
 ambertools = ">=22"
 alchemlyb = "*"
 mdtraj = "*"
 mdanalysis = "*"
 
 [target.win-64.dependencies]
+sire = "*"
 alchemlyb = "*"
 mdtraj = "*"
 mdanalysis = "*"
