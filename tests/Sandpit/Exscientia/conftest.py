@@ -32,13 +32,18 @@ else:
     has_amber = False
 
 # Make sure NAMD is installed.
-try:
-    from sire.legacy.Base import findExe
+from sire.legacy.Base import findExe
 
-    findExe("namd2")
-    has_namd = True
-except:
-    has_namd = False
+exes = ["namd3", "namd2"]
+has_namd = False
+
+for exe in exes:
+    try:
+        findExe(exe)
+        has_namd = True
+        break
+    except Exception:
+        pass
 
 # Check whether AMBER parameterisation executables are installed.
 has_tleap = BSS.Parameters._Protocol._amber._tleap_exe is not None

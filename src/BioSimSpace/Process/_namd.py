@@ -112,9 +112,17 @@ class Namd(_process.Process):
         # If the path to the executable wasn't specified, then search
         # for it in $PATH.
         if exe is None:
-            try:
-                self._exe = _SireBase.findExe("namd2").absolute_file_path()
-            except:
+            exes = ["namd3", "namd2"]
+            exe_found = False
+            for e in exes:
+                try:
+                    self._exe = _SireBase.findExe(e).absolute_file_path()
+                    exe_found = True
+                    break
+                except:
+                    pass
+
+            if not exe_found:
                 raise _MissingSoftwareError(
                     "'BioSimSpace.Process.Namd' is not supported. "
                     "Please install NAMD (http://www.ks.uiuc.edu/Research/namd)."
