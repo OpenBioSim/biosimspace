@@ -135,8 +135,8 @@ class Length(_Type):
 
     def __mul__(self, other):
         """Multiplication operator."""
-        from ._volume import Volume as _Volume
         from ._area import Area as _Area
+        from ._volume import Volume as _Volume
 
         # Handle containers by converting each item in the container to
         # this type.

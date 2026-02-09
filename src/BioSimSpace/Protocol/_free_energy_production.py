@@ -26,10 +26,10 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["FreeEnergy", "FreeEnergyProduction"]
 
-from ._free_energy_mixin import _FreeEnergyMixin
-from ._production import Production as _Production
 from .. import Types as _Types
 from .. import Units as _Units
+from ._free_energy_mixin import _FreeEnergyMixin
+from ._production import Production as _Production
 
 
 class FreeEnergyProduction(_Production, _FreeEnergyMixin):

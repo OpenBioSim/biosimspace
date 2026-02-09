@@ -121,8 +121,8 @@ class Volume(_Type):
 
     def __truediv__(self, other):
         """Division operator."""
-        from ._length import Length as _Length
         from ._area import Area as _Area
+        from ._length import Length as _Length
 
         # Convert int to float.
         if type(other) is int:

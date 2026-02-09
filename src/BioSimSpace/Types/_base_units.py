@@ -34,8 +34,8 @@ from ._length import *
 from ._pressure import *
 from ._temperature import *
 from ._time import *
-from ._volume import *
 from ._type import Type as _Type
+from ._volume import *
 
 _namespace = _sys.modules[__name__]
 

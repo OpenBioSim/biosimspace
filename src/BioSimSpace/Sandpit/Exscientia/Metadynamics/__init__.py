@@ -47,10 +47,9 @@ import sire as _sr
 _sr.use_new_api()
 del _sr
 
+from . import CollectiveVariable
 from ._bound import *
 from ._grid import *
 from ._metadynamics import *
 from ._restraint import *
 from ._utils import *
-
-from . import CollectiveVariable

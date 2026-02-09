@@ -55,12 +55,13 @@ class View:
             perturbable molecules. By default, the state at lambda = 0
             is used.
         """
-        from .. import IO as _IO
-        import warnings as _warnings
-        from .._SireWrappers import System as _System
-        from .. import _is_notebook
-        from ..Process._process import Process as _Process
         import tempfile as _tempfile
+        import warnings as _warnings
+
+        from .. import IO as _IO
+        from .. import _is_notebook
+        from .._SireWrappers import System as _System
+        from ..Process._process import Process as _Process
 
         # Make sure we're running inside a Jupyter notebook.
         if not _is_notebook:
@@ -179,9 +180,10 @@ class View:
         gui : bool
             Whether to display the gui.
         """
-        from .. import _is_notebook
-        from sire.legacy import System as _SireSystem
         from sire.legacy import Mol as _SireMol
+        from sire.legacy import System as _SireSystem
+
+        from .. import _is_notebook
 
         # Make sure we're running inside a Jupyter notebook.
         if not _is_notebook:
@@ -253,9 +255,10 @@ class View:
         gui : bool
             Whether to display the gui.
         """
-        from .. import _is_notebook
-        from sire.legacy import System as _SireSystem
         from sire.legacy import Mol as _SireMol
+        from sire.legacy import System as _SireSystem
+
+        from .. import _is_notebook
 
         # Make sure we're running inside a Jupyter notebook.
         if not _is_notebook:
@@ -363,8 +366,9 @@ class View:
         index : int
             The view index.
         """
-        from .. import _is_notebook
         import shutil as _shutil
+
+        from .. import _is_notebook
 
         # Make sure we're running inside a Jupyter notebook.
         if not _is_notebook:
@@ -418,8 +422,9 @@ class View:
         gui : bool
             Whether to display the gui.
         """
-        from .. import _isVerbose
         from sire.legacy import IO as _SireIO
+
+        from .. import _isVerbose
 
         if system is None and view is None:
             raise ValueError("Both 'system' and 'view' cannot be 'None'.")

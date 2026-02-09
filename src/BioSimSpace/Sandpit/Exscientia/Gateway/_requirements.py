@@ -2020,12 +2020,12 @@ def _unarchive(name):
     files : [ str ]
         A list of file names.
     """
-    import zipfile as _zipfile
-    import shutil as _shutil
-    import os as _os
     import bz2 as _bz2
     import gzip as _gzip
+    import os as _os
+    import shutil as _shutil
     import tarfile as _tarfile
+    import zipfile as _zipfile
 
     # Get the directory name.
     dir = _os.path.dirname(name)

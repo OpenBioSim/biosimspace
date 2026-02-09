@@ -90,12 +90,13 @@ def merge(
         The merged molecule.
     """
     from sire.legacy import CAS as _SireCAS
-    from sire.legacy import Mol as _SireMol
-    from sire.legacy import Base as _SireBase
     from sire.legacy import MM as _SireMM
-    from .._SireWrappers import Molecule as _Molecule
-    from .._Exceptions import IncompatibleError as _IncompatibleError
+    from sire.legacy import Base as _SireBase
+    from sire.legacy import Mol as _SireMol
     from sire.legacy import Units as _SireUnits
+
+    from .._Exceptions import IncompatibleError as _IncompatibleError
+    from .._SireWrappers import Molecule as _Molecule
 
     # Validate input.
 
@@ -1421,8 +1422,9 @@ def _removeDummies(molecule, is_lambda1):
     """
     from sire.legacy import IO as _SireIO
     from sire.legacy import Mol as _SireMol
-    from .._SireWrappers import Molecule as _Molecule
+
     from .._Exceptions import IncompatibleError as _IncompatibleError
+    from .._SireWrappers import Molecule as _Molecule
 
     if not molecule._is_perturbable:
         raise _IncompatibleError("'molecule' is not a perturbable molecule")

@@ -171,10 +171,11 @@ class SireWrapper:
             values. This allows the user to refer to properties with their
             own naming scheme, e.g. { "charge" : "my-charge" }
         """
-        from .. import _isVerbose
-        from ..Types import Length as _Length
-        from .._Exceptions import IncompatibleError as _IncompatibleError
         from sire.legacy import Maths as _SireMaths
+
+        from .. import _isVerbose
+        from .._Exceptions import IncompatibleError as _IncompatibleError
+        from ..Types import Length as _Length
 
         # Convert tuple to a list.
         if isinstance(vector, tuple):
@@ -290,8 +291,9 @@ class SireWrapper:
         com: [:class:`Length <BioSimSpace.Types.Length>`]
             The center of mass of the object.
         """
-        from .. import Units as _Units
         from sire.legacy import Vol as _SireVol
+
+        from .. import Units as _Units
 
         if space is None:
             space_prop = property_map.get("space", "space")
@@ -447,9 +449,10 @@ class SireWrapper:
         aabox : Sire.Vol.AABox
             The axis-aligned bounding box for the object.
         """
+        from sire.legacy import Vol as _SireVol
+
         from .. import _isVerbose
         from .._Exceptions import IncompatibleError as _IncompatibleError
-        from sire.legacy import Vol as _SireVol
 
         # Initialise the coordinates vector.
         coord = []

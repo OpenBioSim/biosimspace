@@ -54,8 +54,8 @@ Requirement types
 """
 
 from ._node import *
-from ._resources import *
 from ._requirements import *
+from ._resources import *
 
 # Create and initialise the hardware resource manager.
 ResourceManager = ResourceManager()

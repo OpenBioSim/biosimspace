@@ -134,9 +134,10 @@ if "AMBERHOME" in _environ:
 else:
     _amber_home = None
 
+from os import path as _path
+
 # Check to see if GROMACS is installed.
 from sire.legacy import Base as _SireBase
-from os import path as _path
 
 # First, let the user tell us where to find GROMACS. This
 # assumes that gromacs is installed in $GROMACSHOME/bin/gmx.
@@ -263,33 +264,33 @@ if _can_lazy_import:
         "BioSimSpace.Sandpit.Exscientia._SireWrappers"
     )
 
-    from . import _Exceptions
-    from . import _Utils
+    from . import _Exceptions, _Utils
 
     del _lazy_import
 else:
-    from . import Align
-    from . import Box
-    from . import Convert
-    from . import FreeEnergy
-    from . import Gateway
-    from . import IO
-    from . import Metadynamics
-    from . import MD
-    from . import Node
-    from . import Notebook
-    from . import Parameters
-    from . import Process
-    from . import Protocol
-    from . import Solvent
-    from . import Stream
-    from . import Trajectory
-    from . import Types
-    from . import Units
-
-    from . import _Exceptions
-    from . import _SireWrappers
-    from . import _Utils
+    from . import (
+        IO,
+        MD,
+        Align,
+        Box,
+        Convert,
+        FreeEnergy,
+        Gateway,
+        Metadynamics,
+        Node,
+        Notebook,
+        Parameters,
+        Process,
+        Protocol,
+        Solvent,
+        Stream,
+        Trajectory,
+        Types,
+        Units,
+        _Exceptions,
+        _SireWrappers,
+        _Utils,
+    )
 
 del _can_lazy_import
 del _environ

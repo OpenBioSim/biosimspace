@@ -49,7 +49,6 @@ class Bond(_SireWrapper):
         from sire.legacy import MM as _SireMM
 
         # Check that the bond is valid.
-
         # A Sire Bond object.
         if isinstance(bond, _SireMM._MM.Bond):
             sire_object = bond
@@ -324,6 +323,7 @@ class Bond(_SireWrapper):
         system : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
         """
         from sire.legacy import Mol as _SireMol
+
         from ._molecule import Molecule as _Molecule
 
         return _Molecule(
@@ -363,6 +363,7 @@ class Bond(_SireWrapper):
         >>> result = bond.search("atomidx 23")
         """
         from sire.legacy import Mol as _SireMol
+
         from .. import _isVerbose
         from ._search_result import SearchResult as _SearchResult
 

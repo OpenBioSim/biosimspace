@@ -45,5 +45,5 @@ import sire as _sr
 _sr.use_new_api()
 del _sr
 
-from ._align import *
 from . import _squash
+from ._align import *

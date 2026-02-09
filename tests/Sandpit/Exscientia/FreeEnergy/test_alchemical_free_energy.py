@@ -1,13 +1,24 @@
 import bz2
-from math import exp
-import pandas as pd
-import pathlib
-import pytest
-import numpy as np
 import os
+import pathlib
 import shutil
 import time
+from math import exp
 
+import numpy as np
+import pandas as pd
+import pytest
+
+import BioSimSpace.Sandpit.Exscientia as BSS
+from BioSimSpace.Sandpit.Exscientia import Types as _Types
+from BioSimSpace.Sandpit.Exscientia.Align._decouple import decouple
+from BioSimSpace.Sandpit.Exscientia.FreeEnergy import Restraint
+from BioSimSpace.Sandpit.Exscientia.Protocol import FreeEnergyEquilibration
+from BioSimSpace.Sandpit.Exscientia.Units.Angle import degree, radian
+from BioSimSpace.Sandpit.Exscientia.Units.Energy import kcal_per_mol
+from BioSimSpace.Sandpit.Exscientia.Units.Length import angstrom
+from BioSimSpace.Sandpit.Exscientia.Units.Temperature import kelvin
+from tests.conftest import root_fp
 from tests.Sandpit.Exscientia.conftest import (
     has_alchemlyb,
     has_alchemlyb_parquet,
@@ -15,17 +26,6 @@ from tests.Sandpit.Exscientia.conftest import (
     has_gromacs,
     url,
 )
-from tests.conftest import root_fp
-
-import BioSimSpace.Sandpit.Exscientia as BSS
-from BioSimSpace.Sandpit.Exscientia.Protocol import FreeEnergyEquilibration
-from BioSimSpace.Sandpit.Exscientia.Align._decouple import decouple
-from BioSimSpace.Sandpit.Exscientia import Types as _Types
-from BioSimSpace.Sandpit.Exscientia.FreeEnergy import Restraint
-from BioSimSpace.Sandpit.Exscientia.Units.Angle import radian, degree
-from BioSimSpace.Sandpit.Exscientia.Units.Energy import kcal_per_mol
-from BioSimSpace.Sandpit.Exscientia.Units.Length import angstrom
-from BioSimSpace.Sandpit.Exscientia.Units.Temperature import kelvin
 
 
 @pytest.mark.skipif(

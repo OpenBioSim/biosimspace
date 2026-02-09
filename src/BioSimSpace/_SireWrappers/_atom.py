@@ -49,7 +49,6 @@ class Atom(_SireWrapper):
         from sire.legacy import Mol as _SireMol
 
         # Check that the atom is valid.
-
         # A Sire Atom object.
         if isinstance(atom, _SireMol._Mol.Atom):
             sire_object = atom
@@ -196,8 +195,9 @@ class Atom(_SireWrapper):
 
         system : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
         """
-        from ._molecule import Molecule as _Molecule
         from sire.legacy import Mol as _SireMol
+
+        from ._molecule import Molecule as _Molecule
 
         return _Molecule(
             _SireMol.PartialMolecule(self._sire_object).extract().molecule()

@@ -27,10 +27,10 @@ __email__ = "lester.hedges@gmail.com"
 __all__ = ["Production"]
 
 
-from ._position_restraint import _PositionRestraintMixin
-from ._protocol import Protocol as _Protocol
 from .. import Types as _Types
 from .. import Units as _Units
+from ._position_restraint import _PositionRestraintMixin
+from ._protocol import Protocol as _Protocol
 
 
 class Production(_Protocol, _PositionRestraintMixin):

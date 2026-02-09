@@ -67,8 +67,9 @@ class ProcessRunner:
         work_dir : str
             The working directory for the processes.
         """
-        from ._process import Process as _Process
         import os as _os
+
+        from ._process import Process as _Process
 
         # Convert tuple to list.
         if isinstance(processes, tuple):
@@ -833,8 +834,9 @@ class ProcessRunner:
         new_processes : [:class:`Process <BioSimSpace.Process>`]
             A list of procesess with updated working directories.
         """
-        from .._SireWrappers import System as _System
         import os as _os
+
+        from .._SireWrappers import System as _System
 
         # Create the list of new processes.
         new_processes = []

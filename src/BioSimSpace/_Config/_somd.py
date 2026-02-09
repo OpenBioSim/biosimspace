@@ -72,12 +72,13 @@ class Somd(_Config):
         config : [str]
             The list of SOMD format configuration strings.
         """
-        from ..Protocol._free_energy_mixin import _FreeEnergyMixin
         import math as _math
-        from ..Protocol._position_restraint_mixin import _PositionRestraintMixin
-        from .. import Protocol as _Protocol
         import warnings as _warnings
+
+        from .. import Protocol as _Protocol
         from .._Exceptions import IncompatibleError as _IncompatibleError
+        from ..Protocol._free_energy_mixin import _FreeEnergyMixin
+        from ..Protocol._position_restraint_mixin import _PositionRestraintMixin
 
         # Validate input.
 

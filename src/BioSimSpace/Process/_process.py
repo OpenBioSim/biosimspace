@@ -32,8 +32,8 @@ from .._Utils import _try_import
 _pygtail = _try_import("pygtail")
 
 
-from .. import _is_notebook
 from .. import Units as _Units
+from .. import _is_notebook
 
 if _is_notebook:
     from IPython.display import FileLink as _FileLink
@@ -108,14 +108,16 @@ class Process:
             values. This allows the user to refer to properties with their
             own naming scheme, e.g. { "charge" : "my-charge" }
         """
-        from .._SireWrappers import System as _System
-        from .. import _is_interactive
-        from .._Exceptions import IncompatibleError as _IncompatibleError
-        import os as _os
-        from .. import _Utils as _Utils
         import collections as _collections
-        from ..Protocol._protocol import Protocol as _Protocol
+        import os as _os
+
         from sire.legacy import Mol as _SireMol
+
+        from .. import _is_interactive
+        from .. import _Utils as _Utils
+        from .._Exceptions import IncompatibleError as _IncompatibleError
+        from .._SireWrappers import System as _System
+        from ..Protocol._protocol import Protocol as _Protocol
 
         # Don't allow user to create an instance of this base class.
         if type(self) is Process:
@@ -559,9 +561,9 @@ class Process:
         collective_variables : [(:class:`Type <BioSimSpace.Types>`, int, float, ...)]
             The value of the collective variable for each configuration.
         """
+        import random as _random
         import sys as _sys
         import warnings as _warnings
-        import random as _random
 
         if not type(number) is int:
             raise TypeError("'number' must be of type 'int'")
@@ -712,8 +714,9 @@ class Process:
         system : :class:`System <BioSimSpace._SireWrappers.System>`
             The molecular system at a given end state.
         """
-        from .._SireWrappers import System as _System
         import warnings as _warnings
+
+        from .._SireWrappers import System as _System
 
         # Check that the system is valid.
         if not isinstance(system, _System):
@@ -1177,9 +1180,10 @@ class Process:
         output : str, IPython.display.FileLink
             A path, or file link, to an archive of the process input.
         """
-        from IPython.display import FileLink as _FileLink
-        import zipfile as _zipfile
         import os as _os
+        import zipfile as _zipfile
+
+        from IPython.display import FileLink as _FileLink
 
         if name is None:
             name = self._name + "_input"
@@ -1236,10 +1240,11 @@ class Process:
         output : str, IPython.display.FileLink
             A path, or file link, to an archive of the process output.
         """
-        import os as _os
-        from IPython.display import FileLink as _FileLink
-        import zipfile as _zipfile
         import glob as _glob
+        import os as _os
+        import zipfile as _zipfile
+
+        from IPython.display import FileLink as _FileLink
 
         if name is None:
             name = self._name + "_output"

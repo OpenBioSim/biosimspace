@@ -1,9 +1,8 @@
 import pytest
 
 import BioSimSpace.Sandpit.Exscientia as BSS
-
-from tests.Sandpit.Exscientia.conftest import url, has_amber, has_gromacs, has_namd
 from tests.conftest import root_fp
+from tests.Sandpit.Exscientia.conftest import has_amber, has_gromacs, has_namd, url
 
 
 @pytest.mark.skipif(has_amber is False, reason="Requires AMBER to be installed.")

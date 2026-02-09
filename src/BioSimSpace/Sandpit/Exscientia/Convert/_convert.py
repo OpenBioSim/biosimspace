@@ -72,9 +72,10 @@ def smiles(
     molecule : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
         A BioSimSpace molecule.
     """
-    from .._Exceptions import ConversionError as _ConversionError
     from sire import smiles as _sire_smiles
+
     from .. import _SireWrappers
+    from .._Exceptions import ConversionError as _ConversionError
 
     if not isinstance(smiles_string, str):
         raise TypeError("'smiles_string' must be of type 'str'.")
@@ -158,16 +159,17 @@ def to(obj, format="biosimspace", property_map={}, **kwargs):
     converted_obj :
        The object in the converted format.
     """
-    from sire import convert as _sire_convert
-    from .._Utils import _have_imported
-    from .. import _SireWrappers
     import sire.legacy.Base as _SireBase
-    from .._Exceptions import ConversionError as _ConversionError
-    import sire.system as _NewSireSystem
-    import sire.legacy.Vol as _SireVol
     import sire.legacy.Mol as _SireMol
-    from rdkit.Chem.rdchem import Mol as _RDMol
     import sire.legacy.System as _SireSystem
+    import sire.legacy.Vol as _SireVol
+    import sire.system as _NewSireSystem
+    from rdkit.Chem.rdchem import Mol as _RDMol
+    from sire import convert as _sire_convert
+
+    from .. import _SireWrappers
+    from .._Exceptions import ConversionError as _ConversionError
+    from .._Utils import _have_imported
 
     # Validate the input.
 
@@ -611,9 +613,10 @@ def _to_rdkit(molecule, work_dir=_os.getcwd(), direct=True, property_map={}):
         The molecule in RDKit format.
     """
     import rdkit.Chem as _Chem
+
+    from .. import IO as _IO
     from .. import _SireWrappers
     from .._Exceptions import ConversionError as _ConversionError
-    from .. import IO as _IO
 
     if not isinstance(molecule, _SireWrappers.Molecule):
         raise TypeError(

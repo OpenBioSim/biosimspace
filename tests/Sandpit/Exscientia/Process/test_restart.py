@@ -1,10 +1,10 @@
 import itertools
+
 import pandas as pd
 import pytest
 
 import BioSimSpace.Sandpit.Exscientia as BSS
 from BioSimSpace.Sandpit.Exscientia.Process._process import Process
-
 from tests.Sandpit.Exscientia.conftest import (
     has_amber,
     has_antechamber,

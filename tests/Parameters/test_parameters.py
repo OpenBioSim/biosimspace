@@ -1,9 +1,9 @@
-import pytest
 import tempfile
 
-import BioSimSpace as BSS
+import pytest
 
-from tests.conftest import url, has_openff, has_tleap, has_antechamber
+import BioSimSpace as BSS
+from tests.conftest import has_antechamber, has_openff, has_tleap, url
 
 
 @pytest.fixture(scope="session")

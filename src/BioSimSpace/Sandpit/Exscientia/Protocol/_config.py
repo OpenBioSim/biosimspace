@@ -88,6 +88,7 @@ class ConfigFactory:
     def _steps(self):
         # Return the number of steps based on the protocol value.
         import math as _math
+
         from .. import Protocol as _Protocol
 
         if isinstance(self.protocol, _Protocol.Minimisation):
@@ -178,12 +179,14 @@ class ConfigFactory:
         config : list
             The generated config list in an AMBER format.
         """
-        from sire.legacy import Units as _SireUnits
-        from .. import Protocol as _Protocol
-        from ..Align._squash import _amber_mask_from_indices, _squashed_atom_mapping
-        import warnings as _warnings
         import math as _math
+        import warnings as _warnings
+
+        from sire.legacy import Units as _SireUnits
+
+        from .. import Protocol as _Protocol
         from ..Align._alch_ion import _get_protein_com_idx
+        from ..Align._squash import _amber_mask_from_indices, _squashed_atom_mapping
 
         extra_options = extra_options if extra_options is not None else {}
         extra_lines = extra_lines if extra_lines is not None else []
@@ -459,10 +462,12 @@ class ConfigFactory:
         config : list
             The generated config list in a GROMACS format.
         """
-        from .. import Protocol as _Protocol, _gmx_version
-        import warnings as _warnings
-        from ..FreeEnergy._restraint import Restraint as _Restraint
         import math as _math
+        import warnings as _warnings
+
+        from .. import Protocol as _Protocol
+        from .. import _gmx_version
+        from ..FreeEnergy._restraint import Restraint as _Restraint
         from ..Units.Energy import kj_per_mol as _kj_per_mol
         from ..Units.Length import nanometer as _nanometer
 
@@ -730,8 +735,9 @@ class ConfigFactory:
         """
         import math as _math
         import warnings as _warnings
-        from .._Exceptions import IncompatibleError as _IncompatibleError
+
         from .. import Protocol as _Protocol
+        from .._Exceptions import IncompatibleError as _IncompatibleError
 
         extra_options = extra_options if extra_options is not None else {}
         extra_lines = extra_lines if extra_lines is not None else []

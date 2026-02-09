@@ -246,11 +246,13 @@ class Task:
         file_link : str, IPython.lib.display.FileLink
             The name of, or link to, a zipfile containing the output.
         """
-        import zipfile as _zipfile
-        import os as _os
-        from .. import _is_notebook
-        from IPython.display import FileLink as _FileLink
         import glob as _glob
+        import os as _os
+        import zipfile as _zipfile
+
+        from IPython.display import FileLink as _FileLink
+
+        from .. import _is_notebook
 
         # Don't recreate an existing zip file.
         if self._zipfile is None:

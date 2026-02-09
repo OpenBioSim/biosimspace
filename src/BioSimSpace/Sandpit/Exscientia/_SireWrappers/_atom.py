@@ -49,7 +49,6 @@ class Atom(_SireWrapper):
         from sire.legacy import Mol as _SireMol
 
         # Check that the atom is valid.
-
         # A Sire Atom object.
         if isinstance(atom, _SireMol._Mol.Atom):
             sire_object = atom
@@ -138,8 +137,8 @@ class Atom(_SireWrapper):
         coordinates : class:`Coordinate <BioSimSpace.Types.Coordinate>`
             The coordinates of the atom.
         """
-        from ..Types import Length as _Length
         from ..Types import Coordinate as _Coordinate
+        from ..Types import Length as _Length
 
         prop = property_map.get("coordinates", "coordinates")
 
@@ -197,6 +196,7 @@ class Atom(_SireWrapper):
         system : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
         """
         from sire.legacy import Mol as _SireMol
+
         from ._molecule import Molecule as _Molecule
 
         return _Molecule(

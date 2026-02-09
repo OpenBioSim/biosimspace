@@ -115,15 +115,16 @@ def _find_md_engines(system, protocol, engine="AUTO", gpu_support=False):
     engines, exes : [ str ], [ str ]
        Lists containing the supported MD engines and executables.
     """
-    from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
-    from sire.legacy import Base as _SireBase
     import os as _os
-    from .. import _gmx_exe
+
+    from sire.legacy import Base as _SireBase
+
     from .. import Protocol as _Protocol
+    from .. import _gmx_exe
+    from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
 
     # The input has already been validated in the run method, so no need
     # to re-validate here.
-
     # Get the file format of the molecular system.
     fileformat = system.fileFormat()
 
@@ -300,10 +301,10 @@ def run(
     process : :class:`Process <BioSimSpace.Process>`
         A process to run the molecular dynamics protocol.
     """
-    from .._SireWrappers import System as _System
-    from .._Exceptions import IncompatibleError as _IncompatibleError
     from .. import Process as _Process
     from .. import Protocol as _Protocol
+    from .._Exceptions import IncompatibleError as _IncompatibleError
+    from .._SireWrappers import System as _System
 
     # Check that the system is valid.
     if not isinstance(system, _System):

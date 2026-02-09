@@ -2,7 +2,6 @@ import pandas
 import pytest
 
 import BioSimSpace.Sandpit.Exscientia as BSS
-
 from tests.Sandpit.Exscientia.conftest import (
     has_amber,
     has_gromacs,

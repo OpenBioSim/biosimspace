@@ -34,10 +34,10 @@ __all__ = ["AmberProtein", "GAFF"]
 import os as _os
 import subprocess as _subprocess
 
-from ..._Utils import _try_import, _have_imported
-
 # Temporarily redirect stderr to suppress import warnings.
 import sys as _sys
+
+from ..._Utils import _have_imported, _try_import
 
 _orig_stderr = _sys.stderr
 _sys.stderr = open(_os.devnull, "w")
@@ -54,10 +54,8 @@ _sys.stderr = _orig_stderr
 del _sys, _orig_stderr
 
 
-from ... import _amber_home
-from ... import _Utils
+from ... import _amber_home, _Utils
 from ...Types import Length as _Length
-
 from . import _protocol
 
 # Set the tLEaP cmd directory.
@@ -297,13 +295,14 @@ class AmberProtein(_protocol.Protocol):
         molecule : BioSimSpace._SireWrappers.Molecule
             The parameterised molecule.
         """
+        import queue as _queue
+
+        from ... import IO as _IO
+        from ... import _gmx_exe, _isVerbose
         from ..._Exceptions import MissingSoftwareError as _MissingSoftwareError
         from ..._Exceptions import ThirdPartyError as _ThirdPartyError
-        from ... import _gmx_exe, _isVerbose
-        import queue as _queue
         from ..._SireWrappers import Molecule as _Molecule
         from ...Convert import smiles as _smiles
-        from ... import IO as _IO
 
         if not isinstance(molecule, (_Molecule, str)):
             raise TypeError(
@@ -427,11 +426,12 @@ class AmberProtein(_protocol.Protocol):
         work_dir : str
             The working directory.
         """
-        from ... import _isVerbose
         from sire.legacy import IO as _SireIO
+
+        from ... import IO as _IO
+        from ... import _isVerbose
         from ..._Exceptions import ParameterisationError as _ParameterisationError
         from ..._SireWrappers import Molecule as _Molecule
-        from ... import IO as _IO
 
         # Write the system to a PDB file.
         try:
@@ -566,10 +566,10 @@ class AmberProtein(_protocol.Protocol):
         work_dir : str
             The working directory.
         """
-        from ... import _gmx_exe, _isVerbose
-        from ..._Exceptions import ParameterisationError as _ParameterisationError
         from ... import IO as _IO
+        from ... import _gmx_exe, _isVerbose
         from ..._Exceptions import IncompatibleError as _IncompatibleError
+        from ..._Exceptions import ParameterisationError as _ParameterisationError
 
         # A list of supported force fields, mapping to their GROMACS ID string.
         # GROMACS supports a sub-set of the AMBER force fields.
@@ -661,8 +661,9 @@ class AmberProtein(_protocol.Protocol):
             values. This allows the user to refer to properties with their
             own naming scheme, e.g. { "charge" : "my-charge" }
         """
-        from sire.legacy import Mol as _SireMol
         import warnings as _warnings
+
+        from sire.legacy import Mol as _SireMol
 
         if not isinstance(molecule, _SireMol.Molecule):
             raise TypeError("'molecule' must be of type 'Sire.Mol.Molecule'")
@@ -767,8 +768,9 @@ class AmberProtein(_protocol.Protocol):
         bond_records : [str]
             A list of LEaP formatted bond records.
         """
-        from ..._SireWrappers import Atom as _Atom
         import warnings as _warnings
+
+        from ..._SireWrappers import Atom as _Atom
         from ..._SireWrappers import Molecule as _Molecule
 
         if bonds is None:
@@ -991,15 +993,16 @@ class GAFF(_protocol.Protocol):
         molecule : BioSimSpace._SireWrappers.Molecule
             The parameterised molecule.
         """
-        import warnings as _warnings
-        from ..._Exceptions import ThirdPartyError as _ThirdPartyError
-        from ... import _isVerbose
         import queue as _queue
+        import warnings as _warnings
+
+        from ... import IO as _IO
+        from ... import _isVerbose
         from ..._Exceptions import ParameterisationError as _ParameterisationError
-        from ...Parameters._utils import formalCharge as _formalCharge
+        from ..._Exceptions import ThirdPartyError as _ThirdPartyError
         from ..._SireWrappers import Molecule as _Molecule
         from ...Convert import smiles as _smiles
-        from ... import IO as _IO
+        from ...Parameters._utils import formalCharge as _formalCharge
 
         if not isinstance(molecule, (_Molecule, str)):
             raise TypeError(

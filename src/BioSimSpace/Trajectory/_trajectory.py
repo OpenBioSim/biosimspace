@@ -81,16 +81,17 @@ def getFrame(trajectory, topology, index, system=None, property_map={}):
     frame : :class:`System <BioSimSpace._SireWrappers.System>`
         The System object of the corresponding frame.
     """
-    from .. import _isVerbose
     import os as _os
-    from sire._load import _resolve_path
-    import warnings as _warnings
-    from sire import load as _sire_load
-    from sire.legacy import IO as _SireIO
     import uuid as _uuid
+    import warnings as _warnings
+
+    from sire import load as _sire_load
+    from sire._load import _resolve_path
+    from sire.legacy import IO as _SireIO
     from sire.legacy import Mol as _SireMol
+
+    from .. import _isVerbose, _Utils
     from .._SireWrappers import System as _System
-    from .. import _Utils
 
     if not isinstance(trajectory, str):
         raise TypeError("'trajectory' must be of type 'str'")
@@ -362,13 +363,15 @@ class Trajectory:
            own naming scheme, e.g. { "charge" : "my-charge" }
         """
         import os as _os
-        from sire._load import _resolve_path
-        from ..Process import _process
         import warnings as _warnings
+
+        from sire._load import _resolve_path
         from sire.legacy import IO as _SireIO
         from sire.legacy import Mol as _SireMol
-        from .._SireWrappers import System as _System
+
         from .. import _Utils
+        from .._SireWrappers import System as _System
+        from ..Process import _process
 
         # Set default member variables.
         self._process = None
@@ -537,13 +540,15 @@ class Trajectory:
         trajectory : mdtraj.core.trajectory.Trajectory, MDAnalysis.core.universe.Universe
             The trajectory in MDTraj or MDAnalysis format.
         """
-        import shutil as _shutil
         import copy as _copy
         import os as _os
-        from .._Exceptions import IncompatibleError as _IncompatibleError
-        import warnings as _warnings
-        from sire import load as _sire_load
+        import shutil as _shutil
         import uuid as _uuid
+        import warnings as _warnings
+
+        from sire import load as _sire_load
+
+        from .._Exceptions import IncompatibleError as _IncompatibleError
 
         if not isinstance(format, str):
             raise TypeError("'format' must be of type 'str'")
@@ -685,14 +690,16 @@ class Trajectory:
         frames : [:class:`System <BioSimSpace._SireWrappers.System>`]
             The list of System objects.
         """
-        from .. import _isVerbose
-        from ..Types import Time as _Time
         import os as _os
-        from .._Exceptions import IncompatibleError as _IncompatibleError
-        import warnings as _warnings
-        from sire.legacy import IO as _SireIO
         import uuid as _uuid
+        import warnings as _warnings
+
+        from sire.legacy import IO as _SireIO
+
+        from .. import _isVerbose
+        from .._Exceptions import IncompatibleError as _IncompatibleError
         from .._SireWrappers import System as _System
+        from ..Types import Time as _Time
 
         # The process is running. Grab the latest trajectory.
         if self._process is not None and self._process.isRunning():
@@ -1132,14 +1139,16 @@ def _split_molecules(frame, pdb, reference, work_dir, property_map={}):
     is_squashed : bool
         Whether the passed frame was squashed.
     """
-    from sire.legacy import Vol as _SireVol
-    from ..Align._squash import _squash, _unsquash
-    from .. import _isVerbose
     import os as _os
-    from sire.legacy import Units as _SireUnits
-    from sire.legacy import IO as _SireIO
     import uuid as _uuid
+
+    from sire.legacy import IO as _SireIO
+    from sire.legacy import Units as _SireUnits
+    from sire.legacy import Vol as _SireVol
+
+    from .. import _isVerbose
     from .._SireWrappers import System as _System
+    from ..Align._squash import _squash, _unsquash
 
     if not isinstance(frame, (_SireIO.AmberRst7, _SireIO.Gro87)):
         raise TypeError(
@@ -1354,9 +1363,11 @@ def _update_water_topology(system, topology, trajectory, property_map):
     system : :class:`System <BioSimSpace._SireWrappers.System>`
         The passed system with updated water topology.
     """
-    from .._SireWrappers import System as _System
-    from sire.legacy import IO as _SireIO
     import os as _os
+
+    from sire.legacy import IO as _SireIO
+
+    from .._SireWrappers import System as _System
 
     if not isinstance(system, _System):
         raise TypeError("'system' must be of type 'BioSimSpace._SireWrappers.System'")

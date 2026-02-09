@@ -41,8 +41,8 @@ class WorkDir:
             The working directory for the context. If None, then a temporary
             working directory will be created.
         """
-        import tempfile as _tempfile
         import os as _os
+        import tempfile as _tempfile
 
         # Validate the input.
         if work_dir and not isinstance(work_dir, str):

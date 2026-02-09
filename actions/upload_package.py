@@ -1,9 +1,9 @@
 """Upload built packages to the openbiosim Anaconda Cloud channel."""
 
-import os
-import sys
 import glob
+import os
 import subprocess
+import sys
 
 script = os.path.abspath(sys.argv[0])
 

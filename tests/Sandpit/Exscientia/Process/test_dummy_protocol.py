@@ -1,10 +1,9 @@
 import pytest
 
-from tests.Sandpit.Exscientia.conftest import has_amber, has_gromacs
-from tests.conftest import root_fp
-
 import BioSimSpace.Sandpit.Exscientia as BSS
 from BioSimSpace.Sandpit.Exscientia.Process._process import Process
+from tests.conftest import root_fp
+from tests.Sandpit.Exscientia.conftest import has_amber, has_gromacs
 
 
 @pytest.fixture(scope="session")

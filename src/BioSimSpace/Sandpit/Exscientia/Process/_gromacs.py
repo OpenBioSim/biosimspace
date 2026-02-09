@@ -42,7 +42,6 @@ if _have_imported(_alchemlyb):
     from alchemlyb.parsing.gmx import extract_u_nk as _extract_u_nk
     from alchemlyb.parsing.gmx import extract_dHdl as _extract_dHdl
 
-
 from . import _process
 
 
@@ -123,10 +122,11 @@ class Gromacs(_process.Process):
            to continue an existing simulation. Currently we only support the
            use of checkpoint files for Equilibration protocols.
         """
-        from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
         import os as _os
+
         from .. import Protocol as _Protocol
         from .. import _gmx_exe
+        from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
 
         # Call the base class constructor.
         super().__init__(
@@ -229,6 +229,7 @@ class Gromacs(_process.Process):
     def _setup(self):
         """Setup the input files and working directory ready for simulation."""
         import shutil as _shutil
+
         from .. import Protocol as _Protocol
 
         # Create the input files...
@@ -283,10 +284,12 @@ class Gromacs(_process.Process):
         ref_file : str or None
             The file to which to write out the reference system for position restraints.
         """
-        from sire.legacy import Maths as _SireMaths
-        import warnings as _warnings
         import os as _os
+        import warnings as _warnings
+
+        from sire.legacy import Maths as _SireMaths
         from sire.legacy import Vol as _SireVol
+
         from .. import IO as _IO
         from .. import Protocol as _Protocol
 
@@ -408,10 +411,11 @@ class Gromacs(_process.Process):
 
     def _generate_config(self):
         """Generate GROMACS configuration file strings."""
-        import shutil as _shutil
-        from ._plumed import Plumed as _Plumed
-        from .. import Protocol as _Protocol
         import os as _os
+        import shutil as _shutil
+
+        from .. import Protocol as _Protocol
+        from ._plumed import Plumed as _Plumed
 
         # Clear the existing configuration list.
         self._config = []
@@ -565,8 +569,9 @@ class Gromacs(_process.Process):
             Whether to show warning/error messages when generating the binary
             run file.
         """
-        import subprocess as _subprocess
         import os as _os
+        import subprocess as _subprocess
+
         from .. import _Utils
 
         if not isinstance(mdp_file, str):
@@ -783,8 +788,10 @@ class Gromacs(_process.Process):
         process : :class:`Process.Gromacs <BioSimSpace.Process.Gromacs>`
             A handle to the GROMACS process.
         """
-        from sire.legacy import Base as _SireBase
         import timeit as _timeit
+
+        from sire.legacy import Base as _SireBase
+
         from .. import _Utils
 
         # The process is currently queued.
@@ -846,9 +853,10 @@ class Gromacs(_process.Process):
         system : :class:`System <BioSimSpace._SireWrappers.System>`
             The latest molecular system.
         """
+        import warnings as _warnings
+
         from .. import Protocol as _Protocol
         from .. import Units as _Units
-        import warnings as _warnings
 
         # Wait for the process to finish.
         if block is True:
@@ -911,8 +919,9 @@ class Gromacs(_process.Process):
         trajectory : :class:`System <BioSimSpace.Trajectory.Trajectory>`
             The latest trajectory object.
         """
-        from .. import Trajectory as _Trajectory
         import warnings as _warnings
+
+        from .. import Trajectory as _Trajectory
 
         if not isinstance(backend, str):
             raise TypeError("'backend' must be of type 'str'")
@@ -2165,11 +2174,12 @@ class Gromacs(_process.Process):
         config_options : dict
             The dictionary of configuration options.
         """
+        from sire.legacy import IO as _SireIO
         from sire.legacy import Base as _SireBase
+        from sire.legacy import Units as _SireUnits
+
         from .. import Protocol as _Protocol
         from .. import _isVerbose
-        from sire.legacy import Units as _SireUnits
-        from sire.legacy import IO as _SireIO
 
         # Get the restraint type.
         restraint = self._protocol.getRestraint()
@@ -2437,6 +2447,7 @@ class Gromacs(_process.Process):
     def _initialise_energy_dict(self):
         # Grab the available energy terms
         import subprocess as _subprocess
+
         from .. import _Utils
 
         command = f"{self._exe} energy -f {self._eng_file}"
@@ -2548,8 +2559,9 @@ class Gromacs(_process.Process):
         The order that the energy unit is printed will obey the order obtained
         from :meth:`~BioSimSpace.Process.Gromacs._parse_energy_terms`.
         """
-        from .. import Units as _Units
         import warnings as _warnings
+
+        from .. import Units as _Units
 
         section = text.split("---")[-1]
         lines = section.split("\n")
@@ -2624,11 +2636,13 @@ class Gromacs(_process.Process):
         return key
 
     def _update_energy_dict(self, initialise=False):
-        import numpy as _np
-        from .. import _Utils
-        from tempfile import TemporaryDirectory as _TemporaryDirectory
         import subprocess as _subprocess
         from pathlib import Path as _Path
+        from tempfile import TemporaryDirectory as _TemporaryDirectory
+
+        import numpy as _np
+
+        from .. import _Utils
 
         if initialise or len(self._energy_dict) == 0:
             self._initialise_energy_dict()
@@ -2687,8 +2701,9 @@ class Gromacs(_process.Process):
         record :
             The matching stdout record.
         """
-        from ..Types._type import Type as _Type
         import warnings as _warnings
+
+        from ..Types._type import Type as _Type
 
         # No data!
         if len(self._energy_dict) == 0:
@@ -2738,14 +2753,16 @@ class Gromacs(_process.Process):
         system : :class:`System <BioSimSpace._SireWrappers.System>`
             The molecular system from the final frame.
         """
-        from sire.legacy import Maths as _SireMaths
-        import warnings as _warnings
-        from .. import _Utils
-        from .. import IO as _IO
         import os as _os
-        from sire.legacy import Vol as _SireVol
-        from ..Units.Length import angstrom
+        import warnings as _warnings
+
         from sire.legacy import IO as _SireIO
+        from sire.legacy import Maths as _SireMaths
+        from sire.legacy import Vol as _SireVol
+
+        from .. import IO as _IO
+        from .. import _Utils
+        from ..Units.Length import angstrom
 
         # Grab the last frame from the GRO file.
         with _Utils.cd(self._work_dir):
@@ -2847,16 +2864,18 @@ class Gromacs(_process.Process):
         system : :class:`System <BioSimSpace._SireWrappers.System>`
             The molecular system from the closest trajectory frame.
         """
-        from sire.legacy import Maths as _SireMaths
-        import warnings as _warnings
-        from .. import _Utils
         import os as _os
+        import subprocess as _subprocess
+        import warnings as _warnings
+
+        from sire.legacy import IO as _SireIO
+        from sire.legacy import Maths as _SireMaths
+        from sire.legacy import Vol as _SireVol
+
         from .. import IO as _IO
         from .. import Types as _Types
-        from sire.legacy import Vol as _SireVol
+        from .. import _Utils
         from ..Units.Length import angstrom
-        import subprocess as _subprocess
-        from sire.legacy import IO as _SireIO
 
         if not isinstance(time, _Types.Time):
             raise TypeError("'time' must be of type 'BioSimSpace.Types.Time'")
@@ -2993,8 +3012,8 @@ class Gromacs(_process.Process):
         traj_file : str
             The path to the trajectory file.
         """
-        import os as _os
         import glob as _glob
+        import os as _os
         import warnings as _warnings
 
         # Check that the current trajectory file is found.
@@ -3034,11 +3053,13 @@ class Gromacs(_process.Process):
         same parquet format as well.
         """
         import warnings as _warnings
-        from alchemlyb.parsing.gmx import extract_u_nk as _extract_u_nk
+
         from alchemlyb.parsing.gmx import extract_dHdl as _extract_dHdl
+        from alchemlyb.parsing.gmx import extract_u_nk as _extract_u_nk
+
         from .. import Protocol as _Protocol
-        from .._Utils import _assert_imported
         from .. import Units as _Units
+        from .._Utils import _assert_imported
 
         if filename is not None:
             self._update_energy_dict(initialise=True)

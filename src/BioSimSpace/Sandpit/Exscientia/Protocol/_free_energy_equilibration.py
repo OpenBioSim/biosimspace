@@ -2,9 +2,8 @@ __all__ = ["FreeEnergyEquilibration"]
 
 from .. import Types as _Types
 from .. import Units as _Units
-
-from ._free_energy_mixin import _FreeEnergyMixin
 from ._equilibration import Equilibration as _Equilibration
+from ._free_energy_mixin import _FreeEnergyMixin
 
 
 class FreeEnergyEquilibration(_Equilibration, _FreeEnergyMixin):

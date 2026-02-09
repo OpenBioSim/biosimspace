@@ -28,7 +28,6 @@ __all__ = ["OpenMM"]
 
 from .._Utils import _try_import
 
-
 _pygtail = _try_import("pygtail")
 
 
@@ -88,9 +87,10 @@ class OpenMM(_process.Process):
             values. This allows the user to refer to properties with their
             own naming scheme, e.g. { "charge" : "my-charge" }
         """
-        from sire.legacy import Base as _SireBase
         import os as _os
         import sys as _sys
+
+        from sire.legacy import Base as _SireBase
 
         # Call the base class constructor.
         super().__init__(
@@ -202,10 +202,11 @@ class OpenMM(_process.Process):
 
     def _setup(self):
         """Setup the input files and working directory ready for simulation."""
-        from .. import _isVerbose
-        from .. import IO as _IO
         import os as _os
+
+        from .. import IO as _IO
         from .. import Protocol as _Protocol
+        from .. import _isVerbose
 
         # Create a copy of the system.
         system = self._system.copy()
@@ -261,14 +262,15 @@ class OpenMM(_process.Process):
 
     def _generate_config(self):
         """Generate OpenMM Python script file strings."""
-        from .. import Protocol as _Protocol
-        import os as _os
-        from ..Metadynamics import CollectiveVariable as _CollectiveVariable
-        import warnings as _warnings
-        from .._Exceptions import IncompatibleError as _IncompatibleError
-        from ._plumed import Plumed as _Plumed
-        import shutil as _shutil
         import math as _math
+        import os as _os
+        import shutil as _shutil
+        import warnings as _warnings
+
+        from .. import Protocol as _Protocol
+        from .._Exceptions import IncompatibleError as _IncompatibleError
+        from ..Metadynamics import CollectiveVariable as _CollectiveVariable
+        from ._plumed import Plumed as _Plumed
 
         # Clear the existing configuration list.
         self._config = []
@@ -1204,9 +1206,11 @@ class OpenMM(_process.Process):
         process : :class:`Process.OpenMM <BioSimSpace.Process.OpenMM>`
             A handle to the OpenMM process.
         """
-        from sire.legacy import Base as _SireBase
-        from .. import _Utils
         import timeit as _timeit
+
+        from sire.legacy import Base as _SireBase
+
+        from .. import _Utils
 
         # The process is currently queued.
         if self.isQueued():
@@ -1265,6 +1269,7 @@ class OpenMM(_process.Process):
             The latest molecular system.
         """
         from sire.legacy import IO as _SireIO
+
         from .. import Protocol as _Protocol
 
         # Wait for the process to finish.
@@ -1384,8 +1389,9 @@ class OpenMM(_process.Process):
         trajectory : :class:`System <BioSimSpace.Trajectory.Trajectory>`
             The latest trajectory object.
         """
-        import warnings as _warnings
         import os as _os
+        import warnings as _warnings
+
         from .. import Trajectory as _Trajectory
 
         if not isinstance(backend, str):
@@ -1426,7 +1432,9 @@ class OpenMM(_process.Process):
             The System object of the corresponding frame.
         """
         import warnings as _warnings
+
         from sire.legacy import IO as _SireIO
+
         from .. import Trajectory as _Trajectory
 
         if not type(index) is int:
@@ -1950,7 +1958,7 @@ class OpenMM(_process.Process):
         """
         # We should verify that openmm is available to prevent
         # difficult-to-debug errors in the run script
-        from ...._Utils import _try_import, _assert_imported
+        from ...._Utils import _assert_imported, _try_import
 
         _openmm = _try_import("openmm")
         _assert_imported(_openmm)
@@ -1968,8 +1976,8 @@ class OpenMM(_process.Process):
         Helper function to add platform information to the OpenMM
         Python script.
         """
-        import warnings as _warnings
         import os as _os
+        import warnings as _warnings
 
         # Set the simulation platform.
         self.addToConfig("\n# Set the simulation platform.")
@@ -2133,8 +2141,9 @@ class OpenMM(_process.Process):
         is_restart : bool
             Whether the simulation is a restart.
         """
-        from .. import Protocol as _Protocol
         import math as _math
+
+        from .. import Protocol as _Protocol
 
         if not type(state_interval) is int:
             raise TypeError("'state_interval' must be of type 'int'.")
@@ -2208,8 +2217,9 @@ class OpenMM(_process.Process):
 
     def _update_stdout_dict(self):
         """Update the dictionary of thermodynamic records."""
-        from .._Exceptions import IncompatibleError as _IncompatibleError
         import os as _os
+
+        from .._Exceptions import IncompatibleError as _IncompatibleError
 
         # Exit if log file hasn't been created.
         if not _os.path.isfile(self._log_file):
@@ -2328,6 +2338,7 @@ class OpenMM(_process.Process):
             The matching stdout record.
         """
         import warnings as _warnings
+
         from ..Types._type import Type as _Type
 
         # No data!

@@ -28,7 +28,6 @@ __all__ = ["Namd"]
 
 from .._Utils import _try_import
 
-
 _pygtail = _try_import("pygtail")
 
 
@@ -87,9 +86,11 @@ class Namd(_process.Process):
         kwargs : dict
             Additional keyword arguments.
         """
-        from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
-        from sire.legacy import Base as _SireBase
         import os as _os
+
+        from sire.legacy import Base as _SireBase
+
+        from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
 
         # Call the base class constructor.
         super().__init__(
@@ -155,14 +156,15 @@ class Namd(_process.Process):
 
     def _setup(self):
         """Setup the input files and working directory ready for simulation."""
-        from .. import Protocol as _Protocol
-        from sire.legacy import IO as _SireIO
-        from .. import IO as _IO
-        from .. import _isVerbose
         import os as _os
 
-        # Create the input files...
+        from sire.legacy import IO as _SireIO
 
+        from .. import IO as _IO
+        from .. import Protocol as _Protocol
+        from .. import _isVerbose
+
+        # Create the input files...
         # Create a copy of the system.
         system = self._system.copy()
 
@@ -277,14 +279,16 @@ class Namd(_process.Process):
 
     def _generate_config(self):
         """Generate NAMD configuration file strings."""
-        from sire.legacy.Maths import Vector as _Vector
-        from .. import Protocol as _Protocol
-        from sire.legacy import IO as _SireIO
-        from ..Protocol._position_restraint_mixin import _PositionRestraintMixin
         import math as _math
-        from .._Exceptions import IncompatibleError as _IncompatibleError
-        import warnings as _warnings
         import os as _os
+        import warnings as _warnings
+
+        from sire.legacy import IO as _SireIO
+        from sire.legacy.Maths import Vector as _Vector
+
+        from .. import Protocol as _Protocol
+        from .._Exceptions import IncompatibleError as _IncompatibleError
+        from ..Protocol._position_restraint_mixin import _PositionRestraintMixin
 
         # Clear the existing configuration list.
         self._config = []
@@ -658,7 +662,9 @@ class Namd(_process.Process):
             The process object.
         """
         import timeit as _timeit
+
         from sire.legacy import Base as _SireBase
+
         from .. import _Utils
 
         # The process is currently queued.
@@ -713,10 +719,12 @@ class Namd(_process.Process):
         system : :class:`System <BioSimSpace._SireWrappers.System>`
             The latest molecular system.
         """
-        import warnings as _warnings
-        from .. import IO as _IO
-        from sire.legacy import IO as _SireIO
         import os as _os
+        import warnings as _warnings
+
+        from sire.legacy import IO as _SireIO
+
+        from .. import IO as _IO
 
         # Wait for the process to finish.
         if block is True:
@@ -858,6 +866,7 @@ class Namd(_process.Process):
             The latest trajectory object.
         """
         import warnings as _warnings
+
         from .. import Trajectory as _Trajectory
 
         if not isinstance(backend, str):
@@ -898,8 +907,9 @@ class Namd(_process.Process):
         frame : :class:`System <BioSimSpace._SireWrappers.System>`
             The System object of the corresponding frame.
         """
-        from .. import Trajectory as _Trajectory
         from sire.legacy import IO as _SireIO
+
+        from .. import Trajectory as _Trajectory
 
         if not type(index) is int:
             raise TypeError("'index' must be of type 'int'")
@@ -2164,6 +2174,7 @@ class Namd(_process.Process):
             The molecular system with an added 'restrained' property.
         """
         from sire.legacy import Mol as _SireMol
+
         from .. import _isVerbose
 
         # Get the force constant value in the default units. This is
@@ -2285,6 +2296,7 @@ class Namd(_process.Process):
             The matching stdout record.
         """
         import warnings as _warnings
+
         from ..Types._type import Type as _Type
 
         # No data!

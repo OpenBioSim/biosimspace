@@ -2,7 +2,10 @@ import pandas as pd
 import pytest
 
 import BioSimSpace.Sandpit.Exscientia as BSS
+from BioSimSpace.Sandpit.Exscientia._SireWrappers import Molecule
+from BioSimSpace.Sandpit.Exscientia._Utils import _have_imported, _try_import
 from BioSimSpace.Sandpit.Exscientia.Align._decouple import decouple
+from BioSimSpace.Sandpit.Exscientia.FreeEnergy import Restraint
 from BioSimSpace.Sandpit.Exscientia.Protocol import (
     ConfigFactory,
     Equilibration,
@@ -11,22 +14,15 @@ from BioSimSpace.Sandpit.Exscientia.Protocol import (
     FreeEnergyMinimisation,
     Production,
 )
-
-from BioSimSpace.Sandpit.Exscientia.Align._decouple import decouple
-from BioSimSpace.Sandpit.Exscientia.Units.Length import angstrom
-from BioSimSpace.Sandpit.Exscientia.Units.Angle import radian, degree
+from BioSimSpace.Sandpit.Exscientia.Units.Angle import degree, radian
 from BioSimSpace.Sandpit.Exscientia.Units.Energy import kcal_per_mol
+from BioSimSpace.Sandpit.Exscientia.Units.Length import angstrom
 from BioSimSpace.Sandpit.Exscientia.Units.Temperature import kelvin
-from BioSimSpace.Sandpit.Exscientia.FreeEnergy import Restraint
-from BioSimSpace.Sandpit.Exscientia._SireWrappers import Molecule
-from BioSimSpace.Sandpit.Exscientia._Utils import _try_import, _have_imported
-
-
 from tests.Sandpit.Exscientia.conftest import (
-    url,
-    has_gromacs,
     has_antechamber,
+    has_gromacs,
     has_openff,
+    url,
 )
 
 

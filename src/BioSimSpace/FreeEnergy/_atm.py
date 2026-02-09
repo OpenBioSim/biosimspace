@@ -25,8 +25,8 @@
 __all__ = ["ATMSetup", "ATM"]
 
 
-from ..Notebook import View as _View
 from .. import _is_notebook
+from ..Notebook import View as _View
 
 if _is_notebook:
     from IPython.display import FileLink as _FileLink
@@ -81,8 +81,8 @@ class ATMSetup:
             If passing a pre-prepared system, the index of the free ligand
             molecule in the system (Default 2).
         """
-        from .._SireWrappers import System as _System
         from .._SireWrappers import Molecule as _Molecule
+        from .._SireWrappers import System as _System
 
         # make sure that either system or protein, ligand_bound and ligand_free are given
         if system is None and not all(
@@ -245,8 +245,8 @@ class ATMSetup:
 
     def _setDisplacement(self, displacement):
         """Set the displacement of the free ligand along the normal vector."""
-        from ..Types import Vector as _Vector
         from ..Types import Length as _Length
+        from ..Types import Vector as _Vector
 
         if isinstance(displacement, str):
             try:
@@ -602,12 +602,14 @@ class ATMSetup:
 
         def _findTranslationVector(system, displacement, protein, ligand):
 
-            from .._SireWrappers import System as _System
-            from ..Types import Length as _Length
-            from .._SireWrappers import Molecule as _Molecule
             import warnings as _warnings
-            from ..Types import Coordinate as _Coordinate
+
             from sire.legacy.Maths import Vector
+
+            from .._SireWrappers import Molecule as _Molecule
+            from .._SireWrappers import System as _System
+            from ..Types import Coordinate as _Coordinate
+            from ..Types import Length as _Length
 
             if not isinstance(system, _System):
                 raise TypeError("system must be a BioSimSpace system")
@@ -1012,9 +1014,10 @@ class ATMSetup:
         ligand_free_rigid_core : list
             The indices for the rigid core atoms of the free ligand.
         """
-        from .._SireWrappers import Molecule as _Molecule
         import json as _json
         import math as _math
+
+        from .._SireWrappers import Molecule as _Molecule
 
         def move_to_origin(lig):
             from ..Types import Coordinate as _Coordinate
@@ -1411,10 +1414,11 @@ class ATM:
         output : str, IPython.display.FileLink
             A path, or file link, to an archive of the process input.
         """
-        from IPython.display import FileLink as _FileLink
-        import pathlib as _pathlib
         import os as _os
+        import pathlib as _pathlib
         import zipfile as _zipfile
+
+        from IPython.display import FileLink as _FileLink
 
         if self._work_dir is None:
             raise ValueError("'work_dir' must be set!")
@@ -1483,11 +1487,12 @@ class ATM:
         system : :class:`System <BioSimSpace._SireWrappers.System>`
             The molecular system.
         """
-        from ..Process import ProcessRunner as _ProcessRunner
-        from ..Process import OpenMM as _OpenMM
-        import os as _os
         import copy as _copy
+        import os as _os
         import shutil as _shutil
+
+        from ..Process import OpenMM as _OpenMM
+        from ..Process import ProcessRunner as _ProcessRunner
 
         # This protocol will have to be minimal - cannot guess rigid core atoms
         if self._protocol is None:
@@ -1719,6 +1724,7 @@ class _ViewAtoM(_View):
     def _create_view(self, system=None, view=None, gui=True, **kwargs):
 
         from sire.legacy import IO as _SireIO
+
         from .. import _isVerbose
 
         if system is None and view is None:

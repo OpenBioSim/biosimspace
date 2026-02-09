@@ -95,8 +95,9 @@ class Config:
         has_box : bool
             Whether the system has a simulation box.
         """
-        from .._SireWrappers import System as _System
         import warnings as _warnings
+
+        from .._SireWrappers import System as _System
 
         if not isinstance(system, _System):
             raise TypeError(
@@ -212,6 +213,7 @@ class Config:
             The number of integration steps.
         """
         import math as _math
+
         from .. import Protocol as _Protocol
 
         if isinstance(self._protocol, _Protocol.Minimisation):

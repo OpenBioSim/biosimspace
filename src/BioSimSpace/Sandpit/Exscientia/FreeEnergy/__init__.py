@@ -48,6 +48,6 @@ _sr.use_new_api()
 del _sr
 
 from ._alchemical_free_energy import *
-from ._utils import *
 from ._restraint import *
 from ._restraint_search import *
+from ._utils import *

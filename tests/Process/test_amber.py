@@ -1,13 +1,12 @@
-from collections import OrderedDict
-
 import math
-import pytest
 import shutil
 import socket
+from collections import OrderedDict
+
+import pytest
 
 import BioSimSpace as BSS
-
-from tests.conftest import url, has_amber
+from tests.conftest import has_amber, url
 
 # Store the allowed restraints.
 restraints = BSS.Protocol._position_restraint_mixin._PositionRestraintMixin.restraints()

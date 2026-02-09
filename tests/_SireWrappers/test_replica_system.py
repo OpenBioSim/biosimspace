@@ -1,8 +1,9 @@
 import os
-import pytest
 import tempfile
 
-from BioSimSpace._SireWrappers import System, ReplicaSystem
+import pytest
+
+from BioSimSpace._SireWrappers import ReplicaSystem, System
 
 
 @pytest.fixture(scope="module")

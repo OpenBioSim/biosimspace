@@ -1,10 +1,10 @@
 import os
-import pytest
 import tempfile
 
-import BioSimSpace as BSS
-from BioSimSpace._SireWrappers import System, ReplicaSystem
+import pytest
 
+import BioSimSpace as BSS
+from BioSimSpace._SireWrappers import ReplicaSystem, System
 from tests.Sandpit.Exscientia.conftest import url
 
 

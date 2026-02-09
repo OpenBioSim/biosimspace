@@ -161,8 +161,9 @@ class _FreeEnergyMixin(_Protocol):
     @staticmethod
     def _check_column_name(df):
         """Check if the dataframe or series has the right column name."""
-        import pandas as _pd
         import warnings
+
+        import pandas as _pd
 
         permitted_names = [
             "fep",
@@ -319,8 +320,8 @@ class _FreeEnergyMixin(_Protocol):
         lam_vals : pandas.DataFrame
             The pd.DataFrame representing the checked lambda values.
         """
-        import pandas as _pd
         import numpy as _np
+        import pandas as _pd
 
         # A list of lambda values takes precedence.
         if lam_vals is not None:

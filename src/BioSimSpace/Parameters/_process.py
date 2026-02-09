@@ -32,7 +32,6 @@ __all__ = ["Process"]
 
 from .. import _is_notebook
 
-
 if _is_notebook:
     from IPython.display import FileLink as _FileLink
 
@@ -91,12 +90,13 @@ class Process:
         auto_start : bool
             Whether to automatically start the process.
         """
-        from .._SireWrappers import Molecule as _Molecule
-        import sys as _sys
-        from .. import _Utils
-        from . import _Protocol
         import os as _os
+        import sys as _sys
         import warnings as _warnings
+
+        from .. import _Utils
+        from .._SireWrappers import Molecule as _Molecule
+        from . import _Protocol
 
         # Validate arguments.
 
@@ -159,8 +159,8 @@ class Process:
 
     def start(self):
         """Start the process."""
-        import threading as _threading
         import queue as _queue
+        import threading as _threading
 
         # Flag that the process has been started.
         if self._is_started:
@@ -190,8 +190,8 @@ class Process:
         molecule : BioSimSpace._SireWrappers.Molecule
             The parameterised molecule.
         """
-        from .._Exceptions import ParameterisationError as _ParameterisationError
         from .. import _isVerbose
+        from .._Exceptions import ParameterisationError as _ParameterisationError
 
         # Start the process, if it's not already started.
         if not self._is_started:
@@ -268,10 +268,11 @@ class Process:
         file_link : str, IPython.lib.display.FileLink
             The name of, or link to, a zipfile containing the output.
         """
-        import zipfile as _zipfile
-        from IPython.display import FileLink as _FileLink
-        import os as _os
         import glob as _glob
+        import os as _os
+        import zipfile as _zipfile
+
+        from IPython.display import FileLink as _FileLink
 
         if self._zipfile is None or filename is not None:
             if filename is not None:

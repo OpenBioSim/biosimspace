@@ -41,8 +41,8 @@ del _environ
 if _display is not None:
     _has_display = True
     try:
-        import matplotlib.pyplot as _plt
         import matplotlib.colors as _colors
+        import matplotlib.pyplot as _plt
 
         _has_matplotlib = True
     except ImportError:
@@ -50,8 +50,8 @@ if _display is not None:
 else:
     if _is_notebook:
         try:
-            import matplotlib.pyplot as _plt
             import matplotlib.colors as _colors
+            import matplotlib.pyplot as _plt
 
             _has_matplotlib = True
         except ImportError:
@@ -119,9 +119,10 @@ def plot(
     logy : bool
         Whether the y axis is logarithmic.
     """
-    from ..Types._type import Type as _Type
     from warnings import warn as _warn
+
     from .. import _is_interactive
+    from ..Types._type import Type as _Type
 
     # Make sure were running interactively.
     if not _is_interactive:
@@ -355,15 +356,14 @@ def plotContour(x, y, z, xlabel=None, ylabel=None, zlabel=None):
     zlabel : str
         The z axis label string.
     """
-    import numpy as _np
     from warnings import warn as _warn
-    from ..Types._type import Type as _Type
-    from .. import _is_interactive
 
     import numpy as _np
     import scipy.interpolate as _interp
-
     from mpl_toolkits.axes_grid1 import make_axes_locatable as _make_axes_locatable
+
+    from .. import _is_interactive
+    from ..Types._type import Type as _Type
 
     # Make sure were running interactively.
     if not _is_interactive:
@@ -501,7 +501,7 @@ def plotContour(x, y, z, xlabel=None, ylabel=None, zlabel=None):
     # Convert to two-dimensional arrays. We don't assume the data is on a grid,
     # so we interpolate the z values.
     try:
-        (X, Y) = _np.meshgrid(
+        X, Y = _np.meshgrid(
             _np.linspace(_np.min(x), _np.max(x), 1000),
             _np.linspace(_np.min(y), _np.max(y), 1000),
         )
@@ -561,9 +561,11 @@ def plotOverlapMatrix(
         matrix. This is used for both the continuous and discrete color bars.
         Can not contain more than 3 elements.
     """
-    import numpy as _np
-    import matplotlib.colors as _colors
     from warnings import warn as _warn
+
+    import matplotlib.colors as _colors
+    import numpy as _np
+
     from .. import _is_interactive
 
     # Make sure were running interactively.

@@ -43,10 +43,10 @@ def save(sire_object, filebase):
         The base name of the binary output file.
     """
     from sire import stream as _NewSireStream
-    from .._Exceptions import StreamError as _StreamError
-    from .. import _isVerbose
     from sire import system as _NewSireSystem
-    from .. import _SireWrappers
+
+    from .. import _isVerbose, _SireWrappers
+    from .._Exceptions import StreamError as _StreamError
     from .._SireWrappers._sire_wrapper import SireWrapper as _SireWrapper
 
     # Validate input.
@@ -91,13 +91,14 @@ def load(file):
     file : str
         The path to the binary file containing the streamed object.
     """
-    from sire import stream as _NewSireStream
-    from sire.legacy import Mol as _SireMol
-    from .._Exceptions import StreamError as _StreamError
-    from .. import _isVerbose
-    from sire import system as _NewSireSystem
-    from .. import _SireWrappers
     import os as _os
+
+    from sire import stream as _NewSireStream
+    from sire import system as _NewSireSystem
+    from sire.legacy import Mol as _SireMol
+
+    from .. import _isVerbose, _SireWrappers
+    from .._Exceptions import StreamError as _StreamError
 
     # Validate input.
 
@@ -151,8 +152,9 @@ def getMetadata(file):
         The metadata associated with the file. If none is present, then an
         empty dictionary will be returned.
     """
-    from sire import stream as _NewSireStream
     import os as _os
+
+    from sire import stream as _NewSireStream
 
     if not _os.path.isfile(file):
         raise ValueError(f"Unable to locate stream file: {file}")
@@ -182,8 +184,9 @@ def getSireMetadata(file):
         The Sire metadata associated with the file. If none is present, then an
         empty dictionary will be returned.
     """
-    from sire import stream as _NewSireStream
     import os as _os
+
+    from sire import stream as _NewSireStream
 
     if not _os.path.isfile(file):
         raise ValueError(f"Unable to locate stream file: {file}")
@@ -242,6 +245,7 @@ def _add_metadata(sire_object):
         The metadata associated with the object.
     """
     from sire import stream as _NewSireStream
+
     from .. import _SireWrappers
     from .._SireWrappers._sire_wrapper import SireWrapper as _SireWrapper
 
@@ -252,8 +256,9 @@ def _add_metadata(sire_object):
             "'sire_object' must be of type 'BioSimSpace._SireWrappers.SireWrapper'."
         )
 
-    from sire import __version__ as _sire_version
     from sire import __revisionid__ as _sire_revisionid
+    from sire import __version__ as _sire_version
+
     from .._version import __version__ as _bss_full_version
 
     # Work out the name of the Sandpit.

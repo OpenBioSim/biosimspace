@@ -1,8 +1,8 @@
 __all__ = ["FreeEnergyMinimisation"]
 
+from .. import Units as _Units
 from ._free_energy_mixin import _FreeEnergyMixin
 from ._minimisation import Minimisation as _Minimisation
-from .. import Units as _Units
 
 
 class FreeEnergyMinimisation(_Minimisation, _FreeEnergyMixin):

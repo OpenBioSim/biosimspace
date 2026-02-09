@@ -26,9 +26,9 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["Node"]
 
-from .._Utils import _try_import
-
 import configargparse as _argparse
+
+from .._Utils import _try_import
 
 _yaml = _try_import("yaml")
 
@@ -41,11 +41,10 @@ if _is_notebook:
     import ipywidgets as _widgets
     import zipfile as _zipfile
 
-
 from ._requirements import Area as _Area
-from ._requirements import Float as _Float
 from ._requirements import Charge as _Charge
 from ._requirements import Energy as _Energy
+from ._requirements import Float as _Float
 from ._requirements import Length as _Length
 from ._requirements import Mass as _Mass
 from ._requirements import Pressure as _Pressure
@@ -106,14 +105,16 @@ class CwlAction(_argparse.Action):
 
     def __call__(self, parser, namespace, values, option_string=None):
         """Export the CWL wrapper."""
-        from ._requirements import Integer as _Integer
-        from ._requirements import FileSet as _FileSet
-        import sys as _sys
-        from ._requirements import File as _File
         import os as _os
+        import sys as _sys
+
         import __main__
-        from ._requirements import String as _String
+
         from ._requirements import Boolean as _Boolean
+        from ._requirements import File as _File
+        from ._requirements import FileSet as _FileSet
+        from ._requirements import Integer as _Integer
+        from ._requirements import String as _String
 
         if values == False:
             parser.exit()
@@ -291,9 +292,10 @@ class Node:
         name : str
             The name of the node.
         """
-        import os as _os
-        import __main__
         import collections as _collections
+        import os as _os
+
+        import __main__
 
         if not isinstance(description, str):
             raise TypeError("The 'description' keyword must be of type 'str'.")
@@ -425,8 +427,9 @@ class Node:
         input : :class:`Requirement <BioSimSpace.Gateway._requirement.Requirement>`
             The input requirement object.
         """
-        from ._requirements import Requirement as _Requirement
         import warnings as _warnings
+
+        from ._requirements import Requirement as _Requirement
 
         if not isinstance(name, str):
             raise TypeError("'name' must be of type 'str'.")
@@ -595,13 +598,14 @@ class Node:
         reset : bool
             Whether to reset the widget data.
         """
-        from ._requirements import Integer as _Integer
+        import ipywidgets as _widgets
+
         from ..Types._type import Type as _Type
         from ._requirements import Boolean as _Boolean
-        from ._requirements import FileSet as _FileSet
         from ._requirements import File as _File
+        from ._requirements import FileSet as _FileSet
+        from ._requirements import Integer as _Integer
         from ._requirements import String as _String
-        import ipywidgets as _widgets
 
         # Create a widget button to indicate whether the requirement value
         # has been set.
@@ -953,8 +957,9 @@ class Node:
         output : :class:`Requirement <BioSimSpace.Gateway._requirement.Requirement>`
             The output requirement object.
         """
-        from ._requirements import Requirement as _Requirement
         import warnings as _warnings
+
+        from ._requirements import Requirement as _Requirement
 
         if not isinstance(name, str):
             raise TypeError("'name' must be of type 'str'.")
@@ -986,11 +991,12 @@ class Node:
         value :
             The value of the output.
         """
-        from ._requirements import FileSet as _FileSet
-        from ._requirements import File as _File
         import os as _os
-        import warnings as _warnings
         import shutil as _shutil
+        import warnings as _warnings
+
+        from ._requirements import File as _File
+        from ._requirements import FileSet as _FileSet
 
         try:
             # Enforce strict naming for all file-based outputs. This ensures
@@ -1263,6 +1269,7 @@ class Node:
     def _validateInput(self):
         """Validate the parsed inputs."""
         import sys as _sys
+
         from .. import setVerbose
 
         # Knime.
@@ -1335,12 +1342,14 @@ class Node:
             validated output, else the name of a YAML file containing
             the node output.
         """
-        from ._requirements import FileSet as _FileSet
-        import sys as _sys
-        from ._requirements import File as _File
         import os as _os
+        import sys as _sys
         import zipfile as _zipfile
+
         from IPython.display import FileLink as _FileLink
+
+        from ._requirements import File as _File
+        from ._requirements import FileSet as _FileSet
 
         if not isinstance(file_prefix, str):
             raise TypeError("The 'file_prefix' keyword must be of type 'str'.")

@@ -28,7 +28,6 @@ __all__ = ["OpenMM"]
 
 from .._Utils import _try_import
 
-
 _pygtail = _try_import("pygtail")
 
 
@@ -55,8 +54,8 @@ class OpenMM(_process.Process):
         property_map={},
         **kwargs,
     ):
-        from ._atm import OpenMMATM
         from ..Protocol._atm import _ATM
+        from ._atm import OpenMMATM
 
         # would like to use issubclass but _Protocol._ATM is not exposed
         if isinstance(protocol, _ATM):
@@ -123,6 +122,7 @@ class OpenMM(_process.Process):
         """
         import os as _os
         import sys as _sys
+
         from sire.legacy import Base as _SireBase
 
         # Call the base class constructor.
@@ -242,9 +242,10 @@ class OpenMM(_process.Process):
     def _setup(self):
         """Setup the input files and working directory ready for simulation."""
         import os as _os
+
+        from .. import IO as _IO
         from .. import Protocol as _Protocol
         from .. import _isVerbose
-        from .. import IO as _IO
 
         # Create a copy of the system.
         system = self._system.copy()
@@ -317,14 +318,15 @@ class OpenMM(_process.Process):
 
     def _generate_config(self):
         """Generate OpenMM Python script file strings."""
+        import math as _math
+        import os as _os
         import shutil as _shutil
         import warnings as _warnings
-        import os as _os
-        import math as _math
-        from ..Metadynamics import CollectiveVariable as _CollectiveVariable
-        from .._Exceptions import IncompatibleError as _IncompatibleError
-        from ._plumed import Plumed as _Plumed
+
         from .. import Protocol as _Protocol
+        from .._Exceptions import IncompatibleError as _IncompatibleError
+        from ..Metadynamics import CollectiveVariable as _CollectiveVariable
+        from ._plumed import Plumed as _Plumed
 
         # Clear the existing configuration list.
         self._config = []
@@ -1264,7 +1266,9 @@ class OpenMM(_process.Process):
             A handle to the OpenMM process.
         """
         import timeit as _timeit
+
         from sire.legacy import Base as _SireBase
+
         from .. import _Utils
 
         # The process is currently queued.
@@ -1323,8 +1327,9 @@ class OpenMM(_process.Process):
         system : :class:`System <BioSimSpace._SireWrappers.System>`
             The latest molecular system.
         """
-        from .. import Protocol as _Protocol
         from sire.legacy import IO as _SireIO
+
+        from .. import Protocol as _Protocol
 
         # Wait for the process to finish.
         if block is True:
@@ -1442,8 +1447,9 @@ class OpenMM(_process.Process):
             The latest trajectory object.
         """
         import os as _os
-        from .. import Trajectory as _Trajectory
         import warnings as _warnings
+
+        from .. import Trajectory as _Trajectory
 
         if not isinstance(backend, str):
             raise TypeError("'backend' must be of type 'str'")
@@ -1482,9 +1488,11 @@ class OpenMM(_process.Process):
         frame : :class:`System <BioSimSpace._SireWrappers.System>`
             The System object of the corresponding frame.
         """
-        from .. import Trajectory as _Trajectory
-        from sire.legacy import IO as _SireIO
         import warnings as _warnings
+
+        from sire.legacy import IO as _SireIO
+
+        from .. import Trajectory as _Trajectory
 
         if not type(index) is int:
             raise TypeError("'index' must be of type 'int'")
@@ -2003,7 +2011,7 @@ class OpenMM(_process.Process):
         """
         # We should verify that openmm is available to prevent
         # difficult-to-debug errors in the run script
-        from BioSimSpace._Utils import _try_import, _assert_imported
+        from BioSimSpace._Utils import _assert_imported, _try_import
 
         _openmm = _try_import("openmm")
         _assert_imported(_openmm)
@@ -2146,8 +2154,9 @@ class OpenMM(_process.Process):
         is_restart : bool
             Whether the simulation is a restart.
         """
-        from .. import Protocol as _Protocol
         import math as _math
+
+        from .. import Protocol as _Protocol
 
         if not type(state_interval) is int:
             raise TypeError("'state_interval' must be of type 'int'.")
@@ -2275,6 +2284,7 @@ class OpenMM(_process.Process):
     def _update_stdout_dict(self):
         """Update the dictionary of thermodynamic records."""
         import os as _os
+
         from .._Exceptions import IncompatibleError as _IncompatibleError
 
         # Exit if log file hasn't been created.
@@ -2393,8 +2403,9 @@ class OpenMM(_process.Process):
         record :
             The matching stdout record.
         """
-        from ..Types._type import Type as _Type
         import warnings as _warnings
+
+        from ..Types._type import Type as _Type
 
         # No data!
         if len(self._stdout_dict) == 0:

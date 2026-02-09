@@ -1,13 +1,12 @@
 collect_ignore_glob = ["*/out_test*.py"]
 
 import os
-import pytest
-
 from pathlib import Path
 
-import BioSimSpace as BSS
+import pytest
 
-from BioSimSpace._Utils import _try_import, _have_imported
+import BioSimSpace as BSS
+from BioSimSpace._Utils import _have_imported, _try_import
 
 # Turn on verbose error messages.
 BSS.setVerbose(True)

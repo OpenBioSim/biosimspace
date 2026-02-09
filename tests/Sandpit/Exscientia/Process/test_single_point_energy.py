@@ -1,8 +1,7 @@
 import pytest
 
 import BioSimSpace.Sandpit.Exscientia as BSS
-
-from tests.Sandpit.Exscientia.conftest import url, has_amber, has_gromacs, has_pyarrow
+from tests.Sandpit.Exscientia.conftest import has_amber, has_gromacs, has_pyarrow, url
 
 
 @pytest.fixture(scope="session")

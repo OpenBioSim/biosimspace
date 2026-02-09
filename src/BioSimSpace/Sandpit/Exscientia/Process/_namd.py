@@ -28,7 +28,6 @@ __all__ = ["Namd"]
 
 from .._Utils import _try_import
 
-
 _pygtail = _try_import("pygtail")
 
 
@@ -77,9 +76,11 @@ class Namd(_process.Process):
             values. This allows the user to refer to properties with their
             own naming scheme, e.g. { "charge" : "my-charge" }
         """
-        from sire.legacy import Base as _SireBase
-        from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
         import os as _os
+
+        from sire.legacy import Base as _SireBase
+
+        from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
 
         # Call the base class constructor.
         super().__init__(
@@ -139,14 +140,15 @@ class Namd(_process.Process):
 
     def _setup(self):
         """Setup the input files and working directory ready for simulation."""
+        import os as _os
+
+        from sire.legacy import IO as _SireIO
+
         from .. import IO as _IO
         from .. import Protocol as _Protocol
-        from sire.legacy import IO as _SireIO
-        import os as _os
         from .. import _isVerbose
 
         # Create the input files...
-
         # Create a copy of the system.
         system = self._system.copy()
 
@@ -262,12 +264,14 @@ class Namd(_process.Process):
     def _generate_config(self):
         """Generate NAMD configuration file strings."""
         import math as _math
-        from sire.legacy.Maths import Vector as _Vector
-        from .. import Protocol as _Protocol
-        from sire.legacy import IO as _SireIO
-        import warnings as _warnings
-        from .._Exceptions import IncompatibleError as _IncompatibleError
         import os as _os
+        import warnings as _warnings
+
+        from sire.legacy import IO as _SireIO
+        from sire.legacy.Maths import Vector as _Vector
+
+        from .. import Protocol as _Protocol
+        from .._Exceptions import IncompatibleError as _IncompatibleError
 
         # Clear the existing configuration list.
         self._config = []
@@ -643,8 +647,10 @@ class Namd(_process.Process):
         process : :class:`Process.Namd <BioSimSpace.Process.Namd>`
             The process object.
         """
-        from sire.legacy import Base as _SireBase
         import timeit as _timeit
+
+        from sire.legacy import Base as _SireBase
+
         from .. import _Utils
 
         # The process is currently queued.
@@ -700,9 +706,11 @@ class Namd(_process.Process):
             The latest molecular system.
         """
         import os as _os
-        from .. import IO as _IO
-        from sire.legacy import IO as _SireIO
         import warnings as _warnings
+
+        from sire.legacy import IO as _SireIO
+
+        from .. import IO as _IO
 
         # Wait for the process to finish.
         if block is True:
@@ -833,8 +841,9 @@ class Namd(_process.Process):
         trajectory : :class:`Trajectory <BioSimSpace.Trajectory>`
             The latest trajectory object.
         """
-        from .. import Trajectory as _Trajectory
         import warnings as _warnings
+
+        from .. import Trajectory as _Trajectory
 
         if not isinstance(backend, str):
             raise TypeError("'backend' must be of type 'str'")
@@ -874,8 +883,9 @@ class Namd(_process.Process):
         frame : :class:`System <BioSimSpace._SireWrappers.System>`
             The System object of the corresponding frame.
         """
-        from .. import Trajectory as _Trajectory
         from sire.legacy import IO as _SireIO
+
+        from .. import Trajectory as _Trajectory
 
         if not type(index) is int:
             raise TypeError("'index' must be of type 'int'")
@@ -2140,6 +2150,7 @@ class Namd(_process.Process):
             The molecular system with an added 'restrained' property.
         """
         from sire.legacy import Mol as _SireMol
+
         from .. import _isVerbose
 
         # Get the force constant value in the default units. This is
@@ -2257,8 +2268,9 @@ class Namd(_process.Process):
         record :
             The matching stdout record.
         """
-        from ..Types._type import Type as _Type
         import warnings as _warnings
+
+        from ..Types._type import Type as _Type
 
         # No data!
         if len(self._stdout_dict) == 0:

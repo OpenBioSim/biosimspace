@@ -34,9 +34,9 @@ __all__ = [
 ]
 
 
-from .._Utils import _try_import, _have_imported
-
 import warnings as _warnings
+
+from .._Utils import _have_imported, _try_import
 
 # Suppress duplicate to-Python converted warnings.
 # Both Sire and RDKit register the same converter.
@@ -46,8 +46,8 @@ with _warnings.catch_warnings():
 
     if _have_imported(_rdkit):
         from rdkit import Chem as _Chem
-        from rdkit.Chem import rdFMCS as _rdFMCS
         from rdkit import RDLogger as _RDLogger
+        from rdkit.Chem import rdFMCS as _rdFMCS
 
         # Disable RDKit warnings.
         _RDLogger.DisableLog("rdApp.*")
@@ -57,7 +57,6 @@ with _warnings.catch_warnings():
         _RDLogger = _rdkit
 
 from sire.legacy import Base as _SireBase
-
 
 from .. import Units as _Units
 
@@ -167,14 +166,14 @@ def generateNetwork(
         perturbation between molecules along an edge is likely to be more
         accurate.
     """
-    from .. import _Utils
-    from .. import _is_notebook, _isVerbose
+    import csv as _csv
+    import os as _os
+
+    from .. import IO as _IO
+    from .. import _is_notebook, _isVerbose, _Utils
+    from .._Exceptions import AlignmentError as _AlignmentError
     from .._SireWrappers import Molecule as _Molecule
     from .._Utils import _assert_imported
-    import csv as _csv
-    from .. import IO as _IO
-    from .._Exceptions import AlignmentError as _AlignmentError
-    import os as _os
 
     # Adapted from code by Jenke Scheen (@JenkeScheen).
 
@@ -837,12 +836,14 @@ def matchAtoms(
     >>> import BioSimSpace as BSS
     >>> mapping = BSS.Align.matchAtoms(molecule0, molecule1, prematch={0 : 10, 3 : 7})
     """
-    from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
     import sys as _sys
-    from .. import Convert as _Convert
-    from .._SireWrappers import Molecule as _Molecule
-    from sire.legacy import Units as _SireUnits
+
     from sire.legacy import Mol as _SireMol
+    from sire.legacy import Units as _SireUnits
+
+    from .. import Convert as _Convert
+    from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
+    from .._SireWrappers import Molecule as _Molecule
 
     # A list of supported scoring functions.
     scoring_functions = ["RMSD", "RMSDALIGN", "RMSDFLEXALIGN"]
@@ -1110,10 +1111,11 @@ def rmsdAlign(molecule0, molecule1, mapping=None, property_map0={}, property_map
     >>> import BioSimSpace as BSS
     >>> molecule0 = BSS.Align.rmsdAlign(molecule0, molecule1)
     """
+    from sire.legacy import Mol as _SireMol
+
+    from .. import _isVerbose
     from .._Exceptions import AlignmentError as _AlignmentError
     from .._SireWrappers import Molecule as _Molecule
-    from .. import _isVerbose
-    from sire.legacy import Mol as _SireMol
 
     if not isinstance(molecule0, _Molecule):
         raise TypeError(
@@ -1249,13 +1251,14 @@ def flexAlign(
     >>> import BioSimSpace as BSS
     >>> molecule0 = BSS.Align.flexAlign(molecule0, molecule1)
     """
-    from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
-    from .. import _Utils
-    import subprocess as _subprocess
-    from .._SireWrappers import Molecule as _Molecule
-    from .. import IO as _IO
-    from .._Exceptions import AlignmentError as _AlignmentError
     import os as _os
+    import subprocess as _subprocess
+
+    from .. import IO as _IO
+    from .. import _Utils
+    from .._Exceptions import AlignmentError as _AlignmentError
+    from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
+    from .._SireWrappers import Molecule as _Molecule
 
     # Check that we found fkcombu in the PATH.
     if fkcombu_exe is None:
@@ -1561,12 +1564,11 @@ def viewMapping(
         labelled.
     """
     from .. import Convert as _Convert
+    from .. import _is_notebook
     from .._SireWrappers import Molecule as _Molecule
     from .._Utils import _assert_imported
-    from .. import _is_notebook
 
     # Adapted from: https://gist.github.com/cisert/d05664d4c98ac1cf86ee70b8700e56a9
-
     # Only draw within a notebook.
     if not _is_notebook:
         return None
@@ -1774,14 +1776,14 @@ def _score_rdkit_mappings(
     mapping, scores : ([dict], list)
         The ranked mappings and corresponding scores.
     """
-    from .. import _isVerbose
-    from .._SireWrappers import Molecule as _Molecule
-    from sire.legacy import Mol as _SireMol
-    from .._Exceptions import AlignmentError as _AlignmentError
     from sire.legacy import Maths as _SireMaths
+    from sire.legacy import Mol as _SireMol
+
+    from .. import _isVerbose
+    from .._Exceptions import AlignmentError as _AlignmentError
+    from .._SireWrappers import Molecule as _Molecule
 
     # Adapted from FESetup: https://github.com/CCPBioSim/fesetup
-
     # Make sure to re-map the coordinates property in both molecules, otherwise
     # the move and align functions from Sire will not work.
     prop0 = property_map0.get("coordinates", "coordinates")
@@ -2011,11 +2013,12 @@ def _score_sire_mappings(
     mapping, scores : ([dict], list)
         The ranked mappings and corresponding scores.
     """
-    from .. import _isVerbose
-    from .._SireWrappers import Molecule as _Molecule
-    from sire.legacy import Mol as _SireMol
-    from .._Exceptions import AlignmentError as _AlignmentError
     from sire.legacy import Maths as _SireMaths
+    from sire.legacy import Mol as _SireMol
+
+    from .. import _isVerbose
+    from .._Exceptions import AlignmentError as _AlignmentError
+    from .._SireWrappers import Molecule as _Molecule
 
     # Make sure to re-map the coordinates property in both molecules, otherwise
     # the move and align functions from Sire will not work.

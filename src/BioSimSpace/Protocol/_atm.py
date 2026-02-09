@@ -1,6 +1,6 @@
-from ._protocol import Protocol as _Protocol
-from ._position_restraint_mixin import _PositionRestraintMixin
 from .. import Units as _Units
+from ._position_restraint_mixin import _PositionRestraintMixin
+from ._protocol import Protocol as _Protocol
 
 __all__ = ["ATMMinimisation", "ATMEquilibration", "ATMAnnealing", "ATMProduction"]
 
@@ -27,9 +27,10 @@ class _ATM(_Protocol, _PositionRestraintMixin):
     ):
         # Call the base class constructor.
         import json as _json
+        import warnings as _warnings
+
         from .._SireWrappers import System as _System
         from ..Types import Vector as _Vector
-        import warnings as _warnings
 
         super().__init__()
 
@@ -1152,6 +1153,7 @@ class ATMEquilibration(_ATM):
             The starting temperature.
         """
         import math as _math
+
         from .. import Types as _Types
 
         if isinstance(temperature, str):
@@ -1191,6 +1193,7 @@ class ATMEquilibration(_ATM):
             The final temperature.
         """
         import math as _math
+
         from .. import Types as _Types
 
         if isinstance(temperature, str):
@@ -3174,8 +3177,9 @@ class ATMProduction(_ATM):
         lambda1 : [float]
             The lambda1 values.
         """
-        import numpy as _np
         import math as _math
+
+        import numpy as _np
 
         if isinstance(lambda1, list):
             if len(lambda1) != self._num_lambda:
@@ -3223,8 +3227,9 @@ class ATMProduction(_ATM):
         lambda2 : [float]
             The lambda2 values.
         """
-        import numpy as _np
         import math as _math
+
+        import numpy as _np
 
         if isinstance(lambda2, list):
             if len(lambda2) != self._num_lambda:

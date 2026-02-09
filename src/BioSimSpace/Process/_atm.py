@@ -211,8 +211,9 @@ class OpenMMATM(_OpenMM):
         self._protocol._setCustomised(False)
 
     def _generate_config_equilibration(self):
-        from ._atm_utils import _ATMUtils
         import math as _math
+
+        from ._atm_utils import _ATMUtils
 
         util = _ATMUtils(self._protocol)
         # Clear the existing configuration list.
@@ -351,8 +352,9 @@ class OpenMMATM(_OpenMM):
                 self.addToConfig("    simulation.step(1)")
 
     def _generate_config_annealing(self):
-        from ._atm_utils import _ATMUtils
         import math as _math
+
+        from ._atm_utils import _ATMUtils
 
         self._protocol._set_current_index(0)
         util = _ATMUtils(self._protocol)
@@ -487,9 +489,10 @@ class OpenMMATM(_OpenMM):
         self.addToConfig(annealing_protocol)
 
     def _generate_config_production(self):
+        import math as _math
+
         from .._Exceptions import IncompatibleError as _IncompatibleError
         from ._atm_utils import _ATMUtils
-        import math as _math
 
         self._protocol.set_current_index(0)
         analysis_method = self._protocol.getAnalysisMethod()
@@ -693,10 +696,11 @@ class OpenMMATM(_OpenMM):
         # Designed as a hidden method - uses a production protocol to
         # calculate single point energies for each lambda window
         # quite hacky, but not designed to be exposed to the user anyway
+        import math as _math
+
+        from .. import Protocol as _Protocol
         from .._Exceptions import IncompatibleError as _IncompatibleError
         from ._atm_utils import _ATMUtils
-        import math as _math
-        from .. import Protocol as _Protocol
 
         self._protocol.set_current_index(0)
         if not isinstance(self._protocol, _Protocol.ATMProduction):

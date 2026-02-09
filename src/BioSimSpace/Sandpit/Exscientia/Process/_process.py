@@ -32,9 +32,9 @@ from .._Utils import _try_import
 _pygtail = _try_import("pygtail")
 
 
+from .. import Units as _Units
 from .. import _is_notebook
 from ..Types import Time as _Time
-from .. import Units as _Units
 
 if _is_notebook:
     from IPython.display import FileLink as _FileLink
@@ -103,15 +103,16 @@ class Process:
             The Restraint object that contains information for the ABFE
             calculations.
         """
-        from .._SireWrappers import System as _System
-        from ..Protocol._protocol import Protocol as _Protocol
-        from .. import _is_interactive
-        from .. import _Utils
-        from sire.legacy import Mol as _SireMol
         import collections as _collections
         import warnings as _warnings
+
+        from sire.legacy import Mol as _SireMol
+
+        from .. import _is_interactive, _Utils
         from .._Exceptions import IncompatibleError as _IncompatibleError
+        from .._SireWrappers import System as _System
         from ..FreeEnergy._restraint import Restraint as _Restraint
+        from ..Protocol._protocol import Protocol as _Protocol
 
         # Warn user when create an instance of this base class.
         # The class is used for testing.
@@ -269,9 +270,10 @@ class Process:
         """This function checks if the restart setting in the protocol is
         consistent with the velocity in the system.
         """
-        from ..Protocol import Production as _Production
-        from ..Protocol import Equilibration as _Equilibration
         import warnings as _warnings
+
+        from ..Protocol import Equilibration as _Equilibration
+        from ..Protocol import Production as _Production
 
         # Ensure that the restart is off when the system doesn't have velocity
         if (
@@ -332,8 +334,8 @@ class Process:
 
     def _clear_output(self):
         """Reset stdout and stderr."""
-        import os as _os
         import glob as _glob
+        import os as _os
 
         # Create the files. This makes sure that the 'stdout' and 'stderr'
         # methods can be called when the files are empty.
@@ -562,8 +564,8 @@ class Process:
         collective_variables : [(:class:`Type <BioSimSpace.Types>`, int, float, ...)]
             The value of the collective variable for each configuration.
         """
-        import sys as _sys
         import random as _random
+        import sys as _sys
         import warnings as _warnings
 
         if not type(number) is int:
@@ -715,8 +717,9 @@ class Process:
         system : :class:`System <BioSimSpace._SireWrappers.System>`
             The molecular system at a given end state.
         """
-        from .._SireWrappers import System as _System
         import warnings as _warnings
+
+        from .._SireWrappers import System as _System
 
         # Check that the system is valid.
         if not isinstance(system, _System):
@@ -917,8 +920,9 @@ class Process:
         max_time : :class:`Time <BioSimSpace.Types.Time>`, int, float
             The maximum time to wait (in minutes).
         """
-        from ..Types._type import Type as _Type
         from loguru import logger
+
+        from ..Types._type import Type as _Type
 
         # The process isn't running.
         if not self.isRunning():
@@ -1223,8 +1227,9 @@ class Process:
             A path, or file link, to an archive of the process input.
         """
         import os as _os
-        from IPython.display import FileLink as _FileLink
         import zipfile as _zipfile
+
+        from IPython.display import FileLink as _FileLink
 
         if name is None:
             name = self._name + "_input"
@@ -1281,10 +1286,11 @@ class Process:
         output : str, IPython.display.FileLink
             A path, or file link, to an archive of the process output.
         """
-        from IPython.display import FileLink as _FileLink
-        import os as _os
         import glob as _glob
+        import os as _os
         import zipfile as _zipfile
+
+        from IPython.display import FileLink as _FileLink
 
         if name is None:
             name = self._name + "_output"
@@ -1748,6 +1754,7 @@ class Process:
             The DataFrame object containing the metric of the simulation.
         """
         import warnings as _warnings
+
         import pandas as pd
 
         datadict = {}

@@ -28,7 +28,6 @@ __all__ = ["Plumed"]
 
 from .._Utils import _try_import
 
-
 _pygtail = _try_import("pygtail")
 
 
@@ -49,11 +48,12 @@ class Plumed:
             The working directory of the process that is interfacing
             with PLUMED.
         """
-        import subprocess as _subprocess
-        from sire.legacy.Base import findExe as _findExe
-        from .. import _Utils
-        from .. import _Exceptions
         import os as _os
+        import subprocess as _subprocess
+
+        from sire.legacy.Base import findExe as _findExe
+
+        from .. import _Exceptions, _Utils
         from ._process import _MultiDict
 
         # Check that the working directory is valid.
@@ -165,8 +165,8 @@ class Plumed:
             The list of PLUMED configuration strings and paths to any auxiliary
             files required by the collective variables.
         """
-        from ..Protocol import Metadynamics as _Metadynamics
         from .._SireWrappers import System as _System
+        from ..Protocol import Metadynamics as _Metadynamics
         from ..Protocol import Steering as _Steering
 
         if not isinstance(system, _System):
@@ -213,15 +213,17 @@ class Plumed:
             The list of PLUMED configuration strings and paths to any auxiliary
             files required by the collective variables.
         """
-        from ..Protocol import Metadynamics as _Metadynamics
-        import sire.legacy.Vol as _SireVol
-        from ..Metadynamics import CollectiveVariable as _CollectiveVariable
-        from .. import _Exceptions
-        from sire.legacy.Maths import Vector as _Vector
-        from ..Types import Coordinate as _Coordinate
-        from .._SireWrappers import System as _System
         import os as _os
+
+        import sire.legacy.Vol as _SireVol
+        from sire.legacy.Maths import Vector as _Vector
+
         from .. import Units as _Units
+        from .. import _Exceptions
+        from .._SireWrappers import System as _System
+        from ..Metadynamics import CollectiveVariable as _CollectiveVariable
+        from ..Protocol import Metadynamics as _Metadynamics
+        from ..Types import Coordinate as _Coordinate
 
         if not isinstance(system, _System):
             raise TypeError(
@@ -928,13 +930,14 @@ class Plumed:
             The list of PLUMED configuration strings and paths to any auxiliary
             files required by the collective variables.
         """
-        from ..Metadynamics import CollectiveVariable as _CollectiveVariable
-        from .. import _Exceptions
-        from ..Types import Coordinate as _Coordinate
-        from .._SireWrappers import System as _System
-        from ..Protocol import Steering as _Steering
         import os as _os
+
         from .. import Units as _Units
+        from .. import _Exceptions
+        from .._SireWrappers import System as _System
+        from ..Metadynamics import CollectiveVariable as _CollectiveVariable
+        from ..Protocol import Steering as _Steering
+        from ..Types import Coordinate as _Coordinate
 
         if not isinstance(system, _System):
             raise TypeError(
@@ -1348,8 +1351,8 @@ class Plumed:
         time : :class:`Time <BioSimSpace.Types.Time>`
             The simulation run time.
         """
-        from .. import _Exceptions
         from .. import Units as _Units
+        from .. import _Exceptions
 
         # We need to have generated a valid config before being able to parse
         # the COLVAR records.
@@ -1442,13 +1445,13 @@ class Plumed:
                         [[:class:`Type <BioSimSpace.Types>`, :class:`Type <BioSimSpace.Types>`, ...], ...]
             The free energy estimate for the chosen collective variables.
         """
-        import subprocess as _subprocess
-        import shutil as _shutil
-        from .. import _Utils
-        from .. import _Exceptions
         import glob as _glob
         import os as _os
+        import shutil as _shutil
+        import subprocess as _subprocess
+
         from .. import Units as _Units
+        from .. import _Exceptions, _Utils
 
         # We need to have generated a valid config before being able to compute
         # free energies.

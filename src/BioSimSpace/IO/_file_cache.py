@@ -160,9 +160,10 @@ def _check_cache(
     extension : str
         The extension for cached file. False if no file was found.
     """
-    from .._SireWrappers import System as _System
-    import shutil as _shutil
     import os as _os
+    import shutil as _shutil
+
+    from .._SireWrappers import System as _System
 
     # Validate input.
 
@@ -204,7 +205,7 @@ def _check_cache(
 
     # Get the existing file path and MD5 hash from the cache.
     try:
-        (prev_system, path, original_hash) = _cache[key]
+        prev_system, path, original_hash = _cache[key]
     except:
         return False
 
@@ -292,8 +293,9 @@ def _update_cache(
     skip_water : bool
         Whether to skip water molecules when comparing systems.
     """
-    from .._SireWrappers import System as _System
     import os as _os
+
+    from .._SireWrappers import System as _System
 
     # Validate input.
 

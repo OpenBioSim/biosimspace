@@ -32,7 +32,6 @@ _pygtail = _try_import("pygtail")
 
 import string as _string
 
-
 from . import _process
 
 
@@ -105,14 +104,16 @@ class Somd(_process.Process):
         kwargs : dict
             Additional keyword arguments.
         """
+        import math as _math
+        import os as _os
+        import sys as _sys
+
+        from sire.legacy import Base as _SireBase
+
+        from .. import Protocol as _Protocol
         from .._Exceptions import IncompatibleError as _IncompatibleError
         from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
-        import sys as _sys
-        import os as _os
-        from sire.legacy import Base as _SireBase
-        from .. import Protocol as _Protocol
         from ..Protocol._free_energy_mixin import _FreeEnergyMixin
-        import math as _math
 
         # Call the base class constructor.
         super().__init__(
@@ -295,16 +296,17 @@ class Somd(_process.Process):
 
     def _setup(self):
         """Setup the input files and working directory ready for simulation."""
-        from sire.legacy import IO as _SireIO
-        from .._SireWrappers import System as _System
-        from .. import _isVerbose
         import os as _os
-        from .. import Protocol as _Protocol
         import warnings as _warnings
+
+        from sire.legacy import IO as _SireIO
+
         from .. import IO as _IO
+        from .. import Protocol as _Protocol
+        from .. import _isVerbose
+        from .._SireWrappers import System as _System
 
         # Create the input files...
-
         # First create a copy of the system.
         system = self._system.copy()
 
@@ -412,11 +414,12 @@ class Somd(_process.Process):
 
     def _generate_config(self):
         """Generate SOMD configuration file strings."""
-        from .._SireWrappers import System as _System
         import os as _os
-        from .. import Protocol as _Protocol
         import warnings as _warnings
+
+        from .. import Protocol as _Protocol
         from .._Config import Somd as _SomdConfig
+        from .._SireWrappers import System as _System
 
         # Check whether the system contains periodic box information.
         # For now, well not attempt to generate a box if the system property
@@ -497,10 +500,12 @@ class Somd(_process.Process):
         process : :class:`Process.Somd <BioSimSpace.Process.Somd>`
             A handle to the running process.
         """
-        import timeit as _timeit
         import os as _os
-        from .. import _Utils
+        import timeit as _timeit
+
         from sire.legacy import Base as _SireBase
+
+        from .. import _Utils
 
         # The process is currently queued.
         if self.isQueued():
@@ -559,7 +564,9 @@ class Somd(_process.Process):
             The latest molecular system.
         """
         import warnings as _warnings
+
         from sire.legacy import IO as _SireIO
+
         from .. import IO as _IO
 
         # Wait for the process to finish.
@@ -657,6 +664,7 @@ class Somd(_process.Process):
             The latest trajectory object.
         """
         import warnings as _warnings
+
         from .. import Trajectory as _Trajectory
 
         if not isinstance(backend, str):
@@ -697,8 +705,9 @@ class Somd(_process.Process):
         frame : :class:`System <BioSimSpace._SireWrappers.System>`
             The System object of the corresponding frame.
         """
-        from .. import Trajectory as _Trajectory
         from sire.legacy import IO as _SireIO
+
+        from .. import Trajectory as _Trajectory
 
         if not type(index) is int:
             raise TypeError("'index' must be of type 'int'")
@@ -776,8 +785,9 @@ class Somd(_process.Process):
         time : :class:`Time <BioSimSpace.Types.Time>`
             The current simulation time in nanoseconds.
         """
-        from .. import Protocol as _Protocol
         import warnings as _warnings
+
+        from .. import Protocol as _Protocol
 
         # Warn the user if the process has exited with an error.
         if self.isError():
@@ -848,8 +858,8 @@ class Somd(_process.Process):
         gradient : float
             The free energy gradient.
         """
-        import warnings as _warnings
         import os as _os
+        import warnings as _warnings
 
         # Wait for the process to finish.
         if block is True:
@@ -899,9 +909,10 @@ class Somd(_process.Process):
 
     def _clear_output(self):
         """Reset stdout and stderr."""
-        from .. import Protocol as _Protocol
-        import os as _os
         import glob as _glob
+        import os as _os
+
+        from .. import Protocol as _Protocol
 
         # Call the base class method.
         super()._clear_output()
@@ -991,12 +1002,14 @@ def _to_pert_file(
     molecule : :class:`System <BioSimSpace._SireWrappers.Molecule>`
         The molecule with properties corresponding to the lamda = 0 state.
     """
-    from sire.legacy import CAS as _SireCAS
     import random as _random
-    from .._Exceptions import IncompatibleError as _IncompatibleError
+
+    from sire.legacy import CAS as _SireCAS
     from sire.legacy import MM as _SireMM
-    from .._SireWrappers import Molecule as _Molecule
     from sire.legacy import Mol as _SireMol
+
+    from .._Exceptions import IncompatibleError as _IncompatibleError
+    from .._SireWrappers import Molecule as _Molecule
 
     if not isinstance(molecule, _Molecule):
         raise TypeError(
@@ -3192,6 +3205,7 @@ def _somd1_compatibility(system):
     from sire.legacy import CAS as _SireCAS
     from sire.legacy import MM as _SireMM
     from sire.legacy import Mol as _SireMol
+
     from .._SireWrappers import System as _System
 
     # Check the system is a Sire system.

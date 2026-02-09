@@ -137,16 +137,18 @@ import sire as _sr
 _sr.use_new_api()
 del _sr
 
-from . import Angle
-from . import Area
-from . import Charge
-from . import Energy
-from . import Length
-from . import Mass
-from . import Pressure
-from . import Temperature
-from . import Time
-from . import Volume
+from . import (
+    Angle,
+    Area,
+    Charge,
+    Energy,
+    Length,
+    Mass,
+    Pressure,
+    Temperature,
+    Time,
+    Volume,
+)
 
 # Whether to allow operations between offset units, see here for details:
 # http://pint.readthedocs.io/en/latest/nonmult.html

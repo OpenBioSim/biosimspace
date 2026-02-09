@@ -28,7 +28,7 @@ __all__ = ["run"]
 
 
 # Import common objects from BioSimSpace.MD._md
-from ..MD._md import _file_extensions, _md_engines, _find_md_engines
+from ..MD._md import _file_extensions, _find_md_engines, _md_engines
 
 
 def run(
@@ -89,10 +89,10 @@ def run(
     process : :class:`Process <BioSimSpace.Process>`
         A process to run the molecular dynamics protocol.
     """
-    from ..MD._md import _find_md_engines
     from .. import Process as _Process
     from .. import Protocol as _Protocol
     from .._SireWrappers import System as _System
+    from ..MD._md import _find_md_engines
 
     # Check that the system is valid.
     if not isinstance(system, _System):

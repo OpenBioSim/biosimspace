@@ -27,10 +27,10 @@ __email__ = "lester.hedges@gmail.com"
 __all__ = ["Funnel", "makeFunnel", "viewFunnel"]
 
 
-from ._collective_variable import CollectiveVariable as _CollectiveVariable
+from ...Types import Length as _Length
 from .._bound import Bound as _Bound
 from .._grid import Grid as _Grid
-from ...Types import Length as _Length
+from ._collective_variable import CollectiveVariable as _CollectiveVariable
 
 
 class Funnel(_CollectiveVariable):
@@ -519,6 +519,7 @@ class Funnel(_CollectiveVariable):
             The funnel correction.
         """
         import math as _math
+
         from ...Types import Energy as _Energy
         from ...Types import Volume as _Volume
 
@@ -746,14 +747,14 @@ def makeFunnel(
     atoms1 : [int]
         A list of atom indices that define the inflection point of the funnel.
     """
+    from sire.legacy.Maths import Vector as _SireVector
+
     from ..._Exceptions import IncompatibleError as _IncompatibleError
     from ..._SireWrappers import Molecule as _Molecule
-    from sire.legacy.Maths import Vector as _SireVector
     from ..._SireWrappers import System as _System
     from ...Types import Coordinate as _Coordinate
 
     # Validate the input.
-
     # System.
     if not isinstance(system, _System):
         raise TypeError("'system' must be of type 'BioSimSpace._SireWrappers.System'.")
@@ -1017,14 +1018,14 @@ def viewFunnel(system, collective_variable, property_map={}):
     view : :class:`View <BioSimSpace.Notebook.View>`
         A view object showing the system and funnel.
     """
-    from ..._SireWrappers import Molecule as _Molecule
-    from ... import _is_notebook
-    from sire.legacy.Maths import Vector as _SireVector
-    from ..._SireWrappers import System as _System
     import sire.legacy.Mol as _SireMol
+    from sire.legacy.Maths import Vector as _SireVector
+
+    from ... import _is_notebook
+    from ..._SireWrappers import Molecule as _Molecule
+    from ..._SireWrappers import System as _System
 
     # The following is adapted from funnel_maker.py by Dominykas Lukauskis.
-
     # Don't do anything if this isn't called from within a notebook.
     if not _is_notebook:
         return None

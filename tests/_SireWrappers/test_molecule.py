@@ -1,8 +1,7 @@
 import pytest
 
 import BioSimSpace as BSS
-
-from tests.conftest import url, has_amber
+from tests.conftest import has_amber, url
 
 
 @pytest.mark.skipif(has_amber is False, reason="Requires AMBER to be installed.")

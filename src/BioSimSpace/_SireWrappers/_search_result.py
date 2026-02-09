@@ -102,11 +102,12 @@ class SearchResult:
 
     def __getitem__(self, key):
         """Get a search result from the container."""
-        from ._atom import Atom as _Atom
-        from ._molecule import Molecule as _Molecule
-        from ._bond import Bond as _Bond
-        from ._residue import Residue as _Residue
         import sire.legacy as _Sire
+
+        from ._atom import Atom as _Atom
+        from ._bond import Bond as _Bond
+        from ._molecule import Molecule as _Molecule
+        from ._residue import Residue as _Residue
 
         # Slice.
         if type(key) is slice:

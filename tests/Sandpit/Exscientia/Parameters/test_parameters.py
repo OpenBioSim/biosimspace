@@ -1,13 +1,13 @@
-import pytest
 import tempfile
 
-import BioSimSpace.Sandpit.Exscientia as BSS
+import pytest
 
+import BioSimSpace.Sandpit.Exscientia as BSS
 from tests.Sandpit.Exscientia.conftest import (
-    url,
+    has_antechamber,
     has_openff,
     has_tleap,
-    has_antechamber,
+    url,
 )
 
 

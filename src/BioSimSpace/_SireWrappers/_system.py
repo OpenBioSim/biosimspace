@@ -30,10 +30,9 @@ __email__ = "lester.hedges@gmail.com"
 __all__ = ["System"]
 
 
+from .. import Units as _Units
 from ..Types import Angle as _Angle
 from ..Types import Coordinate as _Coordinate
-from .. import Units as _Units
-
 from ._sire_wrapper import SireWrapper as _SireWrapper
 
 
@@ -54,13 +53,13 @@ class System(_SireWrapper):
             A Sire or BioSimSpace System object, a Sire or BioSimSpace Molecule object,
             a BioSimSpace Molecules object, or a list of BioSimSpace molecule objects.
         """
-        from ._molecule import Molecule as _Molecule
         from sire.legacy import Mol as _SireMol
         from sire.legacy import System as _SireSystem
+
+        from ._molecule import Molecule as _Molecule
         from ._molecules import Molecules as _Molecules
 
         # Check that the system is valid.
-
         # Convert tuple to a list.
         if isinstance(system, tuple):
             system = list(system)
@@ -179,9 +178,9 @@ class System(_SireWrapper):
 
     def __contains__(self, other):
         """Return whether other is in self."""
-        from ._residue import Residue as _Residue
-        from ._molecule import Molecule as _Molecule
         from ._atom import Atom as _Atom
+        from ._molecule import Molecule as _Molecule
+        from ._residue import Residue as _Residue
 
         if not isinstance(other, (_Molecule, _Atom, _Residue)):
             raise TypeError(
@@ -195,6 +194,7 @@ class System(_SireWrapper):
     def __getitem__(self, key):
         """Get a molecule from the system."""
         from sire.legacy import Mol as _SireMol
+
         from ._molecule import Molecule as _Molecule
         from ._molecules import Molecules as _Molecules
 
@@ -273,6 +273,7 @@ class System(_SireWrapper):
             A copy of the object.
         """
         from sire.legacy import Mol as _SireMol
+
         from ._molecules import Molecules as _Molecules
 
         if not isinstance(renumber, bool):
@@ -606,15 +607,15 @@ class System(_SireWrapper):
             A Molecule, Molecules object, a list of Molecule objects, a System,
             or a SearchResult containing molecules.
         """
-        from ._search_result import SearchResult as _SearchResult
-        from sire.legacy import IO as _SireIO
         import warnings as _warnings
+
+        from sire.legacy import IO as _SireIO
         from sire.legacy import Mol as _SireMol
+        from sire.legacy.Mol import SelectorMol as _SelectorMol
+
         from ._molecule import Molecule as _Molecule
         from ._molecules import Molecules as _Molecules
-
         from ._search_result import SearchResult as _SearchResult
-        from sire.legacy.Mol import SelectorMol as _SelectorMol
 
         # Whether this is a selector mol object.
         is_selector_mol = False
@@ -762,6 +763,7 @@ class System(_SireWrapper):
             A Molecule, Molecules object, or list of Molecule objects.
         """
         from sire.legacy import Mol as _SireMol
+
         from ._molecule import Molecule as _Molecule
         from ._molecules import Molecules as _Molecules
 
@@ -835,8 +837,9 @@ class System(_SireWrapper):
         molecule : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
             The updated (or replacement) molecule.
         """
-        from ._molecule import Molecule as _Molecule
         from sire.legacy import IO as _SireIO
+
+        from ._molecule import Molecule as _Molecule
 
         if type(index) is not int:
             raise TypeError("'index' must be of type 'int'")
@@ -884,9 +887,10 @@ class System(_SireWrapper):
                     [:class:`Molecule <BioSimSpace._SireWrappers.Molecule>`]
             A Molecule, or list of Molecule objects.
         """
-        from sire.legacy import Mol as _SireMol
-        from ._molecule import Molecule as _Molecule
         from sire.legacy import IO as _SireIO
+        from sire.legacy import Mol as _SireMol
+
+        from ._molecule import Molecule as _Molecule
 
         # Convert tuple to a list.
         if isinstance(molecules, tuple):
@@ -985,6 +989,7 @@ class System(_SireWrapper):
             The list of molecules in the group.
         """
         from sire.legacy import Mol as _SireMol
+
         from ._molecules import Molecules as _Molecules
 
         if not isinstance(group, str):
@@ -1257,10 +1262,10 @@ class System(_SireWrapper):
             values. This allows the user to refer to properties with their
             own naming scheme, e.g. { "charge" : "my-charge" }
         """
-        from .. import _isVerbose
+        import numpy as _np
         from sire.legacy import IO as _SireIO
 
-        import numpy as _np
+        from .. import _isVerbose
 
         # Validate input.
         if not isinstance(coordinates, _np.ndarray):
@@ -1607,8 +1612,9 @@ class System(_SireWrapper):
 
         >>> result = system.search("molidx 10 and atomidx 23")
         """
-        from .. import _isVerbose
         from sire.mol import Select as _Select
+
+        from .. import _isVerbose
         from ._search_result import SearchResult as _SearchResult
 
         if not isinstance(query, str):
@@ -1653,9 +1659,9 @@ class System(_SireWrapper):
         index : int, [int]
             The absolute index of the atom/residue/molecule in the system.
         """
-        from ._residue import Residue as _Residue
-        from ._molecule import Molecule as _Molecule
         from ._atom import Atom as _Atom
+        from ._molecule import Molecule as _Molecule
+        from ._residue import Residue as _Residue
 
         # Convert single object to list.
         if not isinstance(item, (tuple, list)):
@@ -1755,10 +1761,11 @@ class System(_SireWrapper):
             values. This allows the user to refer to properties with their
             own naming scheme, e.g. { "charge" : "my-charge" }
         """
-        from sire.legacy import Vol as _SireVol
         from sire.legacy import Maths as _SireMaths
-        from ..Types import Length as _Length
         from sire.legacy import Units as _SireUnits
+        from sire.legacy import Vol as _SireVol
+
+        from ..Types import Length as _Length
 
         # Convert tuples to lists.
         if isinstance(box, tuple):
@@ -1838,6 +1845,7 @@ class System(_SireWrapper):
             The box vector angles: yz, xz, and xy.
         """
         from sire.legacy import Vol as _SireVol
+
         from ..Types import Length as _Length
 
         if not isinstance(property_map, dict):
@@ -2008,8 +2016,8 @@ class System(_SireWrapper):
         indices : [int]
             A list of the backbone atom indices.
         """
-        from ._utils import _prot_res, _nucl_res, _ions
         from .._Exceptions import IncompatibleError as _IncompatibleError
+        from ._utils import _ions, _nucl_res, _prot_res
 
         if not isinstance(restraint, str):
             raise TypeError("'restraint' must be of type 'str'.")
@@ -2373,6 +2381,7 @@ class System(_SireWrapper):
             The axis-aligned bounding box for the molecule.
         """
         from sire.legacy import Vol as _SireVol
+
         from .. import _isVerbose
         from .._Exceptions import IncompatibleError as _IncompatibleError
 
@@ -2426,6 +2435,7 @@ class System(_SireWrapper):
             The renumber list of molecule objects.
         """
         from sire.legacy import Mol as _SireMol
+
         from ._molecule import Molecule as _Molecule
 
         # Renumber everything.

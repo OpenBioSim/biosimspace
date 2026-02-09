@@ -68,6 +68,7 @@ class ProcessRunner:
             The working directory for the processes.
         """
         import os as _os
+
         from ._process import Process as _Process
 
         # Convert tuple to list.
@@ -833,8 +834,9 @@ class ProcessRunner:
         new_processes : [:class:`Process <BioSimSpace.Process>`]
             A list of procesess with updated working directories.
         """
-        from .._SireWrappers import System as _System
         import os as _os
+
+        from .._SireWrappers import System as _System
 
         # Create the list of new processes.
         new_processes = []

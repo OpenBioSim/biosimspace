@@ -108,9 +108,9 @@ class Metadynamics(object):
             the directory to which biases should be written, and from which biases written by
             other processes should be loaded
         """
+        import numpy as np
         import openmm as mm
         from openmm import unit
-        import numpy as np
 
         if not unit.is_quantity(temperature):
             temperature = temperature * unit.kelvin
@@ -200,8 +200,8 @@ class Metadynamics(object):
         steps : int
             the number of time steps to integrate
         """
-        from openmm import unit
         import numpy as np
+        from openmm import unit
 
         stepsToGo = steps
         while stepsToGo > 0:
@@ -251,8 +251,8 @@ class Metadynamics(object):
 
     def getHillHeight(self, simulation):
         """Get the current height of the Gaussian hill in kJ/mol."""
-        from openmm import unit
         import numpy as np
+        from openmm import unit
 
         energy = simulation.context.getState(
             getEnergy=True, groups={31}
@@ -267,8 +267,9 @@ class Metadynamics(object):
     def _addGaussian(self, position, height, context):
         """Add a Gaussian to the bias function."""
         from functools import reduce
-        from openmm import unit
+
         import numpy as np
+        from openmm import unit
 
         # Compute a Gaussian along each axis.
 
@@ -306,8 +307,9 @@ class Metadynamics(object):
     def _syncWithDisk(self):
         """Save biases to disk, and check for updated files created by other processes."""
         import os
-        import numpy as np
         import re
+
+        import numpy as np
 
         if self.biasDir is None:
             return

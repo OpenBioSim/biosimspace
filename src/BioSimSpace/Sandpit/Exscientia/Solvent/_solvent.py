@@ -28,7 +28,6 @@ __all__ = ["solvate", "spc", "spce", "tip3p", "tip4p", "tip5p", "opc", "waterMod
 
 import sys as _sys
 
-
 from ..Types import Angle as _Angle
 
 
@@ -815,11 +814,12 @@ def _validate_input(
     (molecule, box, angles, shell, work_dir, property_map) : tuple
         The validated input arguments.
     """
+    import warnings as _warnings
+
     from .._SireWrappers import Molecule as _Molecule
     from .._SireWrappers import Molecules as _Molecules
-    import warnings as _warnings
-    from ..Types import Coordinate as _Coordinate
     from .._SireWrappers import System as _System
+    from ..Types import Coordinate as _Coordinate
     from ..Types import Length as _Length
 
     # Whether to check the box size.
@@ -1049,21 +1049,21 @@ def _solvate(
     system : :class:`System <BioSimSpace._SireWrappers.System>`
         The solvated system.
     """
-    from sire.legacy.Maths import Vector as _Vector
-    from sire.legacy import Base as _SireBase
-    import subprocess as _subprocess
-    from sire.legacy.Vol import TriclinicBox as _TriclinicBox
-    from sire.legacy.Units import degree as _degree
-    from .. import IO as _IO
-    import shutil as _shutil
-    from .. import _isVerbose
-    from .. import _Utils
-    from .. import _gmx_exe
-    import warnings as _warnings
-    from .._SireWrappers import System as _System
-    import re as _re
-    from ..Types import Length as _Length
     import os as _os
+    import re as _re
+    import shutil as _shutil
+    import subprocess as _subprocess
+    import warnings as _warnings
+
+    from sire.legacy import Base as _SireBase
+    from sire.legacy.Maths import Vector as _Vector
+    from sire.legacy.Units import degree as _degree
+    from sire.legacy.Vol import TriclinicBox as _TriclinicBox
+
+    from .. import IO as _IO
+    from .. import _gmx_exe, _isVerbose, _Utils
+    from .._SireWrappers import System as _System
+    from ..Types import Length as _Length
 
     if molecule is not None:
         # Get the axis aligned bounding box.

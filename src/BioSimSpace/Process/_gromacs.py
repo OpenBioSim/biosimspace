@@ -28,7 +28,6 @@ __all__ = ["Gromacs"]
 
 from .._Utils import _try_import
 
-
 _pygtail = _try_import("pygtail")
 
 
@@ -119,6 +118,7 @@ class Gromacs(_process.Process):
             Additional keyword arguments.
         """
         import os as _os
+
         from .. import _gmx_exe
         from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
 
@@ -218,13 +218,13 @@ class Gromacs(_process.Process):
 
     def _setup(self, **kwargs):
         """Setup the input files and working directory ready for simulation."""
-        from ..Protocol._free_energy_mixin import _FreeEnergyMixin
-        from .. import IO as _IO
         import os as _os
+
+        from .. import IO as _IO
         from .. import Protocol as _Protocol
+        from ..Protocol._free_energy_mixin import _FreeEnergyMixin
 
         # Create the input files...
-
         # Create a copy of the system.
         system = self._system.copy()
 
@@ -307,16 +307,18 @@ class Gromacs(_process.Process):
     def _generate_config(self):
         """Generate GROMACS configuration file strings."""
         import os as _os
-        from .. import Protocol as _Protocol
-        from sire.legacy import IO as _SireIO
-        from ._plumed import Plumed as _Plumed
-        from sire.legacy import Maths as _SireMaths
+        import shutil as _shutil
         import warnings as _warnings
+
+        from sire.legacy import IO as _SireIO
+        from sire.legacy import Maths as _SireMaths
+        from sire.legacy import Vol as _SireVol
+
+        from .. import Protocol as _Protocol
+        from .. import _gmx_version
         from .._Config import Gromacs as _GromacsConfig
         from ..Protocol._position_restraint_mixin import _PositionRestraintMixin
-        import shutil as _shutil
-        from .. import _gmx_version
-        from sire.legacy import Vol as _SireVol
+        from ._plumed import Plumed as _Plumed
 
         # Check whether the system contains periodic box information.
         space_prop = self._property_map.get("space", "space")
@@ -514,9 +516,10 @@ class Gromacs(_process.Process):
         **kwargs : dict
             Additional keyword arguments.
         """
-        from .. import _Utils
-        import subprocess as _subprocess
         import os as _os
+        import subprocess as _subprocess
+
+        from .. import _Utils
 
         if not isinstance(mdp_file, str):
             raise ValueError("'mdp_file' must be of type 'str'.")
@@ -733,8 +736,10 @@ class Gromacs(_process.Process):
             A handle to the GROMACS process.
         """
         import timeit as _timeit
-        from .. import _Utils
+
         from sire.legacy import Base as _SireBase
+
+        from .. import _Utils
 
         # The process is currently queued.
         if self.isQueued():
@@ -795,9 +800,10 @@ class Gromacs(_process.Process):
         system : :class:`System <BioSimSpace._SireWrappers.System>`
             The latest molecular system.
         """
-        from .. import Units as _Units
         import warnings as _warnings
+
         from .. import Protocol as _Protocol
+        from .. import Units as _Units
 
         # Wait for the process to finish.
         if block is True:
@@ -856,6 +862,7 @@ class Gromacs(_process.Process):
             The latest trajectory object.
         """
         import warnings as _warnings
+
         from .. import Trajectory as _Trajectory
 
         if not isinstance(backend, str):
@@ -1074,8 +1081,8 @@ class Gromacs(_process.Process):
         time : :class:`Time <BioSimSpace.Types.Time>`
             The current simulation time in nanoseconds.
         """
-        from .. import Units as _Units
         from .. import Protocol as _Protocol
+        from .. import Units as _Units
 
         if isinstance(self._protocol, _Protocol.Minimisation):
             return None
@@ -2075,12 +2082,14 @@ class Gromacs(_process.Process):
 
     def _add_position_restraints(self):
         """Helper function to add position restraints."""
-        from ..Protocol._free_energy_mixin import _FreeEnergyMixin
         import os as _os
+
         from sire.legacy import IO as _SireIO
         from sire.legacy import Base as _SireBase
-        from .. import _isVerbose
         from sire.legacy import Units as _SireUnits
+
+        from .. import _isVerbose
+        from ..Protocol._free_energy_mixin import _FreeEnergyMixin
 
         # Get the restraint type.
         restraint = self._protocol.getRestraint()
@@ -2330,8 +2339,9 @@ class Gromacs(_process.Process):
 
     def _initialise_energy_dict(self):
         """Helper function to intialise the energy dictionary."""
-        from .. import _Utils
         import subprocess as _subprocess
+
+        from .. import _Utils
 
         # Grab the available energy terms
         command = f"{self._exe} energy -f {self._energy_file}"
@@ -2440,8 +2450,9 @@ class Gromacs(_process.Process):
         The order that the energy unit is printed will obey the order obtained
         from :meth:`~BioSimSpace.Process.Gromacs._parse_energy_terms`.
         """
-        from .. import Types as _Types
         import warnings as _warnings
+
+        from .. import Types as _Types
         from .. import Units as _Units
 
         section = text.split("---")[-1]
@@ -2519,11 +2530,13 @@ class Gromacs(_process.Process):
 
     def _update_energy_dict(self):
         """Internal function to update the energy dictionary with the latest data."""
-        from tempfile import TemporaryDirectory as _TemporaryDirectory
-        from .. import _Utils
-        from pathlib import Path as _Path
         import subprocess as _subprocess
+        from pathlib import Path as _Path
+        from tempfile import TemporaryDirectory as _TemporaryDirectory
+
         import numpy as _np
+
+        from .. import _Utils
 
         if len(self._energy_dict) == 0:
             self._initialise_energy_dict()
@@ -2587,6 +2600,7 @@ class Gromacs(_process.Process):
             The matching stdout record.
         """
         import warnings as _warnings
+
         from ..Types._type import Type as _Type
 
         # No data!
@@ -2638,11 +2652,13 @@ class Gromacs(_process.Process):
         system : :class:`System <BioSimSpace._SireWrappers.System>`
             The molecular system from the final frame.
         """
-        from .. import IO as _IO
         import os as _os
-        from .. import _Utils
-        from sire.legacy import IO as _SireIO
         import warnings as _warnings
+
+        from sire.legacy import IO as _SireIO
+
+        from .. import IO as _IO
+        from .. import _Utils
 
         # Grab the last frame from the GRO file.
         with _Utils.cd(self._work_dir):
@@ -2730,13 +2746,15 @@ class Gromacs(_process.Process):
         system : :class:`System <BioSimSpace._SireWrappers.System>`
             The molecular system from the closest trajectory frame.
         """
-        from .. import IO as _IO
         import os as _os
-        from .. import _Utils
-        from sire.legacy import IO as _SireIO
-        from .. import Types as _Types
-        import warnings as _warnings
         import subprocess as _subprocess
+        import warnings as _warnings
+
+        from sire.legacy import IO as _SireIO
+
+        from .. import IO as _IO
+        from .. import Types as _Types
+        from .. import _Utils
 
         if not isinstance(time, _Types.Time):
             raise TypeError("'time' must be of type 'BioSimSpace.Types.Time'")
@@ -2860,9 +2878,9 @@ class Gromacs(_process.Process):
         traj_file : str
             The path to the trajectory file.
         """
-        import warnings as _warnings
         import glob as _glob
         import os as _os
+        import warnings as _warnings
 
         # Check that the current trajectory file is found.
         if not _os.path.isfile(self._traj_file):

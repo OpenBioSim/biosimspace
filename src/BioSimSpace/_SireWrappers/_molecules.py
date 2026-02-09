@@ -51,11 +51,11 @@ class Molecules(_SireWrapper):
         """
         from sire.legacy import Mol as _SireMol
         from sire.legacy import System as _SireSystem
-        from ._system import System as _System
+
         from ._molecule import Molecule as _Molecule
+        from ._system import System as _System
 
         # Check that the molecules argument is valid.
-
         # Convert tuple to list.
         if isinstance(molecules, tuple):
             molecules = list(molecules)
@@ -120,8 +120,8 @@ class Molecules(_SireWrapper):
 
     def __add__(self, other):
         """Addition operator."""
-        from ._system import System as _System
         from ._molecule import Molecule as _Molecule
+        from ._system import System as _System
 
         # Convert tuple to a list.
         if isinstance(other, tuple):
@@ -182,6 +182,7 @@ class Molecules(_SireWrapper):
     def __getitem__(self, key):
         """Get a molecule from the container."""
         from sire.legacy import Mol as _SireMol
+
         from ._molecule import Molecule as _Molecule
 
         # Slice.

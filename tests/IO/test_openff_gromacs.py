@@ -1,7 +1,6 @@
 import pytest
 
 import BioSimSpace as BSS
-
 from tests.conftest import has_amber, has_gromacs, has_openff
 
 

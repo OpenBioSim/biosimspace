@@ -65,9 +65,10 @@ class ReplicaSystem:
             format.
         """
 
+        from sire.legacy.System import System as _SireSystem
         from sire.mol._trajectory import TrajectoryIterator as _TrajectoryIterator
         from sire.system import System as _NewSireSystem
-        from sire.legacy.System import System as _SireSystem
+
         from ._system import System as _System
 
         # Check that the system is valid.
@@ -136,6 +137,7 @@ class ReplicaSystem:
             if not is_traj_iterator:
                 import os as _os
                 from tempfile import NamedTemporaryFile as _NamedTemporaryFile
+
                 from .. import _isVerbose
 
                 if not _os.path.isfile(trajectory):
@@ -218,8 +220,10 @@ class ReplicaSystem:
 
             import os as _os
             from tempfile import TemporaryDirectory as _TemporaryDirectory
+
             from sire import load as _load
             from sire import save as _save
+
             from .. import _isVerbose
 
             with _TemporaryDirectory() as tmp_dir:
@@ -364,6 +368,7 @@ class ReplicaSystem:
 
         from sire import save as _save
         from sire.stream import save as _save_stream
+
         from .. import _isVerbose
 
         if not isinstance(filename, str):
@@ -437,6 +442,7 @@ class ReplicaSystem:
         """
 
         from sire.stream import load as _load
+
         from .. import _isVerbose
 
         if not isinstance(stream, str):
@@ -482,8 +488,9 @@ class ReplicaSystem:
             The requested replica as a BioSimSpace System object.
         """
 
-        from ._system import System as _System
         from sire.morph import link_to_perturbed as _link_to_perturbed
+
+        from ._system import System as _System
 
         if not isinstance(index, int):
             raise TypeError("'index' must be an integer.")
@@ -555,6 +562,7 @@ class ReplicaSystem:
         """
 
         from sire import save as _save
+
         from .. import _isVerbose
 
         if not isinstance(filenames, list):
@@ -638,8 +646,10 @@ class ReplicaSystem:
 
         import os as _os
         from tempfile import NamedTemporaryFile as _NamedTemporaryFile
+
         from sire import load as _load
         from sire import save as _save
+
         from .. import _isVerbose
 
         if not isinstance(replica_system, ReplicaSystem):

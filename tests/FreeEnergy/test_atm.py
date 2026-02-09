@@ -1,11 +1,12 @@
+import json
 import math
-import pytest
-import requests
+import os
 import tarfile
 import tempfile
-import json
+
 import pandas as pd
-import os
+import pytest
+import requests
 
 import BioSimSpace as BSS
 

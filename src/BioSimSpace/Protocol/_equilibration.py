@@ -29,7 +29,6 @@ __all__ = ["Equilibration"]
 
 from .. import Types as _Types
 from .. import Units as _Units
-
 from ._position_restraint_mixin import _PositionRestraintMixin
 from ._protocol import Protocol as _Protocol
 

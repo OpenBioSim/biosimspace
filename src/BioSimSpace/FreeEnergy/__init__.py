@@ -47,6 +47,6 @@ import sire as _sr
 _sr.use_new_api()
 del _sr
 
+from ._atm import *
 from ._relative import *
 from ._utils import *
-from ._atm import *

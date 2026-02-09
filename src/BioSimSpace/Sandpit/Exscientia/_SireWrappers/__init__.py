@@ -47,7 +47,7 @@ from ._atom import *
 from ._bond import *
 from ._molecule import *
 from ._molecules import *
+from ._replica_system import *
 from ._residue import *
 from ._search_result import *
 from ._system import *
-from ._replica_system import *

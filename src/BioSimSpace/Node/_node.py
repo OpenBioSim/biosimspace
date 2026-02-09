@@ -1,7 +1,6 @@
-from .._Utils import _try_import
-
-
 import os as _os
+
+from .._Utils import _try_import
 
 _yaml = _try_import("yaml")
 
@@ -35,9 +34,11 @@ def help(name):
     name : str
         The name of the node.
     """
-    from .. import _Utils
-    from sire.legacy import Base as _SireBase
     import subprocess as _subprocess
+
+    from sire.legacy import Base as _SireBase
+
+    from .. import _Utils
 
     if not isinstance(name, str):
         raise TypeError("'name' must be of type 'str'.")
@@ -92,7 +93,9 @@ def run(name, args={}, work_dir=None):
         A dictionary containing the output of the node.
     """
     import subprocess as _subprocess
+
     from sire.legacy import Base as _SireBase
+
     from .. import _Utils
 
     # Validate the input.

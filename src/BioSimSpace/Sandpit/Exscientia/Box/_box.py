@@ -89,8 +89,8 @@ def cubic(image_distance):
     angles : [:class:`Angle <BioSimSpace.Types.Angle>`]
         The box vector angles: yz, xz, and xy.
     """
-    from ..Types import Length as _Length
     from ..Types import Angle as _Angle
+    from ..Types import Length as _Length
 
     # Validate arguments.
 
@@ -126,6 +126,7 @@ def rhombicDodecahedronSquare(image_distance):
         The box vector angles: yz, xz, and xy.
     """
     from sire.legacy.Vol import TriclinicBox as _TriclinicBox
+
     from ..Types import Length as _Length
 
     # Validate arguments.
@@ -165,6 +166,7 @@ def rhombicDodecahedronHexagon(image_distance):
         The box vector angles: yz, xz, and xy.
     """
     from sire.legacy.Vol import TriclinicBox as _TriclinicBox
+
     from ..Types import Length as _Length
 
     # Validate arguments.
@@ -204,6 +206,7 @@ def truncatedOctahedron(image_distance):
         The box vector angles: yz, xz, and xy.
     """
     from sire.legacy.Vol import TriclinicBox as _TriclinicBox
+
     from ..Types import Length as _Length
 
     # Validate arguments.
@@ -238,9 +241,10 @@ def _get_box_parameters(triclinic_box):
     box : [:class:`Length <BioSimSpace.Types.Length>`]
         The box vector magnitudes.
     """
-    from ..Types import Length as _Length
     from sire.legacy.Maths import Vector as _Vector
+
     from ..Types import Angle as _Angle
+    from ..Types import Length as _Length
 
     box = [
         _Length(triclinic_box.vector0().magnitude(), "angstrom"),

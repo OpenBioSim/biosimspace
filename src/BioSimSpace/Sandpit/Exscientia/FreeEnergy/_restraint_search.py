@@ -31,18 +31,15 @@ __all__ = ["RestraintSearch"]
 
 import warnings as _warnings
 
-
-from ..Units.Length import angstrom as _angstrom
-from ..Units.Length import angstrom as _angstrom
 from .. import _is_notebook
+from ..Units.Length import angstrom as _angstrom
 
 if _is_notebook:
     from tqdm.notebook import tqdm as _tqdm
 else:
     from tqdm import tqdm as _tqdm
 
-from .._Utils import _try_import, _have_imported
-
+from .._Utils import _have_imported, _try_import
 
 if _is_notebook:
     from IPython.display import FileLink as _FileLink
@@ -151,12 +148,12 @@ class RestraintSearch:
         kwargs :
             Keyword arguments to be passed to the BSS.Process.
         """
+        from .. import Protocol as _Protocol
+        from .. import _gmx_exe
         from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
         from .._SireWrappers import System as _System
         from .._Utils import WorkDir as _WorkDir
-        from .. import Protocol as _Protocol
         from ..MD._md import _find_md_engines
-        from .. import _gmx_exe
 
         # Validate the input.
         if not _have_imported(_mda):
@@ -403,8 +400,9 @@ class RestraintSearch:
         kwargs :
             Keyword arguments to be passed to the BSS.Process.
         """
-        from .. import Process as _Process
         import os as _os
+
+        from .. import Process as _Process
 
         # Convert to an appropriate AMBER topology. (Required by SOMD for its
         # FEP setup.)
@@ -545,11 +543,12 @@ class RestraintSearch:
                The restraints of `restraint_type` which best mimic the strongest receptor-ligand
                interactions.
         """
-        from ..Trajectory._trajectory import Trajectory as _Trajectory
-        from ..Types import Temperature as _Temperature
-        from .._SireWrappers import System as _System
         import os as _os
+
+        from .._SireWrappers import System as _System
+        from ..Trajectory._trajectory import Trajectory as _Trajectory
         from ..Types import Length as _Length
+        from ..Types import Temperature as _Temperature
 
         _supported_methods = {
             "boresch": ["BSS", "MDRestraintsGenerator"],
@@ -865,14 +864,15 @@ class RestraintSearch:
             The restraints of `restraint_type` which best mimic the strongest receptor-ligand
             interactions.
         """
-        from ._restraint import Restraint as _Restraint
-        from ..Units.Angle import degree as _degree
-        from ..Units.Energy import kcal_per_mol as _kcal_per_mol
-        from ..Units.Angle import radian as _radian
         from MDRestraintsGenerator import search as _search
         from MDRestraintsGenerator.restraints import (
             FindBoreschRestraint as _FindBoreschRestraint,
         )
+
+        from ..Units.Angle import degree as _degree
+        from ..Units.Angle import radian as _radian
+        from ..Units.Energy import kcal_per_mol as _kcal_per_mol
+        from ._restraint import Restraint as _Restraint
 
         print(
             "Using MDRestraintsGenerator to generate Boresch restraints. If you publish "
@@ -1025,10 +1025,11 @@ class RestraintSearch:
             List of receptor-ligand atom pairs ordered by increasing variance of distance over
             the trajectory.
         """
-        from .._Exceptions import AnalysisError as _AnalysisError
-        from MDAnalysis.analysis.distances import dist as _dist
         import numpy as _np
+        from MDAnalysis.analysis.distances import dist as _dist
         from tqdm import tqdm as _tqdm
+
+        from .._Exceptions import AnalysisError as _AnalysisError
 
         lig_selection = u.select_atoms(ligand_selection_str)
 
@@ -1436,12 +1437,13 @@ class RestraintSearch:
                 Dictionary of statistics for the Boresch restraints obtained over the
                 trajectory. Keys are the pair tuples supplied in pair_list.
             """
-            from .._Exceptions import AnalysisError as _AnalysisError
-            from sire.legacy.Units import k_boltz as _k_boltz
-            from ..Units.Energy import kcal_per_mol as _kcal_per_mol
-            from scipy.stats import circmean as _circmean
             import numpy as _np
+            from scipy.stats import circmean as _circmean
+            from sire.legacy.Units import k_boltz as _k_boltz
             from tqdm import tqdm as _tqdm
+
+            from .._Exceptions import AnalysisError as _AnalysisError
+            from ..Units.Energy import kcal_per_mol as _kcal_per_mol
 
             boresch_dof_list = [
                 "r",
@@ -1724,11 +1726,11 @@ class RestraintSearch:
                 The restraint defined by boresch_dof_data and labelled by pair.
 
             """
-            from ._restraint import Restraint as _Restraint
             from .. import Units as _Units
             from .._Exceptions import AnalysisError as _AnalysisError
-            from ..Units.Energy import kcal_per_mol as _kcal_per_mol
             from ..Units.Angle import radian as _radian
+            from ..Units.Energy import kcal_per_mol as _kcal_per_mol
+            from ._restraint import Restraint as _Restraint
 
             anchor_idxs = {
                 "l1": boresch_dof_data[pair]["anchor_ats"][0],
@@ -1967,8 +1969,9 @@ class RestraintSearch:
             interactions.
         """
         import numpy as _np
-        from ._restraint import Restraint as _Restraint
+
         from .._Exceptions import AnalysisError as _AnalysisError
+        from ._restraint import Restraint as _Restraint
 
         def _get_norm_vector(frame, pair):
             """
@@ -2100,8 +2103,8 @@ class RestraintSearch:
                 the keys are the pair indices and the values are lists of
                 distances in Angstroms.
             """
-            import numpy as _np
             import matplotlib.pyplot as _plt
+            import numpy as _np
 
             n_pairs = len(distance_dict)
             n_columns = 6
@@ -2188,6 +2191,7 @@ class RestraintSearch:
                 The multiple distance restraints dictionary.
             """
             import numpy as _np
+
             from ..Units.Energy import kcal_per_mol as _kcal_per_mol
 
             # For each pair, get a list of the distances over the trajectory.

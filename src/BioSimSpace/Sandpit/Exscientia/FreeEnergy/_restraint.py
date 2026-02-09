@@ -22,12 +22,15 @@
 """
 A class for holding restraints.
 """
+
 from typing import Literal
 
 
 def sqrt(u):
-    from sire.units import GeneralUnit as _sire_GeneralUnit
     import math as _math
+
+    from sire.units import GeneralUnit as _sire_GeneralUnit
+
     from ..Types._general_unit import GeneralUnit as _GeneralUnit
 
     dims = u._sire_unit.dimensions()
@@ -42,8 +45,10 @@ def sqrt(u):
 
 
 def exp(u):
-    from sire.units import GeneralUnit as _sire_GeneralUnit
     import math as _math
+
+    from sire.units import GeneralUnit as _sire_GeneralUnit
+
     from ..Types._general_unit import GeneralUnit as _GeneralUnit
 
     dims = u._sire_unit.dimensions()
@@ -51,8 +56,9 @@ def exp(u):
 
 
 def erf(u):
-    from sire.units import GeneralUnit as _sire_GeneralUnit
     from scipy.special import erf as _erf
+    from sire.units import GeneralUnit as _sire_GeneralUnit
+
     from ..Types._general_unit import GeneralUnit as _GeneralUnit
 
     dims = u._sire_unit.dimensions()
@@ -148,17 +154,17 @@ class Restraint:
             The type of the restraint. (`Boresch`, `multiple_distance`)
         """
         import warnings as _warnings
-        from ..Types import (
-            Angle as _Angle,
-            Length as _Length,
-            Temperature as _Temperature,
-        )
+
         import numpy as _np
         from sire.legacy.Units import k_boltz as _k_boltz
-        from ..Units.Temperature import kelvin as _kelvin
+
         from .._SireWrappers import Atom as _Atom
+        from ..Types import Angle as _Angle
+        from ..Types import Length as _Length
+        from ..Types import Temperature as _Temperature
         from ..Units.Angle import radian as _radian
         from ..Units.Energy import kcal_per_mol as _kcal_per_mol
+        from ..Units.Temperature import kelvin as _kelvin
 
         if not isinstance(temperature, _Temperature):
             raise ValueError(
@@ -409,8 +415,9 @@ class Restraint:
 
     def _gromacs_boresch(self, perturbation_type=None, restraint_lambda=False):
         """Format the Gromacs string for boresch restraint."""
+        from ..Units.Angle import degree as _degree
+        from ..Units.Angle import radian as _radian
         from ..Units.Energy import kcal_per_mol as _kcal_per_mol
-        from ..Units.Angle import degree as _degree, radian as _radian
 
         # Format the atoms into index list
         def format_index(key_list):
@@ -474,9 +481,10 @@ class Restraint:
 
             When restraint_lambda is True, the dihedrals will be stored in the dihedral_restraints.
             """
-            from ..Types._general_unit import GeneralUnit as _GeneralUnit
             from ..Types import Angle as _Angle
-            from ..Units.Angle import degree as _degree, radian as _radian
+            from ..Types._general_unit import GeneralUnit as _GeneralUnit
+            from ..Units.Angle import degree as _degree
+            from ..Units.Angle import radian as _radian
             from ..Units.Energy import kj_per_mol as _kj_per_mol
 
             if isinstance(equilibrium_values, _Angle):
@@ -770,8 +778,8 @@ class Restraint:
 
     def _somd_boresch(self, perturbation_type=None):
         """Format the SOMD string for the Boresch restraints."""
-        from ..Units.Energy import kcal_per_mol as _kcal_per_mol
         from ..Units.Angle import radian as _radian
+        from ..Units.Energy import kcal_per_mol as _kcal_per_mol
         from ..Units.Length import angstrom as _angstrom
 
         # Indices
@@ -940,19 +948,19 @@ class Restraint:
             in kcal / mol.
         """
         import warnings as _warnings
-        from sire.legacy.Units import (
-            angstrom3 as _Sire_angstrom3,
-            k_boltz as _k_boltz,
-            meter3 as _Sire_meter3,
-            mole as _Sire_mole,
-        )
-        from ..Units.Length import angstrom as _angstrom
+
         import numpy as _np
         from scipy import integrate as _integrate
-        from ..Units.Temperature import kelvin as _kelvin
+        from sire.legacy.Units import angstrom3 as _Sire_angstrom3
+        from sire.legacy.Units import k_boltz as _k_boltz
+        from sire.legacy.Units import meter3 as _Sire_meter3
+        from sire.legacy.Units import mole as _Sire_mole
+
         from ..Units.Angle import radian as _radian
-        from ..Units.Energy import kcal_per_mol as _kcal_per_mol
         from ..Units.Area import angstrom2 as _angstrom2
+        from ..Units.Energy import kcal_per_mol as _kcal_per_mol
+        from ..Units.Length import angstrom as _angstrom
+        from ..Units.Temperature import kelvin as _kelvin
 
         # Constants. Take .value() to avoid issues with ** and log of GeneralUnit
         v0 = (
@@ -1175,8 +1183,9 @@ class Restraint:
                     be truncated to [0, 8 RT] for practicality.
                     """
                     import numpy as _np
-                    from ..Units.Energy import kcal_per_mol as _kcal_per_mol
                     from scipy import integrate as _integrate
+
+                    from ..Units.Energy import kcal_per_mol as _kcal_per_mol
 
                     dist_at_8RT = (
                         4 * _np.sqrt((R * T) / kr) + r_fb
@@ -1212,12 +1221,13 @@ class Restraint:
 
     def _schrodinger_analytical_correction(self):
         # Adapted from DOI: 10.1021/acs.jcim.3c00013
-        from ..Types._general_unit import GeneralUnit as _GeneralUnit
         import numpy as _np
         from scipy.special import erf as _erf
         from sire.legacy.Units import k_boltz as _k_boltz
-        from ..Units.Volume import angstrom3 as _angstrom3
+
+        from ..Types._general_unit import GeneralUnit as _GeneralUnit
         from ..Units.Angle import radian as _radian
+        from ..Units.Volume import angstrom3 as _angstrom3
 
         k_boltz = _GeneralUnit(_k_boltz)
         beta = 1 / (k_boltz * self.T)
@@ -1271,18 +1281,17 @@ class Restraint:
         return dG
 
     def _boresch_analytical_correction(self):
-        from sire.legacy.Units import (
-            angstrom3 as _Sire_angstrom3,
-            k_boltz as _k_boltz,
-            meter3 as _Sire_meter3,
-            mole as _Sire_mole,
-        )
-        from ..Units.Length import angstrom as _angstrom
         import numpy as _np
-        from ..Units.Temperature import kelvin as _kelvin
+        from sire.legacy.Units import angstrom3 as _Sire_angstrom3
+        from sire.legacy.Units import k_boltz as _k_boltz
+        from sire.legacy.Units import meter3 as _Sire_meter3
+        from sire.legacy.Units import mole as _Sire_mole
+
         from ..Units.Angle import radian as _radian
-        from ..Units.Energy import kcal_per_mol as _kcal_per_mol
         from ..Units.Area import angstrom2 as _angstrom2
+        from ..Units.Energy import kcal_per_mol as _kcal_per_mol
+        from ..Units.Length import angstrom as _angstrom
+        from ..Units.Temperature import kelvin as _kelvin
 
         R = (
             _k_boltz.value() * _kcal_per_mol / _kelvin

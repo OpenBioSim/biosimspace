@@ -44,9 +44,10 @@ def decouple(
     decoupled : Sire.Mol.Molecule
         The molecule marked as being decoupled.
     """
+    from sire.legacy import Base as _SireBase
+
     from .._Exceptions import IncompatibleError as _IncompatibleError
     from .._SireWrappers import Molecule as _Molecule
-    from sire.legacy import Base as _SireBase
 
     # Validate input.
 

@@ -49,13 +49,13 @@ class Molecules(_SireWrapper):
             A Sire Molecues object, a Sire or BioSimSpace System object,
             or a list of BioSimSpace Molecule objects.
         """
+        from sire.legacy import Mol as _SireMol
         from sire.legacy import System as _SireSystem
+
         from ._molecule import Molecule as _Molecule
         from ._system import System as _System
-        from sire.legacy import Mol as _SireMol
 
         # Check that the molecules argument is valid.
-
         # Convert tuple to list.
         if isinstance(molecules, tuple):
             molecules = list(molecules)
@@ -181,8 +181,9 @@ class Molecules(_SireWrapper):
 
     def __getitem__(self, key):
         """Get a molecule from the container."""
-        from ._molecule import Molecule as _Molecule
         from sire.legacy import Mol as _SireMol
+
+        from ._molecule import Molecule as _Molecule
 
         # Slice.
         if isinstance(key, slice):
@@ -399,8 +400,8 @@ class Molecules(_SireWrapper):
 
         >>> result = molecule.search("atomidx 23")
         """
-        from ._search_result import SearchResult as _SearchResult
         from .. import _isVerbose
+        from ._search_result import SearchResult as _SearchResult
 
         if not isinstance(query, str):
             raise TypeError("'query' must be of type 'str'")

@@ -1,10 +1,9 @@
 import os
-import numpy as np
 import pickle
+
+import numpy as np
 import pytest
-
 import sire
-
 from sire.maths import Vector
 
 import BioSimSpace as BSS

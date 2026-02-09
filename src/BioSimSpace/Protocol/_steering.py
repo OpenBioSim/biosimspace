@@ -29,7 +29,6 @@ __all__ = ["Steering"]
 
 from .. import Types as _Types
 from ..Metadynamics import CollectiveVariable as _CollectiveVariable
-
 from ._protocol import Protocol as _Protocol
 
 # Store the collective variable base type.

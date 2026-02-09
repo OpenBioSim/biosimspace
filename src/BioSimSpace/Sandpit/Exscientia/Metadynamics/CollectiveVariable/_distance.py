@@ -27,8 +27,8 @@ __email__ = "lester.hedges@gmail.com"
 __all__ = ["Distance"]
 
 
-from ._collective_variable import CollectiveVariable as _CollectiveVariable
 from ...Types import Length as _Length
+from ._collective_variable import CollectiveVariable as _CollectiveVariable
 
 
 class Distance(_CollectiveVariable):

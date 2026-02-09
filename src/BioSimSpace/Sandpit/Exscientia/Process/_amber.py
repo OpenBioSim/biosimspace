@@ -41,7 +41,6 @@ _alchemlyb = _try_import("alchemlyb")
 if _have_imported(_alchemlyb):
     from alchemlyb.parsing.amber import extract as _extract
 
-
 from . import _process
 
 
@@ -106,8 +105,9 @@ class Amber(_process.Process):
             own naming scheme, e.g. { "charge" : "my-charge" }
         """
         import os as _os
-        from .. import _amber_home
+
         from .. import Protocol as _Protocol
+        from .. import _amber_home
         from .._Exceptions import IncompatibleError as _IncompatibleError
         from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
 
@@ -214,8 +214,9 @@ class Amber(_process.Process):
 
     def _setup(self):
         """Setup the input files and working directory ready for simulation."""
-        from .. import Protocol as _Protocol
         import shutil as _shutil
+
+        from .. import Protocol as _Protocol
 
         # Create the input files...
         self._squashed_system, self._mapping = self._write_system(
@@ -275,12 +276,14 @@ class Amber(_process.Process):
              The corresponding molecule-to-molecule mapping.
         """
         import os as _os
-        from .. import Protocol as _Protocol
+        import shutil
+
         from sire.legacy import Mol as _SireMol
+
+        from .. import IO as _IO
+        from .. import Protocol as _Protocol
         from .. import _isVerbose
         from ..Align._squash import _squash
-        from .. import IO as _IO
-        import shutil
 
         # Create a copy of the system.
         system = system.copy()
@@ -350,11 +353,12 @@ class Amber(_process.Process):
     def _generate_config(self):
         """Generate AMBER configuration file strings."""
         import os as _os
+        import shutil as _shutil
+        import warnings as _warnings
+
         from .. import Protocol as _Protocol
         from .._Exceptions import IncompatibleError as _IncompatibleError
-        import shutil as _shutil
         from ._plumed import Plumed as _Plumed
-        import warnings as _warnings
 
         # Clear the existing configuration list.
         self._config = []
@@ -569,8 +573,10 @@ class Amber(_process.Process):
         process : :class:`Process.Amber <BioSimSpace.Process.Amber>`
             The process object.
         """
-        from sire.legacy import Base as _SireBase
         import timeit as _timeit
+
+        from sire.legacy import Base as _SireBase
+
         from .. import _Utils
 
         # The process is currently queued.
@@ -625,14 +631,16 @@ class Amber(_process.Process):
             The latest molecular system.
         """
         import os as _os
+        import shutil as _shutil
+        import tempfile as _tempfile
+        import warnings as _warnings
+
         from sire.legacy import IO as _SireIO
+        from sire.legacy import Mol as _SireMol
+
         from .. import Protocol as _Protocol
         from .._SireWrappers import System as _System
-        from sire.legacy import Mol as _SireMol
-        import shutil as _shutil
         from ..Align._squash import _unsquash
-        import warnings as _warnings
-        import tempfile as _tempfile
 
         # Wait for the process to finish.
         if block is True:
@@ -762,8 +770,9 @@ class Amber(_process.Process):
         trajectory : :class:`Trajectory <BioSimSpace.Trajectory.Trajectory>`
             The latest trajectory object.
         """
-        from .. import Trajectory as _Trajectory
         import warnings as _warnings
+
+        from .. import Trajectory as _Trajectory
 
         if not isinstance(backend, str):
             raise TypeError("'backend' must be of type 'str'")
@@ -803,10 +812,11 @@ class Amber(_process.Process):
         frame : :class:`System <BioSimSpace._SireWrappers.System>`
             The System object of the corresponding frame.
         """
-        from .. import Trajectory as _Trajectory
         from sire.legacy import IO as _SireIO
-        from .. import Protocol as _Protocol
         from sire.legacy import Mol as _SireMol
+
+        from .. import Protocol as _Protocol
+        from .. import Trajectory as _Trajectory
         from ..Align._squash import _unsquash
 
         if not type(index) is int:
@@ -1163,8 +1173,8 @@ class Amber(_process.Process):
         time : :class:`Time <BioSimSpace.Types.Time>`
             The current simulation time in nanoseconds.
         """
-        from .. import Units as _Units
         from .. import Protocol as _Protocol
+        from .. import Units as _Units
 
         # No time records for minimisation protocols.
         if isinstance(self._protocol, _Protocol.Minimisation):
@@ -2158,8 +2168,8 @@ class Amber(_process.Process):
         energy : :class:`Energy <BioSimSpace.Types.Energy>`
            The total energy.
         """
-        from .. import Units as _Units
         from .. import Protocol as _Protocol
+        from .. import Units as _Units
 
         if not isinstance(region, int):
             raise TypeError("'region' must be of type 'int'")
@@ -2706,6 +2716,7 @@ class Amber(_process.Process):
             The number of lines to print.
         """
         import re as _re
+
         from .. import Protocol as _Protocol
 
         # Ensure that the number of lines is positive.
@@ -2884,8 +2895,9 @@ class Amber(_process.Process):
         record :
             The matching stdout record.
         """
-        from ..Types._type import Type as _Type
         import warnings as _warnings
+
+        from ..Types._type import Type as _Type
 
         # Update the standard output dictionary.
         self.stdout(0)
@@ -3013,11 +3025,13 @@ class Amber(_process.Process):
         is Free Energy protocol, the dHdl and the u_nk data will be saved in the
         same parquet format as well.
         """
-        from alchemlyb.parsing.amber import extract as _extract
-        from .. import Units as _Units
-        from .. import Protocol as _Protocol
-        from .._Utils import _assert_imported
         import warnings as _warnings
+
+        from alchemlyb.parsing.amber import extract as _extract
+
+        from .. import Protocol as _Protocol
+        from .. import Units as _Units
+        from .._Utils import _assert_imported
 
         if filename is not None:
             self._init_stdout_dict()

@@ -1,5 +1,6 @@
-import pytest
 import random
+
+import pytest
 
 import BioSimSpace.Types as Types
 

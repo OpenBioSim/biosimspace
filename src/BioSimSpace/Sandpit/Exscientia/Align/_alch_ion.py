@@ -25,6 +25,7 @@ def _mark_alchemical_ion(molecule):
         The molecule marked as being alchemical ion.
     """
     import warnings
+
     from .._SireWrappers import Molecule as _Molecule
 
     # Validate input.

@@ -75,10 +75,11 @@ class Gromacs(_Config):
         config : [str]
             The list of AMBER format configuration strings.
         """
-        import warnings as _warnings
         import math as _math
-        from ..Protocol._free_energy_mixin import _FreeEnergyMixin
+        import warnings as _warnings
+
         from .. import Protocol as _Protocol
+        from ..Protocol._free_energy_mixin import _FreeEnergyMixin
         from ..Protocol._position_restraint_mixin import _PositionRestraintMixin
 
         # Validate input.

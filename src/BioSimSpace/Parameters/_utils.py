@@ -49,12 +49,12 @@ def formalCharge(molecule, property_map={}):
     formal_charge : :class:`Charge <BioSimSpace.Types.Charge>`
         The total formal charge on the molecule.
     """
-    from .. import IO as _IO
-    from ..Units.Charge import electron_charge as _electron_charge
     import tempfile as _tempfile
-    from .. import _isVerbose
-    from .. import _Utils
+
+    from .. import IO as _IO
+    from .. import _isVerbose, _Utils
     from .._SireWrappers import Molecule as _Molecule
+    from ..Units.Charge import electron_charge as _electron_charge
 
     if not isinstance(molecule, _Molecule):
         raise TypeError(

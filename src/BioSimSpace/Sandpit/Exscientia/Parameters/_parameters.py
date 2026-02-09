@@ -48,10 +48,8 @@ _amber_protein_forcefields = {
 }
 
 from .. import _isVerbose
-
+from .._Utils import _have_imported, _try_import
 from ..Types import Length as _Length
-from .._Utils import _try_import, _have_imported
-
 from . import _Protocol
 
 
@@ -205,9 +203,9 @@ def _parameterise_amber_protein(
         .getMolecule() method on the returned process to block until the
         parameterisation is complete and get the parameterised molecule.
     """
-    from ._process import Process as _Process
-    from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
     from .. import _amber_home, _gmx_exe, _gmx_path
+    from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
+    from ._process import Process as _Process
 
     if not isinstance(forcefield, str):
         raise TypeError("'forcefield' must be of type 'str'.")
@@ -316,10 +314,10 @@ def gaff(
         .getMolecule() method on the returned process to block until the
         parameterisation is complete and get the parameterised molecule.
     """
-    from ._process import Process as _Process
+    from .. import _amber_home
     from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
     from ..Types import Charge as _Charge
-    from .. import _amber_home
+    from ._process import Process as _Process
 
     if _amber_home is None:
         raise _MissingSoftwareError(
@@ -416,10 +414,10 @@ def gaff2(
         .getMolecule() method on the returned process to block until the
         parameterisation is complete and get the parameterised molecule.
     """
-    from ._process import Process as _Process
+    from .. import _amber_home
     from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
     from ..Types import Charge as _Charge
-    from .. import _amber_home
+    from ._process import Process as _Process
 
     if _amber_home is None:
         raise _MissingSoftwareError(
@@ -844,9 +842,9 @@ def _validate(
         values. This allows the user to refer to properties with their
         own naming scheme, e.g. { "charge" : "my-charge" }
     """
-    from ..Solvent import waterModels as _waterModels
-    from .._SireWrappers import Molecule as _Molecule
     from .._SireWrappers import Atom as _Atom
+    from .._SireWrappers import Molecule as _Molecule
+    from ..Solvent import waterModels as _waterModels
 
     if molecule is not None:
         if not isinstance(molecule, (_Molecule, str)):
@@ -1139,8 +1137,8 @@ for _ff in list(_amber_protein_forcefields.keys()) + ["gaff", "gaff2"]:
 _openforcefields = _try_import("openforcefields")
 
 if _have_imported(_openforcefields):
-    from glob import glob as _glob
     import os as _os
+    from glob import glob as _glob
 
     _openff_dirs = _openforcefields.get_forcefield_dirs_paths()
     _open_forcefields = []

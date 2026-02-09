@@ -1,18 +1,16 @@
+import os
 from typing import Dict, Optional
 
-import os
 import pandas
 import pytest
 
 from BioSimSpace.Sandpit import Exscientia as BSS
-
+from BioSimSpace.Sandpit.Exscientia._SireWrappers import Molecule
+from BioSimSpace.Sandpit.Exscientia._Utils import _have_imported, _try_import
 from BioSimSpace.Sandpit.Exscientia.Process import Gromacs
 from BioSimSpace.Sandpit.Exscientia.Protocol import Production
 from BioSimSpace.Sandpit.Exscientia.Units.Temperature import kelvin
 from BioSimSpace.Sandpit.Exscientia.Units.Time import femtosecond
-from BioSimSpace.Sandpit.Exscientia._SireWrappers import Molecule
-
-from BioSimSpace.Sandpit.Exscientia._Utils import _try_import, _have_imported
 
 # Turn on verbose error messages.
 BSS.setVerbose(True)
@@ -80,8 +78,8 @@ except ModuleNotFoundError:
 
 # Check for alchemtest.
 try:
-    from alchemtest.gmx import load_ABFE
     from alchemtest.amber import load_bace_example
+    from alchemtest.gmx import load_ABFE
 
     has_alchemtest = True
 except ModuleNotFoundError:

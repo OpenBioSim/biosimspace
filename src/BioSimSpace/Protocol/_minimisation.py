@@ -28,7 +28,6 @@ __all__ = ["Minimisation"]
 
 
 from .. import Units as _Units
-
 from ._position_restraint_mixin import _PositionRestraintMixin
 from ._protocol import Protocol as _Protocol
 

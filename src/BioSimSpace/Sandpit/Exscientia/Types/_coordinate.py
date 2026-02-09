@@ -46,8 +46,8 @@ class Coordinate:
         z : :class: `Length <BioSimSpace.Types.Length>`
             The z position.
         """
-        from ._vector import Vector as _Vector
         from ._length import Length as _Length
+        from ._vector import Vector as _Vector
 
         if not isinstance(x, _Length):
             raise TypeError("'x' must be of type 'BioSimSpace.Types.Length'")
@@ -95,8 +95,8 @@ class Coordinate:
         result : :class: `Coordinate <BioSimSpace.Types.Coordinate>`
             The sum of the two coordinates.
         """
-        from ._vector import Vector as _Vector
         from ._length import Length as _Length
+        from ._vector import Vector as _Vector
 
         if isinstance(other, Coordinate):
             return self.fromVector(self._vector + other._vector, _Length(1, "A"))
@@ -132,8 +132,8 @@ class Coordinate:
         result : :class: `Coordinate <BioSimSpace.Types.Coordinate>`
             The difference of the two coordinates.
         """
-        from ._vector import Vector as _Vector
         from ._length import Length as _Length
+        from ._vector import Vector as _Vector
 
         if isinstance(other, Coordinate):
             return self.fromVector(self._vector - other._vector, _Length(1, "A"))
@@ -262,8 +262,8 @@ class Coordinate:
         unit : :class: `Length <BioSimSpace.Types.Length>`
             The coordinate unit.
         """
-        from ._vector import Vector as _Vector
         from ._length import Length as _Length
+        from ._vector import Vector as _Vector
 
         if not isinstance(vector, _Vector):
             raise TypeError("'vector' must be of type 'BioSimSpace.Types.Vector'")

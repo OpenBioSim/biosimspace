@@ -41,8 +41,9 @@ def cd(work_dir):
     work_dir : str
         The working directory for the context.
     """
-    from ._workdir import WorkDir as _WorkDir
     import os as _os
+
+    from ._workdir import WorkDir as _WorkDir
 
     # Validate the input.
     if not isinstance(work_dir, (str, _WorkDir)):

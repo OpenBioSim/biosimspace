@@ -43,8 +43,8 @@ def _compute_kappa_hessian(ln_z, ln_q, factor, n):
 
 
 def _compute_kappa(ln_z, ln_q, factor, n):
-    import scipy.special as _special
     import numpy as _numpy
+    import scipy.special as _special
 
     ln_z = _numpy.insert(ln_z, 0, 0.0)
 
@@ -103,8 +103,9 @@ def _estimate_f_i(ln_q, n_k):
     Returns:
         The estimated reduced free energies and their estimated variance.
     """
-    import warnings as _warnings
     import functools as _functools
+    import warnings as _warnings
+
     import numpy as _numpy
     import scipy.optimize as _optimize
 
@@ -239,8 +240,8 @@ def analyse_UWHAM(work_dir, ignore_lower, ignore_upper, inflection_indices=None)
     ddg_total_error : :class:`BioSimSpace.Types.Energy`
         The error in the free energy.
     """
-    import pandas as _pd
     import numpy as _numpy
+    import pandas as _pd
 
     # NOTE: This code is not designed to work with repex
     # It always assumes that each window is at the same temperature
@@ -373,13 +374,15 @@ def analyse_MBAR(work_dir):
     Analyse the MBAR-compatible outputs.
     Adapted version of BioSimSpace _analyse_internal function
     """
-    import numpy as _numpy
-    import pandas as _pd
     import os as _os
     import pathlib as _pathlib
-    from ._relative import Relative as _Relative
+
+    import numpy as _numpy
+    import pandas as _pd
     from alchemlyb.postprocessors.units import to_kcalmol as _to_kcalmol
+
     from .. import Units as _Units
+    from ._relative import Relative as _Relative
 
     try:
         from alchemlyb.estimators import AutoMBAR as _AutoMBAR

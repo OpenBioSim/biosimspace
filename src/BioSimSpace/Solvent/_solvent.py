@@ -28,7 +28,6 @@ __all__ = ["solvate", "spc", "spce", "tip3p", "tip4p", "tip5p", "opc", "waterMod
 
 import sys as _sys
 
-
 from ..Types import Angle as _Angle
 
 
@@ -815,11 +814,12 @@ def _validate_input(
     (molecule, box, angles, shell, work_dir, property_map) : tuple
         The validated input arguments.
     """
-    from .._SireWrappers import Molecule as _Molecule
-    from ..Types import Coordinate as _Coordinate
-    from .._SireWrappers import System as _System
     import warnings as _warnings
+
+    from .._SireWrappers import Molecule as _Molecule
     from .._SireWrappers import Molecules as _Molecules
+    from .._SireWrappers import System as _System
+    from ..Types import Coordinate as _Coordinate
     from ..Types import Length as _Length
 
     # Whether to check the box size.
@@ -1049,20 +1049,20 @@ def _solvate(
     system : :class:`System <BioSimSpace._SireWrappers.System>`
         The solvated system.
     """
-    from sire.legacy import Base as _SireBase
-    from .. import _Utils
-    from .. import IO as _IO
-    from .. import _gmx_exe
-    from .._SireWrappers import System as _System
+    import os as _os
+    import re as _re
+    import shutil as _shutil
     import subprocess as _subprocess
     import warnings as _warnings
-    from sire.legacy.Vol import TriclinicBox as _TriclinicBox
-    from .. import _isVerbose
-    import re as _re
-    import os as _os
+
+    from sire.legacy import Base as _SireBase
     from sire.legacy.Maths import Vector as _Vector
-    import shutil as _shutil
     from sire.legacy.Units import degree as _degree
+    from sire.legacy.Vol import TriclinicBox as _TriclinicBox
+
+    from .. import IO as _IO
+    from .. import _gmx_exe, _isVerbose, _Utils
+    from .._SireWrappers import System as _System
     from ..Types import Length as _Length
 
     if molecule is not None:

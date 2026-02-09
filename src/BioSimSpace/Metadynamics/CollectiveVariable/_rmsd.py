@@ -27,8 +27,8 @@ __email__ = "lester.hedges@gmail.com"
 __all__ = ["RMSD"]
 
 
-from ._collective_variable import CollectiveVariable as _CollectiveVariable
 from ...Types import Length as _Length
+from ._collective_variable import CollectiveVariable as _CollectiveVariable
 
 
 class RMSD(_CollectiveVariable):
@@ -102,14 +102,15 @@ class RMSD(_CollectiveVariable):
             values. This allows the user to refer to properties with their
             own naming scheme, e.g. { "charge" : "my-charge" }
         """
+        from sire.legacy import IO as _SireIO
+        from sire.legacy import Mol as _SireMol
+        from sire.mol import selection_to_atoms as _selection_to_atoms
+
+        from ... import _isVerbose
         from ..._Exceptions import IncompatibleError as _IncompatibleError
         from ..._SireWrappers import Atom as _Atom
-        from sire.mol import selection_to_atoms as _selection_to_atoms
-        from sire.legacy import IO as _SireIO
-        from ..._SireWrappers import System as _System
         from ..._SireWrappers import Molecule as _Molecule
-        from sire.legacy import Mol as _SireMol
-        from ... import _isVerbose
+        from ..._SireWrappers import System as _System
 
         # Call the base class constructor.
         super().__init__()
@@ -579,9 +580,11 @@ class RMSD(_CollectiveVariable):
              The initial value of the RMSD.
         """
         from math import sqrt as _sqrt
-        from ...Align import rmsdAlign as _rmsdAlign
-        from ..._SireWrappers import System as _System
+
         from sire.legacy import Mol as _SireMol
+
+        from ..._SireWrappers import System as _System
+        from ...Align import rmsdAlign as _rmsdAlign
 
         # Note that we need to do this manually, since Sire.Mol.Evaluator doesn't
         # work correctly for molecules with different numbers of coordinate groups.

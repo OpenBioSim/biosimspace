@@ -31,12 +31,10 @@ __email__ = "lester.hedges@gmail.com"
 __all__ = ["OpenForceField"]
 
 
-from ..._Utils import _try_import, _have_imported
-
 import os as _os
-
-
 import warnings as _warnings
+
+from ..._Utils import _have_imported, _try_import
 
 # Suppress duplicate to-Python converted warnings.
 # Both Sire and RDKit register the same converter.
@@ -193,15 +191,15 @@ class OpenForceField(_protocol.Protocol):
         molecule : BioSimSpace._SireWrappers.Molecule
             The parameterised molecule.
         """
-        from ..._Exceptions import ThirdPartyError as _ThirdPartyError
-        from ..._Exceptions import MissingSoftwareError as _MissingSoftwareError
-        from ... import Convert as _Convert
-        from ..._SireWrappers import Molecule as _Molecule
-        from ... import _isVerbose
-        from ... import IO as _IO
         import queue as _queue
+
+        from ... import IO as _IO
+        from ... import Convert as _Convert
+        from ... import _isVerbose, _Utils
         from ..._Exceptions import ConversionError as _ConversionError
-        from ... import _Utils
+        from ..._Exceptions import MissingSoftwareError as _MissingSoftwareError
+        from ..._Exceptions import ThirdPartyError as _ThirdPartyError
+        from ..._SireWrappers import Molecule as _Molecule
 
         if not isinstance(molecule, (_Molecule, str)):
             raise TypeError(

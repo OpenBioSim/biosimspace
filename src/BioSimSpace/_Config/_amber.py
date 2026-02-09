@@ -92,13 +92,15 @@ class Amber(_Config):
         config : [str]
             The list of AMBER format configuration strings.
         """
-        from ..Protocol._position_restraint_mixin import _PositionRestraintMixin
-        from .. import Protocol as _Protocol
-        from sire.legacy import Units as _SireUnits
-        from ..Protocol._free_energy_mixin import _FreeEnergyMixin
         import math as _math
         import warnings as _warnings
+
+        from sire.legacy import Units as _SireUnits
+
+        from .. import Protocol as _Protocol
         from ..Align._squash import _squashed_atom_mapping
+        from ..Protocol._free_energy_mixin import _FreeEnergyMixin
+        from ..Protocol._position_restraint_mixin import _PositionRestraintMixin
 
         # Validate input.
 

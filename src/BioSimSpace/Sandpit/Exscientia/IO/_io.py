@@ -37,7 +37,6 @@ __all__ = [
 
 from collections import OrderedDict as _OrderedDict
 
-
 # Flag that we've not yet raised a warning about GROMACS not being installed.
 _has_gmx_warned = False
 
@@ -230,12 +229,12 @@ def readPDB(id, pdb4amber=False, work_dir=None, show_warnings=False, property_ma
     >>> import BioSimSpace as BSS
     >>> system = BSS.IO.readPDB("file.pdb", pdb4amber=True)
     """
-    from .._SireWrappers import System as _System
-    from .. import _amber_home
     import os as _os
-    from .. import _Utils
-    from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
     import subprocess as _subprocess
+
+    from .. import _amber_home, _Utils
+    from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
+    from .._SireWrappers import System as _System
 
     if not isinstance(id, str):
         raise TypeError("'id' must be of type 'str'")
@@ -408,14 +407,14 @@ def readMolecules(
     >>> import BioSimSpace as BSS
     >>> system = BSS.IO.readMolecules(["mol.gro87", "mol.grotop"], property_map={"GROMACS_PATH" : "/path/to/gromacs/topology"})
     """
-    import warnings as _warnings
-    from sire.legacy import Base as _SireBase
-    from .._SireWrappers import System as _System
-    from .. import _isVerbose
-    from .. import _gmx_path
-    from glob import glob as _glob
     import os as _os
-    from .. import _Utils
+    import warnings as _warnings
+    from glob import glob as _glob
+
+    from sire.legacy import Base as _SireBase
+
+    from .. import _gmx_path, _isVerbose, _Utils
+    from .._SireWrappers import System as _System
 
     global _has_gmx_warned
     if _gmx_path is None and not _has_gmx_warned:
@@ -655,17 +654,16 @@ def saveMolecules(
     >>> system = BSS.IO.readMolecules(files, property_map={"charge" : "my-charge"})
     >>> BSS.IO.saveMolecules("test", system, ["gro87", "grotop"], property_map={"charge" : "my-charge"})
     """
-    import warnings as _warnings
-    from .._SireWrappers import Molecule as _Molecule
-    from .._SireWrappers import System as _System
-    from sire.legacy import Base as _SireBase
-    from ._file_cache import _update_cache
-    from .. import _isVerbose
-    from ._file_cache import _check_cache
-    from .. import _gmx_path
-    from .._SireWrappers import Molecules as _Molecules
     import os as _os
-    from ._file_cache import _cache_active
+    import warnings as _warnings
+
+    from sire.legacy import Base as _SireBase
+
+    from .. import _gmx_path, _isVerbose
+    from .._SireWrappers import Molecule as _Molecule
+    from .._SireWrappers import Molecules as _Molecules
+    from .._SireWrappers import System as _System
+    from ._file_cache import _cache_active, _check_cache, _update_cache
 
     global _has_gmx_warned
     if _gmx_path is None and not _has_gmx_warned:
@@ -909,8 +907,8 @@ def savePerturbableSystem(filebase, system, save_velocities=True, property_map={
         own naming scheme, e.g. { "charge" : "my-charge" }
     """
     from .._SireWrappers import Molecule as _Molecule
-    from .._SireWrappers import System as _System
     from .._SireWrappers import Molecules as _Molecules
+    from .._SireWrappers import System as _System
 
     # Check that the filebase is a string.
     if not isinstance(filebase, str):
@@ -1014,9 +1012,10 @@ def readPerturbableSystem(top0, coords0, top1, coords1, property_map={}):
     system : :class:`System <BioSimSpace._SireWrappers.System>`
         A molecular system.
     """
-    from .._SireWrappers import Molecule as _Molecule
     from sire.legacy import Base as _SireBase
+
     from .. import _isVerbose
+    from .._SireWrappers import Molecule as _Molecule
 
     if not isinstance(top0, str):
         raise TypeError("'top0' must be of type 'str'.")

@@ -247,10 +247,12 @@ class Task:
             The name of, or link to, a zipfile containing the output.
         """
         import glob as _glob
-        from .. import _is_notebook
-        import zipfile as _zipfile
-        from IPython.display import FileLink as _FileLink
         import os as _os
+        import zipfile as _zipfile
+
+        from IPython.display import FileLink as _FileLink
+
+        from .. import _is_notebook
 
         # Don't recreate an existing zip file.
         if self._zipfile is None:

@@ -675,8 +675,8 @@ class FileSet(Requirement):
 
     def _validate(self, value):
         """Validate that the value is of the correct type."""
-        import re as _re
         import os as _os
+        import re as _re
 
         # Handle optional requirement.
         if self._is_optional and value is None:
@@ -2020,12 +2020,12 @@ def _unarchive(name):
     files : [ str ]
         A list of file names.
     """
-    import tarfile as _tarfile
+    import bz2 as _bz2
     import gzip as _gzip
     import os as _os
-    import bz2 as _bz2
-    import zipfile as _zipfile
     import shutil as _shutil
+    import tarfile as _tarfile
+    import zipfile as _zipfile
 
     # Get the directory name.
     dir = _os.path.dirname(name)

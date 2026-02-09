@@ -8,12 +8,12 @@ import pytest
 
 import BioSimSpace.Sandpit.Exscientia as BSS
 from BioSimSpace.Sandpit.Exscientia._Exceptions import IncompatibleError
+from tests.conftest import root_fp
 from tests.Sandpit.Exscientia.conftest import (
     has_amber,
     has_pyarrow,
     url,
 )
-from tests.conftest import root_fp
 
 
 @pytest.fixture(scope="session")

@@ -128,12 +128,14 @@ def _squash_molecule(molecule, explicit_dummies=False):
     system : BioSimSpace._SireWrappers.System
          The output squashed system.
     """
-    import tempfile
-    from ..IO import readMolecules as _readMolecules, saveMolecules as _saveMolecules
-    from ._merge import _removeDummies
-    from .._SireWrappers import Molecule as _Molecule
-    import shutil as _shutil
     import os as _os
+    import shutil as _shutil
+    import tempfile
+
+    from .._SireWrappers import Molecule as _Molecule
+    from ..IO import readMolecules as _readMolecules
+    from ..IO import saveMolecules as _saveMolecules
+    from ._merge import _removeDummies
 
     if not molecule.isPerturbable():
         return molecule
@@ -326,8 +328,9 @@ def _unsquash_molecule(molecule, squashed_molecules, explicit_dummies=False):
     molecule : BioSimSpace._SireWrappers.Molecule
          The output updated merged molecule.
     """
-    from .._SireWrappers import Molecule as _Molecule
     from sire.legacy import Mol as _SireMol
+
+    from .._SireWrappers import Molecule as _Molecule
 
     # Get the common core atoms
     atom_mapping0_common = _squashed_atom_mapping(
@@ -483,8 +486,9 @@ def _squashed_atom_mapping(system, is_lambda1=False, environment=True, **kwargs)
     mapping : dict(int, int)
         The corresponding atom mapping.
     """
-    from .._SireWrappers import Molecule as _Molecule
     import numpy as _np
+
+    from .._SireWrappers import Molecule as _Molecule
 
     if isinstance(system, _Molecule):
         return _squashed_atom_mapping(

@@ -24,8 +24,8 @@ def make_ml(molecule):
     ML_molecule : BSS._SireWrappers.Molecule
         The molecule marked as being ML.
     """
-    from .._SireWrappers import Molecule as _Molecule
     from .._Exceptions import IncompatibleError as _IncompatibleError
+    from .._SireWrappers import Molecule as _Molecule
 
     # Validate input.
 

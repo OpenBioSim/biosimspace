@@ -29,9 +29,8 @@ __all__ = ["Equilibration"]
 
 from .. import Types as _Types
 from .. import Units as _Units
-
-from ._protocol import Protocol as _Protocol
 from ._position_restraint import _PositionRestraintMixin
+from ._protocol import Protocol as _Protocol
 
 
 class Equilibration(_Protocol, _PositionRestraintMixin):

@@ -111,8 +111,9 @@ class Amber(_process.Process):
             Additional keyword arguments.
         """
         import os as _os
-        from ..Protocol._free_energy_mixin import _FreeEnergyMixin
+
         from .._Config import Amber as _AmberConfig
+        from ..Protocol._free_energy_mixin import _FreeEnergyMixin
 
         # Call the base class constructor.
         super().__init__(
@@ -241,16 +242,16 @@ class Amber(_process.Process):
 
     def _setup(self, **kwargs):
         """Setup the input files and working directory ready for simulation."""
-        from .. import IO as _IO
-        import shutil as _shutil
-        from ..Align._squash import _squash
         import os as _os
-        from .. import _isVerbose
+        import shutil as _shutil
+
+        from .. import IO as _IO
         from .. import Protocol as _Protocol
+        from .. import _isVerbose
+        from ..Align._squash import _squash
         from ..Protocol._free_energy_mixin import _FreeEnergyMixin
 
         # Create the input files...
-
         # Create a copy of the system.
         system = self._system.copy()
         reference_system = self._reference_system.copy()
@@ -382,8 +383,9 @@ class Amber(_process.Process):
 
     def _generate_config(self):
         """Generate AMBER configuration file strings."""
-        import shutil as _shutil
         import os as _os
+        import shutil as _shutil
+
         from .. import Protocol as _Protocol
         from .._Config import Amber as _AmberConfig
         from ._plumed import Plumed as _Plumed
@@ -485,8 +487,10 @@ class Amber(_process.Process):
         process : :class:`Process.Amber <BioSimSpace.Process.Amber>`
             The process object.
         """
-        from sire.legacy import Base as _SireBase
         import timeit as _timeit
+
+        from sire.legacy import Base as _SireBase
+
         from .. import _Utils
 
         # The process is currently queued.
@@ -540,15 +544,17 @@ class Amber(_process.Process):
         system : :class:`System <BioSimSpace._SireWrappers.System>`
             The latest molecular system.
         """
-        from .._SireWrappers import System as _System
-        from sire.legacy import Mol as _SireMol
-        import shutil as _shutil
-        from ..Align._squash import _unsquash
-        from sire.legacy import IO as _SireIO
         import os as _os
-        from ..Protocol._free_energy_mixin import _FreeEnergyMixin
-        import warnings as _warnings
+        import shutil as _shutil
         import tempfile as _tempfile
+        import warnings as _warnings
+
+        from sire.legacy import IO as _SireIO
+        from sire.legacy import Mol as _SireMol
+
+        from .._SireWrappers import System as _System
+        from ..Align._squash import _unsquash
+        from ..Protocol._free_energy_mixin import _FreeEnergyMixin
 
         # Wait for the process to finish.
         if block is True:
@@ -681,8 +687,9 @@ class Amber(_process.Process):
         trajectory : :class:`Trajectory <BioSimSpace.Trajectory.Trajectory>`
             The latest trajectory object.
         """
-        from .. import Trajectory as _Trajectory
         import warnings as _warnings
+
+        from .. import Trajectory as _Trajectory
 
         if not isinstance(backend, str):
             raise TypeError("'backend' must be of type 'str'")
@@ -722,11 +729,12 @@ class Amber(_process.Process):
         frame : :class:`System <BioSimSpace._SireWrappers.System>`
             The System object of the corresponding frame.
         """
-        from ..Align._squash import _unsquash
         from sire.legacy import IO as _SireIO
-        from .. import Trajectory as _Trajectory
-        from .. import Protocol as _Protocol
         from sire.legacy import Mol as _SireMol
+
+        from .. import Protocol as _Protocol
+        from .. import Trajectory as _Trajectory
+        from ..Align._squash import _unsquash
 
         if not type(index) is int:
             raise TypeError("'index' must be of type 'int'")
@@ -2624,9 +2632,10 @@ class Amber(_process.Process):
         n : int
             The number of lines to print.
         """
+        import re as _re
+
         from .. import Protocol as _Protocol
         from ..Protocol._free_energy_mixin import _FreeEnergyMixin
-        import re as _re
 
         # Ensure that the number of lines is positive.
         if n < 0:
@@ -2807,8 +2816,9 @@ class Amber(_process.Process):
         record :
             The matching stdout record.
         """
-        from ..Types._type import Type as _Type
         import warnings as _warnings
+
+        from ..Types._type import Type as _Type
 
         # Update the standard output dictionary.
         self.stdout(0)
@@ -2911,9 +2921,10 @@ def _findExe(is_gpu=False, is_free_energy=False, is_vacuum=False):
     exe : str
         The path to the executable.
     """
+    import os as _os
+
     from .. import _amber_home
     from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
-    import os as _os
 
     if not isinstance(is_gpu, bool):
         raise TypeError("'is_gpu' must be of type 'bool'.")
@@ -2936,7 +2947,6 @@ def _findExe(is_gpu=False, is_free_energy=False, is_vacuum=False):
 
     import os as _os
     import pathlib as _pathlib
-
     from glob import glob as _glob
 
     # Get the current path.

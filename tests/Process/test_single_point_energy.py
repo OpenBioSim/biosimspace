@@ -1,8 +1,7 @@
 import pytest
 
 import BioSimSpace as BSS
-
-from tests.conftest import url, has_amber, has_gromacs
+from tests.conftest import has_amber, has_gromacs, url
 
 
 @pytest.fixture(scope="module")

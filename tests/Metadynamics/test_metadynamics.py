@@ -1,5 +1,6 @@
-import pytest
 import socket
+
+import pytest
 
 import BioSimSpace as BSS
 

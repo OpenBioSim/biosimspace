@@ -27,9 +27,9 @@ __email__ = "lester.hedges@gmail.com"
 __all__ = ["Minimisation"]
 
 
-from ._protocol import Protocol as _Protocol
-from ._position_restraint import _PositionRestraintMixin
 from .. import Units as _Units
+from ._position_restraint import _PositionRestraintMixin
+from ._protocol import Protocol as _Protocol
 
 
 class Minimisation(_Protocol, _PositionRestraintMixin):

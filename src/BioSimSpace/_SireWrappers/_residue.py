@@ -49,7 +49,6 @@ class Residue(_SireWrapper):
         from sire.legacy import Mol as _SireMol
 
         # Check that the residue is valid.
-
         # A Sire Residue object.
         if isinstance(residue, _SireMol._Mol.Residue):
             sire_object = residue
@@ -277,6 +276,7 @@ class Residue(_SireWrapper):
         system : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
         """
         from sire.legacy import Mol as _SireMol
+
         from ._molecule import Molecule as _Molecule
 
         return _Molecule(
@@ -316,8 +316,9 @@ class Residue(_SireWrapper):
         >>> result = residue.search("atomidx 23")
         """
         from sire.legacy import Mol as _SireMol
-        from ._search_result import SearchResult as _SearchResult
+
         from .. import _isVerbose
+        from ._search_result import SearchResult as _SearchResult
 
         if not isinstance(query, str):
             raise TypeError("'query' must be of type 'str'")

@@ -10,7 +10,7 @@ except Exception:
         return arg
 
 
-from tests.conftest import url, has_mdanalysis, has_mdtraj
+from tests.conftest import has_mdanalysis, has_mdtraj, url
 
 
 @pytest.fixture(scope="session")
