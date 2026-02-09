@@ -56,7 +56,7 @@ tests:
     files:
       source:
         - src/BioSimSpace/
-        - tests/**
+        - tests/
     requirements:
       run:
         - pytest <8
