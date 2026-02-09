@@ -259,7 +259,7 @@ def _add_metadata(sire_object):
     from sire import __revisionid__ as _sire_revisionid
     from sire import __version__ as _sire_version
 
-    from .._version import __version__ as _bss_full_version
+    from ...._version import __version__ as _bss_full_version
 
     # Work out the name of the Sandpit.
     try:
