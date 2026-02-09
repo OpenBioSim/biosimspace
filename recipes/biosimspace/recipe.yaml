@@ -10,11 +10,7 @@ source:
 
 build:
   number: ${{ env.get('GIT_DESCRIBE_NUMBER', default='0') }}
-  script:
-    - if: unix
-      then: $RECIPE_DIR/build.sh
-    - if: win
-      then: call %RECIPE_DIR%\build.bat
+  script: python -m pip install . --no-deps --ignore-installed -vv
 
 requirements:
   host:
