@@ -63,7 +63,7 @@ tests:
         - requests
         - if: linux and x86_64
           then:
-            - black ==25
+            - black ==26.1.0
             - pytest-black
             - ambertools
             - gromacs
