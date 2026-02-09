@@ -42,7 +42,7 @@ jobs:
       #
       - name: Compute version info
         shell: bash
-        run: python "${{ github.workspace }}/actions/update_recipe.py"
+        run: python actions/update_recipe.py
       #
       - name: Create sdist
         shell: bash
@@ -70,7 +70,7 @@ jobs:
       #
       - name: Upload package
         shell: bash
-        run: python "${{ github.workspace }}/actions/upload_package.py"
+        run: python actions/upload_package.py
         env:
           ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
           ANACONDA_LABEL: main

@@ -44,7 +44,7 @@ jobs:
       #
       - name: Compute version info
         shell: bash
-        run: python "${{ github.workspace }}/actions/update_recipe.py"
+        run: python actions/update_recipe.py
       #
       - name: Create sdist
         shell: bash
