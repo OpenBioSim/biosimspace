@@ -43,7 +43,8 @@ jobs:
           fetch-depth: 0
       #
       - name: Compute version info
-        run: python ${{ github.workspace }}/actions/update_recipe.py
+        shell: bash
+        run: python "${{ github.workspace }}/actions/update_recipe.py"
       #
       - name: Create sdist
         shell: bash

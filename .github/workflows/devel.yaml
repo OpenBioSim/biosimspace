@@ -41,7 +41,8 @@ jobs:
           fetch-depth: 0
       #
       - name: Compute version info
-        run: python ${{ github.workspace }}/actions/update_recipe.py
+        shell: bash
+        run: python "${{ github.workspace }}/actions/update_recipe.py"
       #
       - name: Create sdist
         shell: bash
@@ -63,10 +64,12 @@ jobs:
         run: rattler-build build --recipe "${{ github.workspace }}/recipes/biosimspace" -c conda-forge -c openbiosim/label/dev --variant-config "${{ github.workspace }}/python_variant.yaml"
       #
       - name: Install anaconda-client
+        shell: bash
         run: python -m pip install anaconda-client
       #
       - name: Upload package
-        run: python ${{ github.workspace }}/actions/upload_package.py
+        shell: bash
+        run: python "${{ github.workspace }}/actions/upload_package.py"
         env:
           ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
           ANACONDA_LABEL: dev
