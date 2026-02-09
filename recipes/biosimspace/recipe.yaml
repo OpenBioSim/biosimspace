@@ -51,12 +51,12 @@ tests:
   - script:
       - if: linux and x86_64
         then:
-          - pytest -vvv --color=yes --black src/BioSimSpace
+          - black --check src/BioSimSpace
       - pytest -vvv --color=yes --import-mode=importlib ./tests
     files:
-      source:
-        - src/BioSimSpace/
-        - tests/
+      recipe:
+        - ../../src/BioSimSpace/
+        - ../../tests/
     requirements:
       run:
         - pytest <8
@@ -64,7 +64,6 @@ tests:
         - if: linux and x86_64
           then:
             - black ==26.1.0
-            - pytest-black
             - ambertools
             - gromacs
 
