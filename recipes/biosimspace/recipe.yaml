@@ -54,9 +54,9 @@ tests:
           - black --check src/BioSimSpace
       - pytest -vvv --color=yes --import-mode=importlib ./tests
     files:
-      recipe:
-        - ../../src/BioSimSpace/
-        - ../../tests/
+      source:
+        - src/BioSimSpace/
+        - tests/**
     requirements:
       run:
         - pytest <8
