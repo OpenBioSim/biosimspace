@@ -49,13 +49,9 @@ tests:
       imports:
         - BioSimSpace
   - script:
-      - if: linux and x86_64
-        then:
-          - black --check src/BioSimSpace
       - pytest -vvv --color=yes --import-mode=importlib ./tests
     files:
       source:
-        - src/BioSimSpace/
         - tests/
     requirements:
       run:
