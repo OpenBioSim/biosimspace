@@ -915,17 +915,17 @@ class Relative:
 
         if not found_lambda:
             raise ValueError(
-                f"The lambda window was not detected in the SOMD output file: {file}"
+                f"The lambda window was not detected in the SOMD output file: {simfile}"
             )
 
         if not found_array:
             raise ValueError(
-                f"The lambda array was not detected in the SOMD output file: {file}"
+                f"The lambda array was not detected in the SOMD output file: {simfile}"
             )
 
         if not found_time:
             raise ValueError(
-                f"The simulation time was not detected in the SOMD output file: {file}"
+                f"The simulation time was not detected in the SOMD output file: {simfile}"
             )
 
         # TODO: get header from the file instead of like this.
