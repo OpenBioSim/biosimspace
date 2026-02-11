@@ -185,18 +185,31 @@ Now create and switch to a feature branch. This should be prefixed with
    git checkout -b feature-process
 
 While working on your feature branch you won't want to continually re-install
-in order to make the changes active. To avoid this, you can either make use
-of ``PYTHONPATH``, e.g.
+in order to make the changes active. To avoid this, install the package in
+editable mode:
 
 .. code-block:: bash
 
-   PYTHONPATH=$HOME/Code/BioSimSpace/python python script.py
+   pip install -e .
 
-or use the ``develop`` argument when running the ``setup.py`` script, i.e.
+Pre-commit hooks
+----------------
+
+Pre-commit hooks are used to ensure consistent code formatting and linting.
+To set up pre-commit in your development environment:
 
 .. code-block:: bash
 
-   python setup.py develop
+   pixi shell -e dev
+   pre-commit install
+
+This will run `ruff <https://docs.astral.sh/ruff/>`__ formatting and linting
+checks automatically on each commit. To run the checks manually against all
+files:
+
+.. code-block:: bash
+
+   pre-commit run --all-files
 
 Testing
 -------
