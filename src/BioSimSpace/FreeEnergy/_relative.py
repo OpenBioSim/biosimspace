@@ -42,29 +42,6 @@ if _have_imported(_alchemlyb):
     _logger = _logging.getLogger("pymbar")
     _logger.setLevel(_logging.ERROR)
 
-    # Handle alchemlyb MBAR API changes.
-    try:
-        from alchemlyb.estimators import AutoMBAR as _AutoMBAR
-    except ImportError:
-        from alchemlyb.estimators import MBAR as _AutoMBAR
-    from alchemlyb.estimators import TI as _TI
-    from alchemlyb.postprocessors.units import to_kcalmol as _to_kcalmol
-    from alchemlyb.parsing.amber import extract_dHdl as _amber_extract_dHdl
-    from alchemlyb.parsing.amber import extract_u_nk as _amber_extract_u_nk
-    from alchemlyb.parsing.gmx import extract_dHdl as _gmx_extract_dHdl
-    from alchemlyb.parsing.gmx import extract_u_nk as _gmx_extract_u_nk
-    from alchemlyb.preprocessing.subsampling import (
-        equilibrium_detection as _equilibrium_detection,
-    )
-    from alchemlyb.preprocessing.subsampling import (
-        statistical_inefficiency as _statistical_inefficiency,
-    )
-    from alchemlyb.preprocessing.subsampling import slicing as _slicing
-    from alchemlyb.preprocessing.subsampling import decorrelate_u_nk, decorrelate_dhdl
-    from alchemlyb.postprocessors.units import to_kcalmol as _to_kcalmol
-    from alchemlyb.postprocessors.units import kJ2kcal as _kJ2kcal
-    from alchemlyb.postprocessors.units import R_kJmol as _R_kJmol
-
 from sire.legacy.Base import getBinDir as _getBinDir
 from sire.legacy.Base import getShareDir as _getShareDir
 
@@ -1305,7 +1282,11 @@ class Relative:
         import warnings as _warnings
 
         import numpy as _np
-        from alchemlyb.estimators import MBAR as _AutoMBAR
+
+        try:
+            from alchemlyb.estimators import AutoMBAR as _AutoMBAR
+        except ImportError:
+            from alchemlyb.estimators import MBAR as _AutoMBAR
         from alchemlyb.estimators import TI as _TI
         from alchemlyb.postprocessors.units import to_kcalmol as _to_kcalmol
 

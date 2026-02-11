@@ -36,21 +36,6 @@ from .._Utils import _have_imported, _try_import
 # need to try_import it.
 _alchemlyb = _try_import("alchemlyb")
 
-if _have_imported(_alchemlyb):
-    from alchemlyb.postprocessors.units import R_kJmol as _R_kJmol
-    from alchemlyb.postprocessors.units import kJ2kcal as _kJ2kcal
-    from alchemlyb.preprocessing.subsampling import (
-        statistical_inefficiency as _statistical_inefficiency,
-    )
-    from alchemlyb.workflows import ABFE
-
-    try:
-        from alchemlyb.estimators import AutoMBAR as _AutoMBAR
-    except ImportError:
-        from alchemlyb.estimators import MBAR as _AutoMBAR
-    from alchemlyb.estimators import TI as _TI
-    from alchemlyb.postprocessors.units import to_kcalmol as _to_kcalmol
-
 from sire.legacy.Base import getBinDir as _getBinDir
 from sire.legacy.Base import getShareDir as _getShareDir
 
@@ -767,7 +752,10 @@ class AlchemicalFreeEnergy:
         """
         from glob import glob as _glob
 
-        from alchemlyb.estimators import MBAR as _AutoMBAR
+        try:
+            from alchemlyb.estimators import AutoMBAR as _AutoMBAR
+        except ImportError:
+            from alchemlyb.estimators import MBAR as _AutoMBAR
         from alchemlyb.estimators import TI as _TI
         from alchemlyb.postprocessors.units import to_kcalmol as _to_kcalmol
         from alchemlyb.preprocessing.subsampling import (
