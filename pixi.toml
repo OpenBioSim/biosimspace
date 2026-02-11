@@ -55,7 +55,11 @@ mdanalysis = "*"
 [feature.test.dependencies]
 pytest = "*"
 
+[feature.lint.dependencies]
+pre-commit = "*"
+ruff = "*"
+
 [environments]
 default = []
 test = ["test"]
-dev = ["test"]
+dev = ["test", "lint"]
