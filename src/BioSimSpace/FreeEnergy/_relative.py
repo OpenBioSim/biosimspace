@@ -943,7 +943,6 @@ class Relative:
         )
 
         time_step = sim_length / len(file_df["step"])
-        time_rows = _np.arange(0, len(file_df["step"]), 1)
         time = _np.arange(0, sim_length, time_step)
 
         # For MBAR, results in list of lists where each list is the 0 to 1
