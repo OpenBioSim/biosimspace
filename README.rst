@@ -137,6 +137,25 @@ Once finished, you can test the installation by running:
 
    import BioSimSpace as BSS
 
+Development
+-----------
+
+Pre-commit hooks are used to ensure consistent code formatting and linting.
+To set up pre-commit in your development environment:
+
+.. code-block:: bash
+
+   pixi shell -e dev
+   pre-commit install
+
+This will run `ruff <https://docs.astral.sh/ruff/>`__ formatting and linting
+checks automatically on each commit. To run the checks manually against all
+files:
+
+.. code-block:: bash
+
+   pre-commit run --all-files
+
 Developers
 ----------
 
