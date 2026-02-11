@@ -38,7 +38,7 @@ _md_engines = {
         "sander": False,
     },
     "GROMACS": {"gmx": True, "gmx_mpi": True},
-    "NAMD": {"namd2": False},
+    "NAMD": {"namd3": True, "namd2": False},
     "OPENMM": {"sire_python": True},
     "SOMD": {"somd": True},
 }
