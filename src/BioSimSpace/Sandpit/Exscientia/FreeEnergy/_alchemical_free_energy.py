@@ -42,9 +42,6 @@ from sire.legacy.Base import getShareDir as _getShareDir
 from .. import _is_notebook
 from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
 
-if _is_notebook:
-    from IPython.display import FileLink as _FileLink
-
 # Check that the analyse_freenrg script exists.
 if _sys.platform != "win32":
     _analyse_freenrg = _os.path.join(_getBinDir(), "analyse_freenrg")
@@ -441,8 +438,6 @@ class AlchemicalFreeEnergy:
         import zipfile as _zipfile
         from glob import glob as _glob
 
-        from IPython.display import FileLink as _FileLink
-
         from .._Utils import cd as _cd
 
         if self._work_dir is None:
@@ -485,6 +480,8 @@ class AlchemicalFreeEnergy:
         # Return a link to the archive.
         if _is_notebook:
             if file_link:
+                from IPython.display import FileLink as _FileLink
+
                 # Create a FileLink to the archive.
                 f_link = _FileLink(zipname)
 
