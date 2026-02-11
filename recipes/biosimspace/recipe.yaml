@@ -49,7 +49,7 @@ tests:
       imports:
         - BioSimSpace
   - script:
-      - pytest -vvv --color=yes --import-mode=importlib ./tests
+      - PYTHONPATH=. pytest -vvv --color=yes --import-mode=importlib ./tests
     files:
       source:
         - tests/
