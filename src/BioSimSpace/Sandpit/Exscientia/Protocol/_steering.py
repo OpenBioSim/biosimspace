@@ -614,7 +614,7 @@ class Steering(_Protocol):
         report_interval : int
             The number of integration steps between reporting statistics.
         """
-        if not type(report_interval) is int:
+        if type(report_interval) is not int:
             raise TypeError("'report_interval' must be of type 'int'")
 
         if report_interval <= 0:
@@ -649,7 +649,7 @@ class Steering(_Protocol):
             The number of integration steps between saving restart
             configurations and/or trajectory frames.
         """
-        if not type(restart_interval) is int:
+        if type(restart_interval) is not int:
             raise TypeError("'restart_interval' must be of type 'int'")
 
         if restart_interval <= 0:

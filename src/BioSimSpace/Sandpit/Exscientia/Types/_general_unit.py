@@ -813,7 +813,7 @@ class GeneralUnit(_Type):
                     # Create and return a new object.
                     return GeneralUnit(general_unit)
 
-                except Exception as e:
+                except Exception:
                     raise ValueError(
                         f"Could not infer GeneralUnit from string '{string}'"
                     ) from None

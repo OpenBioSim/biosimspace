@@ -31,7 +31,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 from collections import namedtuple
 
 try:
-    import numpy as np
+    pass
 except:
     pass
 

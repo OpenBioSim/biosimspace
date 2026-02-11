@@ -94,7 +94,7 @@ class Grid:
         """
         from ..Types._type import Type as _Type
 
-        if not isinstance(minimum, (float, _Type)) and not type(minimum) is int:
+        if not isinstance(minimum, (float, _Type)) and type(minimum) is not int:
             raise TypeError(
                 "'minimum' must be of type 'int', 'float', or 'BioSimSpace.Types._type.Type'"
             )
@@ -130,7 +130,7 @@ class Grid:
         """
         from ..Types._type import Type as _Type
 
-        if not isinstance(maximum, (float, _Type)) and not type(maximum) is int:
+        if not isinstance(maximum, (float, _Type)) and type(maximum) is not int:
             raise TypeError(
                 "'maximum' must be of type 'int', 'float', or 'BioSimSpace.Types._type.Type'"
             )

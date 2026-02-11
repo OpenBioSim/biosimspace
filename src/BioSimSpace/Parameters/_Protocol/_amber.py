@@ -916,7 +916,7 @@ class GAFF(_protocol.Protocol):
             raise TypeError("'version' must be of type 'int'.")
 
         # Check that the version is valid.
-        if not version in [1, 2]:
+        if version not in [1, 2]:
             raise ValueError("Unsupported version: options are 1 or 2.")
 
         if not isinstance(charge_method, str):
@@ -926,7 +926,7 @@ class GAFF(_protocol.Protocol):
         charge_method = charge_method.replace(" ", "").upper()
 
         # Check that the charge method is valid.
-        if not charge_method in self._charge_methods:
+        if charge_method not in self._charge_methods:
             raise ValueError(
                 "Unsupported charge method: '%s'. Supported methods are: %s"
                 % (charge_method, self._charge_methods)

@@ -33,7 +33,7 @@ __all__ = ["Process"]
 from .. import _is_notebook
 
 if _is_notebook:
-    from IPython.display import FileLink as _FileLink
+    pass
 
 
 def _wrap_protocol(protocol_function, process):

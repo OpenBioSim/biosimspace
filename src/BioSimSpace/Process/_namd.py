@@ -919,7 +919,7 @@ class Namd(_process.Process):
 
         from .. import Trajectory as _Trajectory
 
-        if not type(index) is int:
+        if type(index) is not int:
             raise TypeError("'index' must be of type 'int'")
 
         max_index = (

@@ -337,7 +337,7 @@ def merge(
 
     # lambda = 0
     for prop in props0:
-        if not prop in ignored_props:
+        if prop not in ignored_props:
             # This is a perturbable property.
             if prop in shared_props:
                 name = f"{prop}0"
@@ -357,7 +357,7 @@ def merge(
 
     # lambda = 1
     for prop in props1:
-        if not prop in ignored_props:
+        if prop not in ignored_props:
             # This is a perturbable property.
             if prop in shared_props:
                 name = f"{prop}1"

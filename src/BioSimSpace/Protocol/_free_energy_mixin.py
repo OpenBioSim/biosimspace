@@ -260,7 +260,7 @@ class _FreeEnergyMixin:
                 raise ValueError("'lam_vals' cannot contain duplicate values!")
 
             # Make sure the lambda value is in the list.
-            if not lam in lam_vals:
+            if lam not in lam_vals:
                 raise ValueError("'lam' is not a member of the 'lam_vals' list!")
 
             # Set the values.
@@ -283,7 +283,7 @@ class _FreeEnergyMixin:
             if not isinstance(max_lam, float):
                 raise TypeError("'max_lam' must be of type 'float'.")
 
-            if not type(num_lam) is int:
+            if type(num_lam) is not int:
                 raise TypeError("'num_lam' must be of type 'int'.")
 
             # Validate values.
@@ -309,7 +309,7 @@ class _FreeEnergyMixin:
                 self._lambda_vals.append(round(min_lam + (x * step), 5))
 
             # Make sure the lambda value is in the list.
-            if not self._lambda in self._lambda_vals:
+            if self._lambda not in self._lambda_vals:
                 raise ValueError(
                     "'lam' (%5.4f) is not a member of the 'lam_vals' list: %s"
                     % (self._lambda, self._lambda_vals)

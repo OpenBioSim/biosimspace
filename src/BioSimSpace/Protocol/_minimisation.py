@@ -134,7 +134,7 @@ class Minimisation(_Protocol, _PositionRestraintMixin):
         """
         import warnings as _warnings
 
-        if not type(steps) is int:
+        if type(steps) is not int:
             raise TypeError("'steps' must be of type 'int'")
 
         if steps <= 0:

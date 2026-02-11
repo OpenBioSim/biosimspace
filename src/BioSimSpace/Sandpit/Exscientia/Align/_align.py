@@ -264,9 +264,9 @@ def generateNetwork(
                             )
 
                     # Make sure that the ligands are in the names list.
-                    if not records[0] in names:
+                    if records[0] not in names:
                         raise ValueError(f"Ligand '{records[0]}' not in 'names' list!")
-                    if not records[1] in names:
+                    if records[1] not in names:
                         raise ValueError(f"Ligand '{records[1]}' not in 'names' list!")
 
         else:
@@ -274,7 +274,7 @@ def generateNetwork(
 
     # Validate the number of edges parameter.
     if n_edges_forced is not None:
-        if not type(n_edges_forced) is int:
+        if type(n_edges_forced) is not int:
             raise TypeError("'n_edges_forced' must be of type 'int'")
 
         n_edges_fully_connected = int((len(molecules) ** 2 - len(molecules)) / 2) + 1
@@ -469,7 +469,7 @@ def generateNetwork(
 
                 # Update the list while checking that the inverse edge is not already in
                 # the network.
-                if not (mol1, mol0) in edges:
+                if (mol1, mol0) not in edges:
                     edges_excluded.append((mol0, mol1, score))
 
     # If the user has specified a forced number of edges, adjust the network
@@ -866,7 +866,7 @@ def matchAtoms(
         # Strip underscores and whitespace, then convert to upper case.
         _scoring_function = scoring_function.replace("_", "").upper()
         _scoring_function = _scoring_function.replace(" ", "").upper()
-        if not _scoring_function in scoring_functions:
+        if _scoring_function not in scoring_functions:
             raise ValueError(
                 "Unsupported scoring function '%s'. Options are: %s"
                 % (scoring_function, scoring_functions)
@@ -878,7 +878,7 @@ def matchAtoms(
             "https://pdbj.org/kcombu"
         )
 
-    if not type(matches) is int:
+    if type(matches) is not int:
         raise TypeError("'matches' must be of type 'int'")
     else:
         if matches < 0:
@@ -895,7 +895,7 @@ def matchAtoms(
     if not isinstance(timeout, _Units.Time._Time):
         raise TypeError("'timeout' must be of type 'BioSimSpace.Types.Time'")
 
-    if not type(max_scoring_matches) is int:
+    if type(max_scoring_matches) is not int:
         raise TypeError("'max_scoring_matches' must be of type 'int'")
 
     if max_scoring_matches <= 0:
@@ -1608,7 +1608,7 @@ def viewMapping(
 
     if isinstance(pixels, float):
         pixels = int(pixels)
-    if not type(pixels) is int:
+    if type(pixels) is not int:
         raise TypeError("'pixels' must be of type 'int'")
     if pixels <= 0:
         raise ValueError("pixels' must be > 0!")
@@ -1858,7 +1858,7 @@ def _score_rdkit_mappings(
             }
 
             # This is a new mapping:
-            if not mapping in mappings:
+            if mapping not in mappings:
                 # Check that the mapping contains the pre-match.
                 is_valid = True
                 for idx0, idx1 in prematch.items():

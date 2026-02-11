@@ -1,6 +1,5 @@
 import pytest
 
-import BioSimSpace.Sandpit.Exscientia as BSS
 from BioSimSpace.Sandpit.Exscientia.Align._merge import _removeDummies
 from tests.Sandpit.Exscientia.conftest import (
     get_energy,

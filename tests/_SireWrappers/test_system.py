@@ -497,7 +497,7 @@ def test_remove_box(system):
     system.removeBox()
 
     # Make sure the box is removed.
-    assert not "space" in system._sire_object.property_keys()
+    assert "space" not in system._sire_object.property_keys()
 
 
 def test_renumber(system):

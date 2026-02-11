@@ -132,7 +132,7 @@ def _find_md_engines(system, protocol, engine="AUTO", gpu_support=False):
         if engine == "AUTO":
             raise ValueError("Cannot automatically choose an MD engine")
         engines = list(_md_engines.keys())
-    elif not fileformat in _file_extensions:
+    elif fileformat not in _file_extensions:
         raise ValueError(
             "Cannot find an MD engine that supports format: %s" % fileformat
         )
@@ -340,7 +340,7 @@ def run(
             raise TypeError("'work_dir' must be of type 'str'")
 
     if seed is not None:
-        if not type(seed) is int:
+        if type(seed) is not int:
             raise TypeError("'seed' must be of type 'int'")
 
     if not isinstance(property_map, dict):

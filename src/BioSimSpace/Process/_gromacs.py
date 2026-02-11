@@ -913,7 +913,7 @@ class Gromacs(_process.Process):
         """
         import warnings as _warnings
 
-        if not type(index) is int:
+        if type(index) is not int:
             raise TypeError("'index' must be of type 'int'")
 
         max_index = (
@@ -2180,7 +2180,7 @@ class Gromacs(_process.Process):
 
                         # Store the atom index if it hasn't already been recorded.
                         for atom_idx in atom_idxs:
-                            if not atom_idx in restrained_atoms:
+                            if atom_idx not in restrained_atoms:
                                 restrained_atoms.append(atom_idx)
 
                     # Write the position restraint file for this molecule.
@@ -2268,7 +2268,7 @@ class Gromacs(_process.Process):
                         mol_type = sys_idx_moltypes[mol_idx]
 
                         # Append this atom if it's not already been recorded.
-                        if not atom_idx in mol_atoms[mol_type]:
+                        if atom_idx not in mol_atoms[mol_type]:
                             mol_atoms[mol_type].append(atom_idx)
 
                     except Exception as e:
@@ -2724,7 +2724,7 @@ class Gromacs(_process.Process):
 
             # If this is a vacuum simulation, then translate the centre of mass
             # of the system back to the origin.
-            if not space_prop in old_system._sire_object.property_keys():
+            if space_prop not in old_system._sire_object.property_keys():
                 com = new_system._getCenterOfMass()
                 old_system.translate([-x for x in com])
 
@@ -2850,7 +2850,7 @@ class Gromacs(_process.Process):
 
                 # If this is a vacuum simulation, then translate the centre of mass
                 # of the system back to the origin.
-                if not space_prop in old_system._sire_object.property_keys():
+                if space_prop not in old_system._sire_object.property_keys():
                     com = new_system._getCenterOfMass()
                     old_system.translate([-x for x in com])
 

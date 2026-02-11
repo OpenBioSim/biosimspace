@@ -28,9 +28,6 @@ __all__ = ["ATMSetup", "ATM"]
 from .. import _is_notebook
 from ..Notebook import View as _View
 
-if _is_notebook:
-    from IPython.display import FileLink as _FileLink
-
 
 class ATMSetup:
     """
@@ -601,7 +598,6 @@ class ATMSetup:
         from ..Types import Vector as _Vector
 
         def _findTranslationVector(system, displacement, protein, ligand):
-
             import warnings as _warnings
 
             from sire.legacy.Maths import Vector
@@ -1418,8 +1414,6 @@ class ATM:
         import pathlib as _pathlib
         import zipfile as _zipfile
 
-        from IPython.display import FileLink as _FileLink
-
         if self._work_dir is None:
             raise ValueError("'work_dir' must be set!")
         else:
@@ -1461,6 +1455,8 @@ class ATM:
         # Return a link to the archive.
         if _is_notebook:
             if file_link:
+                from IPython.display import FileLink as _FileLink
+
                 # Create a FileLink to the archive.
                 f_link = _FileLink(zipname)
 
@@ -1722,7 +1718,6 @@ class _ViewAtoM(_View):
         super().__init__(handle, property_map, is_lambda1)
 
     def _create_view(self, system=None, view=None, gui=True, **kwargs):
-
         from sire.legacy import IO as _SireIO
 
         from .. import _isVerbose

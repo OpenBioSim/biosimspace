@@ -36,7 +36,7 @@ from .. import Units as _Units
 from .. import _is_notebook
 
 if _is_notebook:
-    from IPython.display import FileLink as _FileLink
+    pass
 
 
 class _MultiDict(dict):
@@ -169,7 +169,7 @@ class Process:
             )
 
         # Check that the seed is valid.
-        if seed is not None and not type(seed) is int:
+        if seed is not None and type(seed) is not int:
             raise TypeError("'seed' must be of type 'int'")
 
         # Check the extra options.
@@ -565,7 +565,7 @@ class Process:
         import sys as _sys
         import warnings as _warnings
 
-        if not type(number) is int:
+        if type(number) is not int:
             raise TypeError("'number' must be of type 'int'")
 
         if number < 1:
@@ -727,7 +727,7 @@ class Process:
         # If the system contains a perturbable molecule, then we'll warn the user
         # and simulate the lambda = 0 state.
         if system.nPerturbableMolecules() > 0:
-            if not "is_lambda1" in self._property_map:
+            if "is_lambda1" not in self._property_map:
                 is_lambda1 = False
                 _warnings.warn(
                     "The system contains a perturbable molecule ."
@@ -901,7 +901,7 @@ class Process:
         """
         import warnings as _warnings
 
-        if not type(seed) is int:
+        if type(seed) is not int:
             _warnings.warn("The seed must be an integer. Disabling seeding.")
             self._seed = None
         else:
@@ -999,7 +999,7 @@ class Process:
 
     def kill(self):
         """Kill the running process."""
-        if not self._process is None and self._process.is_running():
+        if self._process is not None and self._process.is_running():
             self._process.kill()
 
     def stdout(self, n=10):
@@ -1683,7 +1683,7 @@ def _is_list_of_strings(lst):
 def _odict_insert(dct, key, value, index):
     """Insert an item into an ordered dictionary."""
 
-    if not type(index) is int:
+    if type(index) is not int:
         raise TypeError("'index' must be of type 'int'.")
 
     # Store the original size of the dictionary.

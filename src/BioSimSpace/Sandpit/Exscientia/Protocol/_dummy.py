@@ -10,8 +10,8 @@ class Dummy(_Protocol):
 
     def __str__(self):
         """Return a human readable string representation of the object."""
-        return f"<BioSimSpace.Protocol.Dummy>"
+        return "<BioSimSpace.Protocol.Dummy>"
 
     def __repr__(self):
         """Return a string showing how to instantiate the object."""
-        return f"BioSimSpace.Protocol.Dummy()"
+        return "BioSimSpace.Protocol.Dummy()"

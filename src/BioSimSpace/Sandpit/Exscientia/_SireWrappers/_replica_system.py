@@ -231,7 +231,7 @@ class ReplicaSystem:
                 # Write out the current coordinates the specified number of times.
                 try:
                     # Write the first file only.
-                    tmp_file = _os.path.join(tmp_dir, f"replica_0000.gro")
+                    tmp_file = _os.path.join(tmp_dir, "replica_0000.gro")
                     if self._is_perturbable and self._is_squashed:
                         _save(
                             _NewSireSystem(self._squashed_system), tmp_file, silent=True
@@ -243,7 +243,7 @@ class ReplicaSystem:
                     # Copy the first file for the remaining replicas.
                     for i in range(1, num_replicas):
                         tmp_file = _os.path.join(tmp_dir, f"replica_{i:04d}.gro")
-                        _os.link(_os.path.join(tmp_dir, f"replica_0000.gro"), tmp_file)
+                        _os.link(_os.path.join(tmp_dir, "replica_0000.gro"), tmp_file)
                         filenames.append(tmp_file)
                 except Exception as e:
                     msg = "Failed to write temporary files for replica duplication."

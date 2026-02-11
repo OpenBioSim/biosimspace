@@ -383,7 +383,7 @@ class Restraint:
                     )
             for key in ["r1", "r2", "r3"]:
                 atom = self._restraint_dict["anchor_points"][key]
-                if not atom in system:
+                if atom not in system:
                     raise ValueError(f"The receptor atom {key} is not in the system.")
 
         if self._restraint_type == "multiple_distance":
@@ -405,7 +405,7 @@ class Restraint:
                         f"The ligand atom {ligand_atom} is not from decoupled molecule."
                     )
                 receptor_atom = single_restraint_dict["r1"]
-                if not receptor_atom in system:
+                if receptor_atom not in system:
                     raise ValueError(
                         f"The protein atom {receptor_atom} is not in the system."
                     )
@@ -1237,11 +1237,9 @@ class Restraint:
         # Schrodinger uses k(b-b0)**2
         kr = self._restraint_dict["force_constants"]["kr"] / 2
 
-        Z_dist = r / (2 * beta * kr) * _np.exp(-beta * kr * r**2) + _np.sqrt(
-            _np.pi
-        ) / (4 * beta * kr * sqrt(beta * kr)) * (1 + 2 * beta * kr * r**2) * (
-            1 + _erf(sqrt(beta * kr) * r)
-        )
+        Z_dist = r / (2 * beta * kr) * _np.exp(-beta * kr * r**2) + _np.sqrt(_np.pi) / (
+            4 * beta * kr * sqrt(beta * kr)
+        ) * (1 + 2 * beta * kr * r**2) * (1 + _erf(sqrt(beta * kr) * r))
 
         Z_angles = []
         for angle in ["A", "B"]:

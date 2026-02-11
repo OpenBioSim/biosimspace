@@ -454,7 +454,7 @@ class Relative:
             if data and engine == "AMBER":
                 if method != "ALCHEMLYB":
                     raise _AnalysisError(
-                        f"AMBER can only use the 'alchemlyb' analysis method."
+                        "AMBER can only use the 'alchemlyb' analysis method."
                     )
             if data and engine == "SOMD" and estimator == "TI" and method == "native":
                 raise _AnalysisError(
@@ -463,7 +463,7 @@ class Relative:
             if data and engine == "SOMD2":
                 if method != "ALCHEMLYB":
                     raise _AnalysisError(
-                        f"SOMD2 can only use the 'alchemlyb' analysis method."
+                        "SOMD2 can only use the 'alchemlyb' analysis method."
                     )
             if data and engine == "GROMACS" and method == "native":
                 _warnings.warn(
@@ -694,7 +694,7 @@ class Relative:
         if not isinstance(engine, str):
             raise TypeError("'engine' must be of type 'str'.")
         engine = engine.replace(" ", "").upper()
-        if not engine in Relative._engines_analysis:
+        if engine not in Relative._engines_analysis:
             raise ValueError(
                 f"Unsupported engine '{engine}'. Options are: {', '.join(Relative._engines_analysis)}"
             )
@@ -702,7 +702,7 @@ class Relative:
         if not isinstance(estimator, str):
             raise TypeError("'estimator' must be of type 'str'.")
         estimator = estimator.replace(" ", "").upper()
-        if not estimator in ["MBAR", "TI"]:
+        if estimator not in ["MBAR", "TI"]:
             raise ValueError("'estimator' must be either 'MBAR' or 'TI'.")
 
         if estimator == "MBAR":
@@ -1154,7 +1154,7 @@ class Relative:
 
         if not isinstance(estimator, str):
             raise TypeError("'estimator' must be of type 'str'.")
-        if not estimator.replace(" ", "").upper() in ["MBAR", "TI"]:
+        if estimator.replace(" ", "").upper() not in ["MBAR", "TI"]:
             raise ValueError("'estimator' must be either 'MBAR' or 'TI'.")
 
         # Assign defaults in case not passed via kwargs.
@@ -1307,7 +1307,7 @@ class Relative:
 
         if not isinstance(engine, str):
             raise TypeError("'engine' must be of type 'str'.")
-        if not engine.replace(" ", "").upper() in Relative._engines_analysis:
+        if engine.replace(" ", "").upper() not in Relative._engines_analysis:
             raise ValueError(
                 f"Unsupported engine '{engine}'. Options are: {', '.join(Relative._engines_analysis)}"
             )
@@ -1315,7 +1315,7 @@ class Relative:
         if not isinstance(estimator, str):
             raise TypeError("'estimator' must be of type 'str'.")
         estimator = estimator.replace(" ", "").upper()
-        if not estimator in ["MBAR", "TI"]:
+        if estimator not in ["MBAR", "TI"]:
             raise ValueError("'estimator' must be either 'MBAR' or 'TI'.")
 
         if estimator == "MBAR":
@@ -1544,7 +1544,7 @@ class Relative:
 
         if not isinstance(estimator, str):
             raise TypeError("'estimator' must be of type 'str'.")
-        if not estimator.replace(" ", "").upper() in ["MBAR", "TI"]:
+        if estimator.replace(" ", "").upper() not in ["MBAR", "TI"]:
             raise ValueError("'estimator' must be either 'MBAR' or 'TI'.")
 
         if not isinstance(method, str):
@@ -1735,7 +1735,7 @@ class Relative:
         if not isinstance(method, str):
             raise TypeError("'method' must be of type 'str'.")
         method = method.replace(" ", "").upper()
-        if not method in ["ALCHEMLYB", "NATIVE"]:
+        if method not in ["ALCHEMLYB", "NATIVE"]:
             raise ValueError("'method' must be either 'alchemlyb' or 'native'.")
 
         if method == "ALCHEMLYB":

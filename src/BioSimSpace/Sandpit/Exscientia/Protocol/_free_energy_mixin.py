@@ -176,7 +176,7 @@ class _FreeEnergyMixin(_Protocol):
         ]
         if isinstance(df, _pd.Series):
             for name in df.index:
-                if not name in permitted_names:
+                if name not in permitted_names:
                     warnings.warn(
                         f"{name} not in the list of permitted names, "
                         f"so may not be supported by the MD Engine "
@@ -184,7 +184,7 @@ class _FreeEnergyMixin(_Protocol):
                     )
         elif isinstance(df, _pd.DataFrame):
             for name in df.columns:
-                if not name in permitted_names:
+                if name not in permitted_names:
                     warnings.warn(
                         f"{name} not in the list of permitted names, "
                         f"so may not be supported by the MD Engine "
@@ -362,7 +362,7 @@ class _FreeEnergyMixin(_Protocol):
             else:
                 _FreeEnergyMixin._check_column_name(lam_vals)
 
-            if not type(num_lam) is int:
+            if type(num_lam) is not int:
                 raise TypeError("'num_lam' must be of type 'int'.")
 
             # Validate values.

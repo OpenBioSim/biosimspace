@@ -205,7 +205,7 @@ class OpenMMATM(_OpenMM):
         self.addToConfig(
             "\n# Run a single simulation step to allow us to get the system and energy."
         )
-        self.addToConfig(f"simulation.step(1)")
+        self.addToConfig("simulation.step(1)")
 
         # Flag that this isn't a custom protocol.
         self._protocol._setCustomised(False)
@@ -328,10 +328,10 @@ class OpenMMATM(_OpenMM):
                 self.addToConfig(f"start_temperature = {temperature}")
                 self.addToConfig(f"for x in range(0, {temp_cycles}):")
                 self.addToConfig(f"    temperature = {temperature} + x*{delta_temp}")
-                self.addToConfig(f"    integrator.setTemperature(temperature*kelvin)")
+                self.addToConfig("    integrator.setTemperature(temperature*kelvin)")
                 if is_constant_pressure:
                     self.addToConfig(
-                        f"    barostat.setDefaultTemperature(temperature*kelvin)"
+                        "    barostat.setDefaultTemperature(temperature*kelvin)"
                     )
                 self.addToConfig("    simulation.step(100)")
             else:
@@ -344,10 +344,10 @@ class OpenMMATM(_OpenMM):
                 self.addToConfig(f"start_temperature = {temperature}")
                 self.addToConfig(f"for x in range(0, {steps}):")
                 self.addToConfig(f"    temperature = {temperature} + x*{delta_temp}")
-                self.addToConfig(f"    integrator.setTemperature(temperature*kelvin)")
+                self.addToConfig("    integrator.setTemperature(temperature*kelvin)")
                 if is_constant_pressure:
                     self.addToConfig(
-                        f"    barostat.setDefaultTemperature(temperature*kelvin)"
+                        "    barostat.setDefaultTemperature(temperature*kelvin)"
                     )
                 self.addToConfig("    simulation.step(1)")
 

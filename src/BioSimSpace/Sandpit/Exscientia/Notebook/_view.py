@@ -265,7 +265,7 @@ class View:
             return None
 
         # Check that the index is an integer.
-        if not type(index) is int:
+        if type(index) is not int:
             raise TypeError("'index' must be of type 'int'")
 
         # Get the latest system from the process.
@@ -329,7 +329,7 @@ class View:
             index = self._num_views - 1
 
         # Check that the index is an integer.
-        elif not type(index) is int:
+        elif type(index) is not int:
             raise TypeError("'index' must be of type 'int'")
 
         # Make sure the view index is valid.
@@ -379,7 +379,7 @@ class View:
             index = self._num_views - 1
 
         # Check that the index is an integer.
-        elif not type(index) is int:
+        elif type(index) is not int:
             raise TypeError("'index' must be of type 'int'")
 
         # Make sure the view index is valid.

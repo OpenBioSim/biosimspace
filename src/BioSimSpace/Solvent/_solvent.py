@@ -948,7 +948,7 @@ def _validate_input(
         box = 3 * [base_length]
 
     # Check that the ion concentration is valid.
-    if not isinstance(ion_conc, float) and not type(ion_conc) is int:
+    if not isinstance(ion_conc, float) and type(ion_conc) is not int:
         raise TypeError("'ion_conc' must be of type 'int' or 'float'.")
     elif ion_conc < 0:
         raise ValueError("'ion_conc' cannot be negative!")
@@ -1728,7 +1728,6 @@ def _rename_water_molecule(molecule):
 _models = []  # List of water models (actual names).
 _models_lower = []  # List of lower case names.
 _model_dict = {}  # Mapping between lower case names and functions.
-import sys as _sys
 
 _namespace = _sys.modules[__name__]
 for _var in dir():

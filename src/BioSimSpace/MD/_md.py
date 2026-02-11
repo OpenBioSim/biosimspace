@@ -27,7 +27,7 @@ __email__ = "lester.hedges@gmail.com"
 __all__ = ["run"]
 
 
-from .. import _amber_home, _gmx_exe
+from .. import _gmx_exe
 
 # A dictionary mapping MD engines to their executable names and GPU support.
 # engine, exe, gpu
@@ -120,7 +120,6 @@ def _find_md_engines(system, protocol, engine="AUTO", gpu_support=False):
     from sire.legacy import Base as _SireBase
 
     from .. import Protocol as _Protocol
-    from .. import _gmx_exe
     from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
 
     # The input has already been validated in the run method, so no need
@@ -129,7 +128,7 @@ def _find_md_engines(system, protocol, engine="AUTO", gpu_support=False):
     fileformat = system.fileFormat()
 
     # Make sure that this format is supported.
-    if not fileformat in _file_extensions:
+    if fileformat not in _file_extensions:
         raise ValueError(
             "Cannot find an MD engine that supports format: %s" % fileformat
         )
@@ -348,7 +347,7 @@ def run(
             raise TypeError("'work_dir' must be of type 'str'")
 
     if seed is not None:
-        if not type(seed) is int:
+        if type(seed) is not int:
             raise TypeError("'seed' must be of type 'int'")
 
     if not isinstance(property_map, dict):

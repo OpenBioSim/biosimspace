@@ -99,7 +99,7 @@ def getFrame(trajectory, topology, index, system=None, property_map={}):
     if not isinstance(topology, str):
         raise TypeError("'topology' must be of type 'str'")
 
-    if not type(index) is int:
+    if type(index) is not int:
         raise TypeError("'index' must be of type 'int'")
 
     if not isinstance(property_map, dict):
@@ -391,7 +391,7 @@ class Trajectory:
             )
 
         # Both use cases active. Default to process.
-        if not process is None and not trajectory is None:
+        if process is not None and trajectory is not None:
             _warnings.warn(
                 "Both a process and trajectory file are specified! Defaulting to 'process'."
             )
@@ -1019,7 +1019,7 @@ class Trajectory:
         if frame is None:
             frame = 0
         else:
-            if not type(frame) is int:
+            if type(frame) is not int:
                 raise TypeError("'frame' must be of type 'int'")
             else:
                 # Store the number of frames.

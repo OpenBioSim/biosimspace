@@ -1,5 +1,3 @@
-import pytest
-
 import BioSimSpace as BSS
 
 # Unit tests for equivalence of protocol settings when instantiated

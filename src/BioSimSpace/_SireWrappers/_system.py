@@ -530,7 +530,7 @@ class System(_SireWrapper):
                 name0 = inv_prop_map0.get(p0, p0)
 
                 # Skip if excluded.
-                if not name0 in _excluded_properties:
+                if name0 not in _excluded_properties:
                     # Get the property name in other.
                     name1 = property_map1.get(name0, name0)
 
@@ -565,7 +565,7 @@ class System(_SireWrapper):
             for p1 in props1:
                 name1 = inv_prop_map1.get(p1, p1)
                 # This is a property unique to object1, so they differ.
-                if not name1 in _excluded_properties and name1 not in props0:
+                if name1 not in _excluded_properties and name1 not in props0:
                     return False
 
             # If we get this far, then the objects are the same.
@@ -706,7 +706,7 @@ class System(_SireWrapper):
             # Search for molecules with a velocity property.
             try:
                 mols_with_velocities = self.search(
-                    f"mols with property velocity"
+                    "mols with property velocity"
                 ).molecules()
                 num_vels = len(mols_with_velocities)
             except:
@@ -1035,7 +1035,7 @@ class System(_SireWrapper):
         atom : :class:`Atom <BioSimSpace._SireWrappers.Atom>`
             The atom at the specified index.
         """
-        if not type(index) is int:
+        if type(index) is not int:
             raise TypeError("'index' must be of type 'int'.")
 
         # Set the MolNum to atom index mapping.
@@ -1091,7 +1091,7 @@ class System(_SireWrapper):
         residue : :class:`Residue <BioSimSpace._SireWrappers.Residue>`
             The residue at the specified index.
         """
-        if not type(index) is int:
+        if type(index) is not int:
             raise TypeError("'index' must be of type 'int'.")
 
         # Set the MolNum to residue index mapping.
@@ -2030,7 +2030,7 @@ class System(_SireWrapper):
         if restraint not in allowed:
             raise ValueError(f"'restraint' must be one of: {allowed}")
 
-        if mol_index is not None and not type(mol_index) is int:
+        if mol_index is not None and type(mol_index) is not int:
             raise TypeError("'mol_index' must be of type 'int'.")
 
         if not isinstance(is_absolute, bool):

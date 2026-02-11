@@ -552,7 +552,7 @@ class ProcessRunner:
             raise TypeError("'serial' must be of type 'bool'.")
 
         if batch_size is not None:
-            if not type(batch_size) is int:
+            if type(batch_size) is not int:
                 raise TypeError("'batch_size' must be of type 'int'.")
             if batch_size < 1:
                 raise ValueError("'batch_size' must be > 1.")
@@ -561,7 +561,7 @@ class ProcessRunner:
 
             batch_size = cpu_count()
 
-        if not type(max_retries) is int:
+        if type(max_retries) is not int:
             raise TypeError("'max_retries' must be of type 'int'.")
 
         if max_retries < 1:
@@ -620,7 +620,7 @@ class ProcessRunner:
             raise TypeError("'serial' must be of type 'bool'.")
 
         if batch_size is not None:
-            if not type(batch_size) is int:
+            if type(batch_size) is not int:
                 raise TypeError("'batch_size' must be of type 'int'.")
             if batch_size < 1:
                 raise ValueError("'batch_size' must be > 1.")
@@ -629,7 +629,7 @@ class ProcessRunner:
 
             batch_size = cpu_count()
 
-        if not type(max_retries) is int:
+        if type(max_retries) is not int:
             raise TypeError("'max_retries' must be of type 'int'.")
 
         if max_retries < 1:

@@ -611,7 +611,7 @@ class _ATMUtils:
         output += "# Reporting for MBAR:\n"
         # round master lambda to 4 d.p. to avoid floating point errors
         output += f"master_lambda_list = {[round(i,4) for i in self.protocol._get_lambda_values()]}\n"
-        output += f"master_lambda = master_lambda_list[window_index]\n"
+        output += "master_lambda = master_lambda_list[window_index]\n"
 
         output += "if is_restart:\n"
         output += "    try:\n"
@@ -631,7 +631,7 @@ class _ATMUtils:
         output += "# Timestep in ps\n"
         output += f"timestep = {timestep}\n"
         output += f"inflex_point = {inflex_point}\n"
-        output += f"for x in range(0, numcycles):\n"
+        output += "for x in range(0, numcycles):\n"
         output += f"    simulation.step({steps_per_cycle})\n"
         output += f"    steps_so_far += {steps_per_cycle}\n"
         output += "    time = steps_so_far * timestep\n"
@@ -680,7 +680,7 @@ class _ATMUtils:
         output += "    simulation.context.setParameter('Direction',direction)\n"
         output += f"    simulation.saveState('{name}.xml')\n"
         output += "    #now dump data to a csv file\n"
-        output += f"    df = pd.DataFrame(energies)\n"
+        output += "    df = pd.DataFrame(energies)\n"
         output += "    df.set_index(['time', 'fep-lambda'], inplace=True)\n"
         output += "    df.to_csv(f'energies_{master_lambda}.csv')\n"
         output += "#Dump final data to csv file\n"
@@ -726,7 +726,7 @@ class _ATMUtils:
         output += "    result['pert_en'] = []\n"
         output += "    result['metad_offset'] = []\n"
 
-        output += f"for x in range(0, numcycles):\n"
+        output += "for x in range(0, numcycles):\n"
         output += f"    simulation.step({steps_per_cycle})\n"
         output += (
             "    state = simulation.context.getState(getEnergy = True, groups = -1)\n"
@@ -811,7 +811,7 @@ class _ATMUtils:
         output += "# Reporting for MBAR:\n"
         # round master lambda to 4 d.p. to avoid floating point errors
         output += f"master_lambda_list = {[round(i,4) for i in self.protocol._get_lambda_values()]}\n"
-        output += f"master_lambda = master_lambda_list[window_index]\n"
+        output += "master_lambda = master_lambda_list[window_index]\n"
         output += "if is_restart:\n"
         output += "    try:\n"
         output += "        MBAR_df = pd.read_csv(f'energies_{master_lambda}.csv')\n"
@@ -830,7 +830,7 @@ class _ATMUtils:
         output += f"inflex_point = {inflex_point}\n"
 
         output += "# Now run the simulation.\n"
-        output += f"for x in range(0, numcycles):\n"
+        output += "for x in range(0, numcycles):\n"
         output += f"    simulation.step({steps_per_cycle})\n"
         output += f"    steps_so_far += {steps_per_cycle}\n"
         output += "    time = steps_so_far * timestep\n"

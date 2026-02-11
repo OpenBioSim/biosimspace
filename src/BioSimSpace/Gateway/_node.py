@@ -34,13 +34,6 @@ _yaml = _try_import("yaml")
 
 from .. import _is_notebook
 
-# Enable Jupyter widgets.
-if _is_notebook:
-    from IPython.display import FileLink as _FileLink
-
-    import ipywidgets as _widgets
-    import zipfile as _zipfile
-
 from ._requirements import Area as _Area
 from ._requirements import Charge as _Charge
 from ._requirements import Energy as _Energy
@@ -133,7 +126,6 @@ class CwlAction(_argparse.Action):
         exe = _sys.executable
 
         # Store the absolute path of the node.
-        import __main__
 
         node = _os.path.abspath(__main__.__file__)
 
@@ -1140,7 +1132,7 @@ class Node:
             self._authors = [{"name": name, "email": email, "affiliation": affiliation}]
         else:
             author = {"name": name, "email": email, "affiliation": affiliation}
-            if not author in self._authors:
+            if author not in self._authors:
                 self._authors.append(author)
 
     def getAuthors(self):
@@ -1321,7 +1313,7 @@ class Node:
                     if value is True:
                         self._strict_file_naming = True
                 else:
-                    if not key in ["config", "export_cwl"]:
+                    if key not in ["config", "export_cwl"]:
                         self._inputs[key].setValue(value, name=key)
 
     def validate(self, file_prefix="output"):
@@ -1345,8 +1337,6 @@ class Node:
         import os as _os
         import sys as _sys
         import zipfile as _zipfile
-
-        from IPython.display import FileLink as _FileLink
 
         from ._requirements import File as _File
         from ._requirements import FileSet as _FileSet
@@ -1380,6 +1370,8 @@ class Node:
 
         # Create a compressed archive containing all file output for the node.
         if self._is_notebook:
+            from IPython.display import FileLink as _FileLink
+
             # There are files.
             if len(file_outputs) > 0:
                 # Create the archive name.

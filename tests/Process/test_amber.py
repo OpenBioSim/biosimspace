@@ -6,7 +6,7 @@ from collections import OrderedDict
 import pytest
 
 import BioSimSpace as BSS
-from tests.conftest import has_amber, url
+from tests.conftest import has_amber
 
 # Store the allowed restraints.
 restraints = BSS.Protocol._position_restraint_mixin._PositionRestraintMixin.restraints()

@@ -414,7 +414,7 @@ class OpenMM(_process.Process):
             self.addToConfig(
                 "\n# Run a single simulation step to allow us to get the system and energy."
             )
-            self.addToConfig(f"simulation.step(1)")
+            self.addToConfig("simulation.step(1)")
 
         elif isinstance(self._protocol, _Protocol.Equilibration):
             # Write the OpenMM import statements and monkey-patches.
@@ -569,11 +569,11 @@ class OpenMM(_process.Process):
                         f"    temperature = {temperature} + x*{delta_temp}"
                     )
                     self.addToConfig(
-                        f"    integrator.setTemperature(temperature*kelvin)"
+                        "    integrator.setTemperature(temperature*kelvin)"
                     )
                     if is_const_pressure:
                         self.addToConfig(
-                            f"    barostat.setDefaultTemperature(temperature*kelvin)"
+                            "    barostat.setDefaultTemperature(temperature*kelvin)"
                         )
                     self.addToConfig("    simulation.step(100)")
                 else:
@@ -589,11 +589,11 @@ class OpenMM(_process.Process):
                         f"    temperature = {temperature} + x*{delta_temp}"
                     )
                     self.addToConfig(
-                        f"    integrator.setTemperature(temperature*kelvin)"
+                        "    integrator.setTemperature(temperature*kelvin)"
                     )
                     if is_const_pressure:
                         self.addToConfig(
-                            f"    barostat.setDefaultTemperature(temperature*kelvin)"
+                            "    barostat.setDefaultTemperature(temperature*kelvin)"
                         )
                     self.addToConfig("    simulation.step(1)")
 
@@ -1140,7 +1140,7 @@ class OpenMM(_process.Process):
             self.addToConfig(
                 "remaining_cycles = math.ceil(remaining_steps / steps_per_cycle)"
             )
-            self.addToConfig(f"start_cycles = total_cycles - remaining_cycles")
+            self.addToConfig("start_cycles = total_cycles - remaining_cycles")
             self.addToConfig("checkpoint = 100")
             self.addToConfig("if is_restart:")
             self.addToConfig("    fraction_complete = step / total_steps")
@@ -1494,7 +1494,7 @@ class OpenMM(_process.Process):
 
         from .. import Trajectory as _Trajectory
 
-        if not type(index) is int:
+        if type(index) is not int:
             raise TypeError("'index' must be of type 'int'")
 
         max_index = int(
@@ -2158,11 +2158,11 @@ class OpenMM(_process.Process):
 
         from .. import Protocol as _Protocol
 
-        if not type(state_interval) is int:
+        if type(state_interval) is not int:
             raise TypeError("'state_interval' must be of type 'int'.")
         if state_interval <= 0:
             raise ValueError("'state_interval' must be a positive integer.")
-        if not type(traj_interval) is int:
+        if type(traj_interval) is not int:
             raise TypeError("'traj_interval' must be of type 'int'.")
         if traj_interval <= 0:
             raise ValueError("'traj_interval' must be a positive integer.")
@@ -2198,7 +2198,7 @@ class OpenMM(_process.Process):
 
         # Write state information to file every 100 steps.
         self.addToConfig(f"log_file = open('{self._name}.log', 'a')")
-        self.addToConfig(f"simulation.reporters.append(StateDataReporter(log_file,")
+        self.addToConfig("simulation.reporters.append(StateDataReporter(log_file,")
         self.addToConfig(
             f"                                              {state_interval},"
         )

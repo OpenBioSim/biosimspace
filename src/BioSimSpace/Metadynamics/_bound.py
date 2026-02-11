@@ -98,7 +98,7 @@ class Bound:
         """
         from ..Types._type import Type as _Type
 
-        if not isinstance(value, (float, _Type)) and not type(value) is int:
+        if not isinstance(value, (float, _Type)) and type(value) is not int:
             raise TypeError(
                 "'value' must be of type 'int', 'float', or 'BioSimSpace.Types._type.Type'"
             )

@@ -30,7 +30,7 @@ __all__ = ["AlchemicalFreeEnergy", "getData"]
 import os as _os
 import sys as _sys
 
-from .._Utils import _have_imported, _try_import
+from .._Utils import _try_import
 
 # alchemlyb isn't available on all variants of Python that we support, so we
 # need to try_import it.
@@ -863,9 +863,7 @@ class AlchemicalFreeEnergy:
                             .replace("(", "")
                             .replace(")", "")
                             .replace(" ", "")
-                        ).split(
-                            ","
-                        )  # list
+                        ).split(",")  # list
                         if lambda_array is not None:
                             found_array = True
                     if start_t and end_t in line:
@@ -913,9 +911,7 @@ class AlchemicalFreeEnergy:
             time_rows = _np.arange(0, len(file_df["step"]), 1)
             time = _np.arange(0, sim_length, time_step)
 
-            mbar_energies = (
-                []
-            )  # results in list of lists where each list is 0 to 1 window values
+            mbar_energies = []  # results in list of lists where each list is 0 to 1 window values
 
             # # so for the energies for each lambda, append the kt to the data list of vals for all lambda wins
             # then trun into df
@@ -992,9 +988,7 @@ class AlchemicalFreeEnergy:
                             .replace("(", "")
                             .replace(")", "")
                             .replace(" ", "")
-                        ).split(
-                            ","
-                        )  # list
+                        ).split(",")  # list
                         if lambda_array is not None:
                             found_array = True
                     if start_t and end_t in line:

@@ -195,7 +195,7 @@ def test_gromacs_lipid(system, tmp_path, lipid):
     else:
         assert not (tmp_path / "posre_0001.itp").is_file()
         with open(tmp_path / "gromacs.top", "r") as f:
-            assert not "posre_0001.itp" in f.read()
+            assert "posre_0001.itp" not in f.read()
 
 
 @pytest.mark.skipif(

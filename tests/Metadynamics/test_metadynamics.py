@@ -46,7 +46,6 @@ def test_metadynamics(system):
     reason="Local test requiring PLUMED patched GROMACS.",
 )
 def test_steering(system):
-
     # Create a reference containing the first and third molecule from the system.
     reference = (system[0] + system[2]).toSystem()
 

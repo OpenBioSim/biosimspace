@@ -179,7 +179,7 @@ def to(obj, format="biosimspace", property_map={}, **kwargs):
     # Convert to lower case and strip whitespace.
     format = format.lower().replace(" ", "")
 
-    if not format in supportedFormats():
+    if format not in supportedFormats():
         raise ValueError(
             f"Unsupported format '{format}', options are: {', '.join(supportedFormats())}."
         )

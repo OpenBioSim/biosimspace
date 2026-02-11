@@ -701,7 +701,7 @@ class Somd(_process.Process):
 
         from .. import Trajectory as _Trajectory
 
-        if not type(index) is int:
+        if type(index) is not int:
             raise TypeError("'index' must be of type 'int'")
 
         max_index = (
@@ -2884,7 +2884,7 @@ def _to_pert_file(
                 for idx0 in impropers0_idx.keys():
                     if idx1.equivalent(idx0):
                         # Don't store duplicates.
-                        if not idx0 in impropers_shared_idx.keys():
+                        if idx0 not in impropers_shared_idx.keys():
                             impropers_shared_idx[idx1] = (
                                 impropers0_idx[idx0],
                                 impropers1_idx[idx1],

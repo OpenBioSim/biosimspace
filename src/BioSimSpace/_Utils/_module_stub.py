@@ -121,7 +121,7 @@ def _try_import(name: str, install_command: str = None):
 
     try:
         m = importlib.import_module(name)
-    except Exception as e:
+    except Exception:
         m = _ModuleStub(name=name, install_command=install_command)
 
         _failed_modules[name] = m

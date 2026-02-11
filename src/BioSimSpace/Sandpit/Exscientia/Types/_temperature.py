@@ -410,7 +410,7 @@ class Temperature(_Type):
         elif unit in cls._abbreviations:
             return cls._abbreviations[unit]
         elif len(unit) == 0:
-            raise ValueError(f"Unit is not given. You must supply the unit.")
+            raise ValueError("Unit is not given. You must supply the unit.")
         else:
             raise ValueError(
                 "Unsupported unit '%s'. Supported units are: '%s'"

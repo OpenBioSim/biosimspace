@@ -35,25 +35,22 @@ from .. import _is_notebook
 from ..Units.Length import angstrom as _angstrom
 
 if _is_notebook:
-    from tqdm.notebook import tqdm as _tqdm
+    pass
 else:
-    from tqdm import tqdm as _tqdm
+    pass
 
 from .._Utils import _have_imported, _try_import
 
 if _is_notebook:
-    from IPython.display import FileLink as _FileLink
-    from tqdm.notebook import tqdm as _tqdm
+    pass
 else:
-    from tqdm import tqdm as _tqdm
+    pass
 
 
 _mda = _try_import("MDAnalysis")
 
 if _have_imported(_mda):
-    from MDAnalysis.analysis.distances import dist as _dist
-    from MDAnalysis.lib.distances import calc_angles as _calc_angles
-    from MDAnalysis.lib.distances import calc_dihedrals as _calc_dihedrals
+    pass
 
 
 _MDRestraintsGenerator = _try_import(
@@ -64,10 +61,6 @@ if _have_imported(_MDRestraintsGenerator):
     from Bio import BiopythonDeprecationWarning
 
     _warnings.simplefilter("ignore", BiopythonDeprecationWarning)
-    from MDRestraintsGenerator import search as _search
-    from MDRestraintsGenerator.restraints import (
-        FindBoreschRestraint as _FindBoreschRestraint,
-    )
 
 is_MDRestraintsGenerator = _have_imported(_MDRestraintsGenerator)
 
@@ -593,7 +586,7 @@ class RestraintSearch:
                 f"restraint_type {type(restraint_type)} must be of type 'str'."
             )
 
-        if not restraint_type.lower() in RestraintSearch._restraint_types:
+        if restraint_type.lower() not in RestraintSearch._restraint_types:
             raise NotImplementedError(
                 f"Restraint type {restraint_type} is not implemented. "
                 f"Please choose from {RestraintSearch._restraint_types}"
@@ -601,13 +594,13 @@ class RestraintSearch:
 
         if not isinstance(method, str):
             raise TypeError(f"method {type(method)} must be of type 'str'.")
-        if not method.lower() in ["mdrestraintsgenerator", "bss"]:
+        if method.lower() not in ["mdrestraintsgenerator", "bss"]:
             raise NotImplementedError(
                 "Deriving restraints using 'MDRestraintsGenerator'"
                 "or 'BSS' are the only options implemented."
             )
         # Check that the selected method is supported for the selected restraint type.
-        if not method in _supported_methods[restraint_type.lower()]:
+        if method not in _supported_methods[restraint_type.lower()]:
             raise NotImplementedError(
                 f"Method {method} is not supported for restraint type {restraint_type}. "
                 f"Please choose from {_supported_methods[restraint_type.lower()]}"

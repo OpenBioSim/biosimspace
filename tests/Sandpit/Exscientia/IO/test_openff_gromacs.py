@@ -1,4 +1,3 @@
-import pandas
 import pytest
 
 import BioSimSpace.Sandpit.Exscientia as BSS

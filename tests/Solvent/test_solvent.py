@@ -2,7 +2,6 @@ import tempfile
 from functools import partial
 
 import pytest
-from sire.legacy.IO import GroTop
 
 import BioSimSpace as BSS
 from tests.conftest import has_gromacs

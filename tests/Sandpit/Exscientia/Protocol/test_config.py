@@ -3,7 +3,6 @@ import pytest
 
 import BioSimSpace.Sandpit.Exscientia as BSS
 from BioSimSpace.Sandpit.Exscientia._SireWrappers import Molecule
-from BioSimSpace.Sandpit.Exscientia._Utils import _have_imported, _try_import
 from BioSimSpace.Sandpit.Exscientia.Align._decouple import decouple
 from BioSimSpace.Sandpit.Exscientia.FreeEnergy import Restraint
 from BioSimSpace.Sandpit.Exscientia.Protocol import (

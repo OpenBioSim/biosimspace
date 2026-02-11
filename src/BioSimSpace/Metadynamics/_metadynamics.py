@@ -28,7 +28,7 @@ __all__ = ["run"]
 
 
 # Import common objects from BioSimSpace.MD._md
-from ..MD._md import _file_extensions, _find_md_engines, _md_engines
+from ..MD._md import _find_md_engines
 
 
 def run(
@@ -92,7 +92,6 @@ def run(
     from .. import Process as _Process
     from .. import Protocol as _Protocol
     from .._SireWrappers import System as _System
-    from ..MD._md import _find_md_engines
 
     # Check that the system is valid.
     if not isinstance(system, _System):
@@ -124,7 +123,7 @@ def run(
             raise TypeError("'work_dir' must be of type 'str'")
 
     if seed is not None:
-        if not type(seed) is int:
+        if type(seed) is not int:
             raise TypeError("'seed' must be of type 'int'")
 
     if not isinstance(property_map, dict):

@@ -1400,7 +1400,7 @@ class Plumed:
             msg = "No PLUMED configuration found! Please run 'createConfig' first."
             raise _Exceptions.IncompatibleError(msg)
 
-        if not type(index) is int:
+        if type(index) is not int:
             raise TypeError("'index' must be of type 'int'")
         if index > self._num_components - 1 or index < -self._num_components:
             raise IndexError(
@@ -1460,7 +1460,7 @@ class Plumed:
             raise _Exceptions.IncompatibleError(msg)
 
         if index is not None:
-            if not type(index) is int:
+            if type(index) is not int:
                 raise TypeError("'index' must be of type 'int'")
             if index > self._num_components - 1 or index < -self._num_components:
                 raise IndexError(
@@ -1469,7 +1469,7 @@ class Plumed:
                 )
 
         if stride is not None:
-            if not type(stride) is int:
+            if type(stride) is not int:
                 raise TypeError("'stride' must be of type 'int'")
             if stride < 0:
                 raise ValueError("'stride' must be >= 0")

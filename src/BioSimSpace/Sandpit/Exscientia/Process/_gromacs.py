@@ -39,8 +39,7 @@ from .._Utils import _have_imported, _try_import
 _alchemlyb = _try_import("alchemlyb")
 
 if _have_imported(_alchemlyb):
-    from alchemlyb.parsing.gmx import extract_u_nk as _extract_u_nk
-    from alchemlyb.parsing.gmx import extract_dHdl as _extract_dHdl
+    pass
 
 from . import _process
 
@@ -971,7 +970,7 @@ class Gromacs(_process.Process):
         """
         import warnings as _warnings
 
-        if not type(index) is int:
+        if type(index) is not int:
             raise TypeError("'index' must be of type 'int'")
 
         max_index = (
@@ -2306,7 +2305,7 @@ class Gromacs(_process.Process):
 
                         # Store the atom index if it hasn't already been recorded.
                         for atom_idx in atom_idxs:
-                            if not atom_idx in restrained_atoms:
+                            if atom_idx not in restrained_atoms:
                                 restrained_atoms.append(atom_idx)
 
                     # Write the position restraint file for this molecule.
@@ -2377,7 +2376,7 @@ class Gromacs(_process.Process):
                         mol_type = sys_idx_moltypes[mol_idx]
 
                         # Append this atom if it's not already been recorded.
-                        if not atom_idx in mol_atoms[mol_type]:
+                        if atom_idx not in mol_atoms[mol_type]:
                             mol_atoms[mol_type].append(atom_idx)
 
                     except Exception as e:

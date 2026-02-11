@@ -335,7 +335,7 @@ class RMSD(_CollectiveVariable):
         # Also strip any TER records.
         self._reference_pdb = []
         for line, idx in zip(lines[1:-2], abs_atom_indices):
-            if not "TER" in line:
+            if "TER" not in line:
                 self._reference_pdb.append(line[:6] + str(idx).rjust(5) + line[11:])
         self._reference_pdb.append(lines[-1])
 
@@ -678,7 +678,7 @@ class RMSD(_CollectiveVariable):
                     i.value(): i.value()
                     for i in align_indices[ref._sire_object.number()]
                 }
-            except Exception as e:
+            except Exception:
                 pass
 
             if len(align_mapping) > 0:
@@ -699,7 +699,7 @@ class RMSD(_CollectiveVariable):
 
             try:
                 rmsd_mapping = {i: i for i in rmsd_indices[ref._sire_object.number()]}
-            except Exception as e:
+            except Exception:
                 pass
 
             if len(rmsd_mapping) > 0:

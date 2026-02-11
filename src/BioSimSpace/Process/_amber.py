@@ -736,7 +736,7 @@ class Amber(_process.Process):
         from .. import Trajectory as _Trajectory
         from ..Align._squash import _unsquash
 
-        if not type(index) is int:
+        if type(index) is not int:
             raise TypeError("'index' must be of type 'int'")
 
         max_index = int(
@@ -867,7 +867,7 @@ class Amber(_process.Process):
         cleaned_record = record.strip().upper()
 
         # Make sure the record exists in the key mapping.
-        if not cleaned_record in self._stdout_key[idx].values():
+        if cleaned_record not in self._stdout_key[idx].values():
             raise ValueError(f"No key found for record '{record}'")
 
         return list(self._stdout_key[idx].keys())[
@@ -2780,7 +2780,7 @@ class Amber(_process.Process):
         """Kill the running process."""
 
         # Kill the process.
-        if not self._process is None and self._process.is_running():
+        if self._process is not None and self._process.is_running():
             self._process.kill()
 
     def _get_stdout_record(
@@ -2945,7 +2945,6 @@ def _findExe(is_gpu=False, is_free_energy=False, is_vacuum=False):
 
     # Search for the executable.
 
-    import os as _os
     import pathlib as _pathlib
     from glob import glob as _glob
 

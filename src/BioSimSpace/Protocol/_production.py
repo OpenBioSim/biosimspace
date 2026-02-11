@@ -379,7 +379,7 @@ class Production(_Protocol, _PositionRestraintMixin):
         """
         import warnings as _warnings
 
-        if not type(report_interval) is int:
+        if type(report_interval) is not int:
             raise TypeError("'report_interval' must be of type 'int'")
 
         if report_interval <= 0:
@@ -416,7 +416,7 @@ class Production(_Protocol, _PositionRestraintMixin):
         """
         import warnings as _warnings
 
-        if not type(restart_interval) is int:
+        if type(restart_interval) is not int:
             raise TypeError("'restart_interval' must be of type 'int'")
 
         if restart_interval <= 0:

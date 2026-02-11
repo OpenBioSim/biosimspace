@@ -1,7 +1,7 @@
 import pytest
 
 import BioSimSpace as BSS
-from tests.conftest import has_namd, url
+from tests.conftest import has_namd
 
 # Store the allowed restraints.
 restraints = BSS.Protocol._position_restraint_mixin._PositionRestraintMixin.restraints()
@@ -13,8 +13,8 @@ def namd_system():
     return BSS.IO.readMolecules(
         [
             "tests/input/alanin.psf",
-            f"tests/input/alanin.pdb",
-            f"tests/input/alanin.params",
+            "tests/input/alanin.pdb",
+            "tests/input/alanin.params",
         ]
     )
 

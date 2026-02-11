@@ -59,7 +59,7 @@ def dual_topology_system():
 
 @pytest.fixture
 def perturbed_tripeptide():
-    return pickle.load(open(f"tests/input/merged_tripeptide.pickle", "rb"))
+    return pickle.load(open("tests/input/merged_tripeptide.pickle", "rb"))
 
 
 @pytest.mark.skipif(has_amber is False, reason="Requires AMBER to be installed.")

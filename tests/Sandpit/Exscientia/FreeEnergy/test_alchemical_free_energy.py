@@ -3,7 +3,6 @@ import os
 import pathlib
 import shutil
 import time
-from math import exp
 
 import numpy as np
 import pandas as pd
@@ -319,4 +318,4 @@ class Test_Somd_ABFE:
                 lines = f.readlines()
                 assert "lambda array = 0.0, 0.5, 1.0\n" in lines
                 assert f"lambda_val = {float(lam):.1f}\n" in lines
-                assert f"perturbed residue number = 1\n" in lines
+                assert "perturbed residue number = 1\n" in lines

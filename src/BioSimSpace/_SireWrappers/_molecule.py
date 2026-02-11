@@ -334,7 +334,7 @@ class Molecule(_SireWrapper):
 
         for x in indices:
             # Check type.
-            if not type(x) is int:
+            if type(x) is not int:
                 raise TypeError("'indices' must be a list of 'int' types.")
 
             # Map index back to range.
@@ -813,10 +813,10 @@ class Molecule(_SireWrapper):
 
             # See if any of the new properties are in the map, add them if not.
             for prop in props0:
-                if not prop in _property_map:
+                if prop not in _property_map:
                     _property_map[prop] = prop
             for prop in props1:
-                if not prop in _property_map:
+                if prop not in _property_map:
                     _property_map[prop] = prop
 
             # Make the molecule editable.
