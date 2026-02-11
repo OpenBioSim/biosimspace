@@ -51,11 +51,14 @@ jobs:
         run: pip install build && python -m build --sdist && mv dist/*.tar.gz biosimspace-source.tar.gz
         working-directory: ${{ github.workspace }}
       #
-      - name: Install rattler-build
-        uses: prefix-dev/rattler-build-action@v0.2.34
+      - name: Install pixi
+        uses: prefix-dev/setup-pixi@v0.9.4
         with:
-          tool-version: latest
-          build-args: --help
+          run-install: false
+      #
+      - name: Install rattler-build
+        shell: bash
+        run: pixi global install rattler-build
       #
       - name: Write Python variant config
         shell: bash
