@@ -1721,7 +1721,6 @@ class Relative:
         import numpy as _np
 
         from .. import Units as _Units
-        from .. import _Utils
         from .._Exceptions import AnalysisError as _AnalysisError
 
         if not isinstance(work_dir, str):
@@ -1823,7 +1822,7 @@ class Relative:
                             % (_analyse_freenrg, work_dir, work_dir)
                         )
                         proc = _subprocess.run(
-                            _Util.command_split(command),
+                            _Utils.command_split(command),
                             shell=False,
                             stdout=_subprocess.PIPE,
                             stderr=_subprocess.PIPE,
