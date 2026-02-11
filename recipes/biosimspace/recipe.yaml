@@ -49,7 +49,9 @@ tests:
       imports:
         - BioSimSpace
   - script:
-      - PYTHONPATH=. pytest -vvv --color=yes --import-mode=importlib ./tests
+      - if: unix
+        then: PYTHONPATH=. pytest -vvv --color=yes --import-mode=importlib ./tests
+        else: set "PYTHONPATH=." && pytest -vvv --color=yes --import-mode=importlib ./tests
     files:
       source:
         - tests/
