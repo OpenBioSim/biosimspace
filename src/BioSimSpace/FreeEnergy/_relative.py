@@ -1720,6 +1720,7 @@ class Relative:
 
         import numpy as _np
 
+        from .. import _Utils
         from .. import Units as _Units
         from .._Exceptions import AnalysisError as _AnalysisError
 
