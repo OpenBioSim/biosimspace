@@ -315,7 +315,6 @@ class SireWrapper:
 
         # Whether this is an atom, molecule or residue, or system.
         is_atom = False
-        is_mol_res = False
         is_system = False
 
         # Get the first atom in the object.
@@ -325,7 +324,6 @@ class SireWrapper:
         except:
             try:
                 atom = self.getAtoms()[0]
-                is_mol_res = True
             except:
                 atom = self
                 is_atom = True
