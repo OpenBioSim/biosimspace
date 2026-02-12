@@ -1,10 +1,9 @@
 import os
-import numpy as np
 import pickle
+
+import numpy as np
 import pytest
-
 import sire
-
 from sire.maths import Vector
 
 import BioSimSpace as BSS
@@ -60,7 +59,7 @@ def dual_topology_system():
 
 @pytest.fixture
 def perturbed_tripeptide():
-    return pickle.load(open(f"tests/input/merged_tripeptide.pickle", "rb"))
+    return pickle.load(open("tests/input/merged_tripeptide.pickle", "rb"))
 
 
 @pytest.mark.skipif(has_amber is False, reason="Requires AMBER to be installed.")

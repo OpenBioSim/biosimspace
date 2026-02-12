@@ -1,12 +1,12 @@
 import glob
 import os
-import pytest
 import tempfile
 
-import BioSimSpace.Sandpit.Exscientia as BSS
+import pytest
 
-from tests.Sandpit.Exscientia.conftest import has_amber, has_openff
+import BioSimSpace.Sandpit.Exscientia as BSS
 from tests.conftest import root_fp
+from tests.Sandpit.Exscientia.conftest import has_amber, has_openff
 
 
 def test_file_cache():

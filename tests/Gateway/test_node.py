@@ -1,7 +1,7 @@
-import pytest
 import subprocess
-import shlex
 import sys
+
+import pytest
 
 import BioSimSpace as BSS
 

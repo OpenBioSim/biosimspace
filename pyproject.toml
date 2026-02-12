@@ -1,3 +1,48 @@
+[build-system]
+requires = ["setuptools", "versioningit"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "BioSimSpace"
+authors = [
+    { name = "Lester Hedges", email = "lester@openbiosim.org" },
+    { name = "Christopher Woods" },
+    { name = "Antonia Mey" },
+]
+description = "BioSimSpace: Making biomolecular simulation a breeze."
+readme = "README.rst"
+requires-python = ">=3.10"
+license = {text = "GPL-3.0-or-later"}
+dynamic = ["version"]
+
+[tool.setuptools]
+license-files = ["LICENSE"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"BioSimSpace.Metadynamics" = ["_aux/*"]
+
+[project.urls]
+homepage = "https://biosimspace.openbiosim.org"
+repository = "https://github.com/OpenBioSim/biosimspace"
+documentation = "https://biosimspace.openbiosim.org"
+
+[tool.versioningit.format]
+distance = "{base_version}+{distance}.{vcs}{rev}"
+dirty = "{base_version}+{distance}.{vcs}{rev}.dirty"
+distance-dirty = "{base_version}+{distance}.{vcs}{rev}.dirty"
+
+[tool.versioningit.write]
+file = "src/BioSimSpace/_version.py"
+
 [tool.pytest.ini_options]
 # Ensure that test/Sandpit/Exscientia could have the same name as the tests in test
 addopts = "--import-mode=importlib"
+
+[tool.ruff.lint]
+ignore = ["E402"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["F841"]

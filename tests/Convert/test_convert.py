@@ -1,8 +1,7 @@
-import BioSimSpace as BSS
-
+import pytest
 from sire.legacy import Mol as SireMol
 
-import pytest
+import BioSimSpace as BSS
 
 
 def test_system(system):
@@ -98,6 +97,7 @@ def test_sdf_stereo(lig):
     import tempfile
 
     from rdkit import Chem
+
     from tests.conftest import url
 
     # Load the molecule.

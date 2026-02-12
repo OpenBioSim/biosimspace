@@ -1,27 +1,24 @@
-import pytest
-
-import numpy as np
-
 from functools import partial
 
+import numpy as np
+import pytest
+
 import BioSimSpace.Sandpit.Exscientia as BSS
-from BioSimSpace.Sandpit.Exscientia.Align import decouple
 from BioSimSpace.Sandpit.Exscientia._Exceptions import AnalysisError
+from BioSimSpace.Sandpit.Exscientia.Align import decouple
 from BioSimSpace.Sandpit.Exscientia.FreeEnergy import (
-    RestraintSearch,
     Restraint,
+    RestraintSearch,
 )
 from BioSimSpace.Sandpit.Exscientia.Trajectory import Trajectory
 from BioSimSpace.Sandpit.Exscientia.Units.Angle import degree
 from BioSimSpace.Sandpit.Exscientia.Units.Energy import kcal_per_mol
-from BioSimSpace.Sandpit.Exscientia.Units.Length import angstrom
-from BioSimSpace.Sandpit.Exscientia.Units.Length import nanometer
-
+from BioSimSpace.Sandpit.Exscientia.Units.Length import angstrom, nanometer
 from tests.Sandpit.Exscientia.conftest import (
-    url,
     has_gromacs,
     has_mdanalysis,
     has_mdrestraints_generator,
+    url,
 )
 
 

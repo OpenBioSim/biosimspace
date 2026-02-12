@@ -1,12 +1,11 @@
 import math
+
 import numpy as np
 import pytest
-
 from sire.legacy.Vol import TriclinicBox
 
 import BioSimSpace as BSS
-
-from tests.conftest import url, has_amber, has_openff
+from tests.conftest import has_amber, has_openff, url
 
 
 @pytest.fixture(scope="session")
@@ -498,7 +497,7 @@ def test_remove_box(system):
     system.removeBox()
 
     # Make sure the box is removed.
-    assert not "space" in system._sire_object.property_keys()
+    assert "space" not in system._sire_object.property_keys()
 
 
 def test_renumber(system):

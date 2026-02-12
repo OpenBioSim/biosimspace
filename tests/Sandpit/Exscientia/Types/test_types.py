@@ -1,5 +1,6 @@
-import pytest
 import random
+
+import pytest
 
 import BioSimSpace.Sandpit.Exscientia.Types as Types
 

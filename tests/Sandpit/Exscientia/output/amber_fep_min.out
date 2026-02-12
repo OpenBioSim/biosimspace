@@ -19,70 +19,70 @@
   [-O]verwriting output
 
 File Assignments:
-|   MDIN: amber.cfg                                                             
-|  MDOUT: amber.out                                                             
-| INPCRD: amber.rst7                                                            
-|   PARM: amber.prm7                                                            
-| RESTRT: amber.crd                                                             
-|   REFC: refc                                                                  
-|  MDVEL: mdvel                                                                 
-|   MDEN: mden                                                                  
-|  MDCRD: mdcrd                                                                 
-| MDINFO: amber.nrg                                                             
-|  MDFRC: mdfrc                                                                 
+|   MDIN: amber.cfg
+|  MDOUT: amber.out
+| INPCRD: amber.rst7
+|   PARM: amber.prm7
+| RESTRT: amber.crd
+|   REFC: refc
+|  MDVEL: mdvel
+|   MDEN: mden
+|  MDCRD: mdcrd
+| MDINFO: amber.nrg
+|  MDFRC: mdfrc
 
 
  Here is the input file:
 
-FreeEnergyMinimisation                                                         
-&cntrl                                                                         
-   ntpr=200,                                                                   
-   ntxo=2,                                                                     
-   irest=0,                                                                    
-   ntx=1,                                                                      
-   imin=1,                                                                     
-   ntmin=2,                                                                    
-   maxcyc=10000,                                                               
-   ncyc=1000,                                                                  
-   cut=8.0,                                                                    
-   iwrap=1,                                                                    
-   icfe=1,                                                                     
-   ifsc=1,                                                                     
-   ntf=1,                                                                      
-   mbar_states=11,                                                             
+FreeEnergyMinimisation
+&cntrl
+   ntpr=200,
+   ntxo=2,
+   irest=0,
+   ntx=1,
+   imin=1,
+   ntmin=2,
+   maxcyc=10000,
+   ncyc=1000,
+   cut=8.0,
+   iwrap=1,
+   icfe=1,
+   ifsc=1,
+   ntf=1,
+   mbar_states=11,
    mbar_lambda=0.00000, 0.10000, 0.20000, 0.30000, 0.40000, 0.50000, 0.60000, 0
-   clambda=0.00000,                                                            
-   timask1="@6481-6485",                                                       
-   timask2="@6486-6491",                                                       
-   scmask1="",                                                                 
-   scmask2="@6491",                                                            
-   noshakemask="",                                                             
-/                                                                              
+   clambda=0.00000,
+   timask1="@6481-6485",
+   timask2="@6486-6491",
+   scmask1="",
+   scmask2="@6491",
+   noshakemask="",
+/
 
 
-Note: ig = -1. Setting random seed to    54474 based on wallclock time in 
+Note: ig = -1. Setting random seed to    54474 based on wallclock time in
       microseconds.
 | irandom = 1, using AMBER's internal random number generator (default).
- 
+
 |--------------------- INFORMATION ----------------------
 | GPU (CUDA) Version of PMEMD in use: NVIDIA GPU IN USE.
 |                    Version 18.0.0
-| 
+|
 |                      03/25/2018
-| 
+|
 | Implementation by:
 |                    Ross C. Walker     (SDSC)
 |                    Scott Le Grand     (nVIDIA)
-| 
+|
 | Version 18 performance extensions by:
 |                    David Cerutti     (Rutgers)
-| 
+|
 | Precision model in use:
 |      [SPFP] - Single Precision Forces, 64-bit Fixed Point
 |               Accumulation. (Default)
-| 
+|
 |--------------------------------------------------------
- 
+
 |----------------- CITATION INFORMATION -----------------
 |
 |    When publishing work that utilized the CUDA version
@@ -109,13 +109,13 @@ Note: ig = -1. Setting random seed to    54474 based on wallclock time in
 |    pp374-380, DOI: 10.1016/j.cpc.2012.09.022
 |
 |    When publishing work that utilized the CUDA version
-|    of TI, BAR, MBAR or FEP please cite the following 
-|    publications in addition to the regular AMBER 
+|    of TI, BAR, MBAR or FEP please cite the following
+|    publications in addition to the regular AMBER
 |    GPU citations:
 |
-|  - Daniel J. Mermelstein; Charles Lin; Gard Nelson; 
+|  - Daniel J. Mermelstein; Charles Lin; Gard Nelson;
 |    Rachael Kretsch; J. Andrew McCammon; Ross C. Walker
-|    "Fast and Flexible GPU Accelerated Binding 
+|    "Fast and Flexible GPU Accelerated Binding
 |    Free Energy Calculations within the AMBER Molecular
 |    Dynamics Package" J. Comp. Chem., 2018,
 |    DOI: 10.1002/jcc.25187
@@ -129,7 +129,7 @@ Note: ig = -1. Setting random seed to    54474 based on wallclock time in
 |
 |
 |--------------------------------------------------------
- 
+
 |------------------- GPU DEVICE INFO --------------------
 |
 |            CUDA_VISIBLE_DEVICES: not set
@@ -141,8 +141,8 @@ Note: ig = -1. Setting random seed to    54474 based on wallclock time in
 |           CUDA Device Core Freq:   1.71 GHz
 |
 |--------------------------------------------------------
- 
- 
+
+
 | Conditional Compilation Defines Used:
 | PUBFFT
 | BINTRAJ
@@ -162,7 +162,7 @@ Note: ig = -1. Setting random seed to    54474 based on wallclock time in
 | Duplicated    0 dihedrals
 
 --------------------------------------------------------------------------------
-   1.  RESOURCE   USE: 
+   1.  RESOURCE   USE:
 --------------------------------------------------------------------------------
 
  getting new box info from bottom of inpcrd
@@ -183,7 +183,7 @@ Note: ig = -1. Setting random seed to    54474 based on wallclock time in
    2.  CONTROL  DATA  FOR  THE  RUN
 --------------------------------------------------------------------------------
 
-                                                                                
+
 
 General flags:
      imin    =       1, nmropt  =       0
@@ -250,10 +250,10 @@ Ewald parameters:
    3.  ATOMIC COORDINATES AND VELOCITIES
 --------------------------------------------------------------------------------
 
-                                                                                
+
  begin time read from input coords =     0.000 ps
 
- 
+
  Number of triangulated 3-point waters found:     2160
  Number of shake restraints removed in TI region  1 :        0
  Number of shake restraints removed in TI region  2 :        0

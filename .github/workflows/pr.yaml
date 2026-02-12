@@ -14,21 +14,19 @@ jobs:
       matrix:
         python-version: ["3.10", "3.11", "3.12"]
         platform:
-          - { name: "windows", os: "windows-latest", shell: "pwsh" }
+          - { name: "windows", os: "windows-latest", shell: "bash -l {0}" }
           - { name: "linux", os: "ubuntu-latest", shell: "bash -l {0}" }
           - { name: "macos", os: "macos-latest", shell: "bash -l {0}" }
         exclude:
-          # Exclude all but the latest Python from all
-          # but Linux
           - platform:
               { name: "macos", os: "macos-latest", shell: "bash -l {0}" }
             python-version: "3.10"
-          - platform: { name: "windows", os: "windows-latest", shell: "pwsh" }
+          - platform: { name: "windows", os: "windows-latest", shell: "bash -l {0}" }
             python-version: "3.10"
           - platform:
               { name: "macos", os: "macos-latest", shell: "bash -l {0}" }
-            python-version: "3.12"  # MacOS can't run 3.12 yet...
-          - platform: { name: "windows", os: "windows-latest", shell: "pwsh" }
+            python-version: "3.12"  # MacOS can't run 3.12 yet...
+          - platform: { name: "windows", os: "windows-latest", shell: "bash -l {0}" }
             python-version: "3.11"
     environment:
       name: biosimspace-build
@@ -38,31 +36,40 @@ jobs:
     env:
       SIRE_DONT_PHONEHOME: 1
       SIRE_SILENT_PHONEHOME: 1
-      REPO: "${{ github.event.pull_request.head.repo.full_name || github.repository }}"
     steps:
-      - uses: conda-incubator/setup-miniconda@v3
+      #
+      - uses: actions/checkout@v4
         with:
-          auto-update-conda: true
-          python-version: ${{ matrix.python-version }}
-          activate-environment: bss_build
-          miniforge-version: latest
-#
-      - name: Clone the feature branch
-        run: git clone -b ${{ github.head_ref }} --single-branch https://github.com/${{ env.REPO }} biosimspace
-#
-      - name: Setup Conda
-        run: conda install -y -c conda-forge boa anaconda-client packaging pip-requirements-parser
-#
-      - name: Update Conda recipe
-        run: python ${{ github.workspace }}/biosimspace/actions/update_recipe.py
-#
-      - name: Prepare build location
-        run: mkdir ${{ github.workspace }}/build
-#
-      - name: Build Conda package using conda build using main channel
+          fetch-depth: 0
+      #
+      - name: Compute version info
+        shell: bash
+        run: python actions/update_recipe.py
+      #
+      - name: Create sdist
+        shell: bash
+        run: pip install build && python -m build --sdist && mv dist/*.tar.gz biosimspace-source.tar.gz
+        working-directory: ${{ github.workspace }}
+      #
+      - name: Install pixi
+        uses: prefix-dev/setup-pixi@v0.9.4
+        with:
+          run-install: false
+      #
+      - name: Install rattler-build
+        shell: bash
+        run: pixi global install rattler-build
+      #
+      - name: Write Python variant config
+        shell: bash
+        run: printf 'python:\n  - "${{ matrix.python-version }}"\n' > "${{ github.workspace }}/python_variant.yaml"
+      #
+      - name: Build package using rattler-build (main channel)
         if: ${{ github.base_ref == 'main' }}
-        run: conda build -c conda-forge -c openbiosim/label/main ${{ github.workspace }}/biosimspace/recipes/biosimspace
-#
-      - name: Build Conda package using conda build using dev channel
+        shell: bash
+        run: rattler-build build --recipe "${{ github.workspace }}/recipes/biosimspace" -c conda-forge -c openbiosim/label/main --variant-config "${{ github.workspace }}/python_variant.yaml"
+      #
+      - name: Build package using rattler-build (dev channel)
         if: ${{ github.base_ref != 'main' }}
-        run: conda build -c conda-forge -c openbiosim/label/dev ${{ github.workspace }}/biosimspace/recipes/biosimspace
+        shell: bash
+        run: rattler-build build --recipe "${{ github.workspace }}/recipes/biosimspace" -c conda-forge -c openbiosim/label/dev --variant-config "${{ github.workspace }}/python_variant.yaml"

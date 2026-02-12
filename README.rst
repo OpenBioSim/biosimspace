@@ -93,67 +93,68 @@ need to add them when updating, e.g., for the development package:
 
     conda update -c conda-forge -c openbiosim/label/dev biosimspace
 
-Installing from source
-^^^^^^^^^^^^^^^^^^^^^^
+Installing from source (standalone)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Alternatively, to install BioSimSpace from source:
-
-(Before starting, you'll need a working `Git <https://git-scm.com>`__ installation.)
-
-BioSimSpace is built on top of the `Sire <https://github.com/openbiosim/sire>`__
-molecular simulation framework. To download and install Sire, follow the
-instructions `here <https://github.com/openbiosim/sire#installation>`__, making
-sure that BioSimSpace's dependencies are installed into the Sire conda
-environment at the point at which Sire is installed.
-
-Next you will need to download BioSimSpace and install it into your Sire
-Conda environment.
+To install from source using `pixi <https://pixi.sh>`__, which will
+automatically create an environment with all required dependencies
+(including pre-built `Sire <https://github.com/openbiosim/sire>`__):
 
 .. code-block:: bash
 
    git clone https://github.com/openbiosim/biosimspace
-   cd biosimspace/python
-   pip install .
-
-If you plan to develop and want an editable install, use:
-
-.. code-block:: bash
-
+   cd biosimspace
+   pixi install
+   pixi shell
    pip install -e .
 
-If you want to skip the installation of BioSimSpace dependencies, e.g. if they
-are already installed, then you can use:
+Installing from source (full OpenBioSim development)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you are developing across the full OpenBioSim stack, first install
+`Sire <https://github.com/openbiosim/sire>`__ from source by following the
+instructions `here <https://github.com/openbiosim/sire#installation>`__, then
+activate its pixi environment:
 
 .. code-block:: bash
 
-   BSS_SKIP_DEPENDENCIES=1 pip install -e .
+   pixi shell --manifest-path /path/to/sire/pixi.toml -e dev
+
+Next, clone and install BioSimSpace:
+
+.. code-block:: bash
+
+   git clone https://github.com/openbiosim/biosimspace
+   cd biosimspace
+   pip install -e .
+
+You may also want to install optional dependencies, such as ``ambertools`` and
+``gromacs`` into the environment.
 
 Once finished, you can test the installation by running:
-
-.. code-block:: bash
-
-   python
-
-Then try importing the BioSimSpace package:
 
 .. code-block:: python
 
    import BioSimSpace as BSS
 
-If you don't want to install Sire from source, an alternative is to create a conda
-environment containing only the dependencies of BioSimSpace, then install the
-latest development code into that.
+Development
+-----------
+
+Pre-commit hooks are used to ensure consistent code formatting and linting.
+To set up pre-commit in your development environment:
 
 .. code-block:: bash
 
-   conda create -n openbiosim-dev -c conda-forge -c openbiosim/label/dev biosimspace --only-deps
-   conda activate openbiosim-dev
-   git clone https://github.com/openbiosim/biosimspace
-   cd biosimspace/python
-   BSS_SKIP_DEPENDENCIES=1 pip install -e .
+   pixi shell -e dev
+   pre-commit install
 
-(You may also want to install optional dependencies, such as ``ambertools`` and
-``gromacs`` into your environment.)
+This will run `ruff <https://docs.astral.sh/ruff/>`__ formatting and linting
+checks automatically on each commit. To run the checks manually against all
+files:
+
+.. code-block:: bash
+
+   pre-commit run --all-files
 
 Developers
 ----------

@@ -2,7 +2,9 @@ import pandas as pd
 import pytest
 
 import BioSimSpace.Sandpit.Exscientia as BSS
+from BioSimSpace.Sandpit.Exscientia._SireWrappers import Molecule
 from BioSimSpace.Sandpit.Exscientia.Align._decouple import decouple
+from BioSimSpace.Sandpit.Exscientia.FreeEnergy import Restraint
 from BioSimSpace.Sandpit.Exscientia.Protocol import (
     ConfigFactory,
     Equilibration,
@@ -11,22 +13,15 @@ from BioSimSpace.Sandpit.Exscientia.Protocol import (
     FreeEnergyMinimisation,
     Production,
 )
-
-from BioSimSpace.Sandpit.Exscientia.Align._decouple import decouple
-from BioSimSpace.Sandpit.Exscientia.Units.Length import angstrom
-from BioSimSpace.Sandpit.Exscientia.Units.Angle import radian, degree
+from BioSimSpace.Sandpit.Exscientia.Units.Angle import degree, radian
 from BioSimSpace.Sandpit.Exscientia.Units.Energy import kcal_per_mol
+from BioSimSpace.Sandpit.Exscientia.Units.Length import angstrom
 from BioSimSpace.Sandpit.Exscientia.Units.Temperature import kelvin
-from BioSimSpace.Sandpit.Exscientia.FreeEnergy import Restraint
-from BioSimSpace.Sandpit.Exscientia._SireWrappers import Molecule
-from BioSimSpace.Sandpit.Exscientia._Utils import _try_import, _have_imported
-
-
 from tests.Sandpit.Exscientia.conftest import (
-    url,
-    has_gromacs,
     has_antechamber,
+    has_gromacs,
     has_openff,
+    url,
 )
 
 
@@ -216,10 +211,6 @@ class TestGromacsRBFE:
             assert "init-lambda-state = 6" in mdp_text
 
 
-@pytest.mark.skipif(
-    has_antechamber is False or has_openff is False,
-    reason="Requires ambertools/antechamber and openff to be installed",
-)
 @pytest.fixture(scope="module")
 def system_and_mdr_restraint():
     # Benzene.
@@ -376,6 +367,10 @@ class TestGromacsABFE:
             assert "couple-intramol = no" in mdp_text
 
     @pytest.mark.skipif(
+        has_antechamber is False or has_openff is False,
+        reason="Requires ambertools/antechamber and openff to be installed",
+    )
+    @pytest.mark.skipif(
         has_gromacs is False, reason="Requires GROMACS to be installed."
     )
     def test_mdr_force_constant(self, system, system_and_mdr_restraint):
@@ -530,6 +525,10 @@ class TestSomdABFE:
             for line in lines:
                 assert line in pert_text
 
+    @pytest.mark.skipif(
+        has_antechamber is False or has_openff is False,
+        reason="Requires ambertools/antechamber and openff to be installed",
+    )
     def test_turn_on_restraint_mdr(self, system_and_mdr_restraint):
         """Test for turning on the mdr restraint"""
         system, restraint = system_and_mdr_restraint
@@ -573,6 +572,10 @@ class TestSomdABFE:
             for line in lines:
                 assert line in pert_text
 
+    @pytest.mark.skipif(
+        has_antechamber is False or has_openff is False,
+        reason="Requires ambertools/antechamber and openff to be installed",
+    )
     def test_release_restraint_mdr(self, system_and_mdr_restraint):
         """Test for releasing the non-permanent mdr restraints"""
         system, restraint = system_and_mdr_restraint

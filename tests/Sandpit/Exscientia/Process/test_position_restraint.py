@@ -9,12 +9,12 @@ from sire.legacy import Units as SireUnits
 from sire.legacy.IO import AmberRst
 
 import BioSimSpace.Sandpit.Exscientia as BSS
+from BioSimSpace.Sandpit.Exscientia._SireWrappers import Molecule
 from BioSimSpace.Sandpit.Exscientia.Align._alch_ion import _mark_alchemical_ion
 from BioSimSpace.Sandpit.Exscientia.Units.Energy import kj_per_mol
 from BioSimSpace.Sandpit.Exscientia.Units.Length import angstrom
-from BioSimSpace.Sandpit.Exscientia._SireWrappers import Molecule
-from tests.Sandpit.Exscientia.conftest import has_amber, has_gromacs, has_openff
 from tests.conftest import root_fp
+from tests.Sandpit.Exscientia.conftest import has_amber, has_gromacs, has_openff
 
 
 @pytest.fixture
@@ -195,7 +195,7 @@ def test_gromacs_lipid(system, tmp_path, lipid):
     else:
         assert not (tmp_path / "posre_0001.itp").is_file()
         with open(tmp_path / "gromacs.top", "r") as f:
-            assert not "posre_0001.itp" in f.read()
+            assert "posre_0001.itp" not in f.read()
 
 
 @pytest.mark.skipif(

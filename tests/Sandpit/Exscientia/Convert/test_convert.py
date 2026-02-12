@@ -1,5 +1,4 @@
 import pytest
-
 from sire.legacy import Mol as SireMol
 
 import BioSimSpace.Sandpit.Exscientia as BSS
@@ -106,6 +105,7 @@ def test_sdf_stereo(lig):
     import tempfile
 
     from rdkit import Chem
+
     from tests.conftest import url
 
     # Load the molecule.

@@ -1,9 +1,8 @@
 import pytest
 
 import BioSimSpace.Sandpit.Exscientia as BSS
-
-from tests.Sandpit.Exscientia.conftest import url, has_namd
 from tests.conftest import root_fp
+from tests.Sandpit.Exscientia.conftest import has_namd
 
 
 @pytest.fixture(scope="session")

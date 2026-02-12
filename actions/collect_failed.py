@@ -1,9 +1,9 @@
 # Script that collects as much as it can from a failed conda build so that it can
 # be stored as a GitHub Actions artifact for download and further debugging
 
+import glob
 import os
 import sys
-import glob
 import tarfile
 
 if "BUILD_DIR" not in os.environ:

@@ -82,7 +82,7 @@ In particular:
 
 * Protocols are used to define the way in which a :ref:`molecular parameterisation <ref-Parameters>`
   is performed. The :class:`BioSimSpace.Parameters <BioSimSpace.Parameters>`
-  package comes with its own set of `protocols <https://github.com/openbiosim/biosimspace/tree/devel/python/BioSimSpace/Parameters/Protocol>`__,
+  package comes with its own set of `protocols <https://github.com/openbiosim/biosimspace/tree/devel/src/BioSimSpace/Parameters/Protocol>`__,
   which can be customised by the user. To do so, either override the ``run``
   method of an existing protocol, or define an entirely new protocol that
   inherits from the base class (you would need to do this if, for example,
@@ -103,4 +103,4 @@ In particular:
   :class:`BioSimSpace.Process.Gromacs <BioSimSpace.Process.Gromacs>`, when
   a metadynamics protocol is chosen. Modifications for specific metadynamics
   protocols, e.g. adding support for new collective variables, needs to
-  be implemented in the ``createConfig`` method of the `BioSimSpace.Process.Plumed <https://github.com/openbiosim/biosimspace/blob/devel/python/BioSimSpace/Process/_plumed.py>`__ class.
+  be implemented in the ``createConfig`` method of the `BioSimSpace.Process.Plumed <https://github.com/openbiosim/biosimspace/blob/devel/src/BioSimSpace/Process/_plumed.py>`__ class.

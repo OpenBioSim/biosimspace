@@ -1,9 +1,8 @@
 import pytest
+import sire as sr
 
 import BioSimSpace.Types as Types
 import BioSimSpace.Units as Units
-
-import sire as sr
 
 
 @pytest.mark.parametrize(

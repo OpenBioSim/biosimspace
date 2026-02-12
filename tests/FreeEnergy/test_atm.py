@@ -1,17 +1,14 @@
-import math
-import pytest
-import requests
-import tarfile
-import tempfile
 import json
-import pandas as pd
 import os
+import tempfile
+
+import pandas as pd
+import pytest
 
 import BioSimSpace as BSS
 
 
 def test_makeSystem(TEMOA_host, TEMOA_lig1, TEMOA_lig2):
-
     atm_generator = BSS.FreeEnergy.ATMSetup(
         receptor=TEMOA_host, ligand_bound=TEMOA_lig1, ligand_free=TEMOA_lig2
     )

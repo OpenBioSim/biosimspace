@@ -1,8 +1,10 @@
 import os
-import pytest
+import sys
 import tempfile
 
-from BioSimSpace._SireWrappers import System, ReplicaSystem
+import pytest
+
+from BioSimSpace._SireWrappers import ReplicaSystem, System
 
 
 @pytest.fixture(scope="module")
@@ -52,6 +54,9 @@ def test_get_replica(rs, request):
         replica_system.getReplica(-11)
 
 
+@pytest.mark.skipif(
+    sys.platform == "win32", reason="File locking prevents temp cleanup"
+)
 @pytest.mark.parametrize("rs", ["replica_system", "perturbable_replica_system"])
 def test_stream(rs, request):
     """Test streaming the replica system to a file."""
@@ -114,6 +119,9 @@ def test_save_load_replicas(rs, request):
         assert rs.nReplicas() == 5
 
 
+@pytest.mark.skipif(
+    sys.platform == "win32", reason="File locking prevents temp cleanup"
+)
 def test_squashed_representation(squashed_perturbable_replica_system):
     """Test that the internal squashed trajectory representation works."""
     # Check that the number of atoms in the internal system is less

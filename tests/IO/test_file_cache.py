@@ -1,10 +1,10 @@
 import glob
 import os
-import pytest
 import tempfile
 
-import BioSimSpace as BSS
+import pytest
 
+import BioSimSpace as BSS
 from tests.conftest import has_amber, has_openff
 
 

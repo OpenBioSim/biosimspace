@@ -1,12 +1,9 @@
-import pytest
 import tempfile
-
 from functools import partial
 
-from sire.legacy.IO import GroTop
+import pytest
 
 import BioSimSpace.Sandpit.Exscientia as BSS
-
 from tests.Sandpit.Exscientia.conftest import has_gromacs
 
 

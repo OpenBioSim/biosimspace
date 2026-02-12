@@ -1,12 +1,9 @@
-import pytest
 import tempfile
-
 from functools import partial
 
-from sire.legacy.IO import GroTop
+import pytest
 
 import BioSimSpace as BSS
-
 from tests.conftest import has_gromacs
 
 

@@ -1,7 +1,7 @@
-import pytest
 import subprocess
-import shlex
 import sys
+
+import pytest
 
 import BioSimSpace.Sandpit.Exscientia as BSS
 from tests.conftest import root_fp
