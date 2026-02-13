@@ -131,6 +131,18 @@ Next, clone and install BioSimSpace:
 You may also want to install optional dependencies, such as ``ambertools`` and
 ``gromacs`` into the environment.
 
+If you need OpenCL support (e.g. for OpenMM), note that pixi does not run
+conda post-link scripts, so the ``ocl-icd-system`` symlink won't be created
+automatically. Add the following to your ``pixi.sh`` activation script to fix
+this:
+
+.. code-block:: bash
+
+    # Create OpenCL ICD symlink (pixi doesn't run post-link scripts)
+    if [ -d /etc/OpenCL/vendors ] && [ ! -e "${CONDA_PREFIX}/etc/OpenCL/vendors/ocl-icd-system" ]; then
+        ln -s /etc/OpenCL/vendors "${CONDA_PREFIX}/etc/OpenCL/vendors/ocl-icd-system" 2>/dev/null || true
+    fi
+
 Once finished, you can test the installation by running:
 
 .. code-block:: python

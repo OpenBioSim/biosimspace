@@ -72,3 +72,6 @@ ruff = "*"
 default = []
 test = ["test"]
 dev = ["test", "lint"]
+
+[activation]
+scripts = ["pixi.sh"]
