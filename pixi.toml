@@ -25,7 +25,10 @@ rdkit = "*"
 
 # Optional but useful for full BioSimSpace functionality
 [target.linux-64.dependencies]
-sire = "*"
+# main
+#sire = ">=2025.3.0,<2025.4.0"
+# devel
+sire = "==2025.4.0.dev"
 ambertools = ">=22"
 gromacs = "*"
 alchemlyb = "*"
@@ -39,14 +42,20 @@ mdanalysis = "*"
 gromacs = "*"
 
 [target.osx-arm64.dependencies]
-sire = "*"
+# main
+#sire = ">=2025.3.0,<2025.4.0"
+# devel
+sire = "==2025.4.0.dev"
 ambertools = ">=22"
 alchemlyb = "*"
 mdtraj = "*"
 mdanalysis = "*"
 
 [target.win-64.dependencies]
-sire = "*"
+# main
+#sire = ">=2025.3.0,<2025.4.0"
+# devel
+sire = "==2025.4.0.dev"
 alchemlyb = "*"
 mdtraj = "*"
 mdanalysis = "*"

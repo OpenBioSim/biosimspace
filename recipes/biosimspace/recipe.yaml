@@ -37,7 +37,10 @@ requirements:
     - python
     - pyyaml
     - rdkit
-    - sire
+    # main
+    #- sire >=2025.3.0,<2025.4.0
+    # devel
+    - sire ==2025.4.0.dev
     - if: not aarch64
       then:
         - alchemlyb
@@ -58,7 +61,6 @@ tests:
     requirements:
       run:
         - pytest
-        - requests
         - if: linux and x86_64
           then:
             - ambertools
