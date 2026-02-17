@@ -1,17 +1,16 @@
-import BioSimSpace.Sandpit.Exscientia as BSS
-from BioSimSpace.Sandpit.Exscientia.Align import decouple
-from BioSimSpace.Sandpit.Exscientia.Units.Length import angstrom
-from BioSimSpace.Sandpit.Exscientia.Units.Angle import radian
-from BioSimSpace.Sandpit.Exscientia.Units.Energy import kcal_per_mol
-from BioSimSpace.Sandpit.Exscientia.FreeEnergy import Restraint
-from BioSimSpace.Sandpit.Exscientia.Units.Temperature import kelvin
-
 import filecmp
 import os
-import pytest
 import warnings
 
+import pytest
+
 import BioSimSpace.Sandpit.Exscientia as BSS
+from BioSimSpace.Sandpit.Exscientia.Align import decouple
+from BioSimSpace.Sandpit.Exscientia.FreeEnergy import Restraint
+from BioSimSpace.Sandpit.Exscientia.Units.Angle import radian
+from BioSimSpace.Sandpit.Exscientia.Units.Energy import kcal_per_mol
+from BioSimSpace.Sandpit.Exscientia.Units.Length import angstrom
+from BioSimSpace.Sandpit.Exscientia.Units.Temperature import kelvin
 from tests.conftest import root_fp
 
 # Store the tutorial URL.

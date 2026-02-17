@@ -1,11 +1,9 @@
 import numpy as np
 import pytest
-from sire.legacy.Units import (
-    angstrom3 as _Sire_angstrom3,
-    k_boltz as _k_boltz,
-    meter3 as _Sire_meter3,
-    mole as _Sire_mole,
-)
+from sire.legacy.Units import angstrom3 as _Sire_angstrom3
+from sire.legacy.Units import k_boltz as _k_boltz
+from sire.legacy.Units import meter3 as _Sire_meter3
+from sire.legacy.Units import mole as _Sire_mole
 
 import BioSimSpace.Sandpit.Exscientia as BSS
 from BioSimSpace.Sandpit.Exscientia.Align import decouple

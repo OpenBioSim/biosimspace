@@ -1,11 +1,7 @@
 import pytest
 
-from sire.legacy import Mol as _SireMol
-from sire.legacy import MM as _SireMM
-from sire.legacy import Units as _SireUnits
-
-from BioSimSpace.Sandpit.Exscientia.Align._decouple import decouple
 import BioSimSpace.Sandpit.Exscientia as BSS
+from BioSimSpace.Sandpit.Exscientia.Align._decouple import decouple
 from tests.conftest import root_fp
 
 # Store the tutorial URL.

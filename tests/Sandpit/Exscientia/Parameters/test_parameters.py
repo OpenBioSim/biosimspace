@@ -1,13 +1,13 @@
-import pytest
 import tempfile
 
-import BioSimSpace.Sandpit.Exscientia as BSS
+import pytest
 
+import BioSimSpace.Sandpit.Exscientia as BSS
 from tests.Sandpit.Exscientia.conftest import (
-    url,
+    has_antechamber,
     has_openff,
     has_tleap,
-    has_antechamber,
+    url,
 )
 
 
@@ -215,6 +215,10 @@ def test_broken_sdf_formal_charge():
     assert isclose(charge.value(), 0.0, abs_tol=1e-6)
 
 
+@pytest.mark.skipif(
+    has_tleap is False,
+    reason="Requires AmberTools and tLEaP to be installed.",
+)
 def test_ff19SB():
     """
     Test that the ff19SB force field can be used to parameterise a molecule.

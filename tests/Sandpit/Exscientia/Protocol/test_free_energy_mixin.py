@@ -1,6 +1,6 @@
+import numpy as np
 import pandas as pd
 import pytest
-import numpy as np
 
 from BioSimSpace.Sandpit.Exscientia.Protocol import _FreeEnergyMixin
 

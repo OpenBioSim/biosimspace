@@ -1,0 +1,74 @@
+[workspace]
+name = "biosimspace"
+channels = ["conda-forge", "openbiosim/label/dev"]
+platforms = ["linux-64", "linux-aarch64", "osx-arm64", "win-64"]
+
+[dependencies]
+python = ">=3.10"
+configargparse = "*"
+ipywidgets = "*"
+kcombu_bss = "*"
+lazy_import = "*"
+loguru = "*"
+lomap2 = "*"
+networkx = "*"
+nglview = "*"
+openff-interchange-base = "*"
+openff-toolkit-base = "*"
+parmed = "*"
+pyarrow = "*"
+py3dmol = "*"
+pydot = "*"
+pygtail = "*"
+pyyaml = "*"
+rdkit = "*"
+
+[target.linux-64.dependencies]
+# main
+sire = ">=2025.4.0,<2025.5.0"
+# devel
+#sire = "==2026.1.0.dev"
+ambertools = ">=22"
+gromacs = "*"
+alchemlyb = "*"
+mdtraj = "*"
+mdanalysis = "*"
+
+
+[target.linux-aarch64.dependencies]
+gromacs = "*"
+
+[target.osx-arm64.dependencies]
+# main
+sire = ">=2025.4.0,<2025.5.0"
+# devel
+#sire = "==2026.1.0.dev"
+ambertools = ">=22"
+alchemlyb = "*"
+mdtraj = "*"
+mdanalysis = "*"
+
+[target.win-64.dependencies]
+# main
+sire = ">=2025.4.0,<2025.5.0"
+# devel
+#sire = "==2026.1.0.dev"
+alchemlyb = "*"
+mdtraj = "*"
+mdanalysis = "*"
+
+[feature.test.dependencies]
+pytest = "*"
+
+[feature.lint.dependencies]
+pre-commit = "*"
+rattler-build = "*"
+ruff = "*"
+
+[environments]
+default = []
+test = ["test"]
+dev = ["test", "lint"]
+
+[activation]
+scripts = ["pixi.sh"]

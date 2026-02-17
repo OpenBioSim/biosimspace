@@ -1,7 +1,6 @@
 import pytest
 
 import BioSimSpace as BSS
-
 from tests.conftest import url
 
 

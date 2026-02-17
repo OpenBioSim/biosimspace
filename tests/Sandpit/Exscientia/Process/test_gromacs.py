@@ -17,6 +17,7 @@ from BioSimSpace.Sandpit.Exscientia.Units.Pressure import bar
 from BioSimSpace.Sandpit.Exscientia.Units.Temperature import kelvin
 from BioSimSpace.Sandpit.Exscientia.Units.Time import picosecond
 from BioSimSpace.Sandpit.Exscientia.Units.Volume import centimeter3, nanometer3
+from tests.conftest import root_fp
 from tests.Sandpit.Exscientia.conftest import (
     has_alchemtest,
     has_amber,
@@ -25,7 +26,6 @@ from tests.Sandpit.Exscientia.conftest import (
     has_pyarrow,
     url,
 )
-from tests.conftest import root_fp
 
 
 @pytest.fixture(scope="session")

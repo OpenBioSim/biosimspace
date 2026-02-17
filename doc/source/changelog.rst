@@ -9,6 +9,22 @@ company supporting open-source development of fostering academic/industrial coll
 within the biomolecular simulation community. Our software is hosted via the `OpenBioSim`
 `GitHub <https://github.com/OpenBioSim/biosimspace>`__ organisation.
 
+`2025.4.0 <https://github.com/openbiosim/biosimspace/compare/2025.3.0...2025.4.0>`_ - Feb 17 2026
+-------------------------------------------------------------------------------------------------
+
+* Fixed centre of mass restraints for alchemical transfer method (ATM) simulations (`@mb2055 <https://github.com/mb2055>`__) (`#471 <https://github.com/OpenBioSim/biosimspace/pull/471>`__).
+* Add experimental :class:`ReplicaSystem` class to speed up handling of replica exchange simulations (`#473 <https://github.com/OpenBioSim/biosimspace/pull/473>`__).
+* Add experimental :class:`ReplicaSystem` class to speed up handling of replica exchange simulations (`#473 <https://github.com/OpenBioSim/biosimspace/pull/473>`__).
+* Removed lazy imports from sub-modules that don't use Sire (`#475 <https://github.com/OpenBioSim/biosimspace/pull/475>`__).
+* Allow translation of a custom ``coordinates`` property for perturbable molecules (`#477 <https://github.com/OpenBioSim/biosimspace/pull/477>`__).
+* Added a kwarg to make zeroing of LJ sigma values for ghost atoms optional (`#482 <https://github.com/OpenBioSim/biosimspace/pull/482>`__).
+* Update the ``GROMACS`` NPT protocol to satisfy new constraints on ``tau-p`` (`#485 <https://github.com/OpenBioSim/biosimspace/pull/485>`__).
+* Fixed inconsistencies in merge code introduced by region-of-interest handling (`#488 <https://github.com/OpenBioSim/biosimspace/pull/488>`__).
+* Simplify setting of intrascale matrix for merged molecules (`#490 <https://github.com/OpenBioSim/biosimspace/pull/490>`__).
+* Handle streaming errors caused by git revision ID failure (`#494 <https://github.com/OpenBioSim/biosimspace/pull/494>`__).
+* Fixed :meth:`makeCompatibleWith` bug caused by missing Sire API naming scheme updates (`#497 <https://github.com/OpenBioSim/biosimspace/pull/497>`__).
+* Modernise build system to use ``pixi`` and ``rattler-build`` along with standard packaging scheme (`#500 <https://github.com/OpenBioSim/biosimspace/pull/500>`__).
+
 `2025.3.0 <https://github.com/openbiosim/biosimspace/compare/2025.2.0...2025.3.0>`_ - Nov 10 2025
 -------------------------------------------------------------------------------------------------
 

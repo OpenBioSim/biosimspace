@@ -10,8 +10,8 @@ except Exception:
         return arg
 
 
-from tests.Sandpit.Exscientia.conftest import has_mdanalysis, has_mdtraj
 from tests.conftest import root_fp
+from tests.Sandpit.Exscientia.conftest import has_mdanalysis, has_mdtraj
 
 
 @pytest.fixture(scope="session")

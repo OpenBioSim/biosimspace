@@ -34,5 +34,5 @@ output.yaml
 # VSCode config
 .vscode/
 
-# Conda recipe (it is auto-generated)
-recipes/biosimspace/meta.yaml
+# Auto-generate version file.
+src/BioSimSpace/_version.py

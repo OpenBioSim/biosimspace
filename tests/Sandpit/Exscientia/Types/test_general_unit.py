@@ -1,9 +1,8 @@
 import pytest
+import sire as sr
 
 import BioSimSpace.Sandpit.Exscientia.Types as Types
 import BioSimSpace.Sandpit.Exscientia.Units as Units
-
-import sire as sr
 
 
 @pytest.mark.parametrize(

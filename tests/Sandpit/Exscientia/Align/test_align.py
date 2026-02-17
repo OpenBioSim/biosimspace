@@ -1,13 +1,12 @@
-import pytest
 import sys
 
+import pytest
+from sire.legacy.Maths import Vector
 from sire.legacy.MM import InternalFF, IntraCLJFF, IntraFF
 from sire.legacy.Mol import AtomIdx, Element, PartialMolecule
-from sire.legacy.Maths import Vector
 
 import BioSimSpace.Sandpit.Exscientia as BSS
-
-from tests.Sandpit.Exscientia.conftest import url, has_antechamber, has_openff
+from tests.Sandpit.Exscientia.conftest import has_antechamber, has_openff, url
 
 
 @pytest.fixture(scope="session")
@@ -729,6 +728,7 @@ def test_hydrogen_mass_repartitioning():
 
 def test_ion_merge():
     from sire.legacy.IO import createSodiumIon
+
     from tests.conftest import root_fp
 
     # Extract a water molecule from the system.

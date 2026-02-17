@@ -1,12 +1,12 @@
 import math
-import pytest
-import requests
 import tarfile
 import tempfile
 
-import BioSimSpace as BSS
+import pytest
+import requests
 
-from tests.conftest import url, has_alchemlyb, has_gromacs
+import BioSimSpace as BSS
+from tests.conftest import has_alchemlyb, has_gromacs, url
 
 
 @pytest.fixture(scope="module")

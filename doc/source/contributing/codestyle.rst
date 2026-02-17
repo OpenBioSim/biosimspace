@@ -53,10 +53,10 @@ and now has a fully `PEP8-compliant <https://pep8.org>`__ API. We indent to
 move BioSimSpace towards using Python compliant API too, while preserving backwards
 compatibility.)
 
-We use `black <https://black.readthedocs.io/en/stable>`__ to autoformat our
-Python code. Please use this if you plan on submitting code. They are easy to
-configure and use via your IDE (or from the command-line) and help ensure a
-consistent code style and minimise diffs during pull requests.
+We use `ruff <https://docs.astral.sh/ruff>`__ to format and lint our Python
+code. This is run automatically via `pre-commit <https://pre-commit.com>`__
+hooks when you commit changes. See the :doc:`development` guide for setup
+instructions.
 
 Modules
 -------

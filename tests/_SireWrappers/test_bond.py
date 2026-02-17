@@ -1,6 +1,6 @@
-import BioSimSpace as BSS
-
 import pytest
+
+import BioSimSpace as BSS
 
 
 def test_bonds():

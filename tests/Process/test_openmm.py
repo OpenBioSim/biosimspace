@@ -1,8 +1,7 @@
 import pytest
 
 import BioSimSpace as BSS
-
-from tests.conftest import url, has_amber, has_gromacs, has_openff
+from tests.conftest import has_amber, has_gromacs, has_openff, url
 
 # Store the allowed restraints.
 restraints = BSS.Protocol._position_restraint_mixin._PositionRestraintMixin.restraints()

@@ -1,19 +1,16 @@
 import math
-import numpy as np
 import shutil
+
+import numpy as np
 import pytest
 
 import BioSimSpace as BSS
-
-from BioSimSpace.Units.Angle import radian
-from BioSimSpace.Units.Energy import kcal_per_mol, kj_per_mol
-from BioSimSpace.Units.Length import angstrom
+from BioSimSpace.Units.Energy import kj_per_mol
 from BioSimSpace.Units.Pressure import bar
 from BioSimSpace.Units.Temperature import kelvin
 from BioSimSpace.Units.Time import picosecond
 from BioSimSpace.Units.Volume import nanometer3
-
-from tests.conftest import url, has_amber, has_gromacs, has_openff
+from tests.conftest import has_amber, has_gromacs, has_openff
 
 # Store the allowed restraints.
 restraints = BSS.Protocol._position_restraint_mixin._PositionRestraintMixin.restraints()

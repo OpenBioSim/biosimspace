@@ -1,13 +1,12 @@
 collect_ignore_glob = ["*/out_test*.py"]
 
 import os
-import pytest
-
 from pathlib import Path
 
-import BioSimSpace as BSS
+import pytest
 
-from BioSimSpace._Utils import _try_import, _have_imported
+import BioSimSpace as BSS
+from BioSimSpace._Utils import _have_imported, _try_import
 
 # Turn on verbose error messages.
 BSS.setVerbose(True)
@@ -29,13 +28,18 @@ else:
     has_amber = False
 
 # Make sure NAMD is installed.
-try:
-    from sire.legacy.Base import findExe
+from sire.legacy.Base import findExe
 
-    findExe("namd2")
-    has_namd = True
-except:
-    has_namd = False
+exes = ["namd3", "namd2"]
+has_namd = False
+
+for exe in exes:
+    try:
+        findExe(exe)
+        has_namd = True
+        break
+    except Exception:
+        pass
 
 # Check whether AMBER parameterisation executables are installed.
 has_tleap = BSS.Parameters._Protocol._amber._tleap_exe is not None
@@ -69,7 +73,7 @@ def system():
     return BSS.IO.readMolecules(["tests/input/ala.top", "tests/input/ala.crd"])
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def perturbable_system():
     """A vacuum perturbable system."""
     return BSS.IO.readPerturbableSystem(

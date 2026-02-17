@@ -1,0 +1,23 @@
+files: ^(src|tests)/
+exclude: ^tests/(input|output)/
+
+repos:
+  # General file quality checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-added-large-files
+        args: [--maxkb=1000]  # Prevent files larger than 1MB
+      - id: check-merge-conflict
+
+  # Python formatting and linting
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.4
+    hooks:
+      # Run the formatter
+      - id: ruff-format
+      # Run the linter (optional - remove if too strict)
+      - id: ruff
+        args: [--fix, --exit-zero]  # Auto-fix but don't block commits

@@ -205,60 +205,59 @@ to learn how to use :mod:`BioSimSpace` or the
 The following documents a full installation of BioSimSpace from source. Before
 starting, you'll need a working `Git <https://git-scm.com>`__ installation.
 
-BioSimSpace is built on top of the `Sire <https://github.com/openbiosim/sire>`__
-molecular simulation framework. To download and install Sire, follow the
-instructions `here <https://sire.openbiosim.org/install.html>`__, making
-sure that BioSimSpace's dependencies are installed into the Sire conda
-environment at the point at which Sire is installed.
+Installing from source (standalone)
+------------------------------------
 
-Next you will need to download BioSimSpace and install it into your Sire
-Conda environment.
+To install from source using `pixi <https://pixi.sh>`__, which will
+automatically create an environment with all required dependencies
+(including pre-built `Sire <https://github.com/openbiosim/sire>`__):
 
 .. code-block:: bash
 
    git clone https://github.com/openbiosim/biosimspace
-   cd biosimspace/python
-   pip install .
-
-If you plan to develop and want an editable install, use:
-
-.. code-block:: bash
-
+   cd biosimspace
+   pixi install
+   pixi shell
    pip install -e .
 
-If you want to skip the installation of BioSimSpace dependencies, e.g. if they
-are already installed, then you can use:
+Installing from source (full OpenBioSim development)
+------------------------------------------------------
+
+If you are developing across the full OpenBioSim stack, first install
+`Sire <https://github.com/openbiosim/sire>`__ from source by following the
+instructions `here <https://sire.openbiosim.org/install.html>`__, then
+activate its pixi environment:
 
 .. code-block:: bash
 
-   BSS_SKIP_DEPENDENCIES=1 pip install -e .
+   pixi shell --manifest-path /path/to/sire/pixi.toml -e dev
+
+Next, clone and install BioSimSpace:
+
+.. code-block:: bash
+
+   git clone https://github.com/openbiosim/biosimspace
+   cd biosimspace
+   pip install -e .
+
+You may also want to install optional dependencies, such as ``ambertools`` and
+``gromacs`` into the environment.
+
+If you need OpenCL support (e.g. for OpenMM), note that pixi does not run
+conda post-link scripts, so the ``ocl-icd-system`` symlink won't be created
+automatically. After creating the environment, run the following once to fix
+this:
+
+.. code-block:: bash
+
+    pixi shell -e dev
+    ln -s /etc/OpenCL/vendors "${CONDA_PREFIX}/etc/OpenCL/vendors/ocl-icd-system"
 
 Once finished, you can test the installation by running:
-
-.. code-block:: bash
-
-   python
-
-Then try importing the BioSimSpace package:
 
 .. code-block:: python
 
    import BioSimSpace as BSS
-
-If you don't want to install Sire from source, an alternative is to create a conda
-environment containing only the dependencies of BioSimSpace, then install the
-latest development code into that.
-
-.. code-block:: bash
-
-   conda create -n openbiosim-dev -c conda-forge -c openbiosim/label/dev biosimspace --only-deps
-   conda activate openbiosim-dev
-   git clone https://github.com/openbiosim/biosimspace
-   cd biosimspace/python
-   BSS_SKIP_DEPENDENCIES=1 pip install -e .
-
-(You may also want to install optional dependencies, such as ``ambertools`` and
-``gromacs`` into your environment.)
 
 5. Common issues
 ================

@@ -1,7 +1,8 @@
 import filecmp
 import os
-import pytest
 import warnings
+
+import pytest
 
 import BioSimSpace as BSS
 

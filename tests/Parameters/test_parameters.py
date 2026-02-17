@@ -1,9 +1,9 @@
-import pytest
 import tempfile
 
-import BioSimSpace as BSS
+import pytest
 
-from tests.conftest import url, has_openff, has_tleap, has_antechamber
+import BioSimSpace as BSS
+from tests.conftest import has_antechamber, has_openff, has_tleap, url
 
 
 @pytest.fixture(scope="session")
@@ -169,7 +169,7 @@ def test_smiles_stereo():
     assert rdmol0_smiles == rdmol1_smiles
 
 
-# This test is currently skipped since it fails with AnteChamber verssion
+# This test is currently skipped since it fails with AnteChamber version
 # 24.0 and above and there is no way to query the version number from
 # the command-line. (The version output has been removed.)
 @pytest.mark.skipif(
@@ -210,6 +210,10 @@ def test_broken_sdf_formal_charge():
     assert isclose(charge.value(), 0.0, abs_tol=1e-6)
 
 
+@pytest.mark.skipif(
+    has_tleap is False,
+    reason="Requires AmberTools and tLEaP to be installed.",
+)
 def test_ff19SB():
     """
     Test that the ff19SB force field can be used to parameterise a molecule.

@@ -1,0 +1,80 @@
+context:
+  name: biosimspace
+
+package:
+  name: ${{ name }}
+  version: ${{ env.get('GIT_DESCRIBE_TAG', default='PR') }}
+
+source:
+  path: ../../biosimspace-source.tar.gz
+
+build:
+  number: ${{ env.get('GIT_DESCRIBE_NUMBER', default='0') }}
+  script: python -m pip install . --no-deps --ignore-installed -vv
+
+requirements:
+  host:
+    - pip
+    - python
+    - setuptools
+    - versioningit
+  run:
+    - configargparse
+    - ipywidgets
+    - kcombu_bss
+    - lazy_import
+    - loguru
+    - lomap2
+    - networkx
+    - nglview
+    - openff-interchange-base
+    - openff-toolkit-base
+    - parmed
+    - pyarrow
+    - py3dmol
+    - pydot
+    - pygtail
+    - python
+    - pyyaml
+    - rdkit
+    # main
+    - sire >=2025.4.0,<2025.5.0
+    # devel
+    #- sire ==2026.1.0.dev
+    - if: not aarch64
+      then:
+        - alchemlyb
+        - mdanalysis
+        - mdtraj
+
+tests:
+  - python:
+      imports:
+        - BioSimSpace
+  - script:
+      - if: unix
+        then: PYTHONPATH=. pytest -vvv --color=yes --import-mode=importlib ./tests
+        else: set "PYTHONPATH=." && pytest -vvv --color=yes --import-mode=importlib ./tests
+    files:
+      source:
+        - tests/
+    requirements:
+      run:
+        - pytest
+        - if: linux and x86_64
+          then:
+            - ambertools
+            - gromacs
+
+about:
+  homepage: https://biosimspace.openbiosim.org
+  license: GPL-3.0-or-later
+  license_file: LICENSE
+  summary: "An interoperable Python framework for biomolecular simulation."
+  repository: https://github.com/openbiosim/biosimspace
+  documentation: https://biosimspace.openbiosim.org
+
+extra:
+  recipe-maintainers:
+    - lohedges
+    - chryswoods

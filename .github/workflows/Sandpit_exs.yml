@@ -41,9 +41,7 @@ jobs:
       - name: Install the dev version
         run: |
           conda remove --force biosimspace
-          cd python
-          python setup.py develop
-          cd ..
+          pip install -e .
 
       - name: Run tests
         run: |

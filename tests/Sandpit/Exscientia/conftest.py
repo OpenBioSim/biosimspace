@@ -1,18 +1,16 @@
+import os
 from typing import Dict, Optional
 
-import os
 import pandas
 import pytest
 
 from BioSimSpace.Sandpit import Exscientia as BSS
-
+from BioSimSpace.Sandpit.Exscientia._SireWrappers import Molecule
+from BioSimSpace.Sandpit.Exscientia._Utils import _have_imported, _try_import
 from BioSimSpace.Sandpit.Exscientia.Process import Gromacs
 from BioSimSpace.Sandpit.Exscientia.Protocol import Production
 from BioSimSpace.Sandpit.Exscientia.Units.Temperature import kelvin
 from BioSimSpace.Sandpit.Exscientia.Units.Time import femtosecond
-from BioSimSpace.Sandpit.Exscientia._SireWrappers import Molecule
-
-from BioSimSpace.Sandpit.Exscientia._Utils import _try_import, _have_imported
 
 # Turn on verbose error messages.
 BSS.setVerbose(True)
@@ -34,13 +32,18 @@ else:
     has_amber = False
 
 # Make sure NAMD is installed.
-try:
-    from sire.legacy.Base import findExe
+from sire.legacy.Base import findExe
 
-    findExe("namd2")
-    has_namd = True
-except:
-    has_namd = False
+exes = ["namd3", "namd2"]
+has_namd = False
+
+for exe in exes:
+    try:
+        findExe(exe)
+        has_namd = True
+        break
+    except Exception:
+        pass
 
 # Check whether AMBER parameterisation executables are installed.
 has_tleap = BSS.Parameters._Protocol._amber._tleap_exe is not None
@@ -80,8 +83,8 @@ except ModuleNotFoundError:
 
 # Check for alchemtest.
 try:
-    from alchemtest.gmx import load_ABFE
     from alchemtest.amber import load_bace_example
+    from alchemtest.gmx import load_ABFE
 
     has_alchemtest = True
 except ModuleNotFoundError:

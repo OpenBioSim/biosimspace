@@ -1,11 +1,11 @@
 import pytest
 
 import BioSimSpace.Sandpit.Exscientia as BSS
+from BioSimSpace.Sandpit.Exscientia._SireWrappers import Atom
 from BioSimSpace.Sandpit.Exscientia.Align._alch_ion import (
     _get_protein_com_idx,
     _mark_alchemical_ion,
 )
-from BioSimSpace.Sandpit.Exscientia._SireWrappers import Atom
 from tests.conftest import has_gromacs, root_fp
 
 
