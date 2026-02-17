@@ -9,7 +9,7 @@ company supporting open-source development of fostering academic/industrial coll
 within the biomolecular simulation community. Our software is hosted via the `OpenBioSim`
 `GitHub <https://github.com/OpenBioSim/biosimspace>`__ organisation.
 
-`2025.4.0 <https://github.com/openbiosim/biosimspace/compare/2025.3.0...2025.4.0>`_ - Feb 16 2026
+`2025.4.0 <https://github.com/openbiosim/biosimspace/compare/2025.3.0...2025.4.0>`_ - Feb 17 2026
 -------------------------------------------------------------------------------------------------
 
 * Fixed centre of mass restraints for alchemical transfer method (ATM) simulations (`@mb2055 <https://github.com/mb2055>`__) (`#471 <https://github.com/OpenBioSim/biosimspace/pull/471>`__).
