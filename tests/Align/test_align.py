@@ -697,6 +697,7 @@ def test_ion_merge(system):
     assert coords0 == water_coords
 
 
+@pytest.mark.skipif(has_amber is False, reason="Requires AMBER to be installed.")
 @pytest.mark.skipif(has_openff is False, reason="Requires OpenFF to be installed.")
 @pytest.mark.parametrize(
     "ligands, mapping",

@@ -752,6 +752,9 @@ def test_ion_merge():
     assert coords0 == water_coords
 
 
+@pytest.mark.skipif(
+    has_antechamber is False, reason="Requires AnteChamber to be installed."
+)
 @pytest.mark.skipif(has_openff is False, reason="Requires OpenFF to be installed.")
 @pytest.mark.parametrize(
     "ligands, mapping",
