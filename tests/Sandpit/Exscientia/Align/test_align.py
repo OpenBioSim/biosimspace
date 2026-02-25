@@ -750,3 +750,140 @@ def test_ion_merge():
     water_coords = water._sire_object.property("coordinates").to_vector()[0]
     assert coords0 == coords1
     assert coords0 == water_coords
+
+
+@pytest.mark.skipif(
+    has_antechamber is False, reason="Requires AnteChamber to be installed."
+)
+@pytest.mark.skipif(has_openff is False, reason="Requires OpenFF to be installed.")
+@pytest.mark.parametrize(
+    "ligands, mapping",
+    [
+        (
+            ("Schindler_SYK_CHEMBL3265035", "Schindler_SYK_CHEMBL3265033"),
+            {
+                5: 8,
+                6: 32,
+                7: 31,
+                8: 11,
+                9: 12,
+                10: 13,
+                11: 14,
+                12: 15,
+                13: 16,
+                14: 17,
+                15: 18,
+                16: 19,
+                17: 20,
+                18: 21,
+                19: 22,
+                20: 23,
+                21: 24,
+                22: 25,
+                23: 26,
+                24: 27,
+                25: 28,
+                26: 29,
+                27: 30,
+                28: 10,
+                29: 9,
+                38: 53,
+                39: 52,
+                40: 43,
+                41: 44,
+                42: 45,
+                43: 46,
+                44: 47,
+                45: 48,
+                46: 49,
+                47: 50,
+                48: 51,
+                49: 42,
+                50: 41,
+                1: 1,
+                2: 4,
+                34: 36,
+                33: 35,
+                3: 3,
+                4: 34,
+                35: 1,
+                0: 6,
+                32: 37,
+                31: 7,
+                36: 33,
+            },
+        ),
+        (
+            ("Schindler_SYK_CHEMBL3265035", "Schindler_SYK_CHEMBL3265036"),
+            {
+                5: 7,
+                6: 31,
+                7: 30,
+                8: 10,
+                9: 11,
+                10: 12,
+                11: 13,
+                12: 14,
+                13: 15,
+                14: 16,
+                15: 17,
+                16: 18,
+                17: 19,
+                18: 20,
+                19: 21,
+                20: 22,
+                21: 23,
+                22: 24,
+                23: 25,
+                24: 26,
+                25: 27,
+                26: 28,
+                27: 29,
+                28: 9,
+                29: 8,
+                38: 54,
+                39: 53,
+                40: 44,
+                41: 45,
+                42: 46,
+                43: 47,
+                44: 48,
+                45: 49,
+                46: 50,
+                47: 51,
+                48: 52,
+                49: 43,
+                50: 42,
+                0: 4,
+                1: 5,
+                2: 6,
+                3: 0,
+                4: 1,
+                30: 3,
+                31: 39,
+                32: 38,
+                33: 40,
+                34: 41,
+                35: 32,
+                36: 33,
+                37: 34,
+            },
+        ),
+    ],
+)
+def test_ring_opening_and_size_change(ligands, mapping):
+    # These perturbations involve ring formation (acyclic atoms in mol0 become
+    # ring members in mol1) combined with ring size changes in the existing
+    # fused bicyclic core. Check that the merge succeeds when both flags are
+    # allowed.
+    m0 = BSS.IO.readMolecules(f"{url}/{ligands[0]}.sdf.bz2")[0]
+    m1 = BSS.IO.readMolecules(f"{url}/{ligands[1]}.sdf.bz2")[0]
+
+    m0 = BSS.Parameters.openff_unconstrained_2_1_1(m0).getMolecule()
+    m1 = BSS.Parameters.openff_unconstrained_2_1_1(m1).getMolecule()
+
+    m0 = BSS.Align.rmsdAlign(m0, m1, mapping)
+
+    BSS.Align.merge(
+        m0, m1, mapping, allow_ring_breaking=True, allow_ring_size_change=True
+    )

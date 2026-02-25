@@ -1217,10 +1217,14 @@ def merge(
     return mol
 
 
-def _is_ring_broken(conn0, conn1, idx0, idy0, idx1, idy1):
+def _is_ring_broken(conn0, conn1, idx0, idy0, idx1, idy1, max_path=50):
     """
     Internal function to test whether a perturbation changes the connectivity
     around two atoms such that a ring is broken.
+
+    Two atoms share a ring if and only if there are at least two distinct paths
+    between them in the connectivity graph. A ring is broken when this changes
+    between end states.
 
     Parameters
     ----------
@@ -1242,80 +1246,48 @@ def _is_ring_broken(conn0, conn1, idx0, idy0, idx1, idy1):
 
     idy1 : Sire.Mol.AtomIdx
         The index of the second atom in the second state.
+
+    max_path : int
+        Maximum path length used when searching for rings. The default of 50
+        covers typical macrocycles. Increase if larger rings need to be
+        detected.
     """
 
-    # Have we opened/closed a ring? This means that both atoms are part of a
-    # ring in one end state (either in it, or on it), whereas at least one
-    # isn't in the other state.
+    # Two atoms share a ring iff there are ≥2 distinct paths between them.
+    # This also handles atoms adjacent to a ring (not members themselves):
+    # substituents on neighbouring ring atoms have ≥2 paths between them
+    # through the ring, which collapses to 1 when the ring is broken.
+    n0 = len(conn0.find_paths(idx0, idy0, max_path))
+    n1 = len(conn1.find_paths(idx1, idy1, max_path))
 
-    # Whether each atom is in a ring in both end states.
-    in_ring_idx0 = conn0.in_ring(idx0)
-    in_ring_idy0 = conn0.in_ring(idy0)
-    in_ring_idx1 = conn1.in_ring(idx1)
-    in_ring_idy1 = conn1.in_ring(idy1)
-
-    # Whether each atom is on a ring in both end states.
-    on_ring_idx0 = _is_on_ring(idx0, conn0)
-    on_ring_idy0 = _is_on_ring(idy0, conn0)
-    on_ring_idx1 = _is_on_ring(idx1, conn1)
-    on_ring_idy1 = _is_on_ring(idy1, conn1)
-
-    # Both atoms are in a ring in one end state and at least one isn't in the other.
-    if (in_ring_idx0 & in_ring_idy0) ^ (in_ring_idx1 & in_ring_idy1):
+    # Ring break/open: one state has ≥2 paths, the other doesn't.
+    if (n0 >= 2) != (n1 >= 2):
         return True
 
-    # Both atoms are on a ring in one end state and at least one isn't in the other.
-    if (on_ring_idx0 & on_ring_idy0 & (conn0.connection_type(idx0, idy0) == 4)) ^ (
-        on_ring_idx1 & on_ring_idy1 & (conn1.connection_type(idx1, idy1) == 4)
+    # Supplementary check for rings larger than max_path: find_paths may only
+    # find the direct-bond path and miss the long way around the ring, giving
+    # n=1 instead of n≥2. Sire's in_ring has no path-length limit and
+    # correctly identifies ring membership in macrocycles.
+    if (conn0.in_ring(idx0) and conn0.in_ring(idy0)) != (
+        conn1.in_ring(idx1) and conn1.in_ring(idy1)
     ):
-        # Make sure that the change isn't a result of ring growth, i.e. one of
-        # the atoms isn't in a ring in one end state, while its "on" ring status
-        # has changed between states.
-        if not (
-            (in_ring_idx0 | in_ring_idx1) & (on_ring_idx0 ^ on_ring_idx1)
-            or (in_ring_idy0 | in_ring_idy1) & (on_ring_idy0 ^ on_ring_idy1)
-        ):
-            return True
+        return True
 
-    # Both atoms are in or on a ring in one state and at least one isn't in the other.
-    if (
-        (in_ring_idx0 | on_ring_idx0)
-        & (in_ring_idy0 | on_ring_idy0)
-        & (conn0.connection_type(idx0, idy0) == 3)
-    ) ^ (
-        (in_ring_idx1 | on_ring_idx1)
-        & (in_ring_idy1 | on_ring_idy1)
-        & (conn1.connection_type(idx1, idy1) == 3)
-    ):
-        iscn0 = set(conn0.connections_to(idx0)).intersection(
-            set(conn0.connections_to(idy0))
-        )
-        if len(iscn0) != 1:
-            return True
-        common_idx = iscn0.pop()
-        in_ring_bond0 = conn0.in_ring(idx0, common_idx) | conn0.in_ring(
-            idy0, common_idx
-        )
-        iscn1 = set(conn1.connections_to(idx1)).intersection(
-            set(conn1.connections_to(idy1))
-        )
-        if len(iscn1) != 1:
-            return True
-        common_idx = iscn1.pop()
-        in_ring_bond1 = conn1.in_ring(idx1, common_idx) | conn1.in_ring(
-            idy1, common_idx
-        )
-        if in_ring_bond0 ^ in_ring_bond1:
-            return True
-
-    # If we get this far, then a ring wasn't broken.
-    return False
+    # A direct bond was replaced by a ring path (or vice versa), leaving the
+    # atoms completely disconnected in one topology (0 paths). This occurs
+    # when a new ring forms and the old direct bond between two atoms is not
+    # present in the ring topology.
+    return (n0 == 0) != (n1 == 0)
 
 
 def _is_ring_size_changed(conn0, conn1, idx0, idy0, idx1, idy1, max_ring_size=12):
     """
     Internal function to test whether a perturbation changes the connectivity
     around two atoms such that a ring changes size.
+
+    The size of the smallest ring containing two atoms equals the length of
+    the shortest path between them. If the shortest path changes between end
+    states, the ring has changed size.
 
     Parameters
     ----------
@@ -1342,69 +1314,24 @@ def _is_ring_size_changed(conn0, conn1, idx0, idy0, idx1, idy1, max_ring_size=12
         The maximum size of what is considered to be a ring.
     """
 
-    # Have a ring changed size? If so, then the minimum path size between
-    # two atoms will have changed.
-
     # Work out the paths connecting the atoms in the two end states.
     paths0 = conn0.find_paths(idx0, idy0, max_ring_size)
     paths1 = conn1.find_paths(idx1, idy1, max_ring_size)
 
-    # Initialise the ring size in each end state.
-    ring0 = None
-    ring1 = None
-
-    # Determine the minimum path in the lambda = 0 state.
-    if len(paths0) > 1:
-        path_lengths0 = []
-        for path in paths0:
-            path_lengths0.append(len(path))
-        ring0 = min(path_lengths0)
-
-    if ring0 is None:
+    # No ring in state 0 — nothing to compare.
+    if len(paths0) < 2:
         return False
 
-    # Determine the minimum path in the lambda = 1 state.
-    if len(paths1) > 1:
-        path_lengths1 = []
-        for path in paths1:
-            path_lengths1.append(len(path))
-        ring1 = min(path_lengths1)
+    ring0 = min(len(p) for p in paths0)
 
-    # Return whether the ring has changed size.
-    if ring1:
-        return ring0 != ring1
-    else:
+    # No ring in state 1 — the ring was broken rather than resized; let
+    # _is_ring_broken handle this case.
+    if len(paths1) < 2:
         return False
 
+    ring1 = min(len(p) for p in paths1)
 
-def _is_on_ring(idx, conn):
-    """
-    Internal function to test whether an atom is adjacent to a ring.
-
-    Parameters
-    ----------
-
-    idx : Sire.Mol.AtomIdx
-        The index of the atom
-
-    conn : Sire.Mol.Connectivity
-        The connectivity object.
-
-    Returns
-    -------
-
-    is_on_ring : bool
-        Whether the atom is adjacent to a ring.
-    """
-
-    # Loop over all atoms connected to this atom.
-    for x in conn.connections_to(idx):
-        # The neighbour is in a ring.
-        if conn.in_ring(x) and (not conn.in_ring(x, idx)):
-            return True
-
-    # If we get this far, then the atom is not adjacent to a ring.
-    return False
+    return ring0 != ring1
 
 
 def _removeDummies(molecule, is_lambda1):
