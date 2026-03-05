@@ -652,7 +652,7 @@ class Distance(_CollectiveVariable):
         if self._weights0 is not None:
             if not isinstance(self._atom0, list):
                 raise ValueError(
-                    "'weights0' only valid when 'atom0' is a " "list of atom indices."
+                    "'weights0' only valid when 'atom0' is a list of atom indices."
                 )
             elif len(self._weights0) != len(self._atom0):
                 raise ValueError(
@@ -664,7 +664,7 @@ class Distance(_CollectiveVariable):
         if self._weights1 is not None:
             if not isinstance(self._atom1, list):
                 raise ValueError(
-                    "'weights1' only valid when 'atom1' is a " "list of atom indices."
+                    "'weights1' only valid when 'atom1' is a list of atom indices."
                 )
             elif len(self._weights1) != len(self._atom1):
                 raise ValueError(

@@ -151,8 +151,7 @@ class RestraintSearch:
         # Validate the input.
         if not _have_imported(_mda):
             raise _MissingSoftwareError(
-                "Cannot perform a RestraintSearch because MDAnalysis is "
-                "not installed!"
+                "Cannot perform a RestraintSearch because MDAnalysis is not installed!"
             )
 
         if not isinstance(system, _System):

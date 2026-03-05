@@ -130,7 +130,7 @@ def _try_import(name: str, install_command: str = None):
 
         if BioSimSpace._isVerbose():
             print(f"Failed to import module {name}.")
-            print("Functionality that depends on this module will " "not be available.")
+            print("Functionality that depends on this module will not be available.")
 
     return m
 

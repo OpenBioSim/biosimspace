@@ -241,8 +241,7 @@ class Metadynamics(_Protocol):
 
         if num_grid > 0 and num_grid != len(collective_variable):
             raise ValueError(
-                "If a 'grid' is desired, then all collective "
-                "variables must define one."
+                "If a 'grid' is desired, then all collective variables must define one."
             )
 
         self._collective_variable = collective_variable

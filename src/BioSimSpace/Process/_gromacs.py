@@ -232,8 +232,7 @@ class Gromacs(_process.Process):
             # Check that the system contains a perturbable molecule.
             if self._system.nPerturbableMolecules() == 0:
                 raise ValueError(
-                    "'BioSimSpace.Protocol.FreeEnergy' requires a "
-                    "perturbable molecule!"
+                    "'BioSimSpace.Protocol.FreeEnergy' requires a perturbable molecule!"
                 )
 
             # Check that the perturbation type is supported..
@@ -2201,7 +2200,7 @@ class Gromacs(_process.Process):
                                 # Write restraints for each atom.
                                 for atom_idx in restrained_atoms:
                                     file.write(
-                                        f"{atom_idx+1:4}    1       {force_constant}       {force_constant}       {force_constant}       {force_constant}       {force_constant}       {force_constant}\n"
+                                        f"{atom_idx + 1:4}    1       {force_constant}       {force_constant}       {force_constant}       {force_constant}       {force_constant}       {force_constant}\n"
                                     )
 
                             else:
@@ -2214,7 +2213,7 @@ class Gromacs(_process.Process):
                                 # Write restraints for each atom.
                                 for atom_idx in restrained_atoms:
                                     file.write(
-                                        f"{atom_idx+1:4}    1       {force_constant}       {force_constant}       {force_constant}\n"
+                                        f"{atom_idx + 1:4}    1       {force_constant}       {force_constant}       {force_constant}\n"
                                     )
 
                         # Work out the offset.
@@ -2300,7 +2299,7 @@ class Gromacs(_process.Process):
                             # Write restraints for each atom.
                             for atom_idx in atom_idxs:
                                 file.write(
-                                    f"{atom_idx+1:4}    1       {force_constant}       {force_constant}       {force_constant}\n"
+                                    f"{atom_idx + 1:4}    1       {force_constant}       {force_constant}       {force_constant}\n"
                                 )
 
                         # Work out the offset.
@@ -2671,8 +2670,7 @@ class Gromacs(_process.Process):
             # Locate the coordinate file.
             if not _os.path.isfile(self._crd_file):
                 _warnings.warn(
-                    "Invalid coordinate file! "
-                    "%s gro file not found." % (self._crd_file)
+                    "Invalid coordinate file! %s gro file not found." % (self._crd_file)
                 )
                 return None
 

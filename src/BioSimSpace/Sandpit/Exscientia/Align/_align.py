@@ -1603,7 +1603,7 @@ def viewMapping(
 
         if orientation not in ["horizontal", "vertical"]:
             raise ValueError(
-                "'orientation' must be equal to 'horizontal' " "or 'vertical'."
+                "'orientation' must be equal to 'horizontal' or 'vertical'."
             )
 
     if isinstance(pixels, float):

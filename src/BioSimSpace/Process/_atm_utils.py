@@ -610,7 +610,7 @@ class _ATMUtils:
         output = ""
         output += "# Reporting for MBAR:\n"
         # round master lambda to 4 d.p. to avoid floating point errors
-        output += f"master_lambda_list = {[round(i,4) for i in self.protocol._get_lambda_values()]}\n"
+        output += f"master_lambda_list = {[round(i, 4) for i in self.protocol._get_lambda_values()]}\n"
         output += "master_lambda = master_lambda_list[window_index]\n"
 
         output += "if is_restart:\n"
@@ -810,7 +810,7 @@ class _ATMUtils:
 
         output += "# Reporting for MBAR:\n"
         # round master lambda to 4 d.p. to avoid floating point errors
-        output += f"master_lambda_list = {[round(i,4) for i in self.protocol._get_lambda_values()]}\n"
+        output += f"master_lambda_list = {[round(i, 4) for i in self.protocol._get_lambda_values()]}\n"
         output += "master_lambda = master_lambda_list[window_index]\n"
         output += "if is_restart:\n"
         output += "    try:\n"
@@ -945,7 +945,7 @@ class _ATMUtils:
         """Create a single point test for the ATM force"""
         output = ""
         output += "# Create the dictionary which will hold the energies\n"
-        output += f"master_lambda_list = {[round(i,4) for i in self.protocol._get_lambda_values()]}\n"
+        output += f"master_lambda_list = {[round(i, 4) for i in self.protocol._get_lambda_values()]}\n"
         output += "energies = {}\n"
         output += f"for i in master_lambda_list[:{inflex_point}]:\n"
         output += "    energies[i] = []\n"

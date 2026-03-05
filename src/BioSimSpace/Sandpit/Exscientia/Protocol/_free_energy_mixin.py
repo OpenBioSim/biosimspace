@@ -68,8 +68,7 @@ class _FreeEnergyMixin(_Protocol):
     def _get_parm(self):
         """Return a string representation of the parameters."""
         return (
-            f"lam={self._lambda.to_string()}, "
-            f"lam_vals={self._lambda_vals.to_string()}"
+            f"lam={self._lambda.to_string()}, lam_vals={self._lambda_vals.to_string()}"
         )
 
     def __str__(self):
@@ -180,7 +179,7 @@ class _FreeEnergyMixin(_Protocol):
                     warnings.warn(
                         f"{name} not in the list of permitted names, "
                         f"so may not be supported by the MD Engine "
-                        f'({" ".join(permitted_names)}).'
+                        f"({' '.join(permitted_names)})."
                     )
         elif isinstance(df, _pd.DataFrame):
             for name in df.columns:
@@ -188,7 +187,7 @@ class _FreeEnergyMixin(_Protocol):
                     warnings.warn(
                         f"{name} not in the list of permitted names, "
                         f"so may not be supported by the MD Engine "
-                        f'({" ".join(permitted_names)}).'
+                        f"({' '.join(permitted_names)})."
                     )
 
     def getLambda(self, type="float"):

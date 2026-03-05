@@ -1447,14 +1447,14 @@ def _roiMatch(
                 after_roi_atom_idx_molecule1 = []
             else:
                 after_roi_molecule0 = molecule0.search(
-                    f"residue[{res_idx+1}:{roi[i+1]}]"
+                    f"residue[{res_idx + 1}:{roi[i + 1]}]"
                 )
                 after_roi_atom_idx_molecule0 = [
                     a.index() for a in after_roi_molecule0.atoms()
                 ]
 
                 after_roi_molecule1 = molecule1.search(
-                    f"residue[{res_idx+1}:{roi[i+1]}]"
+                    f"residue[{res_idx + 1}:{roi[i + 1]}]"
                 )
                 after_roi_atom_idx_molecule1 = [
                     b.index() for b in after_roi_molecule1.atoms()
@@ -1476,12 +1476,12 @@ def _roiMatch(
             }
         else:
             # Get all of the remaining atoms after the last ROI
-            after_roi_molecule0 = molecule0.search(f"residue[{res_idx+1}:]")
+            after_roi_molecule0 = molecule0.search(f"residue[{res_idx + 1}:]")
             after_roi_atom_idx_molecule0 = [
                 a.index() for a in after_roi_molecule0.atoms()
             ]
 
-            after_roi_molecule1 = molecule1.search(f"residue[{res_idx+1}:]")
+            after_roi_molecule1 = molecule1.search(f"residue[{res_idx + 1}:]")
             after_roi_atom_idx_molecule1 = [
                 b.index() for b in after_roi_molecule1.atoms()
             ]

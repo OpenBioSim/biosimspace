@@ -1513,8 +1513,7 @@ class Plumed:
 
             if proc.returncode != 0:
                 raise RuntimeError(
-                    "Failed to generate free energy estimate.\n"
-                    "Error: %s" % proc.stderr
+                    "Failed to generate free energy estimate.\nError: %s" % proc.stderr
                 )
 
             # Get a sorted list of all the fes*.dat files.

@@ -682,7 +682,7 @@ class AlchemicalFreeEnergy:
                 prefix = "gromacs"
                 suffix = "xvg"
             else:
-                raise ValueError(f"{engine} has to be either 'AMBER' or " f"'GROMACS'.")
+                raise ValueError(f"{engine} has to be either 'AMBER' or 'GROMACS'.")
 
             workflow = ABFE(
                 units="kcal/mol",

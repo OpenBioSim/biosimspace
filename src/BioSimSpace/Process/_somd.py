@@ -1711,7 +1711,7 @@ def _to_pert_file(
                 # Cannot have a bond with a dummy in both states.
                 if initial_dummy and final_dummy:
                     raise _IncompatibleError(
-                        "Dummy atoms are present in both the initial " "and final bond?"
+                        "Dummy atoms are present in both the initial and final bond?"
                     )
 
                 # Set the bond parameters of the dummy state to those of the non-dummy end state.

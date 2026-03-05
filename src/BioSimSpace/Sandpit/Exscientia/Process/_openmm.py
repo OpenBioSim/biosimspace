@@ -836,7 +836,7 @@ class OpenMM(_process.Process):
                 lower_wall = colvar.getLowerBound().getValue().nanometers().value()
                 upper_wall = colvar.getUpperBound().getValue().nanometers().value()
             self.addToConfig(
-                f"proj = BiasVariable(projection, {lower_wall-0.2}, {upper_wall+0.2}, {sigma_proj}, False, gridWidth=200)"
+                f"proj = BiasVariable(projection, {lower_wall - 0.2}, {upper_wall + 0.2}, {sigma_proj}, False, gridWidth=200)"
             )
 
             sigma_ext = colvar.getHillWidth()[1].nanometers().value()
