@@ -71,7 +71,16 @@ def ions():
     return _ions
 
 
-def addIons(system, ion, num_ions=0, is_neutral=True, work_dir=None, property_map={}):
+def addIons(
+    system,
+    ion,
+    num_ions=0,
+    ion_conc=0,
+    is_neutral=True,
+    preserved_waters=None,
+    work_dir=None,
+    property_map={},
+):
     """
     Add ions to a pre-solvated molecular system using 'gmx genion'.
 
@@ -90,7 +99,13 @@ def addIons(system, ion, num_ions=0, is_neutral=True, work_dir=None, property_ma
         ``"ca"``, ``"cl"``.
 
     num_ions : int
-        The number of ions to add.
+        The number of ions to add. Mutually exclusive with ``ion_conc``.
+
+    ion_conc : float
+        The ion concentration in mol/litre. The number of ions to add is
+        calculated from the box volume. This correctly accounts for the
+        volume of all molecules already present in the system. Mutually
+        exclusive with ``num_ions``.
 
     is_neutral : bool
         Whether to neutralise the system charge. When ``True``, genion
@@ -98,6 +113,15 @@ def addIons(system, ion, num_ions=0, is_neutral=True, work_dir=None, property_ma
         to the requested ion to bring the total system charge to zero.
         Note that existing ions are never removed; neutralisation is
         achieved by adding counter-ions only.
+
+    preserved_waters : [int] or [:class:`Molecule <BioSimSpace._SireWrappers.Molecule>`]
+        A list of water molecules to preserve from replacement by genion.
+        Each entry is either an integer (system-level molecule index) or
+        a :class:`Molecule <BioSimSpace._SireWrappers.Molecule>` object.
+        These molecules are temporarily removed from the system before
+        genion runs and re-added to the result afterwards, guaranteeing
+        that genion cannot select them for replacement. Useful for
+        protecting crystallographic or binding-site water molecules.
 
     work_dir : str
         The working directory for the process.
@@ -113,6 +137,8 @@ def addIons(system, ion, num_ions=0, is_neutral=True, work_dir=None, property_ma
     system : :class:`System <BioSimSpace._SireWrappers.System>`
         The molecular system with ions added.
     """
+    import math as _math
+
     from .. import _gmx_exe
     from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
 
@@ -122,6 +148,7 @@ def addIons(system, ion, num_ions=0, is_neutral=True, work_dir=None, property_ma
             "Please install GROMACS (http://www.gromacs.org)."
         )
 
+    from .._SireWrappers import Molecule as _Molecule
     from .._SireWrappers import System as _System
 
     if not isinstance(system, _System):
@@ -146,14 +173,62 @@ def addIons(system, ion, num_ions=0, is_neutral=True, work_dir=None, property_ma
     if num_ions < 0:
         raise ValueError("'num_ions' cannot be negative!")
 
+    if not isinstance(ion_conc, (int, float)):
+        raise TypeError("'ion_conc' must be of type 'float'")
+    if ion_conc < 0:
+        raise ValueError("'ion_conc' cannot be negative!")
+
+    if num_ions > 0 and ion_conc > 0:
+        raise ValueError("'num_ions' and 'ion_conc' are mutually exclusive.")
+
     if not isinstance(is_neutral, bool):
         raise TypeError("'is_neutral' must be of type 'bool'")
 
-    if num_ions == 0 and not is_neutral:
+    if num_ions == 0 and ion_conc == 0 and not is_neutral:
         raise ValueError(
-            "Nothing to do: 'num_ions' is 0 and 'is_neutral' is False. "
-            "Set 'num_ions' > 0 or 'is_neutral' to True."
+            "Nothing to do: 'num_ions' is 0, 'ion_conc' is 0, and 'is_neutral' is "
+            "False. Set 'num_ions' > 0, 'ion_conc' > 0, or 'is_neutral' to True."
         )
+
+    # Validate and resolve preserved_waters to a list of Molecule objects.
+    preserved_mols = None
+    if preserved_waters is not None:
+        if not isinstance(preserved_waters, (list, tuple)):
+            raise TypeError(
+                "'preserved_waters' must be a list of int indices or Molecule objects."
+            )
+        # Build a set of mol_nums for fast water and membership tests.
+        water_nums = {w._sire_object.number() for w in system.getWaterMolecules()}
+        n_mols = system.nMolecules()
+        preserved_mols = []
+        for item in preserved_waters:
+            if isinstance(item, int):
+                if item < 0 or item >= n_mols:
+                    raise ValueError(
+                        f"Molecule index {item} is out of range for the system "
+                        f"(nMolecules={n_mols})."
+                    )
+                mol = system[item]
+                if mol._sire_object.number() not in water_nums:
+                    raise ValueError(
+                        f"Molecule at index {item} is not a water molecule."
+                    )
+                preserved_mols.append(mol)
+            elif isinstance(item, _Molecule):
+                if item._sire_object.number() not in system._mol_nums:
+                    raise ValueError(
+                        "A Molecule in 'preserved_waters' does not belong to "
+                        "the system."
+                    )
+                if item._sire_object.number() not in water_nums:
+                    raise ValueError(
+                        "A Molecule in 'preserved_waters' is not a water molecule."
+                    )
+                preserved_mols.append(item)
+            else:
+                raise TypeError(
+                    "'preserved_waters' items must be int indices or Molecule objects."
+                )
 
     if work_dir is not None and not isinstance(work_dir, str):
         raise TypeError("'work_dir' must be of type 'str'")
@@ -161,8 +236,47 @@ def addIons(system, ion, num_ions=0, is_neutral=True, work_dir=None, property_ma
     if not isinstance(property_map, dict):
         raise TypeError("'property_map' must be of type 'dict'")
 
+    # Compute num_ions from the box volume when ion_conc is requested.
+    # This calculation uses the full triclinic box volume and does NOT rely on
+    # gmx genion's -conc flag, which has a known issue where it ignores the
+    # volume occupied by existing ions.
+    if ion_conc > 0:
+        box, angles = system.getBox(property_map=property_map)
+        if box is None:
+            raise ValueError(
+                "'system' has no periodic box information. Cannot calculate "
+                "ion count from 'ion_conc'."
+            )
+        a = box[0].angstroms().value()
+        b = box[1].angstroms().value()
+        c = box[2].angstroms().value()
+        alpha = angles[0].radians().value()
+        beta = angles[1].radians().value()
+        gamma = angles[2].radians().value()
+        # Triclinic box volume in litres (1 Å³ = 1e-27 L).
+        V_L = (
+            a
+            * b
+            * c
+            * _math.sqrt(
+                1
+                - _math.cos(alpha) ** 2
+                - _math.cos(beta) ** 2
+                - _math.cos(gamma) ** 2
+                + 2 * _math.cos(alpha) * _math.cos(beta) * _math.cos(gamma)
+            )
+        ) * 1e-27
+        num_ions = max(1, round(ion_conc * V_L * 6.02214076e23))
+
     return _add_ions(
-        system, ion_name, ion_charge, num_ions, is_neutral, work_dir, property_map
+        system,
+        ion_name,
+        ion_charge,
+        num_ions,
+        is_neutral,
+        preserved_mols,
+        work_dir,
+        property_map,
     )
 
 
@@ -172,6 +286,7 @@ def _add_ions(
     ion_charge,
     num_ions,
     is_neutral,
+    preserved_mols=None,
     work_dir=None,
     property_map={},
 ):
@@ -195,6 +310,12 @@ def _add_ions(
 
     is_neutral : bool
         Whether to neutralise the system charge.
+
+    preserved_mols : [:class:`Molecule <BioSimSpace._SireWrappers.Molecule>`]
+        Molecules to exclude from genion's replacement pool. They are
+        removed from the working copy before genion runs and reinserted
+        between the non-water solute and the new water+ions in the result,
+        mirroring the ordering used by ``_solvate`` for crystal waters.
 
     work_dir : str
         The working directory for the process.
@@ -243,6 +364,12 @@ def _add_ions(
             water_model = "tip5p"
         else:
             water_model = "tip3p"
+
+    # Remove preserved water molecules from the working copy before rearranging.
+    # They are excluded from genion's replacement pool entirely and will be
+    # reinserted into the result after the genion run.
+    if preserved_mols:
+        _system.removeMolecules(preserved_mols)
 
     # genion requires water molecules to be contiguous at the end of the
     # topology. Remove water, record how many non-water (solute) atoms there
@@ -470,10 +597,14 @@ def _add_ions(
         water_ions = _IO.readMolecules(["water_ions.gro", "water_ions.top"])
 
         # Reconstruct the full system: take the non-water molecules from the
-        # original system (preserving their original ordering and properties)
-        # and append the new water+ions.
+        # original system (preserving their original ordering and properties),
+        # then insert any preserved waters, then append the new water+ions.
+        # This mirrors _solvate's: molecule + crystal_waters + water_ions.
         solute = _System(system)
         solute.removeWaterMolecules()
+        if preserved_mols:
+            for mol in preserved_mols:
+                solute = solute + mol
         result = solute + water_ions
 
         # Propagate space and other properties from the water+ions subsystem

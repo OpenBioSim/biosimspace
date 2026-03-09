@@ -48,7 +48,9 @@ def test_add_ions_no_existing_ions(solvated_system):
     num_ions = 2
     num_water_before = solvated_system.nWaterMolecules()
 
-    result = BSS.Solvent.addIons(solvated_system, "mg", num_ions=num_ions)
+    result = BSS.Solvent.addIons(
+        solvated_system, "mg", num_ions=num_ions, is_neutral=False
+    )
 
     # Check that the correct number of MG ions were added.
     try:
@@ -98,6 +100,23 @@ def test_add_ions_neutral(solvated_system):
 
 
 @pytest.mark.skipif(not has_gromacs, reason="Requires GROMACS to be installed")
+def test_add_ions_ion_conc(solvated_system):
+    """
+    Test that ion_conc adds a non-zero number of Mg2+ ions computed from
+    the box volume, and that the result still contains water molecules.
+    """
+    result = BSS.Solvent.addIons(solvated_system, "mg", ion_conc=0.15)
+
+    try:
+        mg_molecules = result.search("resname MG").molecules()
+    except Exception:
+        pytest.fail("No MG ions found in the result system.")
+
+    assert len(mg_molecules) > 0
+    assert result.nWaterMolecules() > 0
+
+
+@pytest.mark.skipif(not has_gromacs, reason="Requires GROMACS to be installed")
 def test_add_ions_with_existing_ions(solvated_system_with_ions):
     """
     Test adding Mg2+ ions to a solvated system that already has Na+/Cl- ions.
@@ -117,7 +136,9 @@ def test_add_ions_with_existing_ions(solvated_system_with_ions):
     except Exception:
         num_cl_before = 0
 
-    result = BSS.Solvent.addIons(solvated_system_with_ions, "mg", num_ions=num_ions)
+    result = BSS.Solvent.addIons(
+        solvated_system_with_ions, "mg", num_ions=num_ions, is_neutral=False
+    )
 
     # Check that the correct number of MG ions were added.
     try:
