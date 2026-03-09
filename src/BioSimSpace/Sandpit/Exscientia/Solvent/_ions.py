@@ -102,17 +102,22 @@ def addIons(
         The number of ions to add. Mutually exclusive with ``ion_conc``.
 
     ion_conc : float
-        The ion concentration in mol/litre. The number of ions to add is
-        calculated from the box volume. This correctly accounts for the
-        volume of all molecules already present in the system. Mutually
-        exclusive with ``num_ions``.
+        The concentration of the requested ion in mol/litre. The number
+        of ions to add is calculated from the box volume. This correctly
+        accounts for the volume of all molecules already present in the
+        system. Mutually exclusive with ``num_ions``. Note that any
+        counter-ions added by ``is_neutral=True`` are not included in
+        this concentration — their count is determined solely by the net
+        system charge.
 
     is_neutral : bool
         Whether to neutralise the system charge. When ``True``, genion
         adds Na\\ :sup:`+` or Cl\\ :sup:`-` (as appropriate) in addition
         to the requested ion to bring the total system charge to zero.
         Note that existing ions are never removed; neutralisation is
-        achieved by adding counter-ions only.
+        achieved by adding counter-ions only. The number of counter-ions
+        depends on the net system charge and is independent of
+        ``ion_conc``.
 
     preserved_waters : [int] or [:class:`Molecule <BioSimSpace._SireWrappers.Molecule>`]
         A list of water molecules to preserve from replacement by genion.
