@@ -40,12 +40,8 @@ _ion_map = {
     "rubidium": ("RB", 1),
     "cs": ("CS", 1),
     "cesium": ("CS", 1),
-    "f": ("F", -1),
-    "fluoride": ("F", -1),
     "cl": ("CL", -1),
     "chloride": ("CL", -1),
-    "br": ("BR", -1),
-    "bromide": ("BR", -1),
     "mg": ("MG", 2),
     "magnesium": ("MG", 2),
     "ca": ("CA", 2),
@@ -78,6 +74,7 @@ def addIons(
     ion_conc=0,
     is_neutral=True,
     preserved_waters=None,
+    counter_ion=None,
     work_dir=None,
     property_map={},
 ):
@@ -127,6 +124,15 @@ def addIons(
         genion runs and re-added to the result afterwards, guaranteeing
         that genion cannot select them for replacement. Useful for
         protecting crystallographic or binding-site water molecules.
+
+    counter_ion : str
+        The name of the ion to use for the opposite charge slot in the
+        genion call. By default genion uses Na\\ :sup:`+` as the counter
+        cation and Cl\\ :sup:`-` as the counter anion. Use this parameter
+        to override the counter-ion species, e.g. ``"br"`` when adding a
+        cation. The counter-ion must have the opposite charge sign to
+        ``ion``. Requires ``is_neutral=True`` (otherwise no counter-ions
+        are added and the parameter has no effect).
 
     work_dir : str
         The working directory for the process.
@@ -235,6 +241,35 @@ def addIons(
                     "'preserved_waters' items must be int indices or Molecule objects."
                 )
 
+    # Validate and resolve counter_ion.
+    counter_ion_name = None
+    counter_ion_charge = None
+    if counter_ion is not None:
+        if not isinstance(counter_ion, str):
+            raise TypeError("'counter_ion' must be of type 'str'")
+        counter_key = counter_ion.strip().lower()
+        if counter_key not in _ion_map:
+            raise ValueError(
+                f"Unsupported counter_ion '{counter_ion}'. Supported ions are: {ions()}"
+            )
+        counter_ion_name, counter_ion_charge = _ion_map[counter_key]
+        # The counter-ion must have the opposite charge sign to the requested ion.
+        if ion_charge > 0 and counter_ion_charge >= 0:
+            raise ValueError(
+                f"'counter_ion' must be negatively charged when 'ion' is positively "
+                f"charged. '{counter_ion}' has charge {counter_ion_charge:+d}."
+            )
+        if ion_charge < 0 and counter_ion_charge <= 0:
+            raise ValueError(
+                f"'counter_ion' must be positively charged when 'ion' is negatively "
+                f"charged. '{counter_ion}' has charge {counter_ion_charge:+d}."
+            )
+        if not is_neutral:
+            raise ValueError(
+                "'counter_ion' has no effect when 'is_neutral=False'. Set "
+                "'is_neutral=True' to enable counter-ion addition."
+            )
+
     if work_dir is not None and not isinstance(work_dir, str):
         raise TypeError("'work_dir' must be of type 'str'")
 
@@ -280,6 +315,8 @@ def addIons(
         num_ions,
         is_neutral,
         preserved_mols,
+        counter_ion_name,
+        counter_ion_charge,
         work_dir,
         property_map,
     )
@@ -292,6 +329,8 @@ def _add_ions(
     num_ions,
     is_neutral,
     preserved_mols=None,
+    counter_ion_name=None,
+    counter_ion_charge=None,
     work_dir=None,
     property_map={},
 ):
@@ -321,6 +360,13 @@ def _add_ions(
         removed from the working copy before genion runs and reinserted
         between the non-water solute and the new water+ions in the result,
         mirroring the ordering used by ``_solvate`` for crystal waters.
+
+    counter_ion_name : str
+        The GROMACS residue name of the counter-ion (e.g. ``"BR"``), or
+        ``None`` to use genion's default (NA/CL).
+
+    counter_ion_charge : int
+        The integer charge of the counter-ion, or ``None``.
 
     work_dir : str
         The working directory for the process.
@@ -481,8 +527,9 @@ def _add_ions(
         # Build the genion command.
         # genion supports one positive ion type (-pname/-pq/-np) and one
         # negative ion type (-nname/-nq/-nn). We use the appropriate slot
-        # for the requested ion. When is_neutral=True, genion adds the
-        # default NA/CL as counter-ions to bring the total charge to zero.
+        # for the requested ion. When is_neutral=True, genion adds counter-ions
+        # to bring the total charge to zero; counter_ion_name overrides the
+        # default counter-ion species (NA for cations, CL for anions).
         if ion_charge > 0:
             command = (
                 "%s genion -s ions.tpr -o ions_out.gro -p system.top"
@@ -490,6 +537,9 @@ def _add_ions(
             )
             if num_ions > 0:
                 command += " -np %d" % num_ions
+            # Override the default Cl- counter-ion if requested.
+            if counter_ion_name is not None:
+                command += " -nname %s -nq %d" % (counter_ion_name, counter_ion_charge)
         else:
             command = (
                 "%s genion -s ions.tpr -o ions_out.gro -p system.top"
@@ -497,6 +547,9 @@ def _add_ions(
             )
             if num_ions > 0:
                 command += " -nn %d" % num_ions
+            # Override the default Na+ counter-ion if requested.
+            if counter_ion_name is not None:
+                command += " -pname %s -pq %d" % (counter_ion_name, counter_ion_charge)
 
         if is_neutral:
             command += " -neutral"

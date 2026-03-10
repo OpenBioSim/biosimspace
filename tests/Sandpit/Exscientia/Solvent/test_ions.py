@@ -38,7 +38,7 @@ def test_ions():
     assert isinstance(ion_list, list)
     assert len(ion_list) > 0
     # Check a representative selection of expected ions are present.
-    for ion in ["br", "ca", "cl", "cs", "f", "k", "li", "mg", "na", "rb", "zn"]:
+    for ion in ["ca", "cl", "cs", "k", "li", "mg", "na", "rb", "zn"]:
         assert ion in ion_list
 
 
@@ -163,3 +163,39 @@ def test_add_ions_with_existing_ions(solvated_system_with_ions):
 
     assert num_na_after == num_na_before
     assert num_cl_after == num_cl_before
+
+
+@pytest.mark.skipif(not has_gromacs, reason="Requires GROMACS to be installed")
+def test_add_ions_counter_ion(solvated_system):
+    """
+    Test that counter_ion overrides the default Na+ counter-ion.
+
+    Adding CL- with counter_ion="k" should result in K+ ions being added
+    for neutralisation instead of the default NA+.
+    """
+    num_ions = 2
+
+    result = BSS.Solvent.addIons(
+        solvated_system, "cl", num_ions=num_ions, is_neutral=True, counter_ion="k"
+    )
+
+    # Check that CL ions were added.
+    try:
+        cl_molecules = result.search("resname CL").molecules()
+    except Exception:
+        pytest.fail("No CL ions found in the result system.")
+    assert len(cl_molecules) == num_ions
+
+    # K+ counter-ions should be present (2 Cl- → -2 charge → 2 K+).
+    try:
+        k_molecules = result.search("resname K").molecules()
+    except Exception:
+        pytest.fail("No K counter-ions found in the result system.")
+    assert len(k_molecules) == num_ions
+
+    # The default NA counter-ion should NOT be present.
+    try:
+        na_count = len(result.search("resname NA").molecules())
+    except Exception:
+        na_count = 0
+    assert na_count == 0
