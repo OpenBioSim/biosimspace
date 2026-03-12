@@ -90,6 +90,7 @@ def merge(
         The merged molecule.
     """
     from sire.legacy import CAS as _SireCAS
+    from sire.legacy import IO as _SireIO
     from sire.legacy import MM as _SireMM
     from sire.legacy import Base as _SireBase
     from sire.legacy import Mol as _SireMol
@@ -1178,23 +1179,22 @@ def merge(
         edit_mol.set_property("connectivity0", conn0)
         edit_mol.set_property("connectivity1", conn1)
 
-    # Create the CLJNBPairs matrices.
-    ff = molecule0.property(ff0)
-
-    # Create the new intrascale matrices.
-    scale_factor_14 = _SireMM.CLJScaleFactor(
-        ff.electrostatic14_scale_factor(), ff.vdw14_scale_factor()
+    # Merge the intrascale properties of the two molecules.
+    merged_intrascale = _SireIO.mergeIntrascale(
+        molecule0.property("intrascale"),
+        molecule1.property("intrascale"),
+        edit_mol.info(),
+        mol0_merged_mapping,
+        mol1_merged_mapping,
     )
-    clj_nb_pairs0 = _SireMM.CLJNBPairs(conn0, scale_factor_14)
-    clj_nb_pairs1 = _SireMM.CLJNBPairs(conn1, scale_factor_14)
 
     # Store the two molecular components.
     edit_mol.set_property("molecule0", molecule0)
     edit_mol.set_property("molecule1", molecule1)
 
     # Set the "intrascale" properties.
-    edit_mol.set_property("intrascale0", clj_nb_pairs0)
-    edit_mol.set_property("intrascale1", clj_nb_pairs1)
+    edit_mol.set_property("intrascale0", merged_intrascale[0])
+    edit_mol.set_property("intrascale1", merged_intrascale[1])
 
     # Set the "forcefield" properties.
     edit_mol.set_property("forcefield0", molecule0.property(ff0))

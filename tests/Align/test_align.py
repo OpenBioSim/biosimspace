@@ -74,10 +74,24 @@ def test_invalid_prematch(system0, system1, prematch):
         )
 
 
-def test_merge():
-    # Load the ligands.
-    s0 = BSS.IO.readMolecules([f"{url}/ligand31.prm7.bz2", f"{url}/ligand31.rst7.bz2"])
-    s1 = BSS.IO.readMolecules([f"{url}/ligand38.prm7.bz2", f"{url}/ligand38.rst7.bz2"])
+@pytest.mark.parametrize(
+    "s0_files,s1_files",
+    [
+        (
+            [f"{url}/ligand31.prm7.bz2", f"{url}/ligand31.rst7.bz2"],
+            [f"{url}/ligand38.prm7.bz2", f"{url}/ligand38.rst7.bz2"],
+        ),
+        pytest.param(
+            [f"{url}/glycam_M5.gro.bz2", f"{url}/glycam_M5.top.bz2"],
+            [f"{url}/glycam_M5G0.gro.bz2", f"{url}/glycam_M5G0.top.bz2"],
+            marks=pytest.mark.slow,
+        ),
+    ],
+)
+def test_merge(s0_files, s1_files):
+    # Load the molecules.
+    s0 = BSS.IO.readMolecules(s0_files)
+    s1 = BSS.IO.readMolecules(s1_files)
 
     # Extract the molecules.
     m0 = s0.getMolecules()[0]
