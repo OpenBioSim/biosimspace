@@ -332,6 +332,7 @@ def merge(
         "angle",
         "dihedral",
         "improper",
+        "cmap",
         "connectivity",
         "intrascale",
     ]
@@ -683,6 +684,52 @@ def merge(
         # Add the impropers to the merged molecule.
         edit_mol.set_property("improper0", impropers)
 
+    # 5) cmap
+    if "cmap" in shared_props:
+        # Get the user defined property names.
+        prop0 = inv_property_map0.get("cmap", "cmap")
+        prop1 = inv_property_map1.get("cmap", "cmap")
+
+        # Get the "cmap" property from the two molecules.
+        cmaps0 = molecule0.property(prop0)
+        cmaps1 = molecule1.property(prop1)
+
+        # Get the molInfo object for each molecule.
+        info0 = molecule0.info()
+        info1 = molecule1.info()
+
+        # Create the new set of CMAP functions.
+        cmaps = _SireMM.CMAPFunctions(edit_mol.info())
+
+        # Add all of the CMAP functions from molecule0.
+        for func in cmaps0.parameters():
+            atom0 = mol0_merged_mapping[info0.atom_idx(func.atom0())]
+            atom1 = mol0_merged_mapping[info0.atom_idx(func.atom1())]
+            atom2 = mol0_merged_mapping[info0.atom_idx(func.atom2())]
+            atom3 = mol0_merged_mapping[info0.atom_idx(func.atom3())]
+            atom4 = mol0_merged_mapping[info0.atom_idx(func.atom4())]
+            cmaps.set(atom0, atom1, atom2, atom3, atom4, func.parameter())
+
+        # Loop over all CMAP functions in molecule1.
+        for func in cmaps1.parameters():
+            # This CMAP function contains an atom that is unique to molecule1.
+            if (
+                info1.atom_idx(func.atom0()) in atoms1_idx
+                or info1.atom_idx(func.atom1()) in atoms1_idx
+                or info1.atom_idx(func.atom2()) in atoms1_idx
+                or info1.atom_idx(func.atom3()) in atoms1_idx
+                or info1.atom_idx(func.atom4()) in atoms1_idx
+            ):
+                atom0 = mol1_merged_mapping[info1.atom_idx(func.atom0())]
+                atom1 = mol1_merged_mapping[info1.atom_idx(func.atom1())]
+                atom2 = mol1_merged_mapping[info1.atom_idx(func.atom2())]
+                atom3 = mol1_merged_mapping[info1.atom_idx(func.atom3())]
+                atom4 = mol1_merged_mapping[info1.atom_idx(func.atom4())]
+                cmaps.set(atom0, atom1, atom2, atom3, atom4, func.parameter())
+
+        # Add the CMAP functions to the merged molecule.
+        edit_mol.set_property("cmap0", cmaps)
+
     ##############################
     # SET PROPERTIES AT LAMBDA = 1
     ##############################
@@ -1015,6 +1062,52 @@ def merge(
 
         # Add the impropers to the merged molecule.
         edit_mol.set_property("improper1", impropers)
+
+    # 5) cmap
+    if "cmap" in shared_props:
+        # Get the user defined property names.
+        prop0 = inv_property_map0.get("cmap", "cmap")
+        prop1 = inv_property_map1.get("cmap", "cmap")
+
+        # Get the "cmap" property from the two molecules.
+        cmaps0 = molecule0.property(prop0)
+        cmaps1 = molecule1.property(prop1)
+
+        # Get the molInfo object for each molecule.
+        info0 = molecule0.info()
+        info1 = molecule1.info()
+
+        # Create the new set of CMAP functions.
+        cmaps = _SireMM.CMAPFunctions(edit_mol.info())
+
+        # Add all of the CMAP functions from molecule1.
+        for func in cmaps1.parameters():
+            atom0 = mol1_merged_mapping[info1.atom_idx(func.atom0())]
+            atom1 = mol1_merged_mapping[info1.atom_idx(func.atom1())]
+            atom2 = mol1_merged_mapping[info1.atom_idx(func.atom2())]
+            atom3 = mol1_merged_mapping[info1.atom_idx(func.atom3())]
+            atom4 = mol1_merged_mapping[info1.atom_idx(func.atom4())]
+            cmaps.set(atom0, atom1, atom2, atom3, atom4, func.parameter())
+
+        # Loop over all CMAP functions in molecule0.
+        for func in cmaps0.parameters():
+            # This CMAP function contains an atom that is unique to molecule0.
+            if (
+                info0.atom_idx(func.atom0()) in atoms0_idx
+                or info0.atom_idx(func.atom1()) in atoms0_idx
+                or info0.atom_idx(func.atom2()) in atoms0_idx
+                or info0.atom_idx(func.atom3()) in atoms0_idx
+                or info0.atom_idx(func.atom4()) in atoms0_idx
+            ):
+                atom0 = mol0_merged_mapping[info0.atom_idx(func.atom0())]
+                atom1 = mol0_merged_mapping[info0.atom_idx(func.atom1())]
+                atom2 = mol0_merged_mapping[info0.atom_idx(func.atom2())]
+                atom3 = mol0_merged_mapping[info0.atom_idx(func.atom3())]
+                atom4 = mol0_merged_mapping[info0.atom_idx(func.atom4())]
+                cmaps.set(atom0, atom1, atom2, atom3, atom4, func.parameter())
+
+        # Add the CMAP functions to the merged molecule.
+        edit_mol.set_property("cmap1", cmaps)
 
     # The number of potentials should be consistent for the "bond0"
     # and "bond1" properties, unless a ring is broken or changes size.
