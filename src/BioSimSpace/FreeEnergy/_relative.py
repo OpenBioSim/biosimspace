@@ -1059,19 +1059,18 @@ class Relative:
             raise ValueError("Parquet metadata does not contain 'lambda'.")
         if not is_mbar:
             try:
-                # Normalise to :.5f strings to match sire energy trajectory column names.
-                lambda_grad = [f"{float(v):.5f}" for v in metadata["lambda_grad"]]
+                # Normalise to floats to match the DataFrame column type expected
+                # by alchemlyb (handles both old float and new string metadata).
+                lambda_grad = [float(v) for v in metadata["lambda_grad"]]
             except:
                 raise ValueError("Parquet metadata does not contain 'lambda grad'")
         else:
             try:
-                # Normalise to :.5f strings to match sire energy trajectory column names.
-                lambda_grad = [f"{float(v):.5f}" for v in metadata["lambda_grad"]]
+                # Normalise to floats to match the DataFrame column type expected
+                # by alchemlyb (handles both old float and new string metadata).
+                lambda_grad = [float(v) for v in metadata["lambda_grad"]]
             except:
                 lambda_grad = []
-
-        # Key used to index the simulated lambda column in the dataframe.
-        lam_key = f"{lam:.5f}"
 
         # Make sure that the temperature is correct.
         if not T == temperature:
@@ -1083,16 +1082,15 @@ class Relative:
         # Convert to a pandas dataframe.
         df = table.to_pandas()
 
-        # Normalise column names to :.5f string format so that comparisons are
-        # consistent regardless of whether the parquet was written with float keys
-        # (old sire) or formatted string keys (new sire).
+        # Normalise column names to floats so that comparisons are consistent
+        # regardless of whether the parquet was written with float keys (old
+        # sire) or formatted string keys (new sire). float("0.10000") and
+        # float("0.1") give the same IEEE754 value, so old and new files are
+        # handled identically and the alchemlyb index check passes.
         df.columns = [
-            f"{float(c):.5f}"
-            if isinstance(c, (int, float))
-            or (
-                isinstance(c, str)
-                and c.replace(".", "", 1).replace("-", "", 1).isdigit()
-            )
+            float(c)
+            if isinstance(c, str)
+            and c.replace(".", "", 1).replace("-", "", 1).isdigit()
             else c
             for c in df.columns
         ]
@@ -1102,7 +1100,7 @@ class Relative:
             df = df[[x for x in df.columns if x not in lambda_grad]]
 
             # Subtract the potential at the simulated lambda.
-            df = df.subtract(df[lam_key], axis=0)
+            df = df.subtract(df[lam], axis=0)
 
             # Apply the existing attributes.
             df.attrs = attrs
@@ -1115,19 +1113,19 @@ class Relative:
                 lam_delta = lambda_grad[0]
 
                 # Forward difference.
-                if float(lam_delta) > lam:
-                    incr = float(lam_delta) - lam
-                    grad = (df[lam_delta] - df[lam_key]) / incr
+                if lam_delta > lam:
+                    incr = lam_delta - lam
+                    grad = (df[lam_delta] - df[lam]) / incr
 
                 # Backward difference.
                 else:
-                    incr = lam - float(lam_delta)
-                    grad = (df[lam_key] - df[lam_delta]) / incr
+                    incr = lam - lam_delta
+                    grad = (df[lam] - df[lam_delta]) / incr
 
             # Central difference.
             else:
                 lam_below, lam_above = lambda_grad
-                double_incr = float(lam_above) - float(lam_below)
+                double_incr = lam_above - lam_below
                 grad = (df[lam_above] - df[lam_below]) / double_incr
 
             # Create a DataFrame with the multi-index
