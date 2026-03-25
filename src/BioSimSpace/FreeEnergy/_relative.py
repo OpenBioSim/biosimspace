@@ -1059,12 +1059,16 @@ class Relative:
             raise ValueError("Parquet metadata does not contain 'lambda'.")
         if not is_mbar:
             try:
-                lambda_grad = metadata["lambda_grad"]
+                # Normalise to floats to match the DataFrame column type expected
+                # by alchemlyb (handles both old float and new string metadata).
+                lambda_grad = [float(v) for v in metadata["lambda_grad"]]
             except:
                 raise ValueError("Parquet metadata does not contain 'lambda grad'")
         else:
             try:
-                lambda_grad = metadata["lambda_grad"]
+                # Normalise to floats to match the DataFrame column type expected
+                # by alchemlyb (handles both old float and new string metadata).
+                lambda_grad = [float(v) for v in metadata["lambda_grad"]]
             except:
                 lambda_grad = []
 
@@ -1077,6 +1081,19 @@ class Relative:
 
         # Convert to a pandas dataframe.
         df = table.to_pandas()
+
+        # Normalise column names to floats so that comparisons are consistent
+        # regardless of whether the parquet was written with float keys (old
+        # sire) or formatted string keys (new sire). float("0.10000") and
+        # float("0.1") give the same IEEE754 value, so old and new files are
+        # handled identically and the alchemlyb index check passes.
+        df.columns = [
+            float(c)
+            if isinstance(c, str)
+            and c.replace(".", "", 1).replace("-", "", 1).isdigit()
+            else c
+            for c in df.columns
+        ]
 
         if is_mbar:
             # Extract all columns other than those used for the gradient.
