@@ -1083,6 +1083,20 @@ class Relative:
         # Convert to a pandas dataframe.
         df = table.to_pandas()
 
+        # Normalise column names to :.5f string format so that comparisons are
+        # consistent regardless of whether the parquet was written with float keys
+        # (old sire) or formatted string keys (new sire).
+        df.columns = [
+            f"{float(c):.5f}"
+            if isinstance(c, (int, float))
+            or (
+                isinstance(c, str)
+                and c.replace(".", "", 1).replace("-", "", 1).isdigit()
+            )
+            else c
+            for c in df.columns
+        ]
+
         if is_mbar:
             # Extract all columns other than those used for the gradient.
             df = df[[x for x in df.columns if x not in lambda_grad]]
