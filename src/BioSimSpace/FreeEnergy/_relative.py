@@ -1057,18 +1057,25 @@ class Relative:
             lam = float(metadata["lambda"])
         except:
             raise ValueError("Parquet metadata does not contain 'lambda'.")
+
+        def _normalise_lambda(v):
+            """
+            Round-trip a lambda value through :.5f formatting to produce a
+            canonical float. This eliminates IEEE754 arithmetic precision
+            differences (e.g. 0.05 + 0.001 = 0.051000000000000004 vs
+            float("0.051") = 0.051) while keeping values as floats so that
+            the alchemlyb index check passes.
+            """
+            return float(f"{float(v):.5f}")
+
         if not is_mbar:
             try:
-                # Normalise to floats to match the DataFrame column type expected
-                # by alchemlyb (handles both old float and new string metadata).
-                lambda_grad = [float(v) for v in metadata["lambda_grad"]]
+                lambda_grad = [_normalise_lambda(v) for v in metadata["lambda_grad"]]
             except:
                 raise ValueError("Parquet metadata does not contain 'lambda grad'")
         else:
             try:
-                # Normalise to floats to match the DataFrame column type expected
-                # by alchemlyb (handles both old float and new string metadata).
-                lambda_grad = [float(v) for v in metadata["lambda_grad"]]
+                lambda_grad = [_normalise_lambda(v) for v in metadata["lambda_grad"]]
             except:
                 lambda_grad = []
 
@@ -1082,13 +1089,13 @@ class Relative:
         # Convert to a pandas dataframe.
         df = table.to_pandas()
 
-        # Normalise column names to floats so that comparisons are consistent
-        # regardless of whether the parquet was written with float keys (old
-        # sire) or formatted string keys (new sire). float("0.10000") and
-        # float("0.1") give the same IEEE754 value, so old and new files are
-        # handled identically and the alchemlyb index check passes.
+        # Normalise column names through the same :.5f round-trip so that
+        # comparisons against lambda_grad and lam are consistent regardless of
+        # whether the parquet was written with arithmetic float keys (old sire,
+        # e.g. "0.051000000000000004") or :.5f string keys (new sire, e.g.
+        # "0.05100"). The alchemlyb index check also requires float columns.
         df.columns = [
-            float(c)
+            _normalise_lambda(c)
             if isinstance(c, str)
             and c.replace(".", "", 1).replace("-", "", 1).isdigit()
             else c
