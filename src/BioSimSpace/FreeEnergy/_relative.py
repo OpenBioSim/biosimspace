@@ -443,7 +443,7 @@ class Relative:
 
         function_glob_dict = {
             "SOMD": (Relative._analyse_somd, "**/simfile.dat"),
-            "SOMD2": (Relative._analyse_somd2, "**/*.parquet"),
+            "SOMD2": (Relative._analyse_somd2, "**/energy_traj_*.parquet"),
             "GROMACS": (Relative._analyse_gromacs, "**/[!bar]*.xvg"),
             "AMBER": (Relative._analyse_amber, "**/*.out"),
         }
@@ -1958,7 +1958,7 @@ class Relative:
 
         # Glob the data files.
         glob_path = _pathlib.Path(work_dir)
-        files = sorted(glob_path.glob("**/*.parquet"))
+        files = sorted(glob_path.glob("**/energy_traj_*.parquet"))
 
         # Loop over each file and try to extract the metadata to work out
         # the lambda value and temperature for each window.
