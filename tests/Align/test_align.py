@@ -1,11 +1,12 @@
 import sys
 
 import pytest
+import sire as sr
 from sire.legacy.MM import InternalFF, IntraCLJFF, IntraFF
 from sire.legacy.Mol import AtomIdx, Element, PartialMolecule
 
 import BioSimSpace as BSS
-from tests.conftest import has_amber, has_openff
+from tests.conftest import has_amber, has_antechamber, has_openff, has_tleap
 
 # Store the tutorial URL.
 url = BSS.tutorialUrl()
@@ -844,3 +845,85 @@ def test_ring_opening_and_size_change(ligands, mapping):
     BSS.Align.merge(
         m0, m1, mapping, allow_ring_breaking=True, allow_ring_size_change=True
     )
+
+
+@pytest.mark.skipif(
+    not has_antechamber or not has_tleap,
+    reason="Requires antechamber and tLEaP to be installed.",
+)
+@pytest.mark.skipif(
+    "openmm" not in sr.convert.supported_formats(),
+    reason="Requires OpenMM to be installed.",
+)
+def test_ring_breaking_intrascale():
+    """
+    Regression test for mergeIntrascale with ring-breaking perturbations.
+
+    Before the fix, CLJNBPairs pairs that were excluded/1-4 in one end state
+    but fully interacting (1,1) in the other were incorrectly left at the
+    non-(1,1) value in the merged intrascale. For cyclopentane->cyclohexane
+    this produced only 6 changed OpenMM exceptions instead of the correct 18,
+    causing simulation instabilities due to missing non-bonded interactions.
+    """
+    # Parameterise both molecules with GAFF2.
+    cyclopentane = BSS.Parameters.gaff2("C1CCCC1").getMolecule()
+    cyclohexane = BSS.Parameters.gaff2("C1CCCCC1").getMolecule()
+
+    # Atom mapping for cyclopentane -> cyclohexane.
+    mapping = {
+        0: 0,
+        1: 1,
+        2: 2,
+        3: 3,
+        4: 4,
+        5: 6,
+        6: 7,
+        7: 8,
+        8: 9,
+        9: 10,
+        10: 11,
+        11: 12,
+        12: 13,
+        13: 14,
+        14: 15,
+    }
+
+    # Load the reference merged system produced by the old BioSimSpace merge
+    # code (which used CLJNBPairs(connectivity, sf14) and was known correct).
+    reference = sr.load_test_files("cyclopentane_cyclohexane.bss")
+    ref_mol = reference.molecules("molecule property is_perturbable")[0]
+    ref_omm = ref_mol.perturbation().to_openmm(map={"coordinates": "coordinates0"})
+    ref_bonds = ref_omm.changed_bonds()
+    ref_exceptions = ref_omm.changed_exceptions()
+
+    # Merge cyclopentane -> cyclohexane and check against the reference.
+    cyclopentane_aligned = BSS.Align.rmsdAlign(cyclopentane, cyclohexane, mapping)
+    merged_fwd = BSS.Align.merge(
+        cyclopentane_aligned,
+        cyclohexane,
+        mapping,
+        allow_ring_size_change=True,
+        allow_ring_breaking=True,
+    )
+    omm_fwd = merged_fwd._sire_object.perturbation().to_openmm(
+        map={"coordinates": "coordinates0"}
+    )
+    assert len(omm_fwd.changed_bonds()) == len(ref_bonds)
+    assert len(omm_fwd.changed_exceptions()) == len(ref_exceptions)
+
+    # Merge in the reverse direction (cyclohexane -> cyclopentane) to verify
+    # symmetry: the fix must hold regardless of which molecule is mol0/mol1.
+    inv_mapping = {v: k for k, v in mapping.items()}
+    cyclohexane_aligned = BSS.Align.rmsdAlign(cyclohexane, cyclopentane, inv_mapping)
+    merged_rev = BSS.Align.merge(
+        cyclohexane_aligned,
+        cyclopentane,
+        inv_mapping,
+        allow_ring_size_change=True,
+        allow_ring_breaking=True,
+    )
+    omm_rev = merged_rev._sire_object.perturbation().to_openmm(
+        map={"coordinates": "coordinates0"}
+    )
+    assert len(omm_rev.changed_bonds()) == len(ref_bonds)
+    assert len(omm_rev.changed_exceptions()) == len(ref_exceptions)
