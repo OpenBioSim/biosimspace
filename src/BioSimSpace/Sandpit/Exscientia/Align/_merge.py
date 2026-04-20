@@ -1301,20 +1301,34 @@ def merge(
     # Set the "connectivity" property.
     edit_mol.set_property("connectivity", conn)
 
-    # Merge the intrascale properties of the two molecules.
     ff = molecule0.property(ff0)
     sf14 = _SireMM.CLJScaleFactor(
         ff.electrostatic14_scale_factor(), ff.vdw14_scale_factor()
     )
-    merged_intrascale = _SireIO.mergeIntrascale(
-        molecule0.property("intrascale"),
-        molecule1.property("intrascale"),
-        conn0,
-        conn1,
-        sf14,
-        mol0_merged_mapping,
-        mol1_merged_mapping,
-    )
+
+    # Merge the intrascale properties of the two molecules.
+    if roi is not None:
+        # For ROI protein merges, build the intrascale matrices directly from
+        # the per-state connectivity, bypassing mergeIntrascale. Protein
+        # mutations involve no ring-breaking and no GLYCAM-style per-pair
+        # overrides, so the overrideIntrascale step in mergeIntrascale is a
+        # no-op. Bypassing it avoids a Windows-specific performance issue
+        # where the O(n²) override loop is very slow for large proteins.
+        # TODO: investigate the root cause and remove this workaround.
+        merged_intrascale = [
+            _SireMM.CLJNBPairs(conn0, sf14),
+            _SireMM.CLJNBPairs(conn1, sf14),
+        ]
+    else:
+        merged_intrascale = _SireIO.mergeIntrascale(
+            molecule0.property("intrascale"),
+            molecule1.property("intrascale"),
+            conn0,
+            conn1,
+            sf14,
+            mol0_merged_mapping,
+            mol1_merged_mapping,
+        )
 
     # Store the two molecular components.
     edit_mol.set_property("molecule0", molecule0)
