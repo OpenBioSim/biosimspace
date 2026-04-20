@@ -930,6 +930,10 @@ def test_ring_breaking_intrascale():
 
 
 @pytest.mark.skipif(
+    not has_antechamber or not has_tleap,
+    reason="Requires antechamber and tLEaP to be installed.",
+)
+@pytest.mark.skipif(
     not has_openff,
     reason="Requires OpenFF to be installed.",
 )
