@@ -1302,10 +1302,16 @@ def merge(
     edit_mol.set_property("connectivity", conn)
 
     # Merge the intrascale properties of the two molecules.
+    ff = molecule0.property(ff0)
+    sf14 = _SireMM.CLJScaleFactor(
+        ff.electrostatic14_scale_factor(), ff.vdw14_scale_factor()
+    )
     merged_intrascale = _SireIO.mergeIntrascale(
         molecule0.property("intrascale"),
         molecule1.property("intrascale"),
-        edit_mol.info(),
+        conn0,
+        conn1,
+        sf14,
         mol0_merged_mapping,
         mol1_merged_mapping,
     )
