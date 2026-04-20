@@ -1018,7 +1018,6 @@ def test_ring_breaking_intrascale_connectivity():
     intra1 = sire_mol.property("intrascale1")
 
     # Build the reference intrascale matrices from per-state connectivity,
-    # replicating the debug_merge approach.
     ff = mol0._sire_object.property("forcefield")
     sf14 = _SireMM.CLJScaleFactor(
         ff.electrostatic14_scale_factor(), ff.vdw14_scale_factor()
