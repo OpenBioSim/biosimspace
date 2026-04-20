@@ -37,6 +37,7 @@ def merge(
     roi=None,
     property_map0={},
     property_map1={},
+    **kwargs,
 ):
     """
     Merge this molecule with 'other'.
@@ -1306,29 +1307,29 @@ def merge(
         ff.electrostatic14_scale_factor(), ff.vdw14_scale_factor()
     )
 
-    # Merge the intrascale properties of the two molecules.
-    if roi is not None:
-        # For ROI protein merges, build the intrascale matrices directly from
-        # the per-state connectivity, bypassing mergeIntrascale. Protein
-        # mutations involve no ring-breaking and no GLYCAM-style per-pair
-        # overrides, so the overrideIntrascale step in mergeIntrascale is a
-        # no-op. Bypassing it avoids a Windows-specific performance issue
-        # where the O(n²) override loop is very slow for large proteins.
-        # TODO: investigate the root cause and remove this workaround.
-        merged_intrascale = [
-            _SireMM.CLJNBPairs(conn0, sf14),
-            _SireMM.CLJNBPairs(conn1, sf14),
-        ]
-    else:
-        merged_intrascale = _SireIO.mergeIntrascale(
+    # Build the intrascale matrices from the per-state connectivity.
+    intra0 = _SireMM.CLJNBPairs(conn0, sf14)
+    intra1 = _SireMM.CLJNBPairs(conn1, sf14)
+
+    # For non-ROI merges, patch with any non-default per-pair scale factors
+    # from the individual molecule intrascales (e.g. GLYCAM funct=2 overrides).
+    # This step can be skipped via apply_scale_factors=False when the caller
+    # knows no non-default scale factors are present.
+    if "apply_scale_factors" in kwargs:
+        if not isinstance(kwargs["apply_scale_factors"], bool):
+            raise TypeError("'apply_scale_factors' must be of type 'bool'")
+
+    if kwargs.get("apply_scale_factors", roi is None):
+        intra0, intra1 = _SireIO.patchIntrascale(
             molecule0.property("intrascale"),
             molecule1.property("intrascale"),
-            conn0,
-            conn1,
-            sf14,
+            intra0,
+            intra1,
             mol0_merged_mapping,
             mol1_merged_mapping,
         )
+
+    merged_intrascale = [intra0, intra1]
 
     # Store the two molecular components.
     edit_mol.set_property("molecule0", molecule0)

@@ -857,13 +857,14 @@ def test_ring_opening_and_size_change(ligands, mapping):
 )
 def test_ring_breaking_intrascale():
     """
-    Regression test for mergeIntrascale with ring-breaking perturbations.
+    Test that ring-breaking merges produce correct intrascale matrices for a
+    standard force field (GAFF2) with no non-default per-pair scale factors.
 
-    Before the fix, CLJNBPairs pairs that were excluded/1-4 in one end state
-    but fully interacting (1,1) in the other were incorrectly left at the
-    non-(1,1) value in the merged intrascale. For cyclopentane->cyclohexane
-    this produced only 6 changed OpenMM exceptions instead of the correct 18,
-    causing simulation instabilities due to missing non-bonded interactions.
+    The intrascale matrices are built from per-state connectivity, which
+    correctly captures bonded distances across the ring-closure bond in the
+    merged atom space. Since GAFF2 has no non-default per-pair scale factors,
+    patchIntrascale is a no-op — verified by checking that apply_scale_factors=False
+    gives the same changed bond and exception counts as the default path.
     """
     # Parameterise both molecules with GAFF2.
     cyclopentane = BSS.Parameters.gaff2("C1CCCC1").getMolecule()
@@ -928,6 +929,22 @@ def test_ring_breaking_intrascale():
     assert len(omm_rev.changed_bonds()) == len(ref_bonds)
     assert len(omm_rev.changed_exceptions()) == len(ref_exceptions)
 
+    # Verify patchIntrascale is a no-op for GAFF2: skipping it with
+    # apply_scale_factors=False must give identical results.
+    merged_nopatch = BSS.Align.merge(
+        cyclopentane_aligned,
+        cyclohexane,
+        mapping,
+        allow_ring_size_change=True,
+        allow_ring_breaking=True,
+        apply_scale_factors=False,
+    )
+    omm_nopatch = merged_nopatch._sire_object.perturbation().to_openmm(
+        map={"coordinates": "coordinates0"}
+    )
+    assert len(omm_nopatch.changed_bonds()) == len(ref_bonds)
+    assert len(omm_nopatch.changed_exceptions()) == len(ref_exceptions)
+
 
 @pytest.mark.skipif(
     not has_antechamber or not has_tleap,
@@ -937,24 +954,20 @@ def test_ring_breaking_intrascale():
     not has_openff,
     reason="Requires OpenFF to be installed.",
 )
-def test_ring_breaking_intrascale_connectivity():
+def test_ring_breaking_intrascale_m338():
     """
-    Regression test for mergeIntrascale using a real-world ring-breaking
-    perturbation (int1 -> m338).
+    Test that ring-breaking merges produce correct intrascale matrices for a
+    real-world perturbation (int1 -> m338) with a standard force field (OpenFF).
 
-    Validates that the merged intrascale matrices produced by mergeIntrascale
-    (which builds CLJNBPairs from per-state connectivity and overrides with
-    per-pair values) exactly match those produced directly from
-    CLJNBPairs(conn0/conn1, sf14). For ring-breaking perturbations the two
-    approaches must agree: discrepancies indicate that bonded distances in the
-    merged topology are not being correctly captured, which causes missing or
-    spurious OpenMM exceptions and simulation instabilities.
+    Since OpenFF has no non-default per-pair scale factors, patchIntrascale is
+    a no-op and the merged intrascale matrices must exactly match those built
+    directly from CLJNBPairs(conn0/conn1, sf14).
     """
     from sire.legacy import CAS as _SireCAS
     from sire.legacy import MM as _SireMM
     from sire.legacy import Mol as _SireMol
 
-    # Atom mapping: {int1_idx: m338_idx}, read from m338_int1_MCS.txt.
+    # Atom mapping: {int1_idx: m338_idx}
     mapping = {
         21: 0,
         0: 1,
@@ -1013,11 +1026,11 @@ def test_ring_breaking_intrascale_connectivity():
 
     sire_mol = merged._sire_object
 
-    # Extract the intrascale matrices produced by mergeIntrascale.
     intra0 = sire_mol.property("intrascale0")
     intra1 = sire_mol.property("intrascale1")
 
-    # Build the reference intrascale matrices from per-state connectivity,
+    # Build reference matrices directly from per-state connectivity. For OpenFF
+    # these must be identical to the merge output since patchIntrascale is a no-op.
     ff = mol0._sire_object.property("forcefield")
     sf14 = _SireMM.CLJScaleFactor(
         ff.electrostatic14_scale_factor(), ff.vdw14_scale_factor()
