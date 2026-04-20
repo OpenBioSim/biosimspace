@@ -927,3 +927,128 @@ def test_ring_breaking_intrascale():
     )
     assert len(omm_rev.changed_bonds()) == len(ref_bonds)
     assert len(omm_rev.changed_exceptions()) == len(ref_exceptions)
+
+
+@pytest.mark.skipif(
+    not has_openff,
+    reason="Requires OpenFF to be installed.",
+)
+def test_ring_breaking_intrascale_connectivity():
+    """
+    Regression test for mergeIntrascale using a real-world ring-breaking
+    perturbation (int1 -> m338).
+
+    Validates that the merged intrascale matrices produced by mergeIntrascale
+    (which builds CLJNBPairs from per-state connectivity and overrides with
+    per-pair values) exactly match those produced directly from
+    CLJNBPairs(conn0/conn1, sf14). For ring-breaking perturbations the two
+    approaches must agree: discrepancies indicate that bonded distances in the
+    merged topology are not being correctly captured, which causes missing or
+    spurious OpenMM exceptions and simulation instabilities.
+    """
+    from sire.legacy import CAS as _SireCAS
+    from sire.legacy import MM as _SireMM
+    from sire.legacy import Mol as _SireMol
+
+    # Atom mapping: {int1_idx: m338_idx}, read from m338_int1_MCS.txt.
+    mapping = {
+        21: 0,
+        0: 1,
+        23: 2,
+        18: 3,
+        1: 4,
+        2: 5,
+        3: 6,
+        4: 7,
+        5: 8,
+        6: 9,
+        7: 10,
+        8: 11,
+        9: 12,
+        10: 13,
+        19: 14,
+        11: 15,
+        12: 16,
+        13: 17,
+        14: 18,
+        15: 19,
+        16: 20,
+        20: 21,
+        30: 22,
+        24: 23,
+        22: 24,
+        26: 25,
+        17: 26,
+        25: 27,
+        27: 28,
+        32: 29,
+        33: 30,
+        34: 31,
+        35: 32,
+        36: 33,
+        37: 34,
+        28: 35,
+        38: 36,
+    }
+
+    mol0 = BSS.Parameters.openff_unconstrained_2_2_1(
+        BSS.IO.readMolecules(f"{url}/int1.sdf")[0]
+    ).getMolecule()
+    mol1 = BSS.Parameters.openff_unconstrained_2_2_1(
+        BSS.IO.readMolecules(f"{url}/m338.sdf")[0]
+    ).getMolecule()
+
+    mol0_aligned = BSS.Align.rmsdAlign(mol0, mol1, mapping)
+    merged = BSS.Align.merge(
+        mol0_aligned,
+        mol1,
+        mapping,
+        allow_ring_breaking=True,
+        allow_ring_size_change=True,
+    )
+
+    sire_mol = merged._sire_object
+
+    # Extract the intrascale matrices produced by mergeIntrascale.
+    intra0 = sire_mol.property("intrascale0")
+    intra1 = sire_mol.property("intrascale1")
+
+    # Build the reference intrascale matrices from per-state connectivity,
+    # replicating the debug_merge approach.
+    ff = mol0._sire_object.property("forcefield")
+    sf14 = _SireMM.CLJScaleFactor(
+        ff.electrostatic14_scale_factor(), ff.vdw14_scale_factor()
+    )
+
+    conn0_edit = _SireMol.Connectivity(sire_mol.info()).edit()
+    conn1_edit = _SireMol.Connectivity(sire_mol.info()).edit()
+    for bond in sire_mol.property("bond0").potentials():
+        ab = _SireMM.AmberBond(bond.function(), _SireCAS.Symbol("r"))
+        if ab.k() != 0.0:
+            conn0_edit.connect(bond.atom0(), bond.atom1())
+    for bond in sire_mol.property("bond1").potentials():
+        ab = _SireMM.AmberBond(bond.function(), _SireCAS.Symbol("r"))
+        if ab.k() != 0.0:
+            conn1_edit.connect(bond.atom0(), bond.atom1())
+
+    ref_intra0 = _SireMM.CLJNBPairs(conn0_edit.commit(), sf14)
+    ref_intra1 = _SireMM.CLJNBPairs(conn1_edit.commit(), sf14)
+
+    # The two approaches must agree on every atom pair.
+    n = sire_mol.num_atoms()
+    for i in range(n):
+        for j in range(i, n):
+            idx_i = _SireMol.AtomIdx(i)
+            idx_j = _SireMol.AtomIdx(j)
+            assert intra0.get(idx_i, idx_j).coulomb() == pytest.approx(
+                ref_intra0.get(idx_i, idx_j).coulomb()
+            ), f"intra0 coulomb mismatch at ({i},{j})"
+            assert intra0.get(idx_i, idx_j).lj() == pytest.approx(
+                ref_intra0.get(idx_i, idx_j).lj()
+            ), f"intra0 lj mismatch at ({i},{j})"
+            assert intra1.get(idx_i, idx_j).coulomb() == pytest.approx(
+                ref_intra1.get(idx_i, idx_j).coulomb()
+            ), f"intra1 coulomb mismatch at ({i},{j})"
+            assert intra1.get(idx_i, idx_j).lj() == pytest.approx(
+                ref_intra1.get(idx_i, idx_j).lj()
+            ), f"intra1 lj mismatch at ({i},{j})"
