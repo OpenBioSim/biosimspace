@@ -1314,6 +1314,97 @@ def merge(
     else:
         edit_mol.set_property("connectivity0", conn0)
         edit_mol.set_property("connectivity1", conn1)
+
+        # Remove bonded terms that span ring-making or ring-breaking bonds in
+        # the end state where those bonds are absent. Such terms constrain atoms
+        # toward a bonded geometry that doesn't exist at that end state, causing
+        # large repulsion and poor overlap at the nonbonded/bonded lambda boundary.
+        _bonds0 = {
+            (
+                min(b.atom0().value(), b.atom1().value()),
+                max(b.atom0().value(), b.atom1().value()),
+            )
+            for b in conn0.get_bonds()
+        }
+        _bonds1 = {
+            (
+                min(b.atom0().value(), b.atom1().value()),
+                max(b.atom0().value(), b.atom1().value()),
+            )
+            for b in conn1.get_bonds()
+        }
+        # Bonds present at λ=1 only: remove spanning terms from the λ=0 properties.
+        _ring_making = _bonds1 - _bonds0
+        # Bonds present at λ=0 only: remove spanning terms from the λ=1 properties.
+        _ring_breaking = _bonds0 - _bonds1
+
+        if _ring_making or _ring_breaking:
+            _mol_info = edit_mol.info()
+
+            for _changing, _suffix in [(_ring_making, "0"), (_ring_breaking, "1")]:
+                if not _changing:
+                    continue
+
+                # Angles: remove if the i-j or j-k pair is a changing bond.
+                if "angle" in shared_props:
+                    _angles = edit_mol.property("angle" + _suffix)
+                    _new_angles = _SireMM.ThreeAtomFunctions(_mol_info)
+                    for _p in _angles.potentials():
+                        _i = _mol_info.atom_idx(_p.atom0()).value()
+                        _j = _mol_info.atom_idx(_p.atom1()).value()
+                        _k = _mol_info.atom_idx(_p.atom2()).value()
+                        if (min(_i, _j), max(_i, _j)) not in _changing and (
+                            min(_j, _k),
+                            max(_j, _k),
+                        ) not in _changing:
+                            _new_angles.set(
+                                _mol_info.atom_idx(_p.atom0()),
+                                _mol_info.atom_idx(_p.atom1()),
+                                _mol_info.atom_idx(_p.atom2()),
+                                _p.function(),
+                            )
+                    edit_mol.set_property("angle" + _suffix, _new_angles)
+
+                # Dihedrals: remove if the central j-k pair is a changing bond.
+                if "dihedral" in shared_props:
+                    _dihedrals = edit_mol.property("dihedral" + _suffix)
+                    _new_dihedrals = _SireMM.FourAtomFunctions(_mol_info)
+                    for _p in _dihedrals.potentials():
+                        _j = _mol_info.atom_idx(_p.atom1()).value()
+                        _k = _mol_info.atom_idx(_p.atom2()).value()
+                        if (min(_j, _k), max(_j, _k)) not in _changing:
+                            _new_dihedrals.set(
+                                _mol_info.atom_idx(_p.atom0()),
+                                _mol_info.atom_idx(_p.atom1()),
+                                _mol_info.atom_idx(_p.atom2()),
+                                _mol_info.atom_idx(_p.atom3()),
+                                _p.function(),
+                            )
+                    edit_mol.set_property("dihedral" + _suffix, _new_dihedrals)
+
+                # Impropers: remove if both atoms of any changing bond appear.
+                if "improper" in shared_props:
+                    _impropers = edit_mol.property("improper" + _suffix)
+                    _new_impropers = _SireMM.FourAtomFunctions(_mol_info)
+                    for _p in _impropers.potentials():
+                        _atoms = {
+                            _mol_info.atom_idx(_p.atom0()).value(),
+                            _mol_info.atom_idx(_p.atom1()).value(),
+                            _mol_info.atom_idx(_p.atom2()).value(),
+                            _mol_info.atom_idx(_p.atom3()).value(),
+                        }
+                        if not any(
+                            _a in _atoms and _b in _atoms for _a, _b in _changing
+                        ):
+                            _new_impropers.set(
+                                _mol_info.atom_idx(_p.atom0()),
+                                _mol_info.atom_idx(_p.atom1()),
+                                _mol_info.atom_idx(_p.atom2()),
+                                _mol_info.atom_idx(_p.atom3()),
+                                _p.function(),
+                            )
+                    edit_mol.set_property("improper" + _suffix, _new_impropers)
+
     # Build the intrascale matrices from the per-state connectivity.
     ff = molecule0.property(ff0)
     sf14 = _SireMM.CLJScaleFactor(

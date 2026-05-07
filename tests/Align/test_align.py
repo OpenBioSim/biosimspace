@@ -1068,3 +1068,160 @@ def test_ring_breaking_intrascale_m338():
             assert intra1.get(idx_i, idx_j).lj() == pytest.approx(
                 ref_intra1.get(idx_i, idx_j).lj()
             ), f"intra1 lj mismatch at ({i},{j})"
+
+
+@pytest.mark.skipif(
+    not has_antechamber or not has_tleap,
+    reason="Requires antechamber and tLEaP to be installed.",
+)
+@pytest.mark.skipif(
+    not has_openff,
+    reason="Requires OpenFF to be installed.",
+)
+def test_ring_breaking_cross_bond_cleanup():
+    """
+    Test that bonded terms spanning a ring-breaking bond are removed from the
+    end-state properties where that bond is absent (SYK 5035→5033).
+
+    In this perturbation a ring opens, leaving one bond present at λ=0 but
+    absent at λ=1. Any angle, dihedral or improper whose geometry depends on
+    that bond must be removed from the λ=1 properties; retaining them would
+    constrain atoms toward a bonded geometry that no longer exists and cause
+    large repulsion at the nonbonded/bonded lambda boundary.
+    """
+
+    # MCS mapping: {5033_idx: 5035_idx} — mol0=5033 (ring present), mol1=5035
+    # (ring absent), so the ring bond appears in connectivity0 but not
+    # connectivity1, giving ring_breaking = {(1, 7)} in the merged molecule.
+    mapping = {
+        6: 0,
+        5: 1,
+        4: 2,
+        3: 3,
+        34: 4,
+        8: 5,
+        32: 6,
+        31: 7,
+        11: 8,
+        12: 9,
+        13: 10,
+        14: 11,
+        15: 12,
+        16: 13,
+        17: 14,
+        18: 15,
+        19: 16,
+        20: 17,
+        21: 18,
+        22: 19,
+        23: 20,
+        24: 21,
+        25: 22,
+        26: 23,
+        27: 24,
+        28: 25,
+        29: 26,
+        30: 27,
+        10: 28,
+        9: 29,
+        7: 30,
+        38: 31,
+        37: 32,
+        35: 33,
+        36: 34,
+        1: 35,
+        33: 36,
+        53: 38,
+        52: 39,
+        43: 40,
+        44: 41,
+        45: 42,
+        46: 43,
+        47: 44,
+        48: 45,
+        49: 46,
+        50: 47,
+        51: 48,
+        42: 49,
+        41: 50,
+    }
+
+    mol0 = BSS.Parameters.openff_unconstrained_2_2_1(
+        BSS.IO.readMolecules(f"{url}/5033.sdf")[0]
+    ).getMolecule()
+    mol1 = BSS.Parameters.openff_unconstrained_2_2_1(
+        BSS.IO.readMolecules(f"{url}/5035.sdf")[0]
+    ).getMolecule()
+
+    mol0_aligned = BSS.Align.rmsdAlign(mol0, mol1, mapping)
+    merged = BSS.Align.merge(
+        mol0_aligned,
+        mol1,
+        mapping,
+        allow_ring_breaking=True,
+    )
+
+    sire_mol = merged._sire_object
+    mol_info = sire_mol.info()
+
+    conn0 = sire_mol.property("connectivity0")
+    conn1 = sire_mol.property("connectivity1")
+
+    bonds0 = {
+        (
+            min(b.atom0().value(), b.atom1().value()),
+            max(b.atom0().value(), b.atom1().value()),
+        )
+        for b in conn0.get_bonds()
+    }
+    bonds1 = {
+        (
+            min(b.atom0().value(), b.atom1().value()),
+            max(b.atom0().value(), b.atom1().value()),
+        )
+        for b in conn1.get_bonds()
+    }
+
+    # Bonds present only at λ=1 must not appear in angle0/dihedral0/improper0.
+    ring_making = bonds1 - bonds0
+    # Bonds present only at λ=0 must not appear in angle1/dihedral1/improper1.
+    ring_breaking = bonds0 - bonds1
+
+    # This perturbation must have at least one ring-breaking bond.
+    assert ring_breaking, "Expected ring-breaking bonds in SYK 5035→5033"
+
+    for changing, suffix in [(ring_making, "0"), (ring_breaking, "1")]:
+        if not changing:
+            continue
+
+        for p in sire_mol.property(f"angle{suffix}").potentials():
+            i = mol_info.atom_idx(p.atom0()).value()
+            j = mol_info.atom_idx(p.atom1()).value()
+            k = mol_info.atom_idx(p.atom2()).value()
+            assert (min(i, j), max(i, j)) not in changing, (
+                f"angle{suffix} ({i},{j},{k}) spans absent bond "
+                f"({min(i, j)},{max(i, j)})"
+            )
+            assert (min(j, k), max(j, k)) not in changing, (
+                f"angle{suffix} ({i},{j},{k}) spans absent bond "
+                f"({min(j, k)},{max(j, k)})"
+            )
+
+        for p in sire_mol.property(f"dihedral{suffix}").potentials():
+            j = mol_info.atom_idx(p.atom1()).value()
+            k = mol_info.atom_idx(p.atom2()).value()
+            assert (min(j, k), max(j, k)) not in changing, (
+                f"dihedral{suffix} central bond ({j},{k}) spans absent bond"
+            )
+
+        for p in sire_mol.property(f"improper{suffix}").potentials():
+            atoms = {
+                mol_info.atom_idx(p.atom0()).value(),
+                mol_info.atom_idx(p.atom1()).value(),
+                mol_info.atom_idx(p.atom2()).value(),
+                mol_info.atom_idx(p.atom3()).value(),
+            }
+            for a, b in changing:
+                assert not (a in atoms and b in atoms), (
+                    f"improper{suffix} spans absent bond ({a},{b})"
+                )
