@@ -2,6 +2,7 @@ import bz2
 import os
 import pathlib
 import shutil
+import sys
 import time
 
 import numpy as np
@@ -128,6 +129,10 @@ class TestRelativeAnalysis:
 
 @pytest.mark.skipif(
     has_alchemlyb_parquet is False, reason="Requires alchemlyb > 2.1.0."
+)
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="pyarrow 24+ crashes on Windows (upstream bug).",
 )
 class TestAnalysePARQUET:
     @staticmethod
