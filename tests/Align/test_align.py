@@ -1225,3 +1225,19 @@ def test_ring_breaking_cross_bond_cleanup():
                 assert not (a in atoms and b in atoms), (
                     f"improper{suffix} spans absent bond ({a},{b})"
                 )
+
+    # Check that the ring-breaking and ring-making bond properties are set.
+    def _read_pairs(prop_name):
+        if not sire_mol.has_property(prop_name):
+            return set()
+        flat = list(sire_mol.property(prop_name).to_list())
+        return {(flat[i], flat[i + 1]) for i in range(0, len(flat), 2)}
+
+    stored_breaking = _read_pairs("ring_breaking_bonds")
+    stored_making = _read_pairs("ring_making_bonds")
+    assert stored_breaking == ring_breaking, (
+        f"ring_breaking_bonds property mismatch: {stored_breaking} != {ring_breaking}"
+    )
+    assert stored_making == ring_making, (
+        f"ring_making_bonds property mismatch: {stored_making} != {ring_making}"
+    )
