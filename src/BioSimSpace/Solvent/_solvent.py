@@ -1428,11 +1428,45 @@ def _solvate(
                     else:
                         command += " -np %d" % abs(charge)
                 else:
-                    # Create the genion command.
+                    # Compute the number of NA/CL pairs from the box volume.
+                    # This avoids gmx genion's -conc flag, which has a known
+                    # issue where it ignores the volume occupied by existing ions.
+                    import math as _math
+
+                    _box, _angles = system.getBox(property_map=property_map)
+                    _a = _box[0].angstroms().value()
+                    _b = _box[1].angstroms().value()
+                    _c = _box[2].angstroms().value()
+                    _alpha = angles[0].radians().value()
+                    _beta = angles[1].radians().value()
+                    _gamma = angles[2].radians().value()
+                    _V_L = (
+                        _a
+                        * _b
+                        * _c
+                        * _math.sqrt(
+                            1
+                            - _math.cos(_alpha) ** 2
+                            - _math.cos(_beta) ** 2
+                            - _math.cos(_gamma) ** 2
+                            + 2
+                            * _math.cos(_alpha)
+                            * _math.cos(_beta)
+                            * _math.cos(_gamma)
+                        )
+                    ) * 1e-27
+                    _num_salt = max(1, round(ion_conc * _V_L * 6.02214076e23))
+
+                    # Create the genion command with explicit ion counts.
                     command = (
-                        "%s genion -s ions.tpr -o solvated_ions.gro -p solvated.top -%s -conc %f"
-                        % (_gmx_exe, "neutral" if is_neutral else "noneutral", ion_conc)
+                        "%s genion -s ions.tpr -o solvated_ions.gro -p solvated.top"
+                        " -pname NA -pq 1 -np %d -nname CL -nq -1 -nn %d"
+                        % (_gmx_exe, _num_salt, _num_salt)
                     )
+                    if is_neutral:
+                        command += " -neutral"
+                    else:
+                        command += " -noneutral"
 
                 with open("README.txt", "a") as file:
                     # Write the command to file.
