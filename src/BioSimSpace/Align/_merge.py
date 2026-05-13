@@ -1341,6 +1341,24 @@ def merge(
         if _ring_making or _ring_breaking:
             _mol_info = edit_mol.info()
 
+            # Store the changing bond pairs as molecule properties so the
+            # simulation engine can apply a softcore force to the pair in the
+            # end state where the bond is absent, preventing large repulsion at
+            # the bonded/nonbonded lambda boundary. Ring-breaking (absent at
+            # λ=1) and ring-making (absent at λ=0) are stored separately so
+            # the engine can apply different alpha schedules to each.
+            for _pairs, _prop in [
+                (_ring_breaking, "ring_breaking_bonds"),
+                (_ring_making, "ring_making_bonds"),
+            ]:
+                if _pairs:
+                    edit_mol.set_property(
+                        _prop,
+                        _SireBase.IntegerArrayProperty(
+                            [_idx for _pair in sorted(_pairs) for _idx in _pair]
+                        ),
+                    )
+
             for _changing, _suffix in [(_ring_making, "0"), (_ring_breaking, "1")]:
                 if not _changing:
                     continue

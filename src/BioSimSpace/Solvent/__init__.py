@@ -28,6 +28,8 @@ Functions
 .. autosummary::
     :toctree: generated/
 
+    addIons
+    ions
     solvate
     spc
     spce
@@ -116,4 +118,5 @@ import sire as _sr
 _sr.use_new_api()
 del _sr
 
+from ._ions import *
 from ._solvent import *
