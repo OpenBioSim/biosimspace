@@ -1352,12 +1352,26 @@ def merge(
                 (_ring_making, "ring_making_bonds"),
             ]:
                 if _pairs:
-                    edit_mol.set_property(
-                        _prop,
-                        _SireBase.IntegerArrayProperty(
-                            [_idx for _pair in sorted(_pairs) for _idx in _pair]
-                        ),
-                    )
+                    # Exclude pairs where either atom is a ghost in either end
+                    # state since those pairs already receive softcore treatment via
+                    # the ghost-atom path, so a second softcore force is not
+                    # needed and would be redundant.
+                    _filtered = [
+                        _pair
+                        for _pair in _pairs
+                        if not any(
+                            edit_mol.atom(_SireMol.AtomIdx(_i)).property(_at) == "du"
+                            for _i in _pair
+                            for _at in ("ambertype0", "ambertype1")
+                        )
+                    ]
+                    if _filtered:
+                        edit_mol.set_property(
+                            _prop,
+                            _SireBase.IntegerArrayProperty(
+                                [_idx for _pair in sorted(_filtered) for _idx in _pair]
+                            ),
+                        )
 
             for _changing, _suffix in [(_ring_making, "0"), (_ring_breaking, "1")]:
                 if not _changing:
