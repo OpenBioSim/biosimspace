@@ -1,7 +1,7 @@
 ######################################################################
 # BioSimSpace: Making biomolecular simulation a breeze!
 #
-# Copyright: 2017-2025
+# Copyright: 2017-2026
 #
 # Authors: Lester Hedges <lester.hedges@gmail.com>
 #
@@ -38,7 +38,9 @@ MD driver classes
     :toctree: generated/
 
     Amber
+    AmberHREX
     Gromacs
+    GromacsHREX
     Namd
     OpenMM
     Plumed
@@ -97,7 +99,9 @@ _sr.use_new_api()
 del _sr
 
 from ._amber import *
+from ._amber_hrex import *
 from ._gromacs import *
+from ._gromacs_hrex import *
 from ._namd import *
 from ._openmm import *
 from ._plumed import *
