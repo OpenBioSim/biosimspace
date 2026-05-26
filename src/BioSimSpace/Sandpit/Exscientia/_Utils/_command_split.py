@@ -1,7 +1,7 @@
 ######################################################################
 # BioSimSpace: Making biomolecular simulation a breeze!
 #
-# Copyright: 2017-2025
+# Copyright: 2017-2026
 #
 # Authors: Christopher Woods <chryswoods@hey.com>
 #
