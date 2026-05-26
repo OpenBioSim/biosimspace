@@ -97,7 +97,9 @@ _sr.use_new_api()
 del _sr
 
 from ._amber import *
+from ._amber_hrex import *
 from ._gromacs import *
+from ._gromacs_hrex import *
 from ._namd import *
 from ._openmm import *
 from ._plumed import *
