@@ -84,6 +84,8 @@ class Relative:
         engine=None,
         setup_only=False,
         property_map={},
+        repex=False,
+        repex_frequency=1000,
         **kwargs,
     ):
         """
@@ -125,6 +127,15 @@ class Relative:
             A dictionary that maps system "properties" to their user defined
             values. This allows the user to refer to properties with their
             own naming scheme, e.g. { "charge" : "my-charge" }
+
+        repex : bool
+            Whether to run a Hamiltonian replica exchange (HREX) simulation
+            instead of independent per-lambda windows. Supported for AMBER
+            and GROMACS engines only.
+
+        repex_frequency : int
+            The number of MD steps between replica exchange attempts. Only
+            used when ``replica_exchange=True``. Default is 1000.
 
         kwargs : dict
             Additional keyword arguments to pass to the underlying Process
@@ -233,6 +244,19 @@ class Relative:
             raise TypeError("'kwargs' must be of type 'dict'.")
         self._kwargs = kwargs
 
+        if not isinstance(repex, bool):
+            raise TypeError("'repex' must be of type 'bool'.")
+        if repex and self._engine not in ("AMBER", "GROMACS"):
+            raise NotImplementedError(
+                f"Replica exchange is not supported for engine '{self._engine}'. "
+                "Supported engines are 'AMBER' and 'GROMACS'."
+            )
+        self._repex = repex
+
+        if not isinstance(repex_frequency, int) or repex_frequency < 1:
+            raise ValueError("'repex_frequency' must be a positive integer.")
+        self._repex_frequency = repex_frequency
+
         # Create fake instance methods for 'analyse', 'checkOverlap',
         # and 'difference'. These pass instance data through to the
         # staticmethod versions.
@@ -241,7 +265,10 @@ class Relative:
         self.difference = self._difference
 
         # Initialise the process runner.
-        self._initialise_runner(self._system)
+        if self._repex:
+            self._initialise_runner_repex(self._system)
+        else:
+            self._initialise_runner(self._system)
 
     def run(self, serial=True):
         """
@@ -252,14 +279,16 @@ class Relative:
 
         serial : bool
             Whether to run the individual processes for the lambda windows
-            in serial.
+            in serial. Ignored when ``repex=True``.
         """
         import warnings as _warnings
 
         if not isinstance(serial, bool):
             raise TypeError("'serial' must be of type 'bool'.")
 
-        if self._setup_only:
+        if self._repex:
+            self._process.start()
+        elif self._setup_only:
             _warnings.warn("No processes exist! Object created in 'setup_only' mode.")
         else:
             self._runner.startAll(serial=serial)
@@ -268,10 +297,29 @@ class Relative:
         """Wait for the simulation to finish."""
         import warnings as _warnings
 
-        if self._setup_only:
+        if self._repex:
+            self._process.wait()
+        elif self._setup_only:
             _warnings.warn("No processes exist! Object created in 'setup_only' mode.")
         else:
             self._runner.wait()
+
+    def getExchangeStatistics(self):
+        """
+        Get replica exchange acceptance statistics.
+
+        Returns
+        -------
+
+        statistics : pandas.DataFrame or None
+            A DataFrame with columns ``replica_i``, ``replica_j``,
+            ``lambda_i``, ``lambda_j``, ``n_attempts``, ``n_accepted``, and
+            ``acceptance_rate``. Returns None if not running in replica
+            exchange mode or if no statistics are available yet.
+        """
+        if not self._repex:
+            return None
+        return self._process.getExchangeStatistics()
 
     def kill(self, index):
         """
@@ -2052,6 +2100,34 @@ class Relative:
 
         # Now call the staticmethod passing in both PMFs.
         return Relative.difference(pmf, pmf_ref=pmf_ref)
+
+    def _initialise_runner_repex(self, system):
+        """
+        Internal helper to initialise a single HREX process spanning all
+        lambda windows.
+
+        Parameters
+        ----------
+
+        system : :class:`System <BioSimSpace._SireWrappers.System>`
+            The molecular system.
+        """
+        from .. import Process as _Process
+
+        common_kwargs = dict(
+            repex_frequency=self._repex_frequency,
+            work_dir=str(self._work_dir),
+            property_map=self._property_map,
+            **self._kwargs,
+        )
+
+        if self._engine == "AMBER":
+            self._process = _Process.AmberHREX(system, self._protocol, **common_kwargs)
+        elif self._engine == "GROMACS":
+            use_mpi = common_kwargs.pop("use_mpi", False)
+            self._process = _Process.GromacsHREX(
+                system, self._protocol, use_mpi=use_mpi, **common_kwargs
+            )
 
     def _initialise_runner(self, system):
         """
