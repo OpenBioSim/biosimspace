@@ -215,6 +215,9 @@ class GromacsHREX(_Gromacs):
         """Setup input files and per-lambda working directories."""
         import os as _os
 
+        import sire.vol as _SireVol
+        import sire.maths as _SireMaths
+
         from .. import IO as _IO
         from .. import _gmx_version
         from .._Config import Gromacs as _GromacsConfig
@@ -226,6 +229,22 @@ class GromacsHREX(_Gromacs):
         self._reference_system._set_water_topology(
             "GROMACS", property_map=self._property_map
         )
+
+        # Check whether the system has a periodic box. If not, apply a large
+        # pseudo-periodic box (999.9 nm) so that grompp accepts the GRO file
+        # for vacuum / non-periodic simulations (pbc=xyz, large cut-offs).
+        space_prop = self._property_map.get("space", "space")
+        has_box = False
+        if space_prop in system._sire_object.property_keys():
+            try:
+                box = system._sire_object.property(space_prop)
+                has_box = box.is_periodic()
+            except Exception:
+                pass
+        if not has_box or not self._has_water:
+            space = _SireVol.PeriodicBox(_SireMaths.Vector(9999, 9999, 9999))
+            system._sire_object.set_property(space_prop, space)
+            self._reference_system._sire_object.set_property(space_prop, space)
 
         # Check that the system contains a perturbable molecule.
         if self._system.nPerturbableMolecules() == 0:
@@ -277,13 +296,21 @@ class GromacsHREX(_Gromacs):
         for gro in gro_files:
             _os.makedirs(_os.path.dirname(gro), exist_ok=True)
 
-        # Write all per-replica coordinate files in a single efficient call.
-        # The replica system is rebuilt from the GROMACS-topology system so
-        # that atom names in the GRO files match those in the shared topology.
-        from .._SireWrappers import ReplicaSystem as _ReplicaSystem
+        # All replicas start with identical coordinates, so write one GRO file and
+        # copy it. This avoids a file-based round-trip through ReplicaSystem that
+        # fails for non-periodic (vacuum) systems where the box is absent.
+        import shutil as _shutil
 
-        gromacs_replica_system = _ReplicaSystem(system, num_replicas=self._n_replicas)
-        gromacs_replica_system.saveReplicas(gro_files)
+        gro_base = _os.path.splitext(gro_files[0])[0]
+        _IO.saveMolecules(
+            gro_base,
+            system,
+            "gro87",
+            match_water=False,
+            property_map=self._property_map,
+        )
+        for gro in gro_files[1:]:
+            _shutil.copy(gro_files[0], gro)
 
         # Generate per-lambda MDP and TPR files.
         tpr_files = []

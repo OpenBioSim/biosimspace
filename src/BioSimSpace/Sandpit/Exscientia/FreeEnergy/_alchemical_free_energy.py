@@ -85,6 +85,9 @@ class AlchemicalFreeEnergy:
         estimator="MBAR",
         restraint=None,
         property_map={},
+        repex=False,
+        repex_frequency=1000,
+        **kwargs,
     ):
         """
         Constructor.
@@ -233,14 +236,20 @@ class AlchemicalFreeEnergy:
                         "perturbation types."
                     )
                 if pert_type == "release_restraint":
-                    restraint_err = ValueError(
-                        "The 'release_restraint' perturbation type requires a multiple "
-                        "distance restraint restraint type."
-                    )
                     if not restraint:
-                        raise restraint_err
+                        raise ValueError(
+                            "The 'release_restraint' perturbation type requires a multiple "
+                            "distance restraint restraint type."
+                        )
+                    if not isinstance(restraint, _Restraint):
+                        raise TypeError(
+                            "The 'restraint' must be a 'BioSimSpace.FreeEnergy.Restraint' object."
+                        )
                     if restraint._restraint_type != "multiple_distance":
-                        raise restraint_err
+                        raise ValueError(
+                            "The 'release_restraint' perturbation type requires a multiple "
+                            "distance restraint restraint type."
+                        )
 
                 self._exe = _gmx_exe
             elif engine == "AMBER":
@@ -321,6 +330,23 @@ class AlchemicalFreeEnergy:
             raise TypeError("'property_map' must be of type 'dict'.")
         self._property_map = property_map
 
+        # Validate kwargs.
+        self._kwargs = kwargs
+
+        # Validate repex parameters.
+        if not isinstance(repex, bool):
+            raise TypeError("'repex' must be of type 'bool'.")
+        if repex and self._engine not in ("AMBER", "GROMACS"):
+            raise NotImplementedError(
+                f"Replica exchange is not supported for engine '{self._engine}'. "
+                "Supported engines are 'AMBER' and 'GROMACS'."
+            )
+        self._repex = repex
+
+        if not isinstance(repex_frequency, int) or repex_frequency < 1:
+            raise ValueError("'repex_frequency' must be a positive integer.")
+        self._repex_frequency = repex_frequency
+
         # Check that if a restraint is passed (bound leg simulation) it is valid.
         # For free leg simulations, the restraint will be None.
         if restraint is not None:
@@ -350,7 +376,10 @@ class AlchemicalFreeEnergy:
         self.difference = self._difference
 
         # Initialise the process runner.
-        self._initialise_runner(self._system)
+        if self._repex:
+            self._initialise_runner_repex(self._system)
+        else:
+            self._initialise_runner(self._system)
 
     def run(self, serial=True):
         """
@@ -368,7 +397,9 @@ class AlchemicalFreeEnergy:
         if not isinstance(serial, bool):
             raise TypeError("'serial' must be of type 'bool'.")
 
-        if self._setup_only:
+        if self._repex:
+            self._process.start()
+        elif self._setup_only:
             _warnings.warn("No processes exist! Object created in 'setup_only' mode.")
         else:
             self._runner.startAll(serial=serial)
@@ -377,10 +408,29 @@ class AlchemicalFreeEnergy:
         """Wait for the simulation to finish."""
         import warnings as _warnings
 
-        if self._setup_only:
+        if self._repex:
+            self._process.wait()
+        elif self._setup_only:
             _warnings.warn("No processes exist! Object created in 'setup_only' mode.")
         else:
             self._runner.wait()
+
+    def getExchangeStatistics(self):
+        """
+        Get replica exchange acceptance statistics.
+
+        Returns
+        -------
+
+        statistics : pandas.DataFrame or None
+            A DataFrame with columns ``replica_i``, ``replica_j``,
+            ``lambda_i``, ``lambda_j``, ``n_attempts``, ``n_accepted``, and
+            ``acceptance_rate``. Returns None if not running in replica
+            exchange mode or if no statistics are available yet.
+        """
+        if not self._repex:
+            return None
+        return self._process.getExchangeStatistics()
 
     def kill(self, index):
         """
@@ -1288,6 +1338,38 @@ class AlchemicalFreeEnergy:
 
         # Now call the staticmethod passing in both PMFs.
         return AlchemicalFreeEnergy.difference(pmf, pmf_ref)
+
+    def _initialise_runner_repex(self, system):
+        """
+        Internal helper to initialise a single HREX process spanning all
+        lambda windows.
+
+        Parameters
+        ----------
+
+        system : :class:`System <BioSimSpace._SireWrappers.System>`
+            The molecular system.
+        """
+        from .. import Process as _Process
+
+        common_kwargs = dict(
+            repex_frequency=self._repex_frequency,
+            work_dir=str(self._work_dir),
+            property_map=self._property_map,
+            **self._kwargs,
+        )
+
+        if self._engine == "AMBER":
+            self._process = _Process.AmberHREX(system, self._protocol, **common_kwargs)
+        elif self._engine == "GROMACS":
+            use_mpi = common_kwargs.pop("use_mpi", False)
+            self._process = _Process.GromacsHREX(
+                system,
+                self._protocol,
+                use_mpi=use_mpi,
+                restraint=self._restraint,
+                **common_kwargs,
+            )
 
     def _initialise_runner(self, system):
         """
