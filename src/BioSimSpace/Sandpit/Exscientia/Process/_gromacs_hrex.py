@@ -55,11 +55,10 @@ class GromacsHREX(_Gromacs):
         seed=None,
         extra_options={},
         extra_lines=[],
-        extra_args={},
         property_map={},
+        restraint=None,
         ignore_warnings=False,
         show_errors=True,
-        **kwargs,
     ):
         """
         Constructor.
@@ -111,13 +110,14 @@ class GromacsHREX(_Gromacs):
             A list of extra lines to put at the end of each MDP configuration
             file.
 
-        extra_args : dict
-            A dictionary of extra command-line arguments to pass to gmx mdrun.
-
         property_map : dict
             A dictionary that maps system "properties" to their user defined
             values. This allows the user to refer to properties with their
             own naming scheme, e.g. { "charge" : "my-charge" }
+
+        restraint : :class:`Restraint <BioSimSpace.FreeEnergy.Restraint>` or None
+            An optional ABFE restraint object for ``release_restraint``
+            perturbation types.
 
         ignore_warnings : bool
             Whether to ignore warnings when generating binary run files with
@@ -127,9 +127,6 @@ class GromacsHREX(_Gromacs):
         show_errors : bool
             Whether to show warning/error messages when generating binary run
             files.
-
-        kwargs : dict
-            Additional keyword arguments.
         """
 
         from .._SireWrappers import ReplicaSystem as _ReplicaSystem
@@ -143,13 +140,32 @@ class GromacsHREX(_Gromacs):
                 "'BioSimSpace.Protocol._FreeEnergyMixin'."
             )
 
-        # Only the "full" perturbation type is supported.
-        if protocol.getPerturbationType() != "full":
+        # Only "full" and "release_restraint" perturbation types are supported.
+        pert_type = protocol.getPerturbationType()
+        if pert_type not in ("full", "release_restraint"):
             raise NotImplementedError(
                 "'BioSimSpace.Process.GromacsHREX' currently only supports the "
-                "'full' perturbation type. Please use 'BioSimSpace.Process.Somd' "
-                "for multistep perturbation types."
+                "'full' and 'release_restraint' perturbation types. Please use "
+                "'BioSimSpace.Process.Somd' for other multistep perturbation types."
             )
+
+        if pert_type == "release_restraint":
+            if restraint is None:
+                raise ValueError(
+                    "'BioSimSpace.Process.GromacsHREX' requires a restraint for "
+                    "the 'release_restraint' perturbation type."
+                )
+            from ..FreeEnergy._restraint import Restraint as _Restraint
+
+            if not isinstance(restraint, _Restraint):
+                raise TypeError(
+                    "'restraint' must be of type 'BioSimSpace.FreeEnergy.Restraint'."
+                )
+            if restraint._restraint_type != "multiple_distance":
+                raise ValueError(
+                    "The 'release_restraint' perturbation type requires a "
+                    "multiple distance restraint."
+                )
 
         if not isinstance(use_mpi, bool):
             raise TypeError("'use_mpi' must be of type 'bool'.")
@@ -192,9 +208,7 @@ class GromacsHREX(_Gromacs):
         self._gro_out_files = None
         self._tpr_files = None
 
-        # Call the parent constructor using the single-replica system. This
-        # sets self._exe, self._work_dir, and all other shared attributes, then
-        # calls self._setup() (overridden below).
+        # Call the parent constructor using the single-replica system.
         super().__init__(
             system_for_base,
             protocol,
@@ -204,31 +218,26 @@ class GromacsHREX(_Gromacs):
             seed=seed,
             extra_options=extra_options,
             extra_lines=extra_lines,
-            extra_args=extra_args,
             property_map=property_map,
+            restraint=restraint,
             ignore_warnings=ignore_warnings,
             show_errors=show_errors,
-            **kwargs,
         )
 
-    def _setup(self, **kwargs):
+    def _setup(self):
         """Setup input files and per-lambda working directories."""
         import os as _os
+        import shutil as _shutil
 
         import sire.vol as _SireVol
         import sire.maths as _SireMaths
 
         from .. import IO as _IO
-        from .. import _gmx_version
-        from .._Config import Gromacs as _GromacsConfig
-        from ..Protocol._position_restraint_mixin import _PositionRestraintMixin
+        from .. import Protocol as _Protocol
 
         # Create a copy of the system with the GROMACS water topology applied.
         system = self._system.copy()
         system._set_water_topology("GROMACS", property_map=self._property_map)
-        self._reference_system._set_water_topology(
-            "GROMACS", property_map=self._property_map
-        )
 
         # Check whether the system has a periodic box. If not, apply a large
         # pseudo-periodic box (999.9 nm) so that grompp accepts the GRO file
@@ -244,22 +253,15 @@ class GromacsHREX(_Gromacs):
         if not has_box or not self._has_water:
             space = _SireVol.PeriodicBox(_SireMaths.Vector(9999, 9999, 9999))
             system._sire_object.set_property(space_prop, space)
-            self._reference_system._sire_object.set_property(space_prop, space)
 
         # Check that the system contains a perturbable molecule.
-        if self._system.nPerturbableMolecules() == 0:
+        if (
+            self._system.nPerturbableMolecules() == 0
+            and self._system.nDecoupledMolecules() == 0
+        ):
             raise ValueError(
                 "'BioSimSpace.Protocol.FreeEnergy' requires a perturbable molecule!"
             )
-
-        # Apply SOMD1 compatibility transform if requested.
-        if (
-            "somd1_compatibility" in kwargs
-            and kwargs.get("somd1_compatibility") is True
-        ):
-            from ._somd import _somd1_compatibility
-
-            system = _somd1_compatibility(system)
 
         # Write the shared topology once to the top-level work directory.
         top_base = _os.path.splitext(self._top_file)[0]
@@ -271,20 +273,23 @@ class GromacsHREX(_Gromacs):
             property_map=self._property_map,
         )
 
-        # Write reference coordinates for position restraints.
+        # Apply ABFE restraint to the shared topology if needed.
+        self._apply_ABFE_restraint()
+
+        # Write reference coordinates (copy of the first GRO; no restraint support).
         ref_base = _os.path.splitext(self._ref_file)[0]
         _IO.saveMolecules(
             ref_base,
-            self._reference_system,
+            system,
             "gro87",
             match_water=False,
             property_map=self._property_map,
         )
 
-        # Inject position restraint itp files into the shared topology if the
-        # protocol requires them. This modifies self._top_file in place.
-        if isinstance(self._protocol, _PositionRestraintMixin):
-            self._add_position_restraints()
+        # Build config_options for position restraints.
+        config_options = {}
+        if isinstance(self._protocol, _Protocol._PositionRestraintMixin):
+            self._add_position_restraints(config_options)
 
         # Build per-lambda GRO file paths.
         gro_files = [
@@ -296,11 +301,7 @@ class GromacsHREX(_Gromacs):
         for gro in gro_files:
             _os.makedirs(_os.path.dirname(gro), exist_ok=True)
 
-        # All replicas start with identical coordinates, so write one GRO file and
-        # copy it. This avoids a file-based round-trip through ReplicaSystem that
-        # fails for non-periodic (vacuum) systems where the box is absent.
-        import shutil as _shutil
-
+        # All replicas start from the same coordinates. Write one GRO and copy.
         gro_base = _os.path.splitext(gro_files[0])[0]
         _IO.saveMolecules(
             gro_base,
@@ -319,16 +320,22 @@ class GromacsHREX(_Gromacs):
             mdp_file = _os.path.join(lam_dir, "gromacs.mdp")
             tpr_file = _os.path.join(lam_dir, "gromacs.tpr")
 
-            # Update the protocol lambda so that GromacsConfig writes the
+            # Update the protocol lambda so that ConfigFactory writes the
             # correct init-lambda-state for this window.
             self._protocol.setLambdaValues(lam=lam, lam_vals=self._lam_vals)
 
             # Generate MDP configuration strings for this lambda window.
-            config = _GromacsConfig(system, self._protocol, self._property_map)
-            config_lines = config.createConfig(
-                version=_gmx_version,
-                extra_options=self._extra_options,
+            pert_type = (
+                self._protocol._perturbation_type
+                if isinstance(self._protocol, _Protocol._FreeEnergyMixin)
+                else None
+            )
+            config = _Protocol.ConfigFactory(system, self._protocol)
+            config_lines = config.generateGromacsConfig(
+                extra_options={**config_options, **self._extra_options},
                 extra_lines=self._extra_lines,
+                restraint=self._restraint,
+                perturbation_type=pert_type,
             )
 
             # Write the MDP file.
@@ -350,8 +357,7 @@ class GromacsHREX(_Gromacs):
 
             tpr_files.append(tpr_file)
 
-        # Store per-lambda paths using absolute paths so they remain valid
-        # regardless of the working directory when start() is called.
+        # Store per-lambda paths using absolute paths.
         self._lambda_dirs = [
             _os.path.abspath(_os.path.dirname(gro)) for gro in gro_files
         ]
@@ -451,12 +457,6 @@ class GromacsHREX(_Gromacs):
                     + ["-replex", str(self._repex_frequency)]
                 )
 
-            # Append any user-supplied extra arguments.
-            for key, value in self._extra_args.items():
-                args.append(key)
-                if value is not True:
-                    args.append(str(value))
-
             # Write the command to README.txt for reproducibility.
             with open("README.txt", "w") as f:
                 self._command = exe + " " + " ".join(str(a) for a in args)
@@ -475,7 +475,6 @@ class GromacsHREX(_Gromacs):
             )
 
             # For historical reasons GROMACS writes most output to stderr.
-            # All output is redirected to stdout; note this in the stderr file.
             with open(self._stderr_file, "w") as f:
                 f.write("All output has been redirected to the stdout stream!\n")
 
@@ -569,9 +568,6 @@ class GromacsHREX(_Gromacs):
         with open(log_file) as f:
             content = f.read()
 
-        # Match lines of the form (both GROMACS output variants):
-        # "Repl  0 <-> 1  : accepted  45 out of 100"
-        # "Repl  0 <-> 1  : rate  0.450 (  45 of  100)"
         pattern = _re.compile(
             r"Repl\s+(\d+)\s+<->\s+(\d+)\s*:.*?(\d+)\s+(?:out\s+of|of)\s+(\d+)",
             _re.IGNORECASE,
