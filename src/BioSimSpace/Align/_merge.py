@@ -1,7 +1,7 @@
 ######################################################################
 # BioSimSpace: Making biomolecular simulation a breeze!
 #
-# Copyright: 2017-2025
+# Copyright: 2017-2026
 #
 # Authors: Lester Hedges <lester.hedges@gmail.com>
 #
@@ -1409,6 +1409,23 @@ def merge(
                 if not _changing:
                     continue
 
+                _state_label = (
+                    "ring-making (pruning state0)"
+                    if _suffix == "0"
+                    else "ring-breaking (pruning state1)"
+                )
+
+                def _atom_name(_idx):
+                    return edit_mol.atom(_SireMol.AtomIdx(_idx)).name().value()
+
+                _changing_str = ", ".join(
+                    f"({_atom_name(_a)}[{_a}]-{_atom_name(_b)}[{_b}])"
+                    for _a, _b in sorted(_changing)
+                )
+                print(
+                    f"\n[merge pruning] {_state_label}: changing bonds = {_changing_str}"
+                )
+
                 # Angles: remove if the i-j or j-k pair is a changing bond.
                 if "angle" in shared_props:
                     _angles = edit_mol.property("angle" + _suffix)
@@ -1427,6 +1444,18 @@ def merge(
                                 _mol_info.atom_idx(_p.atom2()),
                                 _p.function(),
                             )
+                        else:
+                            _cross = (
+                                (min(_i, _j), max(_i, _j))
+                                if (min(_i, _j), max(_i, _j)) in _changing
+                                else (min(_j, _k), max(_j, _k))
+                            )
+                            print(
+                                f"  [prune angle{_suffix}] "
+                                f"{_atom_name(_i)}[{_i}]-{_atom_name(_j)}[{_j}]-{_atom_name(_k)}[{_k}]"
+                                f"  func={_p.function()}"
+                                f"  crosses bond ({_atom_name(_cross[0])}[{_cross[0]}]-{_atom_name(_cross[1])}[{_cross[1]}])"
+                            )
                     edit_mol.set_property("angle" + _suffix, _new_angles)
 
                 # Dihedrals: remove if the central j-k pair is a changing bond.
@@ -1434,8 +1463,10 @@ def merge(
                     _dihedrals = edit_mol.property("dihedral" + _suffix)
                     _new_dihedrals = _SireMM.FourAtomFunctions(_mol_info)
                     for _p in _dihedrals.potentials():
+                        _i = _mol_info.atom_idx(_p.atom0()).value()
                         _j = _mol_info.atom_idx(_p.atom1()).value()
                         _k = _mol_info.atom_idx(_p.atom2()).value()
+                        _l = _mol_info.atom_idx(_p.atom3()).value()
                         if (min(_j, _k), max(_j, _k)) not in _changing:
                             _new_dihedrals.set(
                                 _mol_info.atom_idx(_p.atom0()),
@@ -1444,6 +1475,13 @@ def merge(
                                 _mol_info.atom_idx(_p.atom3()),
                                 _p.function(),
                             )
+                        else:
+                            print(
+                                f"  [prune dihedral{_suffix}] "
+                                f"{_atom_name(_i)}[{_i}]-{_atom_name(_j)}[{_j}]-{_atom_name(_k)}[{_k}]-{_atom_name(_l)}[{_l}]"
+                                f"  func={_p.function()}"
+                                f"  crosses bond ({_atom_name(_j)}[{_j}]-{_atom_name(_k)}[{_k}])"
+                            )
                     edit_mol.set_property("dihedral" + _suffix, _new_dihedrals)
 
                 # Impropers: remove if both atoms of any changing bond appear.
@@ -1451,12 +1489,11 @@ def merge(
                     _impropers = edit_mol.property("improper" + _suffix)
                     _new_impropers = _SireMM.FourAtomFunctions(_mol_info)
                     for _p in _impropers.potentials():
-                        _atoms = {
-                            _mol_info.atom_idx(_p.atom0()).value(),
-                            _mol_info.atom_idx(_p.atom1()).value(),
-                            _mol_info.atom_idx(_p.atom2()).value(),
-                            _mol_info.atom_idx(_p.atom3()).value(),
-                        }
+                        _i0 = _mol_info.atom_idx(_p.atom0()).value()
+                        _i1 = _mol_info.atom_idx(_p.atom1()).value()
+                        _i2 = _mol_info.atom_idx(_p.atom2()).value()
+                        _i3 = _mol_info.atom_idx(_p.atom3()).value()
+                        _atoms = {_i0, _i1, _i2, _i3}
                         if not any(
                             _a in _atoms and _b in _atoms for _a, _b in _changing
                         ):
@@ -1466,6 +1503,18 @@ def merge(
                                 _mol_info.atom_idx(_p.atom2()),
                                 _mol_info.atom_idx(_p.atom3()),
                                 _p.function(),
+                            )
+                        else:
+                            _cross = next(
+                                (_a, _b)
+                                for _a, _b in _changing
+                                if _a in _atoms and _b in _atoms
+                            )
+                            print(
+                                f"  [prune improper{_suffix}] "
+                                f"{_atom_name(_i0)}[{_i0}]-{_atom_name(_i1)}[{_i1}]-{_atom_name(_i2)}[{_i2}]-{_atom_name(_i3)}[{_i3}]"
+                                f"  func={_p.function()}"
+                                f"  crosses bond ({_atom_name(_cross[0])}[{_cross[0]}]-{_atom_name(_cross[1])}[{_cross[1]}])"
                             )
                     edit_mol.set_property("improper" + _suffix, _new_impropers)
 
