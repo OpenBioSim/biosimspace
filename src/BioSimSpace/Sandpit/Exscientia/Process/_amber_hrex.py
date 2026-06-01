@@ -151,6 +151,9 @@ class AmberHREX(_Amber):
         if not isinstance(is_gpu, bool):
             raise TypeError("'is_gpu' must be of type 'bool'.")
 
+        if not isinstance(oversubscribe, bool):
+            raise TypeError("'oversubscribe' must be of type 'bool'.")
+
         # Get the lambda values from the protocol.
         lam_vals = protocol.getLambdaValues()
         n_replicas = len(lam_vals)
