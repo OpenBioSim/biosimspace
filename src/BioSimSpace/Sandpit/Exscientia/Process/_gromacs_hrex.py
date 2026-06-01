@@ -289,9 +289,19 @@ class GromacsHREX(_Gromacs):
             self._add_position_restraints(config_options)
 
         # Build per-lambda GRO file paths.
+        # _lam_vals is a list of floats (RBFE) or a DataFrame (multi-column ABFE).
+        # For DataFrame, use the row index as the directory name.
+        import pandas as _pd
+
+        _lam_is_df = isinstance(self._lam_vals, _pd.DataFrame)
+        if _lam_is_df:
+            _lam_indices = list(self._lam_vals.index)
+        else:
+            _lam_indices = [f"{lam:5.4f}" for lam in self._lam_vals]
+
         gro_files = [
-            _os.path.join(str(self._work_dir), f"lambda_{lam:5.4f}", "gromacs.gro")
-            for lam in self._lam_vals
+            _os.path.join(str(self._work_dir), f"lambda_{idx}", "gromacs.gro")
+            for idx in _lam_indices
         ]
 
         # Create the per-lambda subdirectories.
@@ -312,7 +322,12 @@ class GromacsHREX(_Gromacs):
 
         # Generate per-lambda MDP and TPR files.
         tpr_files = []
-        for i, (lam, gro) in enumerate(zip(self._lam_vals, gro_files)):
+        _lam_iter = (
+            ((idx, row) for idx, row in self._lam_vals.iterrows())
+            if _lam_is_df
+            else ((idx, lam) for idx, lam in zip(_lam_indices, self._lam_vals))
+        )
+        for (lam_idx, lam), gro in zip(_lam_iter, gro_files):
             lam_dir = _os.path.dirname(gro)
             mdp_file = _os.path.join(lam_dir, "gromacs.mdp")
             tpr_file = _os.path.join(lam_dir, "gromacs.tpr")
