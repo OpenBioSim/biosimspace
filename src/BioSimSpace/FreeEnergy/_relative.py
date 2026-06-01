@@ -86,6 +86,7 @@ class Relative:
         property_map={},
         repex=False,
         repex_frequency=1000,
+        oversubscribe=False,
         **kwargs,
     ):
         """
@@ -256,6 +257,10 @@ class Relative:
         if not isinstance(repex_frequency, int) or repex_frequency < 1:
             raise ValueError("'repex_frequency' must be a positive integer.")
         self._repex_frequency = repex_frequency
+
+        if not isinstance(oversubscribe, bool):
+            raise TypeError("'oversubscribe' must be of type 'bool'.")
+        self._oversubscribe = oversubscribe
 
         # Create fake instance methods for 'analyse', 'checkOverlap',
         # and 'difference'. These pass instance data through to the
@@ -2116,6 +2121,7 @@ class Relative:
 
         common_kwargs = dict(
             repex_frequency=self._repex_frequency,
+            oversubscribe=self._oversubscribe,
             work_dir=str(self._work_dir),
             property_map=self._property_map,
             **self._kwargs,
