@@ -47,7 +47,6 @@ class GromacsHREX(_Gromacs):
         self,
         system,
         protocol,
-        use_mpi=False,
         repex_frequency=1000,
         exe=None,
         name="gromacs",
@@ -77,22 +76,13 @@ class GromacsHREX(_Gromacs):
             The free energy protocol. Must be derived from
             BioSimSpace.Protocol._FreeEnergyMixin.
 
-        use_mpi : bool
-            Whether to use native MPI (True) or thread-MPI (False).
-            Native MPI launches via ``mpirun -np N {exe} mdrun -multidir ...``
-            and requires an MPI-enabled GROMACS build (typically gmx_mpi) and
-            a working mpirun on PATH. Thread-MPI launches via
-            ``{exe} mdrun -ntmpi N -multidir ...`` and is limited to a single
-            node but needs no extra MPI setup. Default is False.
-
         repex_frequency : int
             The number of steps between replica exchange attempts. Passed as
             ``-replex`` to gmx mdrun. Default is 1000.
 
         exe : str
-            The full path to the GROMACS executable. When ``use_mpi=True``
-            this should point to an MPI-enabled build. When None, the
-            executable found at BioSimSpace initialisation is used.
+            The full path to the MPI-enabled GROMACS executable (e.g. gmx_mpi).
+            When None, the executable found at BioSimSpace initialisation is used.
 
         name : str
             The name of the process.
@@ -151,9 +141,6 @@ class GromacsHREX(_Gromacs):
                 "for multistep perturbation types."
             )
 
-        if not isinstance(use_mpi, bool):
-            raise TypeError("'use_mpi' must be of type 'bool'.")
-
         if not isinstance(repex_frequency, int) or repex_frequency < 1:
             raise ValueError("'repex_frequency' must be a positive integer.")
 
@@ -182,7 +169,6 @@ class GromacsHREX(_Gromacs):
 
         # Store REMD-specific attributes before calling super().__init__(),
         # because the parent constructor calls self._setup(), which needs these.
-        self._use_mpi = use_mpi
         self._repex_frequency = repex_frequency
         self._lam_vals = lam_vals
         self._n_replicas = n_replicas
@@ -408,48 +394,29 @@ class GromacsHREX(_Gromacs):
         self._clear_output()
 
         with _Utils.cd(self._work_dir):
-            if self._use_mpi:
-                # Native MPI: mpirun -np N exe mdrun -deffnm ... -multidir ... -replex FREQ
-                mpirun = _shutil.which("mpirun")
-                if mpirun is None:
-                    raise _MissingSoftwareError(
-                        "Cannot find 'mpirun' on PATH. Ensure an MPI "
-                        "implementation is installed and available when "
-                        "use_mpi=True."
-                    )
-                exe = mpirun
-                args = (
-                    [
-                        "-np",
-                        str(self._n_replicas),
-                        self._exe,
-                        "mdrun",
-                        "-deffnm",
-                        self._name,
-                        "-c",
-                        f"{self._name}_out.gro",
-                        "-multidir",
-                    ]
-                    + self._lambda_dirs
-                    + ["-replex", str(self._repex_frequency)]
+            # GROMACS -multidir requires an MPI-enabled build; launch via mpirun.
+            mpirun = _shutil.which("mpirun")
+            if mpirun is None:
+                raise _MissingSoftwareError(
+                    "Cannot find 'mpirun' on PATH. An MPI-enabled GROMACS "
+                    "build (gmx_mpi) is required for HREX -multidir runs."
                 )
-            else:
-                # Thread-MPI: exe mdrun -ntmpi N -deffnm ... -multidir ... -replex FREQ
-                exe = self._exe
-                args = (
-                    [
-                        "mdrun",
-                        "-ntmpi",
-                        str(self._n_replicas),
-                        "-deffnm",
-                        self._name,
-                        "-c",
-                        f"{self._name}_out.gro",
-                        "-multidir",
-                    ]
-                    + self._lambda_dirs
-                    + ["-replex", str(self._repex_frequency)]
-                )
+            exe = mpirun
+            args = (
+                [
+                    "-np",
+                    str(self._n_replicas),
+                    self._exe,
+                    "mdrun",
+                    "-deffnm",
+                    self._name,
+                    "-c",
+                    f"{self._name}_out.gro",
+                    "-multidir",
+                ]
+                + self._lambda_dirs
+                + ["-replex", str(self._repex_frequency)]
+            )
 
             # Append any user-supplied extra arguments.
             for key, value in self._extra_args.items():
