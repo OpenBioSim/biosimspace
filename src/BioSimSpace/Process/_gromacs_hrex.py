@@ -50,6 +50,7 @@ class GromacsHREX(_Gromacs):
         repex_frequency=1000,
         oversubscribe=False,
         exe=None,
+        mpi_exe=None,
         name="gromacs",
         work_dir=None,
         seed=None,
@@ -90,6 +91,10 @@ class GromacsHREX(_Gromacs):
         exe : str
             The full path to the MPI-enabled GROMACS executable (e.g. gmx_mpi).
             When None, the executable found at BioSimSpace initialisation is used.
+
+        mpi_exe : str
+            The full path to the MPI launcher (e.g. mpirun, mpiexec, srun).
+            When None, ``mpirun`` is located on PATH.
 
         name : str
             The name of the process.
@@ -181,6 +186,7 @@ class GromacsHREX(_Gromacs):
         # because the parent constructor calls self._setup(), which needs these.
         self._repex_frequency = repex_frequency
         self._oversubscribe = oversubscribe
+        self._mpi_exe = mpi_exe
         self._lam_vals = lam_vals
         self._n_replicas = n_replicas
 
@@ -406,11 +412,12 @@ class GromacsHREX(_Gromacs):
 
         with _Utils.cd(self._work_dir):
             # GROMACS -multidir requires an MPI-enabled build; launch via mpirun.
-            mpirun = _shutil.which("mpirun")
+            mpirun = self._mpi_exe or _shutil.which("mpirun")
             if mpirun is None:
                 raise _MissingSoftwareError(
                     "Cannot find 'mpirun' on PATH. An MPI-enabled GROMACS "
-                    "build (gmx_mpi) is required for HREX -multidir runs."
+                    "build (gmx_mpi) is required for HREX -multidir runs, "
+                    "or set mpi_exe explicitly."
                 )
             exe = mpirun
             args = []
