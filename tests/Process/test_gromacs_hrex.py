@@ -22,11 +22,11 @@ def test_non_fep_protocol(perturbable_system):
         )
 
 
-def test_invalid_use_mpi(perturbable_system):
-    """Non-bool use_mpi raises TypeError."""
+def test_invalid_oversubscribe(perturbable_system):
+    """Non-bool oversubscribe raises TypeError."""
     protocol = BSS.Protocol.FreeEnergy()
-    with pytest.raises(TypeError, match="use_mpi"):
-        BSS.Process.GromacsHREX(perturbable_system, protocol, use_mpi="yes")
+    with pytest.raises(TypeError, match="oversubscribe"):
+        BSS.Process.GromacsHREX(perturbable_system, protocol, oversubscribe="yes")
 
 
 def test_invalid_repex_frequency_zero(perturbable_system):
@@ -153,22 +153,40 @@ def test_lambda_dirs_are_absolute(perturbable_system, tmp_path):
 
 
 @pytest.mark.skipif(not has_gromacs, reason="Requires GROMACS to be installed.")
-def test_thread_mpi_command(perturbable_system, tmp_path):
-    """With use_mpi=False, the launch command should use -ntmpi and not mpirun."""
+@pytest.mark.skipif(not has_gromacs, reason="Requires GROMACS to be installed.")
+def test_oversubscribe_in_command(perturbable_system, tmp_path):
+    """oversubscribe=True adds --oversubscribe to the mpirun command."""
     protocol = BSS.Protocol.FreeEnergy()
-    n_lam = len(protocol.getLambdaValues())
-
     process = BSS.Process.GromacsHREX(
-        perturbable_system, protocol, use_mpi=False, work_dir=str(tmp_path)
+        perturbable_system, protocol, oversubscribe=True, work_dir=str(tmp_path)
     )
-
-    # Trigger command construction without actually running.
     process.start()
     process.kill()
+    assert "--oversubscribe" in process._command
 
-    assert f"-ntmpi {n_lam}" in process._command
-    assert "mpirun" not in process._command
-    assert f"-replex {process._repex_frequency}" in process._command
+
+@pytest.mark.skipif(not has_gromacs, reason="Requires GROMACS to be installed.")
+def test_no_oversubscribe_by_default(perturbable_system, tmp_path):
+    """oversubscribe defaults to False — --oversubscribe must not appear."""
+    protocol = BSS.Protocol.FreeEnergy()
+    process = BSS.Process.GromacsHREX(
+        perturbable_system, protocol, work_dir=str(tmp_path)
+    )
+    process.start()
+    process.kill()
+    assert "--oversubscribe" not in process._command
+
+
+@pytest.mark.skipif(not has_gromacs, reason="Requires GROMACS to be installed.")
+def test_mpi_exe_in_command(perturbable_system, tmp_path):
+    """mpi_exe is used as the MPI launcher instead of mpirun."""
+    protocol = BSS.Protocol.FreeEnergy()
+    process = BSS.Process.GromacsHREX(
+        perturbable_system, protocol, mpi_exe="srun", work_dir=str(tmp_path)
+    )
+    process.start()
+    process.kill()
+    assert process._command.startswith("srun")
 
 
 @pytest.mark.skipif(not has_gromacs, reason="Requires GROMACS to be installed.")
