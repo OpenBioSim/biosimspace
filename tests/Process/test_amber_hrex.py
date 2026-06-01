@@ -45,6 +45,66 @@ def test_invalid_is_gpu(perturbable_system):
         BSS.Process.AmberHREX(perturbable_system, protocol, is_gpu="yes")
 
 
+def test_invalid_oversubscribe(perturbable_system):
+    """Non-bool oversubscribe raises TypeError."""
+    protocol = BSS.Protocol.FreeEnergy()
+    with pytest.raises(TypeError, match="oversubscribe"):
+        BSS.Process.AmberHREX(perturbable_system, protocol, oversubscribe="yes")
+
+
+@pytest.mark.skipif(
+    socket.gethostname() != "hulk",
+    reason="Local test requiring pmemd.MPI installation.",
+)
+def test_oversubscribe_in_command(perturbable_system, tmp_path):
+    """oversubscribe=True adds --oversubscribe to the mpirun command."""
+    protocol = BSS.Protocol.FreeEnergy()
+    process = BSS.Process.AmberHREX(
+        perturbable_system,
+        protocol,
+        exe=_PMEMD_MPI,
+        oversubscribe=True,
+        work_dir=str(tmp_path),
+    )
+    process.start()
+    process.kill()
+    assert "--oversubscribe" in process._command
+
+
+@pytest.mark.skipif(
+    socket.gethostname() != "hulk",
+    reason="Local test requiring pmemd.MPI installation.",
+)
+def test_no_oversubscribe_by_default(perturbable_system, tmp_path):
+    """oversubscribe defaults to False — --oversubscribe must not appear."""
+    protocol = BSS.Protocol.FreeEnergy()
+    process = BSS.Process.AmberHREX(
+        perturbable_system, protocol, exe=_PMEMD_MPI, work_dir=str(tmp_path)
+    )
+    process.start()
+    process.kill()
+    assert "--oversubscribe" not in process._command
+
+
+@pytest.mark.skipif(
+    socket.gethostname() != "hulk",
+    reason="Local test requiring pmemd.MPI installation.",
+)
+def test_mpi_exe_in_command(perturbable_system, tmp_path):
+    """mpi_exe is used as the MPI launcher instead of mpirun."""
+    protocol = BSS.Protocol.FreeEnergy()
+    process = BSS.Process.AmberHREX(
+        perturbable_system,
+        protocol,
+        exe=_PMEMD_MPI,
+        mpi_exe="srun",
+        work_dir=str(tmp_path),
+    )
+    process.start()
+    process.kill()
+    assert process._command.startswith("srun")
+
+
 def test_replica_count_mismatch(perturbable_system):
     """ReplicaSystem with wrong replica count raises ValueError."""
     from BioSimSpace._SireWrappers import ReplicaSystem
