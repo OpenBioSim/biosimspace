@@ -87,6 +87,7 @@ class AlchemicalFreeEnergy:
         property_map={},
         repex=False,
         repex_frequency=1000,
+        oversubscribe=False,
         **kwargs,
     ):
         """
@@ -346,6 +347,10 @@ class AlchemicalFreeEnergy:
         if not isinstance(repex_frequency, int) or repex_frequency < 1:
             raise ValueError("'repex_frequency' must be a positive integer.")
         self._repex_frequency = repex_frequency
+
+        if not isinstance(oversubscribe, bool):
+            raise TypeError("'oversubscribe' must be of type 'bool'.")
+        self._oversubscribe = oversubscribe
 
         # Check that if a restraint is passed (bound leg simulation) it is valid.
         # For free leg simulations, the restraint will be None.
@@ -1354,6 +1359,7 @@ class AlchemicalFreeEnergy:
 
         common_kwargs = dict(
             repex_frequency=self._repex_frequency,
+            oversubscribe=self._oversubscribe,
             work_dir=str(self._work_dir),
             property_map=self._property_map,
             **self._kwargs,
