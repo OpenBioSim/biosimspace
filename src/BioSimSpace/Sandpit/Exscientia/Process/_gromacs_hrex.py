@@ -48,6 +48,7 @@ class GromacsHREX(_Gromacs):
         system,
         protocol,
         repex_frequency=1000,
+        oversubscribe=False,
         exe=None,
         name="gromacs",
         work_dir=None,
@@ -78,6 +79,12 @@ class GromacsHREX(_Gromacs):
         repex_frequency : int
             The number of steps between replica exchange attempts. Passed as
             ``-replex`` to gmx mdrun. Default is 1000.
+
+        oversubscribe : bool
+            Whether to pass ``--oversubscribe`` to mpirun, allowing more MPI
+            ranks than available CPU slots. Useful when each rank runs on a GPU
+            and the number of lambda windows exceeds the CPU core count.
+            Default is False.
 
         exe : str
             The full path to the MPI-enabled GROMACS executable (e.g. gmx_mpi).
@@ -160,6 +167,9 @@ class GromacsHREX(_Gromacs):
         if not isinstance(repex_frequency, int) or repex_frequency < 1:
             raise ValueError("'repex_frequency' must be a positive integer.")
 
+        if not isinstance(oversubscribe, bool):
+            raise TypeError("'oversubscribe' must be of type 'bool'.")
+
         # Get the lambda values from the protocol.
         lam_vals = protocol.getLambdaValues()
         n_replicas = len(lam_vals)
@@ -186,6 +196,7 @@ class GromacsHREX(_Gromacs):
         # Store REMD-specific attributes before calling super().__init__(),
         # because the parent constructor calls self._setup(), which needs these.
         self._repex_frequency = repex_frequency
+        self._oversubscribe = oversubscribe
         self._lam_vals = lam_vals
         self._n_replicas = n_replicas
 
@@ -408,7 +419,10 @@ class GromacsHREX(_Gromacs):
                     "build (gmx_mpi) is required for HREX -multidir runs."
                 )
             exe = mpirun
-            args = (
+            args = []
+            if self._oversubscribe:
+                args.append("--oversubscribe")
+            args += (
                 [
                     "-np",
                     str(self._n_replicas),
