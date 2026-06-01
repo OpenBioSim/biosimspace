@@ -2124,9 +2124,8 @@ class Relative:
         if self._engine == "AMBER":
             self._process = _Process.AmberHREX(system, self._protocol, **common_kwargs)
         elif self._engine == "GROMACS":
-            use_mpi = common_kwargs.pop("use_mpi", False)
             self._process = _Process.GromacsHREX(
-                system, self._protocol, use_mpi=use_mpi, **common_kwargs
+                system, self._protocol, **common_kwargs
             )
 
     def _initialise_runner(self, system):
