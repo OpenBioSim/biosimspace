@@ -48,8 +48,10 @@ class AmberHREX(_Amber):
         system,
         protocol,
         repex_frequency=1000,
+        oversubscribe=False,
         explicit_dummies=False,
         exe=None,
+        mpi_exe=None,
         is_gpu=False,
         name="amber",
         work_dir=None,
@@ -87,9 +89,17 @@ class AmberHREX(_Amber):
             remove them. The default is False, which should be used for any
             recent AMBER version or for GPU-accelerated PMEMD.
 
+        oversubscribe : bool
+            Whether to pass ``--oversubscribe`` to the MPI launcher, allowing
+            more ranks than available CPU slots. Default is False.
+
         exe : str
             The full path to the AMBER MPI executable (e.g. pmemd.MPI). When
             None, the executable found via AMBERHOME or PATH is used.
+
+        mpi_exe : str
+            The full path to the MPI launcher (e.g. mpirun, mpiexec, srun).
+            When None, ``mpirun`` is located on PATH.
 
         is_gpu : bool
             Whether to use the GPU-accelerated MPI version of AMBER
@@ -175,6 +185,8 @@ class AmberHREX(_Amber):
         # Store HREX-specific attributes before calling super().__init__(),
         # because the parent constructor calls self._setup(), which needs these.
         self._repex_frequency = repex_frequency
+        self._oversubscribe = oversubscribe
+        self._mpi_exe = mpi_exe
         self._lam_vals = lam_vals
         self._n_replicas = n_replicas
 
@@ -419,18 +431,21 @@ class AmberHREX(_Amber):
         self._clear_output()
 
         with _Utils.cd(self._work_dir):
-            # Locate mpirun on PATH.
-            mpirun = _shutil.which("mpirun")
+            # Locate the MPI launcher.
+            mpirun = self._mpi_exe or _shutil.which("mpirun")
             if mpirun is None:
                 raise _MissingSoftwareError(
                     "Cannot find 'mpirun' on PATH. AmberHREX requires native "
                     "MPI. Ensure an MPI implementation is installed and "
-                    "available."
+                    "available, or set mpi_exe explicitly."
                 )
 
             # Build argument list:
-            # mpirun -np N pmemd.MPI -rem 3 -ng N -groupfile groupfile
-            args = [
+            # mpirun [--oversubscribe] -np N pmemd.MPI -rem 3 -ng N -groupfile groupfile
+            args = []
+            if self._oversubscribe:
+                args.append("--oversubscribe")
+            args += [
                 "-np",
                 str(self._n_replicas),
                 self._exe,
