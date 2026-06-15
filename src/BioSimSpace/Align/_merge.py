@@ -36,6 +36,8 @@ def merge(
     fix_perturbable_zero_sigmas=True,
     force=False,
     roi=None,
+    max_path=50,
+    max_ring_size=24,
     property_map0={},
     property_map1={},
     **kwargs,
@@ -74,6 +76,16 @@ def merge(
     roi : list
         The region of interest to merge.
         Consists of a list of ROI residue indices.
+
+    max_path : int
+        Maximum path length used when searching for rings. The default of
+        50 covers typical macrocycles. Increase if larger rings need to be
+        detected.
+
+    max_ring_size : int
+        Maximum ring size considered when checking for ring size changes.
+        The default of 24 covers most drug-like macrocycles. Rings larger
+        than this threshold are not subject to ring-size-change detection.
 
     property_map0 : dict
         A dictionary that maps "properties" in this molecule to their
@@ -135,6 +147,12 @@ def merge(
 
     if not isinstance(force, bool):
         raise TypeError("'force' must be of type 'bool'")
+
+    if not isinstance(max_path, int) or max_path < 1:
+        raise TypeError("'max_path' must be a positive integer")
+
+    if not isinstance(max_ring_size, int) or max_ring_size < 1:
+        raise TypeError("'max_ring_size' must be a positive integer")
 
     if not isinstance(mapping, dict):
         raise TypeError("'mapping' must be of type 'dict'.")
@@ -1202,7 +1220,14 @@ def merge(
 
                 # Combined ring check — calls find_paths once per connectivity.
                 is_ring_broken, is_ring_size_change = _check_ring(
-                    c0, conn1, idx, idy, idx_map, idy_map
+                    c0,
+                    conn1,
+                    idx,
+                    idy,
+                    idx_map,
+                    idy_map,
+                    max_path=max_path,
+                    max_ring_size=max_ring_size,
                 )
 
                 # A ring was broken and it is not allowed.
@@ -1268,7 +1293,14 @@ def merge(
 
                 # Combined ring check — calls find_paths once per connectivity.
                 is_ring_broken, is_ring_size_change = _check_ring(
-                    c1, conn0, idx, idy, idx_map, idy_map
+                    c1,
+                    conn0,
+                    idx,
+                    idy,
+                    idx_map,
+                    idy_map,
+                    max_path=max_path,
+                    max_ring_size=max_ring_size,
                 )
 
                 # A ring was broken and it is not allowed.
@@ -1494,7 +1526,7 @@ def merge(
     return mol
 
 
-def _check_ring(conn0, conn1, idx0, idy0, idx1, idy1, max_path=50, max_ring_size=12):
+def _check_ring(conn0, conn1, idx0, idy0, idx1, idy1, max_path=50, max_ring_size=24):
     """
     Internal function to test whether a perturbation opens/closes a ring or
     changes its size for a given pair of atoms.

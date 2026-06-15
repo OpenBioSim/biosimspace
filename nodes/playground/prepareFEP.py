@@ -128,6 +128,22 @@ node.addInput(
     ),
 )
 node.addInput(
+    "max_path",
+    BSS.Gateway.Integer(
+        help="Maximum path length used when searching for rings. Increase for very large macrocycles.",
+        default=50,
+        minimum=1,
+    ),
+)
+node.addInput(
+    "max_ring_size",
+    BSS.Gateway.Integer(
+        help="Maximum ring size considered when checking for ring size changes.",
+        default=24,
+        minimum=1,
+    ),
+)
+node.addInput(
     "output",
     BSS.Gateway.String(
         help="The root name for the files describing the perturbation input1->input2."
@@ -235,6 +251,8 @@ merged = BSS.Align.merge(
     mapping,
     allow_ring_breaking=node.getInput("allow_ring_breaking"),
     allow_ring_size_change=node.getInput("allow_ring_size_change"),
+    max_path=node.getInput("max_path"),
+    max_ring_size=node.getInput("max_ring_size"),
 )
 
 # Create a composite system
