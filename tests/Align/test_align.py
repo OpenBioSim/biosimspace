@@ -670,6 +670,57 @@ def test_roi_flex_align(protein_inputs):
             # assume that the test passes if the coordinates are within 0.5 A
             assert coord.value() == pytest.approx(p1_roi_coords[i].value(), abs=0.5)
 
+def test_empty_custom_roi_mapping():
+    # mut contains a proline mutation at position 15
+    wt = BSS.IO.readMolecules(
+        BSS.IO.expand(BSS.tutorialUrl(), f"1choFH_apo_wt_flare_processed.pdb")
+    )[0]
+    mut = BSS.IO.readMolecules(
+        BSS.IO.expand(BSS.tutorialUrl(), f"1choFH_apo_mut_flare_processed.pdb")
+    )[0]
+
+    # use the custom_roi_map to specify that residue 15 in the WT protein should be
+    # excluded from the ROI mapping, even though it is in the ROI list
+    roi_res_idx = [a.index() for a in wt.getResidues()[15].getAtoms()]
+    mapping = BSS.Align.matchAtoms(molecule0=wt, molecule1=mut, roi=[15], custom_roi_map={})
+    
+    # check that the mapping does not contain any atoms of the region of interest of WT protein
+    for atom_idx in roi_res_idx:
+        assert atom_idx not in mapping.keys()
+
+def test_custom_roi_ring_break_merge():
+    # wt contains a leucine at position 15
+    # mut contains a proline at position 15
+    wt = BSS.IO.readMolecules(
+        BSS.IO.expand(BSS.tutorialUrl(), f"1choFH_apo_wt_flare_processed.pdb")
+    )[0]
+    mut = BSS.IO.readMolecules(
+        BSS.IO.expand(BSS.tutorialUrl(), f"1choFH_apo_mut_flare_processed.pdb")
+    )[0]
+
+    wt = BSS.Parameters.ff14SB(wt, ensure_compatible=False).getMolecule()
+    mut = BSS.Parameters.ff14SB(mut, ensure_compatible=False).getMolecule()
+
+    # use the custom_roi_map to specify that residue 15 in the WT protein should be
+    # excluded from the ROI mapping, even though it is in the ROI list
+    mapping = BSS.Align.matchAtoms(molecule0=wt, molecule1=mut, roi=[15], custom_roi_map={204:204,205:205,203:203,202:202,211:208,206:206,213:210,207:207,214:211,210:213})
+    
+    aligned_wt = BSS.Align.rmsdAlign(molecule0=wt, mapping=mapping, molecule1=mut)
+    merged_protein = BSS.Align.merge(aligned_wt, mut, mapping, allow_ring_breaking=True, roi=[15])
+
+    merged_protein_sire = merged_protein._sire_object
+    pert = merged_protein_sire.perturbation()
+    pert_omm = pert.to_openmm(map={"coordinates":"coordinates0"})
+
+    changed_bonds_df = pert_omm.changed_bonds(to_pandas=True)
+    n_bonds_created = (changed_bonds_df["k0"] == 0).sum()
+    n_bonds_annihilated = (changed_bonds_df["k1"] == 0).sum()
+
+    # assert that exactly one bond is being created, as mutating
+    # from leucine to proline should create a new bond in the ring of proline
+    assert n_bonds_created == 1
+    assert n_bonds_annihilated == 0
+
 
 @pytest.mark.skipif(has_amber is False, reason="Requires AMBER and to be installed.")
 def test_roi_merge(protein_inputs):
