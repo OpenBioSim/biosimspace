@@ -198,7 +198,7 @@ figure out the residue index of our residue of interest (ROI):
 
 We can see that the residue with the index value of 8 are different
 between the two proteins. Let’s pass this value to the
-```BioSimSpace.Align.matchAtoms`` <https://biosimspace.openbiosim.org/api/generated/BioSimSpace.Align.matchAtoms.html#BioSimSpace.Align.matchAtoms>`__
+`BioSimSpace.Align.matchAtoms <https://biosimspace.openbiosim.org/api/generated/BioSimSpace.Align.matchAtoms.html>`__
 function:
 
 .. code:: ipython3
@@ -440,7 +440,7 @@ at index 15 are different between the proteins
 
 
 By default, the
-```BioSimSpace.Align.matchAtoms`` <https://biosimspace.openbiosim.org/api/generated/BioSimSpace.Align.matchAtoms.html#BioSimSpace.Align.matchAtoms>`__
+`BioSimSpace.Align.matchAtoms <https://biosimspace.openbiosim.org/api/generated/BioSimSpace.Align.matchAtoms.html>`__
 would fail to create a mapping for the ROI region, as the underlying
 RDKit MCS algorithm would be unable to determine a mapping between two
 molecular graphs with a fundamental topological mismatch. Because
@@ -453,7 +453,7 @@ sidechain of Proline and the acyclic sidechain of the Leucine residue
 cannot be determined.
 
 Instead we can use the ``custom_roi_map`` argument of the
-```BioSimSpace.Align.matchAtoms`` <https://biosimspace.openbiosim.org/api/generated/BioSimSpace.Align.matchAtoms.html#BioSimSpace.Align.matchAtoms>`__
+`BioSimSpace.Align.matchAtoms <https://biosimspace.openbiosim.org/api/generated/BioSimSpace.Align.matchAtoms.html>`__
 to override the RDKit MCS mapping. For example we can force an empty
 mapping between the two residues:
 
@@ -496,7 +496,7 @@ use something like PyMol to help us map the atoms in the right order:
 
 
 We can then use ``allow_ring_breaking=True`` argument of the
-```BioSimSpace.Align.merge`` <https://biosimspace.openbiosim.org/api/generated/BioSimSpace.Align.merge.html>`__
+`BioSimSpace.Align.merge <https://biosimspace.openbiosim.org/api/generated/BioSimSpace.Align.merge.html>`__
 to create the required alchemical transformation:
 
 .. code:: ipython3
@@ -527,19 +527,6 @@ for more details.
 .. raw:: html
 
     <div>
-    <style scoped>
-        .dataframe tbody tr th:only-of-type {
-            vertical-align: middle;
-        }
-    
-        .dataframe tbody tr th {
-            vertical-align: top;
-        }
-    
-        .dataframe thead th {
-            text-align: right;
-        }
-    </style>
     <table border="1" class="dataframe">
       <thead>
         <tr style="text-align: right;">
