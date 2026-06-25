@@ -1438,7 +1438,7 @@ def _roiMatch(
                 res0_extracted, res1_extracted, kartograf_kwargs
             )
             mapping = kartograf_mapping.componentA_to_componentB
-        
+
         # Prevent the MCS mapping from being generated if a custom ROI mapping is provided.
         elif custom_roi_map is not None:
             mapping = None
