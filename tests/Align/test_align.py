@@ -829,6 +829,7 @@ def test_ion_merge(system):
         ),
     ],
 )
+@pytest.mark.skipif(has_openff is False, reason="Requires OpenFF to be installed.")
 def test_ring_opening_and_size_change(ligands, mapping):
     # These perturbations involve ring formation (acyclic atoms in mol0 become
     # ring members in mol1) combined with ring size changes in the existing
