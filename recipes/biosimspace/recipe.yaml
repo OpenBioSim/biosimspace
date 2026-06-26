@@ -32,6 +32,7 @@ requirements:
         - openff-interchange-base >=0.5.0
       else:
         - openff-interchange-base
+        - setuptools
     - openff-toolkit-base
     - parmed
     - pyarrow
@@ -65,6 +66,7 @@ tests:
     requirements:
       run:
         - pytest
+        - setuptools
         - if: linux and x86_64
           then:
             - ambertools
