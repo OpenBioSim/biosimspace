@@ -691,7 +691,7 @@ def test_empty_custom_roi_mapping():
     for atom_idx in roi_res_idx:
         assert atom_idx not in mapping.keys()
 
-
+@pytest.mark.skipif(has_amber is False, reason="Requires AMBER and to be installed.")
 def test_custom_roi_ring_break_merge():
     # wt contains a leucine at position 15
     # mut contains a proline at position 15
