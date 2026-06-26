@@ -829,6 +829,7 @@ def test_ion_merge(system):
         ),
     ],
 )
+@pytest.mark.skipif(has_openff is False, reason="Requires OpenFF to be installed.")
 def test_ring_opening_and_size_change(ligands, mapping):
     # These perturbations involve ring formation (acyclic atoms in mol0 become
     # ring members in mol1) combined with ring size changes in the existing
@@ -946,14 +947,6 @@ def test_ring_breaking_intrascale():
     assert len(omm_nopatch.changed_exceptions()) == len(ref_exceptions)
 
 
-@pytest.mark.skipif(
-    not has_antechamber or not has_tleap,
-    reason="Requires antechamber and tLEaP to be installed.",
-)
-@pytest.mark.skipif(
-    not has_openff,
-    reason="Requires OpenFF to be installed.",
-)
 def test_ring_breaking_intrascale_m338():
     """
     Test that ring-breaking merges produce correct intrascale matrices for a
@@ -1008,12 +1001,8 @@ def test_ring_breaking_intrascale_m338():
         38: 36,
     }
 
-    mol0 = BSS.Parameters.openff_unconstrained_2_2_1(
-        BSS.IO.readMolecules(f"{url}/int1.sdf")[0]
-    ).getMolecule()
-    mol1 = BSS.Parameters.openff_unconstrained_2_2_1(
-        BSS.IO.readMolecules(f"{url}/m338.sdf")[0]
-    ).getMolecule()
+    mol0 = BSS.IO.readMolecules([f"{url}/int1.prm7", f"{url}/int1.rst7"])[0]
+    mol1 = BSS.IO.readMolecules([f"{url}/m338.prm7", f"{url}/m338.rst7"])[0]
 
     mol0_aligned = BSS.Align.rmsdAlign(mol0, mol1, mapping)
     merged = BSS.Align.merge(
@@ -1210,7 +1199,10 @@ def test_ring_breaking_cross_bond_cleanup():
         for p in sire_mol.property(f"dihedral{suffix}").potentials():
             j = mol_info.atom_idx(p.atom1()).value()
             k = mol_info.atom_idx(p.atom2()).value()
-            assert (min(j, k), max(j, k)) not in changing, (
+            assert (
+                min(j, k),
+                max(j, k),
+            ) not in changing, (
                 f"dihedral{suffix} central bond ({j},{k}) spans absent bond"
             )
 
