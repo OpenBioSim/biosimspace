@@ -88,9 +88,12 @@ def butane():
 
 @pytest.fixture()
 def propane_butane(propane, butane):
-    mapping = BSS.Align.matchAtoms(propane, butane)
-    # We make sure we have a dummy atom in both endstates
-    mapping.pop(3)
+    # Hardcoded mapping to avoid non-deterministic MCS results on symmetric
+    # molecules. Atom 3 (H4 on C1) is excluded to ensure a dummy in both
+    # end states. Generated with matchAtoms then pop(3) on a reference run:
+    #   propane: C1(0) C2(1) C3(2) H4(3) H5(4) H6(5) H7(6) H8(7) H9(8) H10(9) H11(10)
+    #   butane:  C1(0) C2(1) C3(2) C4(3) H5(4) H6(5) H7(6) H8(7) H9(8) H10(9) H11(10) H12(11) H13(12) H14(13)
+    mapping = {0: 2, 1: 1, 2: 0, 4: 3, 5: 10, 6: 7, 7: 8, 8: 6, 9: 5, 10: 4}
     return BSS.Align.merge(propane, butane, mapping)
 
 
