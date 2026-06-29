@@ -884,10 +884,10 @@ def matchAtoms(
         )
     else:
         return _roiMatch(
-            molecule0=molecule0,
-            molecule1=molecule1,
-            roi=roi,
-            custom_roi_map=custom_roi_map,
+            molecule0,
+            molecule1,
+            roi,
+            custom_roi_map,
             prune_perturbed_constraints=prune_perturbed_constraints,
             prune_crossing_constraints=prune_crossing_constraints,
             prune_atom_types=prune_atom_types,
@@ -1441,6 +1441,18 @@ def _roiMatch(
 
         # Prevent the MCS mapping from being generated if a custom ROI mapping is provided.
         elif custom_roi_map is not None:
+            # Validate custom_roi_map is a dict and is inside the ROI region
+            if not isinstance(custom_roi_map, dict):
+                raise TypeError("'custom_roi_map' must be of type 'dict'")
+            for k, v in custom_roi_map.items():
+                if k not in res0_idx:
+                    raise ValueError(
+                        f"Key {k} in 'custom_roi_map' is not in the ROI region of molecule0."
+                    )
+                if v not in res1_idx:
+                    raise ValueError(
+                        f"Value {v} in 'custom_roi_map' is not in the ROI region of molecule1."
+                    )
             mapping = None
         else:
             mapping = matchAtoms(

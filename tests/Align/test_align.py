@@ -691,7 +691,7 @@ def test_empty_custom_roi_mapping():
     for atom_idx in roi_res_idx:
         assert atom_idx not in mapping.keys()
 
-@pytest.mark.skipif(has_amber is False, reason="Requires AMBER and to be installed.")
+@pytest.mark.skipif(has_amber is False, reason="Requires AMBER to be installed.")
 def test_custom_roi_ring_break_merge():
     # wt contains a leucine at position 15
     # mut contains a proline at position 15
@@ -742,6 +742,32 @@ def test_custom_roi_ring_break_merge():
     # from leucine to proline should create a new bond in the ring of proline
     assert n_bonds_created == 1
     assert n_bonds_annihilated == 0
+
+@pytest.mark.skipif(has_amber is False, reason="Requires AMBER to be installed.")
+def test_custom_roi_map_invalid_outside_roi():
+    wt = BSS.IO.readMolecules(
+        BSS.IO.expand(BSS.tutorialUrl(), f"1choFH_apo_wt_flare_processed.pdb")
+    )[0]
+    mut = BSS.IO.readMolecules(
+        BSS.IO.expand(BSS.tutorialUrl(), f"1choFH_apo_mut_flare_processed.pdb")
+    )[0]
+
+    wt = BSS.Parameters.ff14SB(wt, ensure_compatible=False).getMolecule()
+    mut = BSS.Parameters.ff14SB(mut, ensure_compatible=False).getMolecule()
+
+    # provide some invalid mapping that is outside of the ROI, which should raise an error
+    with pytest.raises(ValueError):
+        mapping = BSS.Align.matchAtoms(
+            molecule0=wt,
+            molecule1=mut,
+            roi=[15],
+        
+            custom_roi_map={
+                0: 0,
+                1: 1,
+                2: 2,
+            },
+        )
 
 
 @pytest.mark.skipif(has_amber is False, reason="Requires AMBER and to be installed.")
