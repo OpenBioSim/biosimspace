@@ -25,9 +25,9 @@ rdkit = "*"
 
 [target.linux-64.dependencies]
 # main
-#sire = ">=2025.4.0,<2025.5.0"
+sire = ">=2026.1.0,<2026.2.0"
 # devel
-sire = "==2026.1.0.dev"
+#sire = "==2026.2.0.dev"
 ambertools = ">=22"
 gromacs = "*"
 alchemlyb = "*"

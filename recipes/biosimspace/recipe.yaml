@@ -32,8 +32,6 @@ requirements:
         - openff-interchange-base >=0.5.0
       else:
         - openff-interchange-base
-    - if: match(python, "<3.11")
-      then:
         - setuptools <82
     - openff-toolkit-base
     - parmed
@@ -45,9 +43,9 @@ requirements:
     - pyyaml
     - rdkit
     # main
-    #- sire >=2025.4.0,<2025.5.0
+    - sire >=2026.1.0,<2026.2.0
     # devel
-    - sire ==2026.1.0.dev
+    #- sire ==2026.1.0.dev
     - if: not aarch64
       then:
         - alchemlyb
