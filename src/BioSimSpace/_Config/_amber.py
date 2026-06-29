@@ -444,11 +444,11 @@ class Amber(_Config):
 
         # Handle single atom restraints differently.
         if len(atom_idxs) == 1:
-            restraint_mask = f"@{atom_idxs[0]+1}"
+            restraint_mask = f"@{atom_idxs[0] + 1}"
 
         else:
             # Start the mask with the first atom index. (AMBER is 1 indexed.)
-            restraint_mask = f"@{atom_idxs[0]+1}"
+            restraint_mask = f"@{atom_idxs[0] + 1}"
 
             # Store the current index.
             prev_idx = atom_idxs[0]
@@ -461,9 +461,9 @@ class Amber(_Config):
                 # There is a gap in the indices.
                 if idx - prev_idx > 1:
                     if prev_idx != lead_idx:
-                        restraint_mask += f"{prev_idx+1},{idx+1}"
+                        restraint_mask += f"{prev_idx + 1},{idx + 1}"
                     else:
-                        restraint_mask += f",{idx+1}"
+                        restraint_mask += f",{idx + 1}"
                     lead_idx = idx
                 else:
                     # This is the first index beyond the lead.
@@ -474,10 +474,10 @@ class Amber(_Config):
 
             # Add the final atom to the mask.
             if idx - atom_idxs[-2] == 1:
-                restraint_mask += f"{idx+1}"
+                restraint_mask += f"{idx + 1}"
             else:
                 if idx != lead_idx:
-                    restraint_mask += f",{idx+1}"
+                    restraint_mask += f",{idx + 1}"
 
         return restraint_mask
 

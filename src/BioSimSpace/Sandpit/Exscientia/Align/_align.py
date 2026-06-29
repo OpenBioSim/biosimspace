@@ -1370,6 +1370,7 @@ def merge(
     roi=None,
     property_map0={},
     property_map1={},
+    **kwargs,
 ):
     """
     Create a merged molecule from 'molecule0' and 'molecule1' based on the
@@ -1504,6 +1505,7 @@ def merge(
         roi=roi,
         property_map0=property_map0,
         property_map1=property_map1,
+        **kwargs,
     )
 
 
@@ -1603,7 +1605,7 @@ def viewMapping(
 
         if orientation not in ["horizontal", "vertical"]:
             raise ValueError(
-                "'orientation' must be equal to 'horizontal' " "or 'vertical'."
+                "'orientation' must be equal to 'horizontal' or 'vertical'."
             )
 
     if isinstance(pixels, float):

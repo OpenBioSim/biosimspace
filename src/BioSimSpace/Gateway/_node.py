@@ -119,7 +119,7 @@ class CwlAction(_argparse.Action):
             output_type = type(value)
             if output_type not in [_File, _FileSet]:
                 raise TypeError(
-                    "We currently only support File and " "FileSet outputs with CWL."
+                    "We currently only support File and FileSet outputs with CWL."
                 )
 
         # Store the absolute path of the Python interpreter used to run the node.

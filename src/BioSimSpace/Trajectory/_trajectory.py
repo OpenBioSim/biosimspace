@@ -572,8 +572,7 @@ class Trajectory:
 
         if format == "MDTRAJ" and self._backend == "MDANALYSIS":
             raise _IncompatibleError(
-                "This Trajectory object can only be used "
-                "with the MDAnalysis backend."
+                "This Trajectory object can only be used with the MDAnalysis backend."
             )
 
         # Set the location of the trajectory and topology files.
@@ -753,8 +752,7 @@ class Trajectory:
                 indices = [round(indices.nanoseconds().value() / time_interval) - 1]
             else:
                 raise _IncompatibleError(
-                    "Cannot determine time stamps for a trajectory "
-                    "with only one frame!"
+                    "Cannot determine time stamps for a trajectory with only one frame!"
                 )
 
         # A list of frame indices.
@@ -765,8 +763,7 @@ class Trajectory:
         elif all(isinstance(x, _Time) for x in indices):
             if n_frames <= 1:
                 raise _IncompatibleError(
-                    "Cannot determine time stamps for a trajectory "
-                    "with only one frame!"
+                    "Cannot determine time stamps for a trajectory with only one frame!"
                 )
 
             # Round time stamps to nearest frame indices.

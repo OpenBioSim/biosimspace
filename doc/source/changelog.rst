@@ -9,11 +9,24 @@ company supporting open-source development of fostering academic/industrial coll
 within the biomolecular simulation community. Our software is hosted via the `OpenBioSim`
 `GitHub <https://github.com/OpenBioSim/biosimspace>`__ organisation.
 
+`2026.1.0 <https://github.com/openbiosim/biosimspace/compare/2025.4.0...2026.1.0>`_ - Jun 29 2026
+-------------------------------------------------------------------------------------------------
+
+* Improve ring break and size change detection during molecule merging (`#502 <https://github.com/OpenBioSim/biosimspace/pull/502>`__).
+* Add support for merging molecules with non-default intramolecular scaling factors (`#506 <https://github.com/OpenBioSim/biosimspace/pull/506>`__).
+* Add support for perturbable CMAP terms during molecule merging (`#508 <https://github.com/OpenBioSim/biosimspace/pull/508>`__).
+* Normalise ``SOMD2`` Parquet file metadata to avoid rounding issues (`#510 <https://github.com/OpenBioSim/biosimspace/pull/510>`__).
+* Update the ``prepareFEP`` helper script to generate ``SOMD1`` and ``SOMD2`` inputs simultaneously (`#516 <https://github.com/OpenBioSim/biosimspace/pull/516>`__).
+* Remove cross-bond angle and torsion terms for ring-making/breaking perturbations (`#517 <https://github.com/OpenBioSim/biosimspace/pull/517>`__).
+* Added functionaltiy for adding ions to an existing system (`#518 <https://github.com/OpenBioSim/biosimspace/pull/518>`__).
+* Expose the ``max_path`` and ``max_ring_size`` kwargs used for ring break and size change detection in the :func:`BioSimSpace.Align.generateNetwork <BioSimSpace.Align.merge>` function (`#520 <https://github.com/OpenBioSim/biosimspace/pull/520>`__).
+* Add support for user-defined "region-of-interest" merges (`#522 <https://github.com/OpenBioSim/biosimspace/pull/522>`__).
+* Add pins to handle OpenForceField Python version deprecations (`#524 <https://github.com/OpenBioSim/biosimspace/pull/524>`__).
+
 `2025.4.0 <https://github.com/openbiosim/biosimspace/compare/2025.3.0...2025.4.0>`_ - Feb 17 2026
 -------------------------------------------------------------------------------------------------
 
 * Fixed centre of mass restraints for alchemical transfer method (ATM) simulations (`@mb2055 <https://github.com/mb2055>`__) (`#471 <https://github.com/OpenBioSim/biosimspace/pull/471>`__).
-* Add experimental :class:`ReplicaSystem` class to speed up handling of replica exchange simulations (`#473 <https://github.com/OpenBioSim/biosimspace/pull/473>`__).
 * Add experimental :class:`ReplicaSystem` class to speed up handling of replica exchange simulations (`#473 <https://github.com/OpenBioSim/biosimspace/pull/473>`__).
 * Removed lazy imports from sub-modules that don't use Sire (`#475 <https://github.com/OpenBioSim/biosimspace/pull/475>`__).
 * Allow translation of a custom ``coordinates`` property for perturbable molecules (`#477 <https://github.com/OpenBioSim/biosimspace/pull/477>`__).

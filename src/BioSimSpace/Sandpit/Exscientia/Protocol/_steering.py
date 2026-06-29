@@ -274,11 +274,11 @@ class Steering(_Protocol):
         if isinstance(schedule, (list, tuple)):
             if not all(isinstance(x, _Types.Time) for x in schedule):
                 raise TypeError(
-                    "'schedule' must all be of type " "'BioSimSpace.Types.Time'"
+                    "'schedule' must all be of type 'BioSimSpace.Types.Time'"
                 )
         else:
             raise TypeError(
-                "'schedule' must be a list of " "'BioSimSpace.Types.Time' types."
+                "'schedule' must be a list of 'BioSimSpace.Types.Time' types."
             )
 
         # Make sure the times are linearly increasing and are less than

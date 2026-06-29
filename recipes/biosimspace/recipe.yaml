@@ -27,7 +27,12 @@ requirements:
     - lomap2
     - networkx
     - nglview
-    - openff-interchange-base
+    - if: match(python, ">=3.11")
+      then:
+        - openff-interchange-base >=0.5.0
+      else:
+        - openff-interchange-base
+        - setuptools <82
     - openff-toolkit-base
     - parmed
     - pyarrow
@@ -38,7 +43,7 @@ requirements:
     - pyyaml
     - rdkit
     # main
-    - sire >=2025.4.0,<2025.5.0
+    - sire >=2026.1.0,<2026.2.0
     # devel
     #- sire ==2026.1.0.dev
     - if: not aarch64
@@ -61,6 +66,9 @@ tests:
     requirements:
       run:
         - pytest
+        - if: match(python, "<3.11")
+          then:
+            - setuptools <82
         - if: linux and x86_64
           then:
             - ambertools

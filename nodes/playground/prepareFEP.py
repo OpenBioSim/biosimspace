@@ -2,7 +2,7 @@
 # coding: utf-8
 
 # Author: Julien Michel
-#
+# 
 # email: julien.michel@ed.ac.uk
 
 # # PrepareFEP
@@ -128,16 +128,25 @@ node.addInput(
     ),
 )
 node.addInput(
-    "output",
-    BSS.Gateway.String(
-        help="The root name for the files describing the perturbation input1->input2."
+    "max_path",
+    BSS.Gateway.Integer(
+        help="Maximum path length used when searching for rings. Increase for very large macrocycles.",
+        default=50,
+        minimum=1,
     ),
 )
 node.addInput(
-    "somd2",
-    BSS.Gateway.Boolean(
-        help="Whether to generate input for SOMD2.",
-        default=False,
+    "max_ring_size",
+    BSS.Gateway.Integer(
+        help="Maximum ring size considered when checking for ring size changes.",
+        default=24,
+        minimum=1,
+    ),
+)
+node.addInput(
+    "output",
+    BSS.Gateway.String(
+        help="The root name for the files describing the perturbation input1->input2."
     ),
 )
 
@@ -162,11 +171,9 @@ node.showControls()
 
 do_mapping = True
 custom_mapping = node.getInput("mapping")
-# print (custom_mapping)
 if custom_mapping is not None:
     do_mapping = False
     mapping = loadMapping(custom_mapping)
-    # print (mapping)
 
 
 # In[ ]:
@@ -180,7 +187,6 @@ if len(prematchstring) > 0:
     for entry in entries:
         idxA, idxB = entry.split("-")
         prematch[int(idxA)] = int(idxB)
-# print (prematch)
 
 
 # In[ ]:
@@ -219,25 +225,15 @@ if do_mapping:
         scoring_function="RMSDalign",
         timeout=node.getInput("timeout"),
     )
+
     # We retain the top mapping
     mapping = mappings[0]
-    # print (len(mappings))
-    # print (mappings)
-
-
-# In[ ]:
-
-
-# print (mapping)
-# for x in range(0,len(mappings)):
-#    print (mappings[x], scores[x])
 
 
 # In[ ]:
 
 
 inverted_mapping = dict([[v, k] for k, v in mapping.items()])
-# print (inverted_mapping)
 
 
 # In[ ]:
@@ -247,6 +243,7 @@ inverted_mapping = dict([[v, k] for k, v in mapping.items()])
 # on a root mean squared displacement fit to find the optimal translation vector
 # (as opposed to merely taking the difference of centroids).
 lig2 = BSS.Align.rmsdAlign(lig2, lig1, inverted_mapping)
+
 # Merge the two ligands based on the mapping.
 merged = BSS.Align.merge(
     lig1,
@@ -254,10 +251,14 @@ merged = BSS.Align.merge(
     mapping,
     allow_ring_breaking=node.getInput("allow_ring_breaking"),
     allow_ring_size_change=node.getInput("allow_ring_size_change"),
+    max_path=node.getInput("max_path"),
+    max_ring_size=node.getInput("max_ring_size"),
 )
+
 # Create a composite system
 system1.removeMolecules(lig1)
 system1.addMolecules(merged)
+
 # Make sure the box vectors are in reduced form.
 system1.reduceBoxVectors()
 system1.rotateBoxVectors()
@@ -268,10 +269,11 @@ system1.rotateBoxVectors()
 
 # Log the mapping used
 writeLog(lig1, lig2, mapping)
-# Are we saving output for SOMD2?
-is_somd2 = node.getInput("somd2")
+
 # File root for all output.
 root = node.getInput("output")
+
+# Save PDB of merged topology.
 BSS.IO.saveMolecules(
     "merged_at_lam0.pdb",
     merged,
@@ -282,60 +284,63 @@ BSS.IO.saveMolecules(
         "element": "element0",
     },
 )
-if is_somd2:
-    BSS.Stream.save(system1, root)
-    stream_file = "%s.bss" % root
-else:
-    # Generate package specific input
-    protocol = BSS.Protocol.FreeEnergy(
-        runtime=2 * BSS.Units.Time.femtosecond, num_lam=3
-    )
-    process = BSS.Process.Somd(system1, protocol)
-    process.getOutput()
-    with zipfile.ZipFile("somd_output.zip", "r") as zip_hnd:
-        zip_hnd.extractall(".")
+
+
+# Generate SOMD1 input.
+protocol = BSS.Protocol.FreeEnergy(
+    runtime=2 * BSS.Units.Time.femtosecond, num_lam=3
+)
+process = BSS.Process.Somd(system1, protocol)
+process.getOutput()
+with zipfile.ZipFile("somd_output.zip", "r") as zip_hnd:
+    zip_hnd.extractall(".")
+
+# Generate SOMD2 input.
+BSS.Stream.save(system1, root)
+stream_file = "%s.bss" % root
 
 
 # In[ ]:
 
 
-if not is_somd2:
-    mergedpdb = "%s.mergeat0.pdb" % root
-    pert = "%s.pert" % root
-    prm7 = "%s.prm7" % root
-    rst7 = "%s.rst7" % root
-    mapping_str = "%s.mapping" % root
+# Remap ouput names.
+mergedpdb = "%s.mergeat0.pdb" % root
+pert = "%s.pert" % root
+prm7 = "%s.prm7" % root
+rst7 = "%s.rst7" % root
+mapping_str = "%s.mapping" % root
 
 
 # In[ ]:
 
 
-if not is_somd2:
-    os.replace("merged_at_lam0.pdb", mergedpdb)
-    os.replace("somd.pert", pert)
-    os.replace("somd.prm7", prm7)
-    os.replace("somd.rst7", rst7)
-    os.replace("somd.mapping", mapping_str)
-    try:
-        os.remove("somd_output.zip")
-        os.remove("somd.cfg")
-        os.remove("somd.err")
-        os.remove("somd.out")
-    except Exception:
-        pass
+# Rename.
+os.replace("merged_at_lam0.pdb", mergedpdb)
+os.replace("somd.pert", pert)
+os.replace("somd.prm7", prm7)
+os.replace("somd.rst7", rst7)
+os.replace("somd.mapping", mapping_str)
+try:
+    # Remove redundant files.
+    os.remove("somd_output.zip")
+    os.remove("somd.cfg")
+    os.remove("somd.err")
+    os.remove("somd.out")
+except Exception:
+    pass
 
 
 # In[ ]:
 
 
-if is_somd2:
-    output = [stream_file]
-else:
-    output = [mergedpdb, pert, prm7, rst7, mapping_str]
+# Set the node output.
+output = [mergedpdb, pert, prm7, rst7, mapping_str, stream_file]
 node.setOutput("nodeoutput", output)
 
 
 # In[ ]:
 
 
+# Validate.
 node.validate()
+

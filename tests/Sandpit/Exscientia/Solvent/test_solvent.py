@@ -87,3 +87,27 @@ def test_crystal_water(system, match_water, function):
 
         # Make sure there are no crystal waters in the file.
         assert num_cof == 0
+
+
+@pytest.mark.skipif(not has_gromacs, reason="Requires GROMACS to be installed")
+def test_solvate_ion_conc():
+    """
+    Test that solvating with ion_conc adds the correct number of NA/CL ions.
+
+    The expected count is hand-calculated so that a unit error in the
+    implementation's volume formula would still be caught:
+
+        V = (4 nm)^3 = (40 Å)^3 = 64000 Å^3 = 6.4e-23 L
+        N = round(0.15 * 6.4e-23 * 6.02214076e23) = round(5.78) = 6
+    """
+    ion_conc = 0.15  # mol/L
+    box, angles = BSS.Box.cubic(4 * BSS.Units.Length.nanometer)
+    system = BSS.Solvent.tip3p(box=box, angles=angles, ion_conc=ion_conc)
+
+    expected = 6  # hand-calculated above
+
+    na_count = len(system.search("resname NA").molecules())
+    cl_count = len(system.search("resname CL").molecules())
+
+    assert na_count == expected
+    assert cl_count == expected

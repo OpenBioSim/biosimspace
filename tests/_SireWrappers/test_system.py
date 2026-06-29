@@ -542,6 +542,6 @@ def test_set_coordinates(fixture, is_lambda1, request):
     ratio = new_coords / coords
 
     # Make sure the new coordinates are as expected.
-    assert (
-        np.sum(np.round(ratio)) == 6.0 * mols.nAtoms()
-    ), "Coordinates were not set correctly."
+    assert np.sum(np.round(ratio)) == 6.0 * mols.nAtoms(), (
+        "Coordinates were not set correctly."
+    )

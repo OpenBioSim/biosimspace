@@ -35,8 +35,11 @@ def merge(
     allow_ring_size_change=False,
     force=False,
     roi=None,
+    max_path=50,
+    max_ring_size=24,
     property_map0={},
     property_map1={},
+    **kwargs,
 ):
     """
     Merge this molecule with 'other'.
@@ -68,6 +71,16 @@ def merge(
 
     roi : list
                         The region of interest to merge. Consist of two lists of atom indices.
+
+    max_path : int
+        Maximum path length used when searching for rings. The default of
+        50 covers typical macrocycles. Increase if larger rings need to be
+        detected.
+
+    max_ring_size : int
+        Maximum ring size considered when checking for ring size changes.
+        The default of 24 covers most drug-like macrocycles. Rings larger
+        than this threshold are not subject to ring-size-change detection.
 
         property_map0 : dict
             A dictionary that maps "properties" in this molecule to their
@@ -125,6 +138,12 @@ def merge(
 
     if not isinstance(force, bool):
         raise TypeError("'force' must be of type 'bool'")
+
+    if not isinstance(max_path, int) or max_path < 1:
+        raise TypeError("'max_path' must be a positive integer")
+
+    if not isinstance(max_ring_size, int) or max_ring_size < 1:
+        raise TypeError("'max_ring_size' must be a positive integer")
 
     if not isinstance(mapping, dict):
         raise TypeError("'mapping' must be of type 'dict'.")
@@ -317,6 +336,7 @@ def merge(
         "angle",
         "dihedral",
         "improper",
+        "cmap",
         "connectivity",
         "intrascale",
     ]
@@ -668,6 +688,52 @@ def merge(
         # Add the impropers to the merged molecule.
         edit_mol.set_property("improper0", impropers)
 
+    # 5) cmap
+    if "cmap" in shared_props:
+        # Get the user defined property names.
+        prop0 = inv_property_map0.get("cmap", "cmap")
+        prop1 = inv_property_map1.get("cmap", "cmap")
+
+        # Get the "cmap" property from the two molecules.
+        cmaps0 = molecule0.property(prop0)
+        cmaps1 = molecule1.property(prop1)
+
+        # Get the molInfo object for each molecule.
+        info0 = molecule0.info()
+        info1 = molecule1.info()
+
+        # Create the new set of CMAP functions.
+        cmaps = _SireMM.CMAPFunctions(edit_mol.info())
+
+        # Add all of the CMAP functions from molecule0.
+        for func in cmaps0.parameters():
+            atom0 = mol0_merged_mapping[info0.atom_idx(func.atom0())]
+            atom1 = mol0_merged_mapping[info0.atom_idx(func.atom1())]
+            atom2 = mol0_merged_mapping[info0.atom_idx(func.atom2())]
+            atom3 = mol0_merged_mapping[info0.atom_idx(func.atom3())]
+            atom4 = mol0_merged_mapping[info0.atom_idx(func.atom4())]
+            cmaps.set(atom0, atom1, atom2, atom3, atom4, func.parameter())
+
+        # Loop over all CMAP functions in molecule1.
+        for func in cmaps1.parameters():
+            # This CMAP function contains an atom that is unique to molecule1.
+            if (
+                info1.atom_idx(func.atom0()) in atoms1_idx
+                or info1.atom_idx(func.atom1()) in atoms1_idx
+                or info1.atom_idx(func.atom2()) in atoms1_idx
+                or info1.atom_idx(func.atom3()) in atoms1_idx
+                or info1.atom_idx(func.atom4()) in atoms1_idx
+            ):
+                atom0 = mol1_merged_mapping[info1.atom_idx(func.atom0())]
+                atom1 = mol1_merged_mapping[info1.atom_idx(func.atom1())]
+                atom2 = mol1_merged_mapping[info1.atom_idx(func.atom2())]
+                atom3 = mol1_merged_mapping[info1.atom_idx(func.atom3())]
+                atom4 = mol1_merged_mapping[info1.atom_idx(func.atom4())]
+                cmaps.set(atom0, atom1, atom2, atom3, atom4, func.parameter())
+
+        # Add the CMAP functions to the merged molecule.
+        edit_mol.set_property("cmap0", cmaps)
+
     ##############################
     # SET PROPERTIES AT LAMBDA = 1
     ##############################
@@ -995,6 +1061,52 @@ def merge(
         # Add the impropers to the merged molecule.
         edit_mol.set_property("improper1", impropers)
 
+    # 5) cmap
+    if "cmap" in shared_props:
+        # Get the user defined property names.
+        prop0 = inv_property_map0.get("cmap", "cmap")
+        prop1 = inv_property_map1.get("cmap", "cmap")
+
+        # Get the "cmap" property from the two molecules.
+        cmaps0 = molecule0.property(prop0)
+        cmaps1 = molecule1.property(prop1)
+
+        # Get the molInfo object for each molecule.
+        info0 = molecule0.info()
+        info1 = molecule1.info()
+
+        # Create the new set of CMAP functions.
+        cmaps = _SireMM.CMAPFunctions(edit_mol.info())
+
+        # Add all of the CMAP functions from molecule1.
+        for func in cmaps1.parameters():
+            atom0 = mol1_merged_mapping[info1.atom_idx(func.atom0())]
+            atom1 = mol1_merged_mapping[info1.atom_idx(func.atom1())]
+            atom2 = mol1_merged_mapping[info1.atom_idx(func.atom2())]
+            atom3 = mol1_merged_mapping[info1.atom_idx(func.atom3())]
+            atom4 = mol1_merged_mapping[info1.atom_idx(func.atom4())]
+            cmaps.set(atom0, atom1, atom2, atom3, atom4, func.parameter())
+
+        # Loop over all CMAP functions in molecule0.
+        for func in cmaps0.parameters():
+            # This CMAP function contains an atom that is unique to molecule0.
+            if (
+                info0.atom_idx(func.atom0()) in atoms0_idx
+                or info0.atom_idx(func.atom1()) in atoms0_idx
+                or info0.atom_idx(func.atom2()) in atoms0_idx
+                or info0.atom_idx(func.atom3()) in atoms0_idx
+                or info0.atom_idx(func.atom4()) in atoms0_idx
+            ):
+                atom0 = mol0_merged_mapping[info0.atom_idx(func.atom0())]
+                atom1 = mol0_merged_mapping[info0.atom_idx(func.atom1())]
+                atom2 = mol0_merged_mapping[info0.atom_idx(func.atom2())]
+                atom3 = mol0_merged_mapping[info0.atom_idx(func.atom3())]
+                atom4 = mol0_merged_mapping[info0.atom_idx(func.atom4())]
+                cmaps.set(atom0, atom1, atom2, atom3, atom4, func.parameter())
+
+        # Add the CMAP functions to the merged molecule.
+        edit_mol.set_property("cmap1", cmaps)
+
     # The number of potentials should be consistent for the "bond0"
     # and "bond1" properties, unless a ring is broken or changes size.
     if not (allow_ring_breaking or allow_ring_size_change):
@@ -1100,7 +1212,14 @@ def merge(
 
                 # Combined ring check — calls find_paths once per connectivity.
                 is_ring_broken, is_ring_size_change = _check_ring(
-                    c0, conn, idx, idy, idx_map, idy_map
+                    c0,
+                    conn,
+                    idx,
+                    idy,
+                    idx_map,
+                    idy_map,
+                    max_path=max_path,
+                    max_ring_size=max_ring_size,
                 )
 
                 # A ring was broken and it is not allowed.
@@ -1166,7 +1285,14 @@ def merge(
 
                 # Combined ring check — calls find_paths once per connectivity.
                 is_ring_broken, is_ring_size_change = _check_ring(
-                    c1, conn, idx, idy, idx_map, idy_map
+                    c1,
+                    conn,
+                    idx,
+                    idy,
+                    idx_map,
+                    idy_map,
+                    max_path=max_path,
+                    max_ring_size=max_ring_size,
                 )
 
                 # A ring was broken and it is not allowed.
@@ -1208,14 +1334,34 @@ def merge(
     # Set the "connectivity" property.
     edit_mol.set_property("connectivity", conn)
 
-    # Merge the intrascale properties of the two molecules.
-    merged_intrascale = _SireIO.mergeIntrascale(
-        molecule0.property("intrascale"),
-        molecule1.property("intrascale"),
-        edit_mol.info(),
-        mol0_merged_mapping,
-        mol1_merged_mapping,
+    ff = molecule0.property(ff0)
+    sf14 = _SireMM.CLJScaleFactor(
+        ff.electrostatic14_scale_factor(), ff.vdw14_scale_factor()
     )
+
+    # Build the intrascale matrices from the per-state connectivity.
+    intra0 = _SireMM.CLJNBPairs(conn0, sf14)
+    intra1 = _SireMM.CLJNBPairs(conn1, sf14)
+
+    # For non-ROI merges, patch with any non-default per-pair scale factors
+    # from the individual molecule intrascales (e.g. GLYCAM funct=2 overrides).
+    # This step can be skipped via apply_scale_factors=False when the caller
+    # knows no non-default scale factors are present.
+    if "apply_scale_factors" in kwargs:
+        if not isinstance(kwargs["apply_scale_factors"], bool):
+            raise TypeError("'apply_scale_factors' must be of type 'bool'")
+
+    if kwargs.get("apply_scale_factors", roi is None):
+        intra0, intra1 = _SireIO.patchIntrascale(
+            molecule0.property("intrascale"),
+            molecule1.property("intrascale"),
+            intra0,
+            intra1,
+            mol0_merged_mapping,
+            mol1_merged_mapping,
+        )
+
+    merged_intrascale = [intra0, intra1]
 
     # Store the two molecular components.
     edit_mol.set_property("molecule0", molecule0)
@@ -1246,7 +1392,7 @@ def merge(
     return mol
 
 
-def _check_ring(conn0, conn1, idx0, idy0, idx1, idy1, max_path=50, max_ring_size=12):
+def _check_ring(conn0, conn1, idx0, idy0, idx1, idy1, max_path=50, max_ring_size=24):
     """
     Internal function to test whether a perturbation opens/closes a ring or
     changes its size for a given pair of atoms.

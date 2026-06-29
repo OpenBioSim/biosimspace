@@ -265,8 +265,7 @@ class Amber(_process.Process):
             # Check that the system contains a perturbable molecule.
             if self._system.nPerturbableMolecules() == 0:
                 raise ValueError(
-                    "'BioSimSpace.Protocol.FreeEnergy' requires a "
-                    "perturbable molecule!"
+                    "'BioSimSpace.Protocol.FreeEnergy' requires a perturbable molecule!"
                 )
 
             # Make sure the protocol is valid.

@@ -198,7 +198,7 @@ figure out the residue index of our residue of interest (ROI):
 
 We can see that the residue with the index value of 8 are different
 between the two proteins. Let’s pass this value to the
-```BioSimSpace.Align.matchAtoms`` <https://biosimspace.openbiosim.org/api/generated/BioSimSpace.Align.matchAtoms.html#BioSimSpace.Align.matchAtoms>`__
+`BioSimSpace.Align.matchAtoms <https://biosimspace.openbiosim.org/api/generated/BioSimSpace.Align.matchAtoms.html>`__
 function:
 
 .. code:: ipython3
@@ -398,3 +398,169 @@ simulations <https://github.com/OpenBioSim/biosimspace_tutorials/tree/main/04_fe
     solvated_system = BSS.Solvent.tip3p(molecule=merged_system, box=box, angles=angles, ion_conc=0.15)
 
     BSS.IO.saveMolecules("holo_aldose_reductase_v47i", solvated_system, ["gro87", "grotop"])
+
+Advanced Case - Bond Creation/Annihilation Transformations
+==========================================================
+
+In this tutorial we will use BioSimSpace’s mapping functionality to set
+up alchemical calculations involving proline mutations in a protein.
+Specifically, we will look at the Leu-to-Pro mutations in OMTKY3 to its
+receptors as `detailed in this
+study <https://pubs.acs.org/doi/full/10.1021/acs.jctc.1c00214>`__.
+
+.. code:: ipython3
+
+    wt = BSS.IO.readMolecules(
+        BSS.IO.expand(BSS.tutorialUrl(), f"1choFH_apo_wt_flare_processed.pdb")
+    )[0]
+    mut = BSS.IO.readMolecules(
+        BSS.IO.expand(BSS.tutorialUrl(), f"1choFH_apo_mut_flare_processed.pdb")
+    )[0]
+    
+    wt = BSS.Parameters.ff14SB(wt, ensure_compatible=False).getMolecule()
+    mut = BSS.Parameters.ff14SB(mut, ensure_compatible=False).getMolecule()
+
+
+
+Comparing the residues between two proteins shows us that the residues
+at index 15 are different between the proteins
+
+.. code:: ipython3
+
+    roi = []
+    for i, res in enumerate(wt.getResidues()):
+        if res.name() != mut.getResidues()[i].name():
+            print(res, mut.getResidues()[i])
+            roi.append(res.index())
+
+
+.. parsed-literal::
+
+    <BioSimSpace.Residue: name='LEU', molecule=5, index=15, nAtoms=19> <BioSimSpace.Residue: name='PRO', molecule=7, index=15, nAtoms=14>
+
+
+By default, the
+`BioSimSpace.Align.matchAtoms <https://biosimspace.openbiosim.org/api/generated/BioSimSpace.Align.matchAtoms.html>`__
+would fail to create a mapping for the ROI region, as the underlying
+RDKit MCS algorithm would be unable to determine a mapping between two
+molecular graphs with a fundamental topological mismatch. Because
+Proline’s sidechain forms a cyclic system with the backbone, its atoms
+exist in a ring topology. The algorithm restricts the mapping of cyclic
+atoms to acyclic atoms (a behavior governed by parameters like
+``ringMatchesRingOnly``) to preserve the chemical integrity of the
+substructure. Consequently, a 1:1 mapping between the ring-bound
+sidechain of Proline and the acyclic sidechain of the Leucine residue
+cannot be determined.
+
+Instead we can use the ``custom_roi_map`` argument of the
+`BioSimSpace.Align.matchAtoms <https://biosimspace.openbiosim.org/api/generated/BioSimSpace.Align.matchAtoms.html>`__
+to override the RDKit MCS mapping. For example we can force an empty
+mapping between the two residues:
+
+.. code:: ipython3
+
+    mapping = BSS.Align.matchAtoms(molecule0=wt, molecule1=mut, roi=[15], custom_roi_map={})
+
+.. code:: ipython3
+
+    BSS.Align.viewMapping(wt, mut, mapping, roi=15, pixels=500)
+
+
+
+.. image:: images/custom_roi_no_map.png
+   :width: 800
+
+
+If we know the correct 1:1 atom mapping between the two residues, we can
+pass that to the ``custom_roi_map`` which will allows us to setup an
+alchemical bond transformation for mutating the leucine residue to
+proline. Note that **absolute atom indices need to be passed, i.e the
+indices of the residues in the context of the whole protein**. We can
+use something like PyMol to help us map the atoms in the right order:
+
+.. image:: images/1choFH_mapping_pymol.png
+   :width: 800
+
+.. code:: ipython3
+
+    mapping = BSS.Align.matchAtoms(molecule0=wt, molecule1=mut, roi=[15], custom_roi_map={204:204,205:205,203:203,202:202,211:208,206:206,213:210,207:207,214:211,210:213})
+
+.. code:: ipython3
+
+    BSS.Align.viewMapping(wt, mut, mapping, roi=15, pixels=500)
+
+
+
+.. image:: images/custom_roi_ring_break_map.png
+   :width: 800
+
+
+We can then use ``allow_ring_breaking=True`` argument of the
+`BioSimSpace.Align.merge <https://biosimspace.openbiosim.org/api/generated/BioSimSpace.Align.merge.html>`__
+to create the required alchemical transformation:
+
+.. code:: ipython3
+
+    aligned_wt = BSS.Align.rmsdAlign(molecule0=wt, mapping=mapping, molecule1=mut)
+    merged_protein = BSS.Align.merge(aligned_wt, mut, mapping, allow_ring_breaking=True, roi=[15])
+
+But how do we actually know that the merge has built a perturbable
+molecule that now has a bond annihilation or creation involved? We can
+use Sire’s conversion features to check what kinds of alchemical
+modifications are happening in our perturbable molecule. You can check
+out the corresponding `Sire
+tutorial <https://sire.openbiosim.org/tutorial/part07/04_merge.html>`__
+for more details.
+
+.. code:: ipython3
+
+    merged_protein_sire = merged_protein._sire_object
+    pert = merged_protein_sire.perturbation()
+    pert_omm = pert.to_openmm(map={"coordinates":"coordinates0"})
+    
+    pert_omm.changed_bonds(to_pandas=True)
+
+
+
+
+
+.. raw:: html
+
+    <div>
+    <table border="1" class="dataframe">
+      <thead>
+        <tr style="text-align: right;">
+          <th></th>
+          <th>bond</th>
+          <th>length0</th>
+          <th>length1</th>
+          <th>k0</th>
+          <th>k1</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>0</th>
+          <td>N:203-H:211</td>
+          <td>0.1010</td>
+          <td>0.1449</td>
+          <td>363171.2</td>
+          <td>282001.6</td>
+        </tr>
+        <tr>
+          <th>1</th>
+          <td>CG:208-H:211</td>
+          <td>0.1526</td>
+          <td>0.1526</td>
+          <td>0.0</td>
+          <td>259408.0</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+
+
+By comparing the ``k0`` and ``k1`` values in the changed bond dataframe,
+we can see that the transformation is going to result in a bond being
+created.

@@ -1,11 +1,12 @@
 import sys
 
 import pytest
+import sire as sr
 from sire.legacy.MM import InternalFF, IntraCLJFF, IntraFF
 from sire.legacy.Mol import AtomIdx, Element, PartialMolecule
 
 import BioSimSpace as BSS
-from tests.conftest import has_amber, has_openff
+from tests.conftest import has_amber, has_antechamber, has_openff, has_tleap
 
 # Store the tutorial URL.
 url = BSS.tutorialUrl()
@@ -670,6 +671,105 @@ def test_roi_flex_align(protein_inputs):
             assert coord.value() == pytest.approx(p1_roi_coords[i].value(), abs=0.5)
 
 
+def test_empty_custom_roi_mapping():
+    # mut contains a proline mutation at position 15
+    wt = BSS.IO.readMolecules(
+        BSS.IO.expand(BSS.tutorialUrl(), f"1choFH_apo_wt_flare_processed.pdb")
+    )[0]
+    mut = BSS.IO.readMolecules(
+        BSS.IO.expand(BSS.tutorialUrl(), f"1choFH_apo_mut_flare_processed.pdb")
+    )[0]
+
+    # use the custom_roi_map to specify that residue 15 in the WT protein should be
+    # excluded from the ROI mapping, even though it is in the ROI list
+    roi_res_idx = [a.index() for a in wt.getResidues()[15].getAtoms()]
+    mapping = BSS.Align.matchAtoms(
+        molecule0=wt, molecule1=mut, roi=[15], custom_roi_map={}
+    )
+
+    # check that the mapping does not contain any atoms of the region of interest of WT protein
+    for atom_idx in roi_res_idx:
+        assert atom_idx not in mapping.keys()
+
+@pytest.mark.skipif(has_amber is False, reason="Requires AMBER to be installed.")
+def test_custom_roi_ring_break_merge():
+    # wt contains a leucine at position 15
+    # mut contains a proline at position 15
+    wt = BSS.IO.readMolecules(
+        BSS.IO.expand(BSS.tutorialUrl(), f"1choFH_apo_wt_flare_processed.pdb")
+    )[0]
+    mut = BSS.IO.readMolecules(
+        BSS.IO.expand(BSS.tutorialUrl(), f"1choFH_apo_mut_flare_processed.pdb")
+    )[0]
+
+    wt = BSS.Parameters.ff14SB(wt, ensure_compatible=False).getMolecule()
+    mut = BSS.Parameters.ff14SB(mut, ensure_compatible=False).getMolecule()
+
+    # use the custom_roi_map to specify that residue 15 in the WT protein should be
+    # excluded from the ROI mapping, even though it is in the ROI list
+    mapping = BSS.Align.matchAtoms(
+        molecule0=wt,
+        molecule1=mut,
+        roi=[15],
+        custom_roi_map={
+            204: 204,
+            205: 205,
+            203: 203,
+            202: 202,
+            211: 208,
+            206: 206,
+            213: 210,
+            207: 207,
+            214: 211,
+            210: 213,
+        },
+    )
+
+    aligned_wt = BSS.Align.rmsdAlign(molecule0=wt, mapping=mapping, molecule1=mut)
+    merged_protein = BSS.Align.merge(
+        aligned_wt, mut, mapping, allow_ring_breaking=True, roi=[15]
+    )
+
+    merged_protein_sire = merged_protein._sire_object
+    pert = merged_protein_sire.perturbation()
+    pert_omm = pert.to_openmm(map={"coordinates": "coordinates0"})
+
+    changed_bonds_df = pert_omm.changed_bonds(to_pandas=True)
+    n_bonds_created = (changed_bonds_df["k0"] == 0).sum()
+    n_bonds_annihilated = (changed_bonds_df["k1"] == 0).sum()
+
+    # assert that exactly one bond is being created, as mutating
+    # from leucine to proline should create a new bond in the ring of proline
+    assert n_bonds_created == 1
+    assert n_bonds_annihilated == 0
+
+@pytest.mark.skipif(has_amber is False, reason="Requires AMBER to be installed.")
+def test_custom_roi_map_invalid_outside_roi():
+    wt = BSS.IO.readMolecules(
+        BSS.IO.expand(BSS.tutorialUrl(), f"1choFH_apo_wt_flare_processed.pdb")
+    )[0]
+    mut = BSS.IO.readMolecules(
+        BSS.IO.expand(BSS.tutorialUrl(), f"1choFH_apo_mut_flare_processed.pdb")
+    )[0]
+
+    wt = BSS.Parameters.ff14SB(wt, ensure_compatible=False).getMolecule()
+    mut = BSS.Parameters.ff14SB(mut, ensure_compatible=False).getMolecule()
+
+    # provide some invalid mapping that is outside of the ROI, which should raise an error
+    with pytest.raises(ValueError):
+        mapping = BSS.Align.matchAtoms(
+            molecule0=wt,
+            molecule1=mut,
+            roi=[15],
+        
+            custom_roi_map={
+                0: 0,
+                1: 1,
+                2: 2,
+            },
+        )
+
+
 @pytest.mark.skipif(has_amber is False, reason="Requires AMBER and to be installed.")
 def test_roi_merge(protein_inputs):
     proteins, protein_mapping, roi = protein_inputs
@@ -828,6 +928,7 @@ def test_ion_merge(system):
         ),
     ],
 )
+@pytest.mark.skipif(has_openff is False, reason="Requires OpenFF to be installed.")
 def test_ring_opening_and_size_change(ligands, mapping):
     # These perturbations involve ring formation (acyclic atoms in mol0 become
     # ring members in mol1) combined with ring size changes in the existing
@@ -844,3 +945,390 @@ def test_ring_opening_and_size_change(ligands, mapping):
     BSS.Align.merge(
         m0, m1, mapping, allow_ring_breaking=True, allow_ring_size_change=True
     )
+
+
+@pytest.mark.skipif(
+    not has_antechamber or not has_tleap,
+    reason="Requires antechamber and tLEaP to be installed.",
+)
+@pytest.mark.skipif(
+    "openmm" not in sr.convert.supported_formats(),
+    reason="Requires OpenMM to be installed.",
+)
+def test_ring_breaking_intrascale():
+    """
+    Test that ring-breaking merges produce correct intrascale matrices for a
+    standard force field (GAFF2) with no non-default per-pair scale factors.
+
+    The intrascale matrices are built from per-state connectivity, which
+    correctly captures bonded distances across the ring-closure bond in the
+    merged atom space. Since GAFF2 has no non-default per-pair scale factors,
+    patchIntrascale is a no-op — verified by checking that apply_scale_factors=False
+    gives the same changed bond and exception counts as the default path.
+    """
+    # Parameterise both molecules with GAFF2.
+    cyclopentane = BSS.Parameters.gaff2("C1CCCC1").getMolecule()
+    cyclohexane = BSS.Parameters.gaff2("C1CCCCC1").getMolecule()
+
+    # Atom mapping for cyclopentane -> cyclohexane.
+    mapping = {
+        0: 0,
+        1: 1,
+        2: 2,
+        3: 3,
+        4: 4,
+        5: 6,
+        6: 7,
+        7: 8,
+        8: 9,
+        9: 10,
+        10: 11,
+        11: 12,
+        12: 13,
+        13: 14,
+        14: 15,
+    }
+
+    # Load the reference merged system produced by the old BioSimSpace merge
+    # code (which used CLJNBPairs(connectivity, sf14) and was known correct).
+    reference = sr.load_test_files("cyclopentane_cyclohexane.bss")
+    ref_mol = reference.molecules("molecule property is_perturbable")[0]
+    ref_omm = ref_mol.perturbation().to_openmm(map={"coordinates": "coordinates0"})
+    ref_bonds = ref_omm.changed_bonds()
+    ref_exceptions = ref_omm.changed_exceptions()
+
+    # Merge cyclopentane -> cyclohexane and check against the reference.
+    cyclopentane_aligned = BSS.Align.rmsdAlign(cyclopentane, cyclohexane, mapping)
+    merged_fwd = BSS.Align.merge(
+        cyclopentane_aligned,
+        cyclohexane,
+        mapping,
+        allow_ring_size_change=True,
+        allow_ring_breaking=True,
+    )
+    omm_fwd = merged_fwd._sire_object.perturbation().to_openmm(
+        map={"coordinates": "coordinates0"}
+    )
+    assert len(omm_fwd.changed_bonds()) == len(ref_bonds)
+    assert len(omm_fwd.changed_exceptions()) == len(ref_exceptions)
+
+    # Merge in the reverse direction (cyclohexane -> cyclopentane) to verify
+    # symmetry: the fix must hold regardless of which molecule is mol0/mol1.
+    inv_mapping = {v: k for k, v in mapping.items()}
+    cyclohexane_aligned = BSS.Align.rmsdAlign(cyclohexane, cyclopentane, inv_mapping)
+    merged_rev = BSS.Align.merge(
+        cyclohexane_aligned,
+        cyclopentane,
+        inv_mapping,
+        allow_ring_size_change=True,
+        allow_ring_breaking=True,
+    )
+    omm_rev = merged_rev._sire_object.perturbation().to_openmm(
+        map={"coordinates": "coordinates0"}
+    )
+    assert len(omm_rev.changed_bonds()) == len(ref_bonds)
+    assert len(omm_rev.changed_exceptions()) == len(ref_exceptions)
+
+    # Verify patchIntrascale is a no-op for GAFF2: skipping it with
+    # apply_scale_factors=False must give identical results.
+    merged_nopatch = BSS.Align.merge(
+        cyclopentane_aligned,
+        cyclohexane,
+        mapping,
+        allow_ring_size_change=True,
+        allow_ring_breaking=True,
+        apply_scale_factors=False,
+    )
+    omm_nopatch = merged_nopatch._sire_object.perturbation().to_openmm(
+        map={"coordinates": "coordinates0"}
+    )
+    assert len(omm_nopatch.changed_bonds()) == len(ref_bonds)
+    assert len(omm_nopatch.changed_exceptions()) == len(ref_exceptions)
+
+
+def test_ring_breaking_intrascale_m338():
+    """
+    Test that ring-breaking merges produce correct intrascale matrices for a
+    real-world perturbation (int1 -> m338) with a standard force field (OpenFF).
+
+    Since OpenFF has no non-default per-pair scale factors, patchIntrascale is
+    a no-op and the merged intrascale matrices must exactly match those built
+    directly from CLJNBPairs(conn0/conn1, sf14).
+    """
+    from sire.legacy import CAS as _SireCAS
+    from sire.legacy import MM as _SireMM
+    from sire.legacy import Mol as _SireMol
+
+    # Atom mapping: {int1_idx: m338_idx}
+    mapping = {
+        21: 0,
+        0: 1,
+        23: 2,
+        18: 3,
+        1: 4,
+        2: 5,
+        3: 6,
+        4: 7,
+        5: 8,
+        6: 9,
+        7: 10,
+        8: 11,
+        9: 12,
+        10: 13,
+        19: 14,
+        11: 15,
+        12: 16,
+        13: 17,
+        14: 18,
+        15: 19,
+        16: 20,
+        20: 21,
+        30: 22,
+        24: 23,
+        22: 24,
+        26: 25,
+        17: 26,
+        25: 27,
+        27: 28,
+        32: 29,
+        33: 30,
+        34: 31,
+        35: 32,
+        36: 33,
+        37: 34,
+        28: 35,
+        38: 36,
+    }
+
+    mol0 = BSS.IO.readMolecules([f"{url}/int1.prm7", f"{url}/int1.rst7"])[0]
+    mol1 = BSS.IO.readMolecules([f"{url}/m338.prm7", f"{url}/m338.rst7"])[0]
+
+    mol0_aligned = BSS.Align.rmsdAlign(mol0, mol1, mapping)
+    merged = BSS.Align.merge(
+        mol0_aligned,
+        mol1,
+        mapping,
+        allow_ring_breaking=True,
+        allow_ring_size_change=True,
+    )
+
+    sire_mol = merged._sire_object
+
+    intra0 = sire_mol.property("intrascale0")
+    intra1 = sire_mol.property("intrascale1")
+
+    # Build reference matrices directly from per-state connectivity. For OpenFF
+    # these must be identical to the merge output since patchIntrascale is a no-op.
+    ff = mol0._sire_object.property("forcefield")
+    sf14 = _SireMM.CLJScaleFactor(
+        ff.electrostatic14_scale_factor(), ff.vdw14_scale_factor()
+    )
+
+    conn0_edit = _SireMol.Connectivity(sire_mol.info()).edit()
+    conn1_edit = _SireMol.Connectivity(sire_mol.info()).edit()
+    for bond in sire_mol.property("bond0").potentials():
+        ab = _SireMM.AmberBond(bond.function(), _SireCAS.Symbol("r"))
+        if ab.k() != 0.0:
+            conn0_edit.connect(bond.atom0(), bond.atom1())
+    for bond in sire_mol.property("bond1").potentials():
+        ab = _SireMM.AmberBond(bond.function(), _SireCAS.Symbol("r"))
+        if ab.k() != 0.0:
+            conn1_edit.connect(bond.atom0(), bond.atom1())
+
+    ref_intra0 = _SireMM.CLJNBPairs(conn0_edit.commit(), sf14)
+    ref_intra1 = _SireMM.CLJNBPairs(conn1_edit.commit(), sf14)
+
+    # The two approaches must agree on every atom pair.
+    n = sire_mol.num_atoms()
+    for i in range(n):
+        for j in range(i, n):
+            idx_i = _SireMol.AtomIdx(i)
+            idx_j = _SireMol.AtomIdx(j)
+            assert intra0.get(idx_i, idx_j).coulomb() == pytest.approx(
+                ref_intra0.get(idx_i, idx_j).coulomb()
+            ), f"intra0 coulomb mismatch at ({i},{j})"
+            assert intra0.get(idx_i, idx_j).lj() == pytest.approx(
+                ref_intra0.get(idx_i, idx_j).lj()
+            ), f"intra0 lj mismatch at ({i},{j})"
+            assert intra1.get(idx_i, idx_j).coulomb() == pytest.approx(
+                ref_intra1.get(idx_i, idx_j).coulomb()
+            ), f"intra1 coulomb mismatch at ({i},{j})"
+            assert intra1.get(idx_i, idx_j).lj() == pytest.approx(
+                ref_intra1.get(idx_i, idx_j).lj()
+            ), f"intra1 lj mismatch at ({i},{j})"
+
+
+@pytest.mark.skipif(
+    not has_antechamber or not has_tleap,
+    reason="Requires antechamber and tLEaP to be installed.",
+)
+@pytest.mark.skipif(
+    not has_openff,
+    reason="Requires OpenFF to be installed.",
+)
+def test_ring_breaking_cross_bond_cleanup():
+    """
+    Test that bonded terms spanning a ring-breaking bond are removed from the
+    end-state properties where that bond is absent (SYK 5035→5033).
+
+    In this perturbation a ring opens, leaving one bond present at λ=0 but
+    absent at λ=1. Any angle, dihedral or improper whose geometry depends on
+    that bond must be removed from the λ=1 properties; retaining them would
+    constrain atoms toward a bonded geometry that no longer exists and cause
+    large repulsion at the nonbonded/bonded lambda boundary.
+    """
+
+    # MCS mapping: {5033_idx: 5035_idx} — mol0=5033 (ring present), mol1=5035
+    # (ring absent), so the ring bond appears in connectivity0 but not
+    # connectivity1, giving ring_breaking = {(1, 7)} in the merged molecule.
+    mapping = {
+        6: 0,
+        5: 1,
+        4: 2,
+        3: 3,
+        34: 4,
+        8: 5,
+        32: 6,
+        31: 7,
+        11: 8,
+        12: 9,
+        13: 10,
+        14: 11,
+        15: 12,
+        16: 13,
+        17: 14,
+        18: 15,
+        19: 16,
+        20: 17,
+        21: 18,
+        22: 19,
+        23: 20,
+        24: 21,
+        25: 22,
+        26: 23,
+        27: 24,
+        28: 25,
+        29: 26,
+        30: 27,
+        10: 28,
+        9: 29,
+        7: 30,
+        38: 31,
+        37: 32,
+        35: 33,
+        36: 34,
+        1: 35,
+        33: 36,
+        53: 38,
+        52: 39,
+        43: 40,
+        44: 41,
+        45: 42,
+        46: 43,
+        47: 44,
+        48: 45,
+        49: 46,
+        50: 47,
+        51: 48,
+        42: 49,
+        41: 50,
+    }
+
+    mol0 = BSS.Parameters.openff_unconstrained_2_2_1(
+        BSS.IO.readMolecules(f"{url}/5033.sdf")[0]
+    ).getMolecule()
+    mol1 = BSS.Parameters.openff_unconstrained_2_2_1(
+        BSS.IO.readMolecules(f"{url}/5035.sdf")[0]
+    ).getMolecule()
+
+    mol0_aligned = BSS.Align.rmsdAlign(mol0, mol1, mapping)
+    merged = BSS.Align.merge(
+        mol0_aligned,
+        mol1,
+        mapping,
+        allow_ring_breaking=True,
+    )
+
+    sire_mol = merged._sire_object
+    mol_info = sire_mol.info()
+
+    conn0 = sire_mol.property("connectivity0")
+    conn1 = sire_mol.property("connectivity1")
+
+    bonds0 = {
+        (
+            min(b.atom0().value(), b.atom1().value()),
+            max(b.atom0().value(), b.atom1().value()),
+        )
+        for b in conn0.get_bonds()
+    }
+    bonds1 = {
+        (
+            min(b.atom0().value(), b.atom1().value()),
+            max(b.atom0().value(), b.atom1().value()),
+        )
+        for b in conn1.get_bonds()
+    }
+
+    # Bonds present only at λ=1 must not appear in angle0/dihedral0/improper0.
+    ring_making = bonds1 - bonds0
+    # Bonds present only at λ=0 must not appear in angle1/dihedral1/improper1.
+    ring_breaking = bonds0 - bonds1
+
+    # This perturbation must have at least one ring-breaking bond.
+    assert ring_breaking, "Expected ring-breaking bonds in SYK 5035→5033"
+
+    for changing, suffix in [(ring_making, "0"), (ring_breaking, "1")]:
+        if not changing:
+            continue
+
+        for p in sire_mol.property(f"angle{suffix}").potentials():
+            i = mol_info.atom_idx(p.atom0()).value()
+            j = mol_info.atom_idx(p.atom1()).value()
+            k = mol_info.atom_idx(p.atom2()).value()
+            assert (min(i, j), max(i, j)) not in changing, (
+                f"angle{suffix} ({i},{j},{k}) spans absent bond "
+                f"({min(i, j)},{max(i, j)})"
+            )
+            assert (min(j, k), max(j, k)) not in changing, (
+                f"angle{suffix} ({i},{j},{k}) spans absent bond "
+                f"({min(j, k)},{max(j, k)})"
+            )
+
+        for p in sire_mol.property(f"dihedral{suffix}").potentials():
+            j = mol_info.atom_idx(p.atom1()).value()
+            k = mol_info.atom_idx(p.atom2()).value()
+            assert (
+                min(j, k),
+                max(j, k),
+            ) not in changing, (
+                f"dihedral{suffix} central bond ({j},{k}) spans absent bond"
+            )
+
+        for p in sire_mol.property(f"improper{suffix}").potentials():
+            atoms = {
+                mol_info.atom_idx(p.atom0()).value(),
+                mol_info.atom_idx(p.atom1()).value(),
+                mol_info.atom_idx(p.atom2()).value(),
+                mol_info.atom_idx(p.atom3()).value(),
+            }
+            for a, b in changing:
+                assert not (
+                    a in atoms and b in atoms
+                ), f"improper{suffix} spans absent bond ({a},{b})"
+
+    # Check that the ring-breaking and ring-making bond properties are set.
+    def _read_pairs(prop_name):
+        if not sire_mol.has_property(prop_name):
+            return set()
+        flat = list(sire_mol.property(prop_name).to_list())
+        return {(flat[i], flat[i + 1]) for i in range(0, len(flat), 2)}
+
+    stored_breaking = _read_pairs("ring_breaking_bonds")
+    stored_making = _read_pairs("ring_making_bonds")
+    assert (
+        stored_breaking == ring_breaking
+    ), f"ring_breaking_bonds property mismatch: {stored_breaking} != {ring_breaking}"
+    assert (
+        stored_making == ring_making
+    ), f"ring_making_bonds property mismatch: {stored_making} != {ring_making}"

@@ -713,6 +713,7 @@ def matchAtoms(
     complete_rings_only=True,
     max_scoring_matches=1000,
     roi=None,
+    custom_roi_map=None,
     prune_perturbed_constraints=False,
     prune_crossing_constraints=False,
     prune_atom_types=False,
@@ -777,6 +778,12 @@ def matchAtoms(
     roi : list
         The region of interest to match.
         Consists of a list of ROI residue indices.
+
+    custom_roi_map : dict
+        A dictionary that maps atom indices in molecule0 to those in
+        molecule1 within the region of interest. This allows the user
+        override the MCS mapping within the region of interest.
+        Only relevant when 'roi' is not None.
 
     prune_perturbed_constraints : bool
         Whether to remove hydrogen atoms that are perturbed to heavy atoms
@@ -851,6 +858,11 @@ def matchAtoms(
 
     >>> import BioSimSpace as BSS
     >>> mapping = BSS.Align.matchAtoms(molecule0, molecule1, roi=[12, 13, 14])
+
+    Find the mapping between two molecules with a custom region of interest mapping.
+
+    >>> import BioSimSpace as BSS
+    >>> mapping = BSS.Align.matchAtoms(molecule0, molecule1, roi=[12], custom_roi_map={0 : 10, 3 : 7})
     """
 
     if roi is None:
@@ -872,9 +884,10 @@ def matchAtoms(
         )
     else:
         return _roiMatch(
-            molecule0=molecule0,
-            molecule1=molecule1,
-            roi=roi,
+            molecule0,
+            molecule1,
+            roi,
+            custom_roi_map,
             prune_perturbed_constraints=prune_perturbed_constraints,
             prune_crossing_constraints=prune_crossing_constraints,
             prune_atom_types=prune_atom_types,
@@ -1215,6 +1228,7 @@ def _roiMatch(
     molecule0,
     molecule1,
     roi,
+    custom_roi_map,
     prune_perturbed_constraints=False,
     prune_crossing_constraints=False,
     prune_atom_types=False,
@@ -1239,6 +1253,11 @@ def _roiMatch(
     roi : list
         The region of interest to match.
         Consists of a list of ROI residue indices
+
+    custom_roi_map : dict
+        A dictionary that maps atom indices in molecule0 to those in
+        molecule1 within the region of interest. This allows the user
+        override the MCS mapping within the region of interest.
 
     prune_perturbed_constraints : bool
         Whether to remove hydrogen atoms that are perturbed to heavy atoms
@@ -1308,6 +1327,12 @@ def _roiMatch(
 
     >>> import BioSimSpace as BSS
     >>> mapping = BSS.Align._align._roiMatch(molecule0, molecule1, roi=[12], use_kartograf=True)
+
+    Find the mapping between two molecules with a custom region of interest mapping.
+
+    >>> import BioSimSpace as BSS
+    >>> mapping = BSS.Align._align._roiMatch(molecule0, molecule1, roi=[12], custom_roi_map={0 : 10, 3 : 7})
+
     """
     from .._SireWrappers import Molecule as _Molecule
 
@@ -1413,22 +1438,41 @@ def _roiMatch(
                 res0_extracted, res1_extracted, kartograf_kwargs
             )
             mapping = kartograf_mapping.componentA_to_componentB
+
+        # Prevent the MCS mapping from being generated if a custom ROI mapping is provided.
+        elif custom_roi_map is not None:
+            # Validate custom_roi_map is a dict and is inside the ROI region
+            if not isinstance(custom_roi_map, dict):
+                raise TypeError("'custom_roi_map' must be of type 'dict'")
+            for k, v in custom_roi_map.items():
+                if k not in res0_idx:
+                    raise ValueError(
+                        f"Key {k} in 'custom_roi_map' is not in the ROI region of molecule0."
+                    )
+                if v not in res1_idx:
+                    raise ValueError(
+                        f"Value {v} in 'custom_roi_map' is not in the ROI region of molecule1."
+                    )
+            mapping = None
         else:
             mapping = matchAtoms(
                 res0_extracted,
                 res1_extracted,
             )
 
-        # Look up the absolute atom indices in the molecule
-        res0_lookup_table = list(mapping.keys())
-        absolute_mapped_atoms_res0 = [res0_idx[i] for i in res0_lookup_table]
+        # Look up the absolute atom indices in the molecule if not using a custom ROI mapping.
+        if custom_roi_map is not None:
+            absolute_roi_mapping = custom_roi_map
+        else:
+            res0_lookup_table = list(mapping.keys())
+            absolute_mapped_atoms_res0 = [res0_idx[i] for i in res0_lookup_table]
 
-        res1_lookup_table = list(mapping.values())
-        absolute_mapped_atoms_res1 = [res1_idx[i] for i in res1_lookup_table]
+            res1_lookup_table = list(mapping.values())
+            absolute_mapped_atoms_res1 = [res1_idx[i] for i in res1_lookup_table]
 
-        absolute_roi_mapping = dict(
-            zip(absolute_mapped_atoms_res0, absolute_mapped_atoms_res1)
-        )
+            absolute_roi_mapping = dict(
+                zip(absolute_mapped_atoms_res0, absolute_mapped_atoms_res1)
+            )
 
         # If we are at the last residue of interest, we don't need to worry
         # too much about the after ROI region as this region will be all of the
@@ -1447,14 +1491,14 @@ def _roiMatch(
                 after_roi_atom_idx_molecule1 = []
             else:
                 after_roi_molecule0 = molecule0.search(
-                    f"residue[{res_idx+1}:{roi[i+1]}]"
+                    f"residue[{res_idx + 1}:{roi[i + 1]}]"
                 )
                 after_roi_atom_idx_molecule0 = [
                     a.index() for a in after_roi_molecule0.atoms()
                 ]
 
                 after_roi_molecule1 = molecule1.search(
-                    f"residue[{res_idx+1}:{roi[i+1]}]"
+                    f"residue[{res_idx + 1}:{roi[i + 1]}]"
                 )
                 after_roi_atom_idx_molecule1 = [
                     b.index() for b in after_roi_molecule1.atoms()
@@ -1476,12 +1520,12 @@ def _roiMatch(
             }
         else:
             # Get all of the remaining atoms after the last ROI
-            after_roi_molecule0 = molecule0.search(f"residue[{res_idx+1}:]")
+            after_roi_molecule0 = molecule0.search(f"residue[{res_idx + 1}:]")
             after_roi_atom_idx_molecule0 = [
                 a.index() for a in after_roi_molecule0.atoms()
             ]
 
-            after_roi_molecule1 = molecule1.search(f"residue[{res_idx+1}:]")
+            after_roi_molecule1 = molecule1.search(f"residue[{res_idx + 1}:]")
             after_roi_atom_idx_molecule1 = [
                 b.index() for b in after_roi_molecule1.atoms()
             ]
@@ -2035,6 +2079,7 @@ def merge(
     roi=None,
     property_map0={},
     property_map1={},
+    **kwargs,
 ):
     """
     Create a merged molecule from 'molecule0' and 'molecule1' based on the
@@ -2181,6 +2226,7 @@ def merge(
         roi=roi,
         property_map0=property_map0,
         property_map1=property_map1,
+        **kwargs,
     )
 
 

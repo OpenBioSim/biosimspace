@@ -500,7 +500,7 @@ class ReplicaSystem:
 
         if index < 0 or index >= self.nReplicas():
             raise IndexError(
-                f"'index' {index} is out of range [0, {self.nReplicas()-1}]."
+                f"'index' {index} is out of range [0, {self.nReplicas() - 1}]."
             )
 
         # Clone the new Sire system to avoid modifying the original.
