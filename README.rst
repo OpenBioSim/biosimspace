@@ -184,3 +184,6 @@ along with the BioSimSpace version number. This can be found by running:
 
    import BioSimSpace as BSS
    print(BSS.__version__)
+
+* If you experience ``JAX`` issues when using ``BioSimSpace.FreeEnergy.Relative.analyse``, try
+  setting the ``PYMBAR_DISABLE_JAX`` environment variable to ``1``.
