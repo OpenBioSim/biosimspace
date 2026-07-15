@@ -87,6 +87,7 @@ class AlchemicalFreeEnergy:
         property_map={},
         repex=False,
         repex_frequency=1000,
+        nex=1000000,
         oversubscribe=False,
         **kwargs,
     ):
@@ -347,6 +348,10 @@ class AlchemicalFreeEnergy:
         if not isinstance(repex_frequency, int) or repex_frequency < 1:
             raise ValueError("'repex_frequency' must be a positive integer.")
         self._repex_frequency = repex_frequency
+
+        if not isinstance(nex, int) or nex < 0:
+            raise ValueError("'nex' must be a non-negative integer.")
+        self._nex = nex
 
         if not isinstance(oversubscribe, bool):
             raise TypeError("'oversubscribe' must be of type 'bool'.")
@@ -1372,6 +1377,7 @@ class AlchemicalFreeEnergy:
                 system,
                 self._protocol,
                 restraint=self._restraint,
+                nex=self._nex,
                 **common_kwargs,
             )
 
