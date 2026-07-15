@@ -86,6 +86,7 @@ class Relative:
         property_map={},
         repex=False,
         repex_frequency=1000,
+        nex=1000000,
         oversubscribe=False,
         **kwargs,
     ):
@@ -257,6 +258,10 @@ class Relative:
         if not isinstance(repex_frequency, int) or repex_frequency < 1:
             raise ValueError("'repex_frequency' must be a positive integer.")
         self._repex_frequency = repex_frequency
+
+        if not isinstance(nex, int) or nex < 0:
+            raise ValueError("'nex' must be a non-negative integer.")
+        self._nex = nex
 
         if not isinstance(oversubscribe, bool):
             raise TypeError("'oversubscribe' must be of type 'bool'.")
@@ -2131,7 +2136,7 @@ class Relative:
             self._process = _Process.AmberHREX(system, self._protocol, **common_kwargs)
         elif self._engine == "GROMACS":
             self._process = _Process.GromacsHREX(
-                system, self._protocol, **common_kwargs
+                system, self._protocol, nex=self._nex, **common_kwargs
             )
 
     def _initialise_runner(self, system):

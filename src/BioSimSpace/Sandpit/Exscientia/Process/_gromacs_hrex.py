@@ -35,8 +35,9 @@ class GromacsHREX(_Gromacs):
     A class for running Hamiltonian replica exchange (HREX) simulations using GROMACS.
 
     Each lambda window runs as a separate rank within a single gmx mdrun
-    invocation using the -multidir flag. Exchanges between adjacent lambda
-    windows are attempted every repex_frequency steps.
+    invocation using the -multidir flag. Exchange attempts happen every
+    repex_frequency steps; by default (see nex) these are random exchanges
+    between arbitrary pairs of replicas rather than adjacent-only swaps.
 
     A shared topology is written once to the process work directory.
     Per-replica coordinate files are written efficiently via
@@ -48,6 +49,7 @@ class GromacsHREX(_Gromacs):
         system,
         protocol,
         repex_frequency=1000,
+        nex=1000000,
         oversubscribe=False,
         exe=None,
         mpi_exe=None,
@@ -80,6 +82,17 @@ class GromacsHREX(_Gromacs):
         repex_frequency : int
             The number of steps between replica exchange attempts. Passed as
             ``-replex`` to gmx mdrun. Default is 1000.
+
+        nex : int
+            The number of random exchanges to attempt at each exchange
+            interval, passed as ``-nex`` to gmx mdrun. A value of zero gives
+            GROMACS's default neighbor-only exchange scheme (adjacent lambda
+            windows only). Any positive value switches to random exchange
+            attempts between arbitrary pairs of replicas each interval; GROMACS
+            suggests N^3 (N being the number of replicas) as a rule of thumb,
+            but any sufficiently large value has the same practical effect, so
+            this defaults to 1000000 to give thorough mixing across the whole
+            replica ladder rather than neighbor-only exchange.
 
         oversubscribe : bool
             Whether to pass ``--oversubscribe`` to mpirun, allowing more MPI
@@ -172,6 +185,9 @@ class GromacsHREX(_Gromacs):
         if not isinstance(repex_frequency, int) or repex_frequency < 1:
             raise ValueError("'repex_frequency' must be a positive integer.")
 
+        if not isinstance(nex, int) or nex < 0:
+            raise ValueError("'nex' must be a non-negative integer.")
+
         if not isinstance(oversubscribe, bool):
             raise TypeError("'oversubscribe' must be of type 'bool'.")
 
@@ -201,6 +217,7 @@ class GromacsHREX(_Gromacs):
         # Store REMD-specific attributes before calling super().__init__(),
         # because the parent constructor calls self._setup(), which needs these.
         self._repex_frequency = repex_frequency
+        self._nex = nex
         self._oversubscribe = oversubscribe
         self._mpi_exe = mpi_exe
         self._lam_vals = lam_vals
@@ -459,6 +476,8 @@ class GromacsHREX(_Gromacs):
                 + self._lambda_dirs
                 + ["-replex", str(self._repex_frequency)]
             )
+            if self._nex:
+                args += ["-nex", str(self._nex)]
 
             # Write the command to README.txt for reproducibility.
             with open("README.txt", "w") as f:
