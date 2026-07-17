@@ -19,8 +19,12 @@ within the biomolecular simulation community. Our software is hosted via the `Op
 * Update the ``prepareFEP`` helper script to generate ``SOMD1`` and ``SOMD2`` inputs simultaneously (`#516 <https://github.com/OpenBioSim/biosimspace/pull/516>`__).
 * Remove cross-bond angle and torsion terms for ring-making/breaking perturbations (`#517 <https://github.com/OpenBioSim/biosimspace/pull/517>`__).
 * Added functionaltiy for adding ions to an existing system (`#518 <https://github.com/OpenBioSim/biosimspace/pull/518>`__).
+
+  .. roadmap::
 * Expose the ``max_path`` and ``max_ring_size`` kwargs used for ring break and size change detection in the :func:`BioSimSpace.Align.generateNetwork <BioSimSpace.Align.merge>` function (`#520 <https://github.com/OpenBioSim/biosimspace/pull/520>`__).
 * Add support for user-defined "region-of-interest" merges (`#522 <https://github.com/OpenBioSim/biosimspace/pull/522>`__).
+
+  .. roadmap::
 * Add pins to handle OpenForceField Python version deprecations (`#524 <https://github.com/OpenBioSim/biosimspace/pull/524>`__).
 
 `2025.4.0 <https://github.com/openbiosim/biosimspace/compare/2025.3.0...2025.4.0>`_ - Feb 17 2026
@@ -28,6 +32,8 @@ within the biomolecular simulation community. Our software is hosted via the `Op
 
 * Fixed centre of mass restraints for alchemical transfer method (ATM) simulations (`@mb2055 <https://github.com/mb2055>`__) (`#471 <https://github.com/OpenBioSim/biosimspace/pull/471>`__).
 * Add experimental :class:`ReplicaSystem` class to speed up handling of replica exchange simulations (`#473 <https://github.com/OpenBioSim/biosimspace/pull/473>`__).
+
+  .. roadmap::
 * Removed lazy imports from sub-modules that don't use Sire (`#475 <https://github.com/OpenBioSim/biosimspace/pull/475>`__).
 * Allow translation of a custom ``coordinates`` property for perturbable molecules (`#477 <https://github.com/OpenBioSim/biosimspace/pull/477>`__).
 * Added a kwarg to make zeroing of LJ sigma values for ghost atoms optional (`#482 <https://github.com/OpenBioSim/biosimspace/pull/482>`__).
@@ -47,13 +53,20 @@ within the biomolecular simulation community. Our software is hosted via the `Op
 * Added functionality for quickly getting and setting the coordinates array of a :class:`System <BioSimSpace._SireWrappers.System>` (`#465 <https://github.com/OpenBioSim/biosimspace/pull/465>`__).
 * Reduce depdency import overheads by switching from module level imports to function and method level (`#466 <https://github.com/OpenBioSim/biosimspace/pull/466>`__).
 * Fully switch over to using the new Sire Python API naming convention, allowing BioSimSpace to be used within Sire (`#466 <https://github.com/OpenBioSim/biosimspace/pull/466>`__).
+
+  .. roadmap::
 * Fixed logic used for setting the GPU device index for :class:`Process.OpenMM <BioSimSpace.Process.OpenMM>` (`#468 <https://github.com/OpenBioSim/biosimspace/pull/468>`__).
 
 `2025.2.0 <https://github.com/openbiosim/biosimspace/compare/2025.1.0...2025.2.0>`_ - Oct 08 2025
 -------------------------------------------------------------------------------------------------
 
 * Add support for ``SOMD2`` FEP analysis using data frames with different numbers of samples (`#415 <https://github.com/OpenBioSim/biosimspace/pull/415>`__).
+
+  .. roadmap::
+
 * Add support for the ABCG2 charge method for GAFF parameterisation (`#421 <https://github.com/OpenBioSim/biosimspace/pull/421>`__).
+
+  .. roadmap::
 * Fixed f-string formatting error in FEP analysis exception message (`#423 <https://github.com/OpenBioSim/biosimspace/pull/423>`__).
 * Fixed FEP energy trajectory slicing when intitial sample time is non-zero (`#424 <https://github.com/OpenBioSim/biosimspace/pull/424>`__).
 * Add workaround for incompatibility between ``ParmEd`` and ``NumPy`` 2.3 (`#428 <https://github.com/OpenBioSim/biosimspace/pull/428>`__).
@@ -73,8 +86,13 @@ within the biomolecular simulation community. Our software is hosted via the `Op
 * Improved robustness of formal charge inference when reading molecules from PDB or SDF files (`#393 <https://github.com/OpenBioSim/biosimspace/pull/393>`__).
 * Make sure the system extracted from AMBER trajectory frames during free-energy perturbation simulations is in the original, unsquashed format (`#403 <https://github.com/OpenBioSim/biosimspace/pull/403>`__).
 * Add support for the ``ff19SB`` force field and OPC water (`#406 <https://github.com/OpenBioSim/biosimspace/pull/406>`__).
+
+  .. roadmap::
+
 * Allow creation of ``SOMD`` perturbation files without modification to ghost atom bonded terms (`#407 <https://github.com/OpenBioSim/biosimspace/pull/407>`__).
 * Support analysis of ``SOMD2`` energy trajectories with time varying lambda sampling (`#408 <https://github.com/OpenBioSim/biosimspace/pull/408>`__).
+
+  .. roadmap::
 
 `2024.4.1 <https://github.com/openbiosim/biosimspace/compare/2024.4.0...2024.4.1>`_ - Feb 14 2025
 -------------------------------------------------------------------------------------------------
@@ -101,6 +119,8 @@ within the biomolecular simulation community. Our software is hosted via the `Op
 * Fixed alignment of monatomic molecules (`#313 <https://github.com/OpenBioSim/biosimspace/pull/313>`__ and (`#333 <https://github.com/OpenBioSim/biosimspace/pull/333>`__).
 * Expose missing ``extra_args`` keyword argument for the :class:`Process.Somd <BioSimSpace.Process.Somd>` class (`#319 <https://github.com/OpenBioSim/biosimspace/pull/319>`__).
 * Add support for the Alchemical Transfer Method (ATM) (`@mb2055 <https://github.com/mb2055>`_) (`#327 <https://github.com/OpenBioSim/biosimspace/pull/327>`__).
+
+  .. roadmap::
 * Fixed :meth:`system.updateMolecules <BioSimSpace._SireWrappers.System.updateMolecules>` method when updating multiple molecules at once (`#336 <https://github.com/OpenBioSim/biosimspace/pull/336>`__).
 * Added a new :meth:`system.removeBox <BioSimSpace._SireWrappers.System.removeBox>` method to remove the box from a system (`#338 <https://github.com/OpenBioSim/biosimspace/pull/338>`__).
 * Fixed bug when using position restraints with OpenMM for perturbable systems (`#341 <https://github.com/OpenBioSim/biosimspace/pull/341>`__).
@@ -118,6 +138,8 @@ within the biomolecular simulation community. Our software is hosted via the `Op
 * Detect dummy atoms by checking ``element`` *and* ``ambertype`` properties when creating ``SOMD`` pert files (`#289 <https://github.com/OpenBioSim/biosimspace/pull/289>`__).
 * Add missing ``match_water`` kwarg to ``prepareFEP`` node (`#292 <https://github.com/OpenBioSim/biosimspace/pull/292>`__).
 * Add protein free-energy perturbation functionality (`@akalpokas <https://github.com/akalpokas`_) (`#294 <https://github.com/OpenBioSim/biosimspace/pull/294>`__).
+
+  .. roadmap::
 * Ensure that the LJ sigma parameter for perturbed atoms is non-zero (`#295 <https://github.com/OpenBioSim/biosimspace/pull/295>`__).
 * Fixed return type docstrings for functions in the :mod:`BioSimSpace.Parameters` module (`#298 <https://github.com/OpenBioSim/biosimspace/pull/298>`__).
 * Don't use ``sire.legacy.Base.wrap`` with the ``file_format`` property to avoid (incorrect) auto string to unit conversion of ``mol2`` to moles squared (`#300 <https://github.com/OpenBioSim/biosimspace/pull/300>`__).
@@ -129,8 +151,13 @@ within the biomolecular simulation community. Our software is hosted via the `Op
 * Switch to using Langevin integrator for GROMACS free energy simulations (`#264 <https://github.com/OpenBioSim/biosimspace/pull/264>`__).
 * Add support for clearing and disabling the IO file cache (`#266 <https://github.com/OpenBioSim/biosimspace/pull/266>`__).
 * Add support for using ``openff-nagl`` to generate partial charges (`#267 <https://github.com/OpenBioSim/biosimspace/pull/267>`__).
+
+  .. roadmap::
+
 * Fixed non-reproducible search for backbone restraint atom indices (`#270 <https://github.com/OpenBioSim/biosimspace/pull/270>`__).
 * Add support for AMBER as an alchemical free-energy simulation engine (`#272 <https://github.com/OpenBioSim/biosimspace/pull/272>`__).
+
+  .. roadmap::
 * Switch to using ``os.path.join`` to generate directory file names (`#276 <https://github.com/OpenBioSim/biosimspace/pull/276>`__).
 * Make sure the ``fileformat`` property is preserved when creating single molecule systems (`#276 <https://github.com/OpenBioSim/biosimspace/pull/276>`__).
 * Add a ``getRestraintType`` method to the base protocol that returns ``None`` (`#276 <https://github.com/OpenBioSim/biosimspace/pull/276>`__).
@@ -155,6 +182,8 @@ within the biomolecular simulation community. Our software is hosted via the `Op
 * Add support for detecting nucleic acid backbones (`@fjclark <https://github.com/fjclark>`_) (`#189 <https://github.com/OpenBioSim/biosimspace/pull/189>`__).
 * Added SOMD and GROMACS support for multiple distance restraints for ABFE calculations (`#178 <https://github.com/OpenBioSim/biosimspace/pull/178>`__).
 
+  .. roadmap::
+
 `2023.4.1 <https://github.com/openbiosim/biosimspace/compare/2023.4.0...2023.4.1>`_ - Dec 14 2023
 -------------------------------------------------------------------------------------------------
 
@@ -178,7 +207,12 @@ within the biomolecular simulation community. Our software is hosted via the `Op
 
 * Add support for computing trajectory RMSDs using Sire backend (`#152 <https://github.com/OpenBioSim/biosimspace/pull/152>`__).
 * Add support for setting up systems containing crystal waters (`#154 <https://github.com/OpenBioSim/biosimspace/pull/154>`__).
+
+  .. roadmap::
+
 * Add unified free-energy perturbation analysis using ``alchemlyb`` (`@annamherz <https://github.com/annamherz>`_) (`#155 <https://github.com/OpenBioSim/biosimspace/pull/155>`__).
+
+  .. roadmap::
 * Fix handling of connectivity changes during molecular perturbations (`#157 <https://github.com/OpenBioSim/biosimspace/pull/157>`__).
 * Fix issues related to new shared properties in Sire (`#160 <https://github.com/OpenBioSim/biosimspace/pull/160>`__).
 * Fix issues in SOMD perturbation files for absolute binding free-energy simulations (`@fjclark <https://github.com/fjclark>`_) (`#164 <https://github.com/OpenBioSim/biosimspace/pull/164>`__).
@@ -214,6 +248,8 @@ within the biomolecular simulation community. Our software is hosted via the `Op
 * Recenter molecules following vacuum simulation with GROMACS to avoid precision overflow with molecular coordinates on write (`#95 <https://github.com/OpenBioSim/biosimspace/pull/95>`__).
 * Fix expected angles used in unit test following updates to triclinic box code in Sire (`#99 <https://github.com/OpenBioSim/biosimspace/pull/99>`__).
 * Add absolute binding free-energy support for SOMD (`@fjclark <https://github.com/fjclark>`_) (`#104 <https://github.com/OpenBioSim/biosimspace/pull/104>`__).
+
+  .. roadmap::
 * Avoid streaming issues when reading binary AMBER restart files for a single frame (`#105 <https://github.com/OpenBioSim/biosimspace/pull/105>`__).
 * Improve overlap matrix plotting functionality (`@fjclark <https://github.com/fjclark>`_) (`#107 <https://github.com/OpenBioSim/biosimspace/pull/107>`__).
 * Handle updates to Sire parser format naming (`#108 <https://github.com/OpenBioSim/biosimspace/pull/108>`__).
@@ -227,6 +263,8 @@ within the biomolecular simulation community. Our software is hosted via the `Op
 * Fixed bug in SOMD free-energy perturbation analysis (`@fjclark <https://github.com/fjclark>`_) (`#119 <https://github.com/OpenBioSim/biosimspace/pull/119>`__).
 * Catch exception when vacuum system has a cartesian space (`#120 <https://github.com/OpenBioSim/biosimspace/pull/120>`__).
 * Add support for Sire as a trajectory backend (`#121 <https://github.com/OpenBioSim/biosimspace/pull/121>`__).
+
+  .. roadmap::
 
 `2023.2.2 <https://github.com/openbiosim/biosimspace/compare/2023.2.1...2023.2.2>`_ - May 15 2023
 -------------------------------------------------------------------------------------------------
@@ -274,6 +312,8 @@ within the biomolecular simulation community. Our software is hosted via the `Op
 * Refactor code to use a unified :class:`WorkDir <BioSimSpace._Utils.WorkDir>` class to simplify the creation of working directories (`#2 <https://github.com/OpenBioSim/biosimspace/pull/2>`__).
 * Added :meth:`isSame <BioSimSpace._SireWrappers.System.isSame>` method to compare systems using a sub-set of system and molecular properties. This improves our file caching support, allowing a user to exclude properties when comparing cached systems prior to write, e.g. ignoring coordinates and velocities, if those are the only things that differ between the systems `(#3 <https://github.com/OpenBioSim/biosimspace/pull/3>`__).
 * Added the initial version of :mod:`BioSimSpace.Convert <BioSimSpace.Convert>`, which provides support for converting between native `BioSimSpace`, `Sire <http://sire.openbiosim.org>`__, and `RDKit <https://www.rdkit.org>`__ objects (`#9 <https://github.com/OpenBioSim/biosimspace/pull/9>`__).
+
+  .. roadmap::
 * Fixed several formatting issues with the website documentation.
 
 `2023.1.1 <https://github.com/openbiosim/biosimspace/compare/2023.1.0...2023.1.1>`_ - Feb 07 2023
@@ -289,6 +329,8 @@ within the biomolecular simulation community. Our software is hosted via the `Op
 * Wrapped the new `sire.load <https://sire.openbiosim.org/api/sire.html#sire.load>`__ function to allow loading of URLs.
 * Add basic file caching support to avoid re-writing files for the same molecular system.
 * Added :data:`BioSimSpace._Config` sub-package to simplify the generation of configuration files for molecular dynamics engines and improve flexiblity. (Adapted from code written by `@msuruzhon <https://github.com/msuruzhon>`_.)
+
+  .. roadmap::
 * Deprecated ``BioSimSpace.IO.glob`` since globbing is now performed automatically.
 * Autoformat entire codebase using `black <https://github.com/psf/black>`__.
 * Fix issues following Sire 2023 API updates.
@@ -308,6 +350,8 @@ GitHub organisation. The following releases were made during that time.
 * Added wrapper for ``Sire.Units.GeneralUnit``.
 * Improved interoperability of ``BioSimSpace.Trajectory`` sub-package.
 * Added ``BioSimSpace.Sandpit`` for experimental features from external collaborators.
+
+  .. roadmap::
 * Added functionality to check for molecules in a ``BioSimSpace.System``.
 * Added functionality to extract atoms and residues by absolute index.
 * Allow continuation for GROMACS equilibration simulations. (`@kexul <https://github.com/kexul>`_)
@@ -338,10 +382,21 @@ GitHub organisation. The following releases were made during that time.
 * Added basic support for cleaning PDB files with `pdb4amber <https://github.com/Amber-MD/pdb4amber>`_ prior to read.
 * Added basic support for exporting BioSimSpace Nodes as Common Workflow Language wrappers.
 * Added support for parameterising molecules using OpenForceField.
+
+  .. roadmap::
+
 * Added support for using SMILES strings for input to parameterisation functions.
 * Added support for funnel metadynamics simulations (`@dlukauskis <https://github.com/dlukauskis>`_).
+
+  .. roadmap::
+
 * Added support for steered molecular dynamics simulations (`@AdeleLip <https://github.com/AdeleLip>`_).
+
+  .. roadmap::
+
 * Added support for generating perturbation networks using LOMAP (`@JenkeScheen <https://github.com/JenkeScheen>`_).
+
+  .. roadmap::
 * Fixed bug affecting certain improper/dihedral terms in SOMD perturbation file writer.
 * Numerous performance improvements, particularly involving the manipulation and
   combination of molecular systems.
@@ -376,6 +431,8 @@ GitHub organisation. The following releases were made during that time.
 * Switched to using `RDKit <https://www.rdkit.org/>`_ for maximum common substructure (MCS) mappings.
 * Handle perturbable molecules for non free-energy protocols with SOMD and GROMACS.
 * Added basic metadynamics functionality with support for distance and torsion collective variables.
+
+  .. roadmap::
 * Added support for inferring formal charge of molecules.
 * Numerous MCS mapping fixes and improvements. Thanks to `@maxkuhn <https://github.com/maxkuhn>`_, `@dlukauskis <https://github.com/dlukauskis>`_, and `@ptosco <https://github.com/ptosco>`_ for help testing and debugging.
 * Added Dockerfile to build thirdparty packages required by the BioSimSpace notebook server.
@@ -387,9 +444,20 @@ GitHub organisation. The following releases were made during that time.
 -------------------------------------------------------------------------------------------------
 
 * Added support for parameterising proteins and ligands.
+
+  .. roadmap::
+
 * Added support for solvating molecular systems.
+
+  .. roadmap::
+
 * Molecular dynamics drivers updated to support SOMD and GROMACS.
+
+  .. roadmap::
+
 * Support free energy perturbation simulations with SOMD and GROMACS.
+
+  .. roadmap::
 * Added Azure Pipeline to automatically build, test, document, and deploy BioSimSpace.
 * Created automatic Conda package pipeline.
 
