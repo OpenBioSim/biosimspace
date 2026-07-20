@@ -38,6 +38,7 @@ def merge(
     roi=None,
     max_path=50,
     max_ring_size=24,
+    bonds_to_break=None,
     property_map0={},
     property_map1={},
     **kwargs,
@@ -86,6 +87,24 @@ def merge(
         Maximum ring size considered when checking for ring size changes.
         The default of 24 covers most drug-like macrocycles. Rings larger
         than this threshold are not subject to ring-size-change detection.
+
+    bonds_to_break : [(int, int, int)]
+        A list of bonds to artificially remove prior to merging, specified
+        as (end_state, idx0, idx1) tuples, where 'end_state' is 0 or 1 and
+        'idx0'/'idx1' are the indices of the two bonded atoms within that
+        end state's molecule. This is useful when a merge doesn't register
+        as a ring transformation, but should be treated as one to avoid
+        growing in a closed ring of dummy atoms, e.g. cyclohexane to
+        decalin, or benzene to naphthalene. Breaking the bond leaves the
+        newly-formed ring as a dangling chain of dummies in the end state
+        where it is absent, which better preserves the conformational
+        space of the other end state. Entries that don't correspond to an
+        existing bond are silently ignored, so this also works for bonds
+        that are already absent due to a genuine ring-breaking mapping.
+        Setting this option implies 'allow_ring_breaking' and
+        'allow_ring_size_change', since breaking a bond adjacent to a fused
+        ring system also changes the shortest path length between many
+        downstream atoms.
 
     property_map0 : dict
         A dictionary that maps "properties" in this molecule to their
@@ -154,6 +173,29 @@ def merge(
     if not isinstance(max_ring_size, int) or max_ring_size < 1:
         raise TypeError("'max_ring_size' must be a positive integer")
 
+    if bonds_to_break is not None:
+        if not isinstance(bonds_to_break, (list, tuple)):
+            raise TypeError(
+                "'bonds_to_break' must be a list of (end_state, idx0, idx1) tuples."
+            )
+        for item in bonds_to_break:
+            if not isinstance(item, (list, tuple)) or len(item) != 3:
+                raise TypeError(
+                    "Each entry in 'bonds_to_break' must be a "
+                    "(end_state, idx0, idx1) tuple."
+                )
+            end_state, atom_idx0, atom_idx1 = item
+            if end_state not in (0, 1):
+                raise ValueError(
+                    "The 'end_state' entry in 'bonds_to_break' must be 0 or 1."
+                )
+            if not isinstance(atom_idx0, int) or not isinstance(atom_idx1, int):
+                raise TypeError(
+                    "Atom indices in 'bonds_to_break' must be of type 'int'."
+                )
+            if atom_idx0 == atom_idx1:
+                raise ValueError("Atom indices in 'bonds_to_break' must not be equal.")
+
     if not isinstance(mapping, dict):
         raise TypeError("'mapping' must be of type 'dict'.")
     else:
@@ -179,6 +221,16 @@ def merge(
         allow_ring_breaking = True
         allow_ring_size_change = True
 
+    # Artificially breaking a bond deliberately opens a ring in one of the
+    # end states, so treat this the same as an allowed ring-breaking
+    # perturbation. This also tends to lengthen the shortest path between
+    # atoms downstream of the break (the intact ring on the other side of
+    # a fusion bond becomes the only remaining route), which the generic
+    # ring-size-change detector will pick up too, so allow that as well.
+    if bonds_to_break:
+        allow_ring_breaking = True
+        allow_ring_size_change = True
+
     # Create a copy of this molecule.
     mol = _Molecule(molecule0)
 
@@ -200,6 +252,35 @@ def merge(
     # Invert the user property mappings.
     inv_property_map0 = {v: k for k, v in property_map0.items()}
     inv_property_map1 = {v: k for k, v in property_map1.items()}
+
+    # Validate the atom indices in 'bonds_to_break' against the molecule
+    # that they are native to, and group them by end state. A bond native
+    # to molecule{state} is real at that end state, so it is only excluded
+    # from the "extension" copy that would otherwise carry it, unmodified,
+    # into the *other* end state's properties (where the atoms involved are
+    # unique to molecule{state} and therefore dummies). This leaves the
+    # bond intact in its native end state, e.g. so that a real ring in
+    # molecule1 (e.g. naphthalene's second ring, when merging from benzene)
+    # stays closed at lambda = 1, while being excluded from lambda = 0's
+    # inherited copy of that ring, avoiding a closed ring of dummy atoms.
+    break_pairs0 = set()
+    break_pairs1 = set()
+    if bonds_to_break:
+        n0 = molecule0.num_atoms()
+        n1 = molecule1.num_atoms()
+        for state, atom_idx0, atom_idx1 in bonds_to_break:
+            n = n0 if state == 0 else n1
+            if not (0 <= atom_idx0 < n) or not (0 <= atom_idx1 < n):
+                raise ValueError(
+                    "Atom index out of range for 'bonds_to_break' entry "
+                    f"({state}, {atom_idx0}, {atom_idx1}): molecule{state} "
+                    f"has {n} atoms."
+                )
+            pair = tuple(sorted((atom_idx0, atom_idx1)))
+            if state == 0:
+                break_pairs0.add(pair)
+            else:
+                break_pairs1.add(pair)
 
     # Make sure that the molecules have a "forcefield" property and that
     # the two force fields are compatible.
@@ -537,6 +618,13 @@ def merge(
                 atom0 = info1.atom_idx(bond.atom0())
                 atom1 = info1.atom_idx(bond.atom1())
                 exprn = bond.function()
+
+                # This bond has been flagged for exclusion from lambda = 0.
+                # It remains real (unmodified) in molecule1's own "bond1"
+                # property below, but shouldn't be inherited here, since
+                # these atoms are dummies at this end state.
+                if tuple(sorted((atom0.value(), atom1.value()))) in break_pairs1:
+                    continue
 
                 # Map the atom indices to their position in the merged molecule.
                 atom0 = mol1_merged_mapping[atom0]
@@ -905,8 +993,18 @@ def merge(
                 or info0.atom_idx(bond.atom1()) in atoms0_idx
             ):
                 # Extract the bond information.
-                atom0 = mol0_merged_mapping[info0.atom_idx(bond.atom0())]
-                atom1 = mol0_merged_mapping[info0.atom_idx(bond.atom1())]
+                idx0 = info0.atom_idx(bond.atom0())
+                idx1 = info0.atom_idx(bond.atom1())
+
+                # This bond has been flagged for exclusion from lambda = 1.
+                # It remains real (unmodified) in molecule0's own "bond0"
+                # property above, but shouldn't be inherited here, since
+                # these atoms are dummies at this end state.
+                if tuple(sorted((idx0.value(), idx1.value()))) in break_pairs0:
+                    continue
+
+                atom0 = mol0_merged_mapping[idx0]
+                atom1 = mol0_merged_mapping[idx1]
                 exprn = bond.function()
 
                 # Set the new bond.
