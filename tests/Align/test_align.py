@@ -1643,3 +1643,83 @@ def test_unmapped_attachment_warning_not_swallowed(ejm31, jmc28):
         with warnings.catch_warnings():
             warnings.filterwarnings("error", message=".*ringMatchesRingOnly.*")
             BSS.Align.matchAtoms(ejm31, jmc28)
+
+
+@pytest.mark.skipif(
+    has_antechamber is False or has_openff is False,
+    reason="Requires ambertools/antechamber and openff to be installed",
+)
+def test_bonds_to_break_ring_fusion():
+    """
+    Test the 'bonds_to_break' option for a ring-fusion perturbation
+    (benzene -> naphthalene), where naphthalene's second ring maps entirely
+    onto new, unmapped atoms attached at two shared junction atoms. This
+    pattern isn't detected by the existing ring-break logic, since the
+    junction bond is present and unchanged in both end states, so growing
+    the second ring in without 'bonds_to_break' gives a closed ring of dummy
+    atoms at lambda = 0 (see test_grow_whole_ring). Breaking the bond
+    between one of the junction atoms and its ring neighbour should instead
+    leave that ring as a dangling chain of dummies at lambda = 0, while
+    lambda = 1 (real naphthalene) keeps the ring closed.
+    """
+    benzene = BSS.Parameters.openff_unconstrained_2_1_1("c1ccccc1").getMolecule()
+    naphthalene = BSS.Parameters.openff_unconstrained_2_1_1(
+        "c1ccc2ccccc2c1"
+    ).getMolecule()
+
+    # Ring B (0, 1, 2, 3, 8, 9) of naphthalene maps onto benzene's ring, with
+    # junction atoms 3 and 8 shared. Ring A (3, 4, 5, 6, 7, 8) is entirely
+    # new, attached to the shared atoms via the 3-4 and 7-8 bonds.
+    mapping = {0: 0, 1: 1, 2: 2, 3: 3, 4: 8, 5: 9, 6: 10, 7: 11, 8: 12, 11: 17}
+
+    benzene_aligned = BSS.Align.rmsdAlign(benzene, naphthalene, mapping)
+
+    # Without 'bonds_to_break' the merge succeeds without needing
+    # 'allow_ring_breaking', since the junction bond is unchanged and the
+    # new ring is invisible to the existing ring-break detection.
+    merged_whole_ring = BSS.Align.merge(benzene_aligned, naphthalene, mapping)
+    assert (
+        merged_whole_ring._sire_object.property("bond0").num_functions()
+        == merged_whole_ring._sire_object.property("bond1").num_functions()
+    )
+
+    # Break the bond between the junction atom (3) and its ring-A neighbour
+    # (4), both given in naphthalene's own atom numbering (end state 1).
+    merged = BSS.Align.merge(
+        benzene_aligned,
+        naphthalene,
+        mapping,
+        bonds_to_break=[(1, 3, 4)],
+    )
+
+    sire_mol = merged._sire_object
+    mol_info = sire_mol.info()
+    bond0 = sire_mol.property("bond0")
+    bond1 = sire_mol.property("bond1")
+
+    # The merged atom index for naphthalene's junction atom 3 is unchanged
+    # (it is shared/mapped, and molecule0's atoms keep their input indices
+    # in the merged molecule). Its ring-A neighbour, atom 4, is unique to
+    # naphthalene and so is appended after all 12 benzene atoms; it is the
+    # first such unique atom, giving it merged index 12.
+    junction_idx = AtomIdx(3)
+    neighbour_idx = AtomIdx(12)
+
+    def _has_bond(bonds, idx0, idx1):
+        for p in bonds.potentials():
+            pair = {
+                mol_info.atom_idx(p.atom0()).value(),
+                mol_info.atom_idx(p.atom1()).value(),
+            }
+            if pair == {idx0.value(), idx1.value()}:
+                return True
+        return False
+
+    # The bond must be absent from lambda = 0 (the dummy representation)...
+    assert not _has_bond(bond0, junction_idx, neighbour_idx)
+    # ...but retained in lambda = 1 (real naphthalene, ring stays closed).
+    assert _has_bond(bond1, junction_idx, neighbour_idx)
+
+    # Since the bond is genuinely absent at lambda = 0, the bond counts must
+    # now differ between the two end states.
+    assert bond0.num_functions() == bond1.num_functions() - 1
