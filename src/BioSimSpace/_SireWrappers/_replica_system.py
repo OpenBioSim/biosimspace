@@ -87,6 +87,23 @@ class ReplicaSystem:
                 "'sire.legacy.System.System' or 'BioSimSpace._SireWrappers.System'"
             )
 
+        # Sire's trajectory frame loading rejects a zero-sized box, so apply a
+        # placeholder box for vacuum/gas-phase systems.
+        space_prop = "space"
+        has_box = False
+        if space_prop in self._new_sire_object.property_keys():
+            try:
+                has_box = self._new_sire_object.property(space_prop).is_periodic()
+            except Exception:
+                pass
+        if not has_box:
+            from sire.maths import Vector as _Vector
+            from sire.vol import PeriodicBox as _PeriodicBox
+
+            placeholder_box = _PeriodicBox(_Vector(9999, 9999, 9999))
+            self._new_sire_object.set_property(space_prop, placeholder_box)
+            self._sire_object.set_property(space_prop, placeholder_box)
+
         # Check if the system is perturbable.
         try:
             perturbable = self._new_sire_object["perturbable"]
@@ -342,6 +359,75 @@ class ReplicaSystem:
         """
 
         return self._trajectory.num_frames()
+
+    def _set_water_topology(self, format, property_map={}):
+        """
+        Internal function to convert the water topology naming convention
+        for all replicas in a single operation.
+
+        Parameters
+        ----------
+
+        format : str
+            The water topology to convert to: either "AMBER" or "GROMACS".
+
+        property_map : dict, optional
+            A dictionary that maps system "properties" to their user defined
+            values. This allows the user to refer to properties with their
+            own naming scheme, e.g. { "charge" : "my-charge" }
+        """
+        import os as _os
+        from tempfile import TemporaryDirectory as _TemporaryDirectory
+
+        from sire import load as _load
+        from sire import save as _save
+        from sire.system import System as _NewSireSystem
+
+        from .. import _isVerbose
+        from ._system import System as _System
+
+        template = _System(self._sire_object)
+        template._set_water_topology(format, property_map=property_map)
+        self._sire_object = template._sire_object
+        self._new_sire_object = _NewSireSystem(self._sire_object)
+
+        # self._sire_object is always the fully merged (dual-topology) form,
+        # so re-apply the same reference-state linking that __init__ used to
+        # build the original self._new_sire_object.
+        if self._is_perturbable:
+            from sire.morph import link_to_reference as _link_to_reference
+
+            self._new_sire_object = _link_to_reference(self._new_sire_object)
+
+        if self._is_perturbable and self._is_squashed:
+            traj_format, top_ext = "dcd", "prm7"
+        elif self._is_perturbable:
+            traj_format, top_ext = "xtc", "top"
+        else:
+            traj_format, top_ext = "dcd", "prm7"
+
+        # A trajectory's topology is fixed at creation time, so renaming
+        # self._new_sire_object above isn't picked up by the existing
+        # trajectory. Rebuild it via a single combined topology + multi-frame
+        # trajectory file, preserving every replica's distinct coordinates.
+        try:
+            with _TemporaryDirectory() as tmp_dir:
+                top_file = _os.path.join(tmp_dir, f"topology.{top_ext}")
+                traj_file = _os.path.join(tmp_dir, f"replicas.{traj_format}")
+
+                _save(self._new_sire_object, top_file, silent=True)
+                _save(self._trajectory, traj_file, silent=True)
+
+                sire_system = _load(top_file, traj_file, silent=True)
+        except Exception as e:
+            msg = "Failed to rebuild trajectory for water topology conversion."
+
+            if _isVerbose():
+                raise IOError(msg) from e
+            else:
+                raise IOError(msg) from None
+
+        self._trajectory = sire_system.trajectory()
 
     def save(self, filename, save_velocities=False):
         """
