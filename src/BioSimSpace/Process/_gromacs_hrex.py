@@ -40,8 +40,10 @@ class GromacsHREX(_Gromacs):
     between arbitrary pairs of replicas rather than adjacent-only swaps.
 
     A shared topology is written once to the process work directory.
-    Per-replica coordinate files are written efficiently via
-    ReplicaSystem.saveReplicas, avoiding redundant topology writes.
+    Per-replica coordinate files are written from the individual frames
+    stored in the ReplicaSystem, so replicas seeded from distinct starting
+    configurations (e.g. frames from an equilibration trajectory) are
+    respected rather than all being duplicated from a single configuration.
     """
 
     def __init__(
@@ -316,21 +318,15 @@ class GromacsHREX(_Gromacs):
         for gro in gro_files:
             _os.makedirs(_os.path.dirname(gro), exist_ok=True)
 
-        # All replicas start with identical coordinates, so write one GRO file and
-        # copy it. This avoids a file-based round-trip through ReplicaSystem that
-        # fails for non-periodic (vacuum) systems where the box is absent.
-        import shutil as _shutil
-
-        gro_base = _os.path.splitext(gro_files[0])[0]
-        _IO.saveMolecules(
-            gro_base,
-            system,
-            "gro87",
-            match_water=False,
-            property_map=self._property_map,
+        # Convert the shared topology to GROMACS naming once, then write every
+        # replica's coordinates in a single batched call.
+        if not has_box or not self._has_water:
+            self._replica_system._new_sire_object.set_property(space_prop, space)
+            self._replica_system._sire_object.set_property(space_prop, space)
+        self._replica_system._set_water_topology(
+            "GROMACS", property_map=self._property_map
         )
-        for gro in gro_files[1:]:
-            _shutil.copy(gro_files[0], gro)
+        self._replica_system.saveReplicas(gro_files)
 
         # Generate per-lambda MDP and TPR files.
         tpr_files = []
