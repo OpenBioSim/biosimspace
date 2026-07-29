@@ -1589,10 +1589,10 @@ def _check_ring(conn0, conn1, idx0, idy0, idx1, idy1, max_path=50, max_ring_size
     # Supplementary check for rings larger than max_path: find_paths may only
     # find the direct-bond path and miss the long way around the ring, giving
     # n=1 instead of n≥2. Sire's in_ring has no path-length limit and
-    # correctly identifies ring membership in macrocycles.
-    if (conn0.in_ring(idx0) and conn0.in_ring(idy0)) != (
-        conn1.in_ring(idx1) and conn1.in_ring(idy1)
-    ):
+    # correctly identifies ring membership in macrocycles. The two-atom
+    # overload asks whether the atoms share a ring, so a ring built entirely
+    # from dummy atoms, which breaks no bond between mapped atoms, is ignored.
+    if conn0.in_ring(idx0, idy0) != conn1.in_ring(idx1, idy1):
         return True, False
 
     # A direct bond was replaced by a ring path (or vice versa), leaving the
