@@ -169,3 +169,14 @@ def merged_benzene_pyrrole(benzene, pyrrole, mapping_benzene_pyrrole):
         allow_ring_breaking=True,
         allow_ring_size_change=True,
     )
+
+
+@pytest.fixture(scope="module")
+def perturbable_system():
+    """A vacuum perturbable system."""
+    return BSS.IO.readPerturbableSystem(
+        f"{url}/perturbable_system0.prm7",
+        f"{url}/perturbable_system0.rst7",
+        f"{url}/perturbable_system1.prm7",
+        f"{url}/perturbable_system1.rst7",
+    )
