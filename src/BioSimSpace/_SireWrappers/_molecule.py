@@ -1412,9 +1412,7 @@ class Molecule(_SireWrapper):
             if self._sire_object.has_property(coord_prop):
                 _property_map["coordinates"] = coord_prop
                 mol = (
-                    self._sire_object.move()
-                    .translate(_SireMaths.Vector(vec), _property_map)
-                    .commit()
+                    mol.move().translate(_SireMaths.Vector(vec), _property_map).commit()
                 )
 
         else:

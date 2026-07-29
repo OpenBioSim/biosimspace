@@ -145,3 +145,54 @@ def test_makeCompatibleWith_regression():
 
     # Make sure the energies are approximately equal.
     assert nrg_compatible == pytest.approx(nrg_leap, rel=1e-5)
+
+
+def test_translate_custom_coordinates_property(perturbable_system):
+    """
+    Regresson test to ensure that a molecule with a custom
+    coordinates property gets translated correctly.
+    """
+
+    from sire.maths import Vector
+
+    # Extract a copy of the perturbable molecule.
+    mol = perturbable_system.getPerturbableMolecules()[0].copy()
+
+    # Copy the "coordinates0" property to a custom property installed
+    # "test"
+    cursor = mol._sire_object.cursor()
+    cursor["test"] = cursor["coordinates0"]
+    mol._sire_object = cursor.commit()
+
+    # Store the existing coordinates.
+    coords0 = mol._sire_object.property("coordinates0").to_vector()
+    coords1 = mol._sire_object.property("coordinates1").to_vector()
+    coords_test = mol._sire_object.property("test").to_vector()
+
+    # Translate the molecule.
+    mol.translate(3 * [BSS.Units.Length.angstrom], property_map={"coordinates": "test"})
+
+    # Get the new coordinates.
+    new_coords0 = mol._sire_object.property("coordinates0").to_vector()
+    new_coords1 = mol._sire_object.property("coordinates1").to_vector()
+    new_coords_test = mol._sire_object.property("test").to_vector()
+
+    # Create a vector of the displacement.
+    v_ref = Vector(1.0, 1.0, 1.0)
+
+    # Check that the coordinates have been translated correctly.
+    for c_new, c_old in zip(new_coords0, coords0):
+        v = c_new - c_old
+        assert pytest.approx(v.x().value(), abs=1e-5) == v_ref.x().value()
+        assert pytest.approx(v.y().value(), abs=1e-5) == v_ref.y().value()
+        assert pytest.approx(v.z().value(), abs=1e-5) == v_ref.z().value()
+    for c_new, c_old in zip(new_coords1, coords1):
+        v = c_new - c_old
+        assert pytest.approx(v.x().value(), abs=1e-5) == v_ref.x().value()
+        assert pytest.approx(v.y().value(), abs=1e-5) == v_ref.y().value()
+        assert pytest.approx(v.z().value(), abs=1e-5) == v_ref.z().value()
+    for c_new, c_old in zip(new_coords_test, coords_test):
+        v = c_new - c_old
+        assert pytest.approx(v.x().value(), abs=1e-5) == v_ref.x().value()
+        assert pytest.approx(v.y().value(), abs=1e-5) == v_ref.y().value()
+        assert pytest.approx(v.z().value(), abs=1e-5) == v_ref.z().value()
