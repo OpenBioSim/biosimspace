@@ -904,3 +904,67 @@ def test_ring_opening_and_size_change(ligands, mapping):
     BSS.Align.merge(
         m0, m1, mapping, allow_ring_breaking=True, allow_ring_size_change=True
     )
+
+
+@pytest.fixture(scope="session")
+def ejm31():
+    return BSS.IO.readMolecules(
+        [f"{url}/lig_ejm31.prm7.bz2", f"{url}/lig_ejm31.rst7.bz2"]
+    ).getMolecules()[0]
+
+
+@pytest.fixture(scope="session")
+def jmc28():
+    return BSS.IO.readMolecules(
+        [f"{url}/lig_jmc28.prm7.bz2", f"{url}/lig_jmc28.rst7.bz2"]
+    ).getMolecules()[0]
+
+
+def test_default_mcs_options():
+    # The MCS defaults should be discoverable, and ring matching is on.
+    options = BSS.Align.defaultMCSOptions()
+    assert options["ringMatchesRingOnly"] is True
+    assert options["completeRingsOnly"] is True
+
+    # The returned dictionary is a copy, so mutating it has no side effects.
+    options["ringMatchesRingOnly"] = False
+    assert BSS.Align.defaultMCSOptions()["ringMatchesRingOnly"] is True
+
+
+def test_mcs_kwargs_ring_matches_ring_only(ejm31, jmc28):
+    # Perturbing a methyl to a 2-methylcyclopropyl. Atom 19 is the methyl
+    # carbon in ejm31 and the ring carbon bonded to the carbonyl in jmc28.
+
+    # By default an acyclic atom can't map onto a ring atom, so the whole
+    # substituent is unmapped.
+    mapping = BSS.Align.matchAtoms(ejm31, jmc28)
+    assert 19 not in mapping
+
+    # Allowing the match maps the two carbons onto each other, along with one
+    # of the methyl hydrogens.
+    mapping = BSS.Align.matchAtoms(
+        ejm31, jmc28, mcs_kwargs={"ringMatchesRingOnly": False}
+    )
+    assert mapping[19] == 19
+    assert len(mapping) == 30
+
+    # Only two hydrogens are removed and the ring is grown from dummy atoms.
+    assert sorted(set(range(32)) - set(mapping)) == [27, 28]
+
+
+def test_mcs_kwargs_merge(ejm31, jmc28):
+    # The options are used when merge autogenerates a mapping.
+    merged = BSS.Align.merge(ejm31, jmc28, mcs_kwargs={"ringMatchesRingOnly": False})
+    sire_mol = merged._sire_object
+
+    # A ring grown entirely from dummy atoms breaks no bond between mapped
+    # atoms, so the merge doesn't require 'allow_ring_breaking' and the end
+    # states have the same number of bonds.
+    assert sire_mol.num_atoms() == 41
+    assert len(sire_mol.property("bond0").potentials()) == len(
+        sire_mol.property("bond1").potentials()
+    )
+
+    # No ring is broken or made, so neither property is set.
+    assert not sire_mol.has_property("ring_breaking_bonds")
+    assert not sire_mol.has_property("ring_making_bonds")

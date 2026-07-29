@@ -674,10 +674,10 @@ def test_roi_flex_align(protein_inputs):
 def test_empty_custom_roi_mapping():
     # mut contains a proline mutation at position 15
     wt = BSS.IO.readMolecules(
-        BSS.IO.expand(BSS.tutorialUrl(), f"1choFH_apo_wt_flare_processed.pdb")
+        BSS.IO.expand(BSS.tutorialUrl(), "1choFH_apo_wt_flare_processed.pdb")
     )[0]
     mut = BSS.IO.readMolecules(
-        BSS.IO.expand(BSS.tutorialUrl(), f"1choFH_apo_mut_flare_processed.pdb")
+        BSS.IO.expand(BSS.tutorialUrl(), "1choFH_apo_mut_flare_processed.pdb")
     )[0]
 
     # use the custom_roi_map to specify that residue 15 in the WT protein should be
@@ -691,15 +691,16 @@ def test_empty_custom_roi_mapping():
     for atom_idx in roi_res_idx:
         assert atom_idx not in mapping.keys()
 
+
 @pytest.mark.skipif(has_amber is False, reason="Requires AMBER to be installed.")
 def test_custom_roi_ring_break_merge():
     # wt contains a leucine at position 15
     # mut contains a proline at position 15
     wt = BSS.IO.readMolecules(
-        BSS.IO.expand(BSS.tutorialUrl(), f"1choFH_apo_wt_flare_processed.pdb")
+        BSS.IO.expand(BSS.tutorialUrl(), "1choFH_apo_wt_flare_processed.pdb")
     )[0]
     mut = BSS.IO.readMolecules(
-        BSS.IO.expand(BSS.tutorialUrl(), f"1choFH_apo_mut_flare_processed.pdb")
+        BSS.IO.expand(BSS.tutorialUrl(), "1choFH_apo_mut_flare_processed.pdb")
     )[0]
 
     wt = BSS.Parameters.ff14SB(wt, ensure_compatible=False).getMolecule()
@@ -743,13 +744,14 @@ def test_custom_roi_ring_break_merge():
     assert n_bonds_created == 1
     assert n_bonds_annihilated == 0
 
+
 @pytest.mark.skipif(has_amber is False, reason="Requires AMBER to be installed.")
 def test_custom_roi_map_invalid_outside_roi():
     wt = BSS.IO.readMolecules(
-        BSS.IO.expand(BSS.tutorialUrl(), f"1choFH_apo_wt_flare_processed.pdb")
+        BSS.IO.expand(BSS.tutorialUrl(), "1choFH_apo_wt_flare_processed.pdb")
     )[0]
     mut = BSS.IO.readMolecules(
-        BSS.IO.expand(BSS.tutorialUrl(), f"1choFH_apo_mut_flare_processed.pdb")
+        BSS.IO.expand(BSS.tutorialUrl(), "1choFH_apo_mut_flare_processed.pdb")
     )[0]
 
     wt = BSS.Parameters.ff14SB(wt, ensure_compatible=False).getMolecule()
@@ -761,7 +763,6 @@ def test_custom_roi_map_invalid_outside_roi():
             molecule0=wt,
             molecule1=mut,
             roi=[15],
-        
             custom_roi_map={
                 0: 0,
                 1: 1,
@@ -1313,9 +1314,9 @@ def test_ring_breaking_cross_bond_cleanup():
                 mol_info.atom_idx(p.atom3()).value(),
             }
             for a, b in changing:
-                assert not (
-                    a in atoms and b in atoms
-                ), f"improper{suffix} spans absent bond ({a},{b})"
+                assert not (a in atoms and b in atoms), (
+                    f"improper{suffix} spans absent bond ({a},{b})"
+                )
 
     # Check that the ring-breaking and ring-making bond properties are set.
     def _read_pairs(prop_name):
@@ -1326,9 +1327,73 @@ def test_ring_breaking_cross_bond_cleanup():
 
     stored_breaking = _read_pairs("ring_breaking_bonds")
     stored_making = _read_pairs("ring_making_bonds")
-    assert (
-        stored_breaking == ring_breaking
-    ), f"ring_breaking_bonds property mismatch: {stored_breaking} != {ring_breaking}"
-    assert (
-        stored_making == ring_making
-    ), f"ring_making_bonds property mismatch: {stored_making} != {ring_making}"
+    assert stored_breaking == ring_breaking, (
+        f"ring_breaking_bonds property mismatch: {stored_breaking} != {ring_breaking}"
+    )
+    assert stored_making == ring_making, (
+        f"ring_making_bonds property mismatch: {stored_making} != {ring_making}"
+    )
+
+
+@pytest.fixture(scope="session")
+def ejm31():
+    return BSS.IO.readMolecules(
+        [f"{url}/lig_ejm31.prm7.bz2", f"{url}/lig_ejm31.rst7.bz2"]
+    ).getMolecules()[0]
+
+
+@pytest.fixture(scope="session")
+def jmc28():
+    return BSS.IO.readMolecules(
+        [f"{url}/lig_jmc28.prm7.bz2", f"{url}/lig_jmc28.rst7.bz2"]
+    ).getMolecules()[0]
+
+
+def test_default_mcs_options():
+    # The MCS defaults should be discoverable, and ring matching is on.
+    options = BSS.Align.defaultMCSOptions()
+    assert options["ringMatchesRingOnly"] is True
+    assert options["completeRingsOnly"] is True
+
+    # The returned dictionary is a copy, so mutating it has no side effects.
+    options["ringMatchesRingOnly"] = False
+    assert BSS.Align.defaultMCSOptions()["ringMatchesRingOnly"] is True
+
+
+def test_mcs_kwargs_ring_matches_ring_only(ejm31, jmc28):
+    # Perturbing a methyl to a 2-methylcyclopropyl. Atom 19 is the methyl
+    # carbon in ejm31 and the ring carbon bonded to the carbonyl in jmc28.
+
+    # By default an acyclic atom can't map onto a ring atom, so the whole
+    # substituent is unmapped.
+    mapping = BSS.Align.matchAtoms(ejm31, jmc28)
+    assert 19 not in mapping
+
+    # Allowing the match maps the two carbons onto each other, along with one
+    # of the methyl hydrogens.
+    mapping = BSS.Align.matchAtoms(
+        ejm31, jmc28, mcs_kwargs={"ringMatchesRingOnly": False}
+    )
+    assert mapping[19] == 19
+    assert len(mapping) == 30
+
+    # Only two hydrogens are removed and the ring is grown from dummy atoms.
+    assert sorted(set(range(32)) - set(mapping)) == [27, 28]
+
+
+def test_mcs_kwargs_merge(ejm31, jmc28):
+    # The options are used when merge autogenerates a mapping.
+    merged = BSS.Align.merge(ejm31, jmc28, mcs_kwargs={"ringMatchesRingOnly": False})
+    sire_mol = merged._sire_object
+
+    # A ring grown entirely from dummy atoms breaks no bond between mapped
+    # atoms, so the merge doesn't require 'allow_ring_breaking' and the end
+    # states have the same number of bonds.
+    assert sire_mol.num_atoms() == 41
+    assert len(sire_mol.property("bond0").potentials()) == len(
+        sire_mol.property("bond1").potentials()
+    )
+
+    # No ring is broken or made, so neither property is set.
+    assert not sire_mol.has_property("ring_breaking_bonds")
+    assert not sire_mol.has_property("ring_making_bonds")
