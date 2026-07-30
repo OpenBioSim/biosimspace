@@ -1,4 +1,5 @@
 import sys
+import warnings
 
 import pytest
 import sire as sr
@@ -1397,3 +1398,15 @@ def test_mcs_kwargs_merge(ejm31, jmc28):
     # No ring is broken or made, so neither property is set.
     assert not sire_mol.has_property("ring_breaking_bonds")
     assert not sire_mol.has_property("ring_making_bonds")
+
+
+def test_unmapped_attachment_warning(ejm31, jmc28):
+    # The default mapping stops at the carbonyl carbon (atom 17), leaving
+    # heavy atoms unmapped on both sides, so we should be told about it.
+    with pytest.warns(UserWarning, match="ringMatchesRingOnly"):
+        BSS.Align.matchAtoms(ejm31, jmc28)
+
+    # No warning once the option has been set explicitly.
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        BSS.Align.matchAtoms(ejm31, jmc28, mcs_kwargs={"ringMatchesRingOnly": False})

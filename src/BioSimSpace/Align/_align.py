@@ -896,7 +896,7 @@ def matchAtoms(
     """
 
     if roi is None:
-        return _matchAtoms(
+        result = _matchAtoms(
             molecule0=molecule0,
             molecule1=molecule1,
             scoring_function=scoring_function,
@@ -913,6 +913,58 @@ def matchAtoms(
             property_map1=property_map1,
             mcs_kwargs=mcs_kwargs,
         )
+
+        # Only check a mapping generated from the defaults. If the user has
+        # configured the MCS then both the baseline and our idea of a sensible
+        # mapping may not match their intent. This also stops the retry below
+        # from recursing, since it passes 'mcs_kwargs'. Skip when a prematch is
+        # given, since the retry could then fall back on Sire MCS, which
+        # ignores 'mcs_kwargs', making the comparison meaningless.
+        if not mcs_kwargs and not prematch:
+            best = result[0] if return_scores else result
+            if isinstance(best, list):
+                best = best[0] if best else {}
+
+            # Attachment points where the MCS stopped on both sides.
+            flagged = (
+                _flag_unmapped_attachments(molecule0, molecule1, best) if best else []
+            )
+
+            if flagged:
+                # Retry with ring matching relaxed to see if it does better.
+                retry = matchAtoms(
+                    molecule0,
+                    molecule1,
+                    scoring_function=scoring_function,
+                    prematch=prematch,
+                    timeout=timeout,
+                    complete_rings_only=complete_rings_only,
+                    max_scoring_matches=max_scoring_matches,
+                    prune_perturbed_constraints=prune_perturbed_constraints,
+                    prune_crossing_constraints=prune_crossing_constraints,
+                    prune_atom_types=prune_atom_types,
+                    property_map0=property_map0,
+                    property_map1=property_map1,
+                    mcs_kwargs={"ringMatchesRingOnly": False},
+                )
+
+                # Only trust the retry if it extends the mapping, i.e. keeps
+                # every existing pair and adds sensible ones.
+                if (
+                    len(retry) > len(best)
+                    and set(best.items()) <= set(retry.items())
+                    and _is_sensible_extension(molecule0, molecule1, best, retry)
+                ):
+                    _warnings.warn(
+                        f"Mapping leaves heavy atoms unmapped on both sides of "
+                        f"atom(s) {flagged} "
+                        f"in molecule0. Relaxing 'ringMatchesRingOnly' gives a "
+                        f"common core of {len(retry)} rather than {len(best)}. "
+                        f"Consider passing "
+                        f"mcs_kwargs={{'ringMatchesRingOnly': False}}."
+                    )
+
+        return result
     else:
         return _roiMatch(
             molecule0,
@@ -925,6 +977,109 @@ def matchAtoms(
             use_kartograf=False,
             kartograf_kwargs={},
         )
+
+
+def _flag_unmapped_attachments(molecule0, molecule1, mapping):
+    """
+    Internal function to find mapped atoms that have an unmapped heavy atom
+    neighbour of a common element in both molecules. These are attachment
+    points where the MCS stopped on both sides, which usually means that a
+    pairable atom was missed.
+
+    Parameters
+    ----------
+
+    molecule0 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
+        The first molecule.
+
+    molecule1 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
+        The second molecule.
+
+    mapping : dict
+        The atom mapping between the two molecules.
+
+    Returns
+    -------
+
+    flagged : [int]
+        The indices of the flagged atoms in molecule0.
+    """
+    from sire.legacy import Mol as _SireMol
+
+    mol0 = molecule0._getSireObject()
+    mol1 = molecule1._getSireObject()
+    conn0 = mol0.property("connectivity")
+    conn1 = mol1.property("connectivity")
+
+    def _heavy_elements(mol, conn, idx, mapped):
+        elements = set()
+        for i in conn.connections_to(_SireMol.AtomIdx(idx)):
+            if i.value() not in mapped:
+                protons = mol.atom(i).property("element").num_protons()
+                if protons > 1:
+                    elements.add(protons)
+        return elements
+
+    mapped1 = set(mapping.values())
+    flagged = []
+
+    for idx0, idx1 in mapping.items():
+        elements0 = _heavy_elements(mol0, conn0, idx0, mapping)
+        if not elements0:
+            continue
+        elements1 = _heavy_elements(mol1, conn1, idx1, mapped1)
+        if elements0 & elements1:
+            flagged.append(idx0)
+
+    return flagged
+
+
+def _is_sensible_extension(molecule0, molecule1, mapping, extended):
+    """
+    Internal function to test whether the atoms that 'extended' adds relative
+    to 'mapping' pair like with like. The MCS uses CompareAny, so it is free to
+    pair a heavy atom with a hydrogen, which grows the common core without
+    improving the mapping.
+
+    Parameters
+    ----------
+
+    molecule0 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
+        The first molecule.
+
+    molecule1 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
+        The second molecule.
+
+    mapping : dict
+        The original atom mapping.
+
+    extended : dict
+        The larger atom mapping to test.
+
+    Returns
+    -------
+
+    is_sensible : bool
+        Whether the added atoms pair heavy with heavy and hydrogen with
+        hydrogen.
+    """
+    from sire.legacy import Mol as _SireMol
+
+    mol0 = molecule0._getSireObject()
+    mol1 = molecule1._getSireObject()
+
+    for idx0, idx1 in extended.items():
+        if idx0 not in mapping:
+            protons0 = (
+                mol0.atom(_SireMol.AtomIdx(idx0)).property("element").num_protons()
+            )
+            protons1 = (
+                mol1.atom(_SireMol.AtomIdx(idx1)).property("element").num_protons()
+            )
+            if (protons0 > 1) != (protons1 > 1):
+                return False
+
+    return True
 
 
 def _matchAtoms(
