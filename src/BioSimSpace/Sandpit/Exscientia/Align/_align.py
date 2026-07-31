@@ -907,6 +907,7 @@ def matchAtoms(
     property_map0={},
     property_map1={},
     mcs_kwargs={},
+    *,
     _check_mapping=True,
 ):
     """
@@ -1244,10 +1245,11 @@ def matchAtoms(
     # prematch is given, since the retry could then fall back on Sire MCS,
     # which ignores 'mcs_kwargs', making the comparison meaningless.
     if _check_mapping and not mcs_kwargs and not prematch and mappings:
-        # This is a diagnostic, so it must never be able to break a call that
-        # would otherwise have succeeded. The warning itself is emitted outside
-        # the guard, since it would otherwise be swallowed and re-reported as a
-        # failure whenever the user has promoted warnings to errors.
+        # This is a diagnostic, so a failure inside it is reported rather than
+        # raised. Note that this only holds while warnings are warnings: if the
+        # user has promoted them to errors then either notice below will raise
+        # out of here. The warning itself is emitted outside the guard, since
+        # it would otherwise be swallowed and re-reported as a failure.
         message = None
         try:
             best = mappings[0]
@@ -1287,10 +1289,13 @@ def matchAtoms(
                     property_map0=property_map0,
                     property_map1=property_map1,
                     mcs_kwargs={"ringMatchesRingOnly": False},
+                    _check_mapping=False,
                 )
 
                 # Only trust the retry if it extends the mapping, i.e. keeps
-                # every existing pair and adds sensible ones.
+                # every existing pair and adds sensible ones. The subset test is
+                # sensitive to symmetry: relabelling a symmetric ring the other
+                # way round discards the retry even though it is equivalent.
                 if (
                     len(retry) > len(best)
                     and set(best.items()) <= set(retry.items())
@@ -1918,9 +1923,6 @@ def viewMapping(
             molecule1,
             property_map0=property_map0,
             property_map1=property_map1,
-            # This function doesn't take 'mcs_kwargs', so the advice from the
-            # mapping check can't be acted on here.
-            _check_mapping=False,
         )
         molecule0 = rmsdAlign(molecule0, molecule1, mapping)
 

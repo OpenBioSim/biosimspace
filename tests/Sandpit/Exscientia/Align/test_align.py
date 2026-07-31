@@ -1026,7 +1026,9 @@ def test_unmapped_attachment_no_warning_r_group(monkeypatch):
 
     pairs = [
         ("Cc1ccccc1", "CCc1ccccc1"),  # methyl -> ethyl
+        ("CCc1ccccc1", "CCCc1ccccc1"),  # ethyl -> propyl
         ("COc1ccccc1", "CCOc1ccccc1"),  # methoxy -> ethoxy
+        ("O=C(N)c1ccccc1", "O=C(N)c1ccccc1Cl"),  # hydrogen -> chlorine
     ]
 
     flagged = []
@@ -1176,11 +1178,13 @@ def test_unmapped_attachment_check_suppressed(ejm31, jmc28):
     The check should only fire where the user can act on its advice, i.e.
     where 'mcs_kwargs' can be passed through.
     """
-    # These functions don't take 'mcs_kwargs'.
+    # 'rmsdAlign' doesn't take 'mcs_kwargs'. 'flexAlign' is suppressed for the
+    # same reason, but isn't exercised here since it needs fkcombu. Nor is
+    # 'viewMapping', which keeps the check but returns early outside a
+    # notebook, before it ever reaches 'matchAtoms'.
     with warnings.catch_warnings():
         warnings.filterwarnings("error", message=".*ringMatchesRingOnly.*")
         BSS.Align.rmsdAlign(ejm31, jmc28)
-        BSS.Align.flexAlign(ejm31, jmc28)
 
     # 'merge' does, so the check stays on.
     with pytest.warns(UserWarning, match="ringMatchesRingOnly"):
