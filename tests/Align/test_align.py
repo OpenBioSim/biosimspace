@@ -1593,3 +1593,49 @@ def test_is_sensible_extension(ejm31):
 
     # Adding nothing is trivially sensible.
     assert _is_sensible_extension(ejm31, ejm31, mapping, dict(mapping))
+
+
+def test_unmapped_attachment_check_suppressed(ejm31, jmc28):
+    """
+    The check should only fire where the user can act on its advice, i.e.
+    where 'mcs_kwargs' can be passed through. It should also never fire on
+    the ROI path, where the flagged indices would be local to the extracted
+    residue rather than to molecule0 as the message claims.
+    """
+    # These functions don't take 'mcs_kwargs'.
+    with warnings.catch_warnings():
+        warnings.filterwarnings("error", message=".*ringMatchesRingOnly.*")
+        BSS.Align.rmsdAlign(ejm31, jmc28)
+        BSS.Align.flexAlign(ejm31, jmc28)
+
+    # 'merge' does, so the check stays on.
+    with pytest.warns(UserWarning, match="ringMatchesRingOnly"):
+        BSS.Align.merge(ejm31, jmc28, force=True)
+
+
+def test_unmapped_attachment_check_suppressed_roi(protein_inputs):
+    # The ROI path maps each residue of interest separately, so any flagged
+    # indices would be local to that residue rather than to molecule0.
+    proteins, protein_mapping, roi = protein_inputs
+    p0 = BSS.IO.readMolecules(
+        BSS.IO.expand(BSS.tutorialUrl(), f"{proteins}_mut_peptide.pdb")
+    )[0]
+    p1 = BSS.IO.readMolecules(
+        BSS.IO.expand(BSS.tutorialUrl(), f"{proteins}_wt_peptide.pdb")
+    )[0]
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings("error", message=".*ringMatchesRingOnly.*")
+        assert BSS.Align.matchAtoms(p0, p1, roi=roi) == protein_mapping
+
+
+def test_unmapped_attachment_warning_not_swallowed(ejm31, jmc28):
+    # Promoting the warning to an error must surface the warning itself, not
+    # a report that the check failed. The warning is emitted outside the
+    # try/except that guards the check for exactly this reason.
+    # Anchored, since the wrapped "Unable to check ..." message quotes the
+    # original and would otherwise match too.
+    with pytest.raises(UserWarning, match=r"^Mapping leaves heavy atoms"):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("error", message=".*ringMatchesRingOnly.*")
+            BSS.Align.matchAtoms(ejm31, jmc28)

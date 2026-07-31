@@ -907,6 +907,7 @@ def matchAtoms(
     property_map0={},
     property_map1={},
     mcs_kwargs={},
+    _check_mapping=True,
 ):
     """
     Find mappings between atom indices in molecule0 to those in molecule1.
@@ -1242,9 +1243,12 @@ def matchAtoms(
     # stops the retry from recursing, since it passes 'mcs_kwargs'. Skip when a
     # prematch is given, since the retry could then fall back on Sire MCS,
     # which ignores 'mcs_kwargs', making the comparison meaningless.
-    if not mcs_kwargs and not prematch and mappings:
+    if _check_mapping and not mcs_kwargs and not prematch and mappings:
         # This is a diagnostic, so it must never be able to break a call that
-        # would otherwise have succeeded.
+        # would otherwise have succeeded. The warning itself is emitted outside
+        # the guard, since it would otherwise be swallowed and re-reported as a
+        # failure whenever the user has promoted warnings to errors.
+        message = None
         try:
             best = mappings[0]
 
@@ -1294,7 +1298,7 @@ def matchAtoms(
                         molecule0, molecule1, best, retry, property_map0, property_map1
                     )
                 ):
-                    _warnings.warn(
+                    message = (
                         f"Mapping leaves heavy atoms unmapped on both sides "
                         f"of atom(s) {_format_flagged(flagged)} in molecule0. "
                         f"Relaxing 'ringMatchesRingOnly' gives a common core "
@@ -1303,6 +1307,9 @@ def matchAtoms(
                     )
         except Exception as e:
             _warnings.warn(f"Unable to check the quality of the mapping: {e}")
+
+        if message is not None:
+            _warnings.warn(message)
 
     # Optionally post-process the MCS.
     if prune_perturbed_constraints:
@@ -1415,6 +1422,9 @@ def rmsdAlign(molecule0, molecule1, mapping=None, property_map0={}, property_map
             molecule1,
             property_map0=property_map0,
             property_map1=property_map1,
+            # This function doesn't take 'mcs_kwargs', so the advice from the
+            # mapping check can't be acted on here.
+            _check_mapping=False,
         )
 
     # Extract the Sire molecule from each BioSimSpace molecule.
@@ -1572,6 +1582,9 @@ def flexAlign(
             molecule1,
             property_map0=property_map0,
             property_map1=property_map1,
+            # This function doesn't take 'mcs_kwargs', so the advice from the
+            # mapping check can't be acted on here.
+            _check_mapping=False,
         )
 
     # Convert the mapping to AtomIdx key:value pairs.
@@ -1905,6 +1918,9 @@ def viewMapping(
             molecule1,
             property_map0=property_map0,
             property_map1=property_map1,
+            # This function doesn't take 'mcs_kwargs', so the advice from the
+            # mapping check can't be acted on here.
+            _check_mapping=False,
         )
         molecule0 = rmsdAlign(molecule0, molecule1, mapping)
 

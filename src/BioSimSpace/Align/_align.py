@@ -744,6 +744,7 @@ def matchAtoms(
     property_map0={},
     property_map1={},
     mcs_kwargs={},
+    _check_mapping=True,
 ):
     """
     Find mappings between atom indices in molecule0 to those in molecule1.
@@ -912,6 +913,7 @@ def matchAtoms(
             property_map0=property_map0,
             property_map1=property_map1,
             mcs_kwargs=mcs_kwargs,
+            _check_mapping=_check_mapping,
         )
     else:
         return _roiMatch(
@@ -1109,6 +1111,7 @@ def _matchAtoms(
     property_map0={},
     property_map1={},
     mcs_kwargs={},
+    _check_mapping=True,
 ):
     import sys as _sys
 
@@ -1330,9 +1333,12 @@ def _matchAtoms(
     # stops the retry from recursing, since it passes 'mcs_kwargs'. Skip when a
     # prematch is given, since the retry could then fall back on Sire MCS,
     # which ignores 'mcs_kwargs', making the comparison meaningless.
-    if not mcs_kwargs and not prematch and mappings:
+    if _check_mapping and not mcs_kwargs and not prematch and mappings:
         # This is a diagnostic, so it must never be able to break a call that
-        # would otherwise have succeeded.
+        # would otherwise have succeeded. The warning itself is emitted outside
+        # the guard, since it would otherwise be swallowed and re-reported as a
+        # failure whenever the user has promoted warnings to errors.
+        message = None
         try:
             best = mappings[0]
 
@@ -1382,7 +1388,7 @@ def _matchAtoms(
                         molecule0, molecule1, best, retry, property_map0, property_map1
                     )
                 ):
-                    _warnings.warn(
+                    message = (
                         f"Mapping leaves heavy atoms unmapped on both sides "
                         f"of atom(s) {_format_flagged(flagged)} in molecule0. "
                         f"Relaxing 'ringMatchesRingOnly' gives a common core "
@@ -1391,6 +1397,9 @@ def _matchAtoms(
                     )
         except Exception as e:
             _warnings.warn(f"Unable to check the quality of the mapping: {e}")
+
+        if message is not None:
+            _warnings.warn(message)
 
     # Optionally post-process the MCS for use with AMBER.
     if prune_perturbed_constraints:
@@ -1732,6 +1741,9 @@ def _roiMatch(
             mapping = matchAtoms(
                 res0_extracted,
                 res1_extracted,
+                # The mapping check would report indices that are local to the
+                # extracted residue, not to molecule0 as its message claims.
+                _check_mapping=False,
             )
 
         # Look up the absolute atom indices in the molecule if not using a custom ROI mapping.
@@ -1955,6 +1967,9 @@ def _rmsdAlign(molecule0, molecule1, mapping=None, property_map0={}, property_ma
             molecule1,
             property_map0=property_map0,
             property_map1=property_map1,
+            # This function doesn't take 'mcs_kwargs', so the advice from the
+            # mapping check can't be acted on here.
+            _check_mapping=False,
         )
 
     # Extract the Sire molecule from each BioSimSpace molecule.
@@ -2157,6 +2172,9 @@ def _flexAlign(
             molecule1,
             property_map0=property_map0,
             property_map1=property_map1,
+            # This function doesn't take 'mcs_kwargs', so the advice from the
+            # mapping check can't be acted on here.
+            _check_mapping=False,
         )
 
     # Convert the mapping to AtomIdx key:value pairs.
@@ -2614,6 +2632,9 @@ def viewMapping(
             molecule1,
             property_map0=property_map0,
             property_map1=property_map1,
+            # This function doesn't take 'mcs_kwargs', so the advice from the
+            # mapping check can't be acted on here.
+            _check_mapping=False,
         )
         molecule0 = rmsdAlign(molecule0, molecule1, mapping)
 

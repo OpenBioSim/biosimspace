@@ -1169,3 +1169,31 @@ def test_is_sensible_extension(ejm31):
 
     # Adding nothing is trivially sensible.
     assert _is_sensible_extension(ejm31, ejm31, mapping, dict(mapping))
+
+
+def test_unmapped_attachment_check_suppressed(ejm31, jmc28):
+    """
+    The check should only fire where the user can act on its advice, i.e.
+    where 'mcs_kwargs' can be passed through.
+    """
+    # These functions don't take 'mcs_kwargs'.
+    with warnings.catch_warnings():
+        warnings.filterwarnings("error", message=".*ringMatchesRingOnly.*")
+        BSS.Align.rmsdAlign(ejm31, jmc28)
+        BSS.Align.flexAlign(ejm31, jmc28)
+
+    # 'merge' does, so the check stays on.
+    with pytest.warns(UserWarning, match="ringMatchesRingOnly"):
+        BSS.Align.merge(ejm31, jmc28, force=True)
+
+
+def test_unmapped_attachment_warning_not_swallowed(ejm31, jmc28):
+    # Promoting the warning to an error must surface the warning itself, not
+    # a report that the check failed. The warning is emitted outside the
+    # try/except that guards the check for exactly this reason.
+    # Anchored, since the wrapped "Unable to check ..." message quotes the
+    # original and would otherwise match too.
+    with pytest.raises(UserWarning, match=r"^Mapping leaves heavy atoms"):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("error", message=".*ringMatchesRingOnly.*")
+            BSS.Align.matchAtoms(ejm31, jmc28)
