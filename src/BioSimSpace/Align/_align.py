@@ -896,7 +896,7 @@ def matchAtoms(
     """
 
     if roi is None:
-        result = _matchAtoms(
+        return _matchAtoms(
             molecule0=molecule0,
             molecule1=molecule1,
             scoring_function=scoring_function,
@@ -913,85 +913,6 @@ def matchAtoms(
             property_map1=property_map1,
             mcs_kwargs=mcs_kwargs,
         )
-
-        # Only check a mapping generated from the defaults. If the user has
-        # configured the MCS then both the baseline and our idea of a sensible
-        # mapping may not match their intent. This also stops the retry below
-        # from recursing, since it passes 'mcs_kwargs'. Skip when a prematch is
-        # given, since the retry could then fall back on Sire MCS, which
-        # ignores 'mcs_kwargs', making the comparison meaningless.
-        if not mcs_kwargs and not prematch:
-            # This is a diagnostic, so it must never be able to break a call
-            # that would otherwise have succeeded.
-            try:
-                best = result[0] if return_scores else result
-                if isinstance(best, list):
-                    best = best[0] if best else {}
-
-                # Attachment points where the MCS stopped on both sides.
-                flagged = (
-                    _flag_unmapped_attachments(
-                        molecule0, molecule1, best, property_map0, property_map1
-                    )
-                    if best
-                    else []
-                )
-
-                if flagged:
-                    # Retry with ring matching relaxed to see if it does
-                    # better. Note that the RDKit documentation implies that
-                    # 'completeRingsOnly' forces 'ringMatchesRingOnly', which
-                    # would make this a no-op. It doesn't: as of RDKit
-                    # 2026.03.4 the relaxed search still returns a larger MCS
-                    # with 'completeRingsOnly' enabled. If a future RDKit
-                    # changes this, the feature will silently stop firing.
-                    #
-                    # 'matches' and 'return_scores' are passed explicitly so
-                    # that 'retry' is always a plain dict. The comparison below
-                    # relies on it. 'prematch' is omitted since the enclosing
-                    # guard means it's always empty.
-                    retry = matchAtoms(
-                        molecule0,
-                        molecule1,
-                        scoring_function=scoring_function,
-                        matches=1,
-                        return_scores=False,
-                        timeout=timeout,
-                        complete_rings_only=complete_rings_only,
-                        max_scoring_matches=max_scoring_matches,
-                        prune_perturbed_constraints=prune_perturbed_constraints,
-                        prune_crossing_constraints=prune_crossing_constraints,
-                        prune_atom_types=prune_atom_types,
-                        property_map0=property_map0,
-                        property_map1=property_map1,
-                        mcs_kwargs={"ringMatchesRingOnly": False},
-                    )
-
-                    # Only trust the retry if it extends the mapping, i.e.
-                    # keeps every existing pair and adds sensible ones.
-                    if (
-                        len(retry) > len(best)
-                        and set(best.items()) <= set(retry.items())
-                        and _is_sensible_extension(
-                            molecule0,
-                            molecule1,
-                            best,
-                            retry,
-                            property_map0,
-                            property_map1,
-                        )
-                    ):
-                        _warnings.warn(
-                            f"Mapping leaves heavy atoms unmapped on both sides "
-                            f"of atom(s) {_format_flagged(flagged)} in molecule0. "
-                            f"Relaxing 'ringMatchesRingOnly' gives a common core "
-                            f"of {len(retry)} rather than {len(best)}. Consider "
-                            f"passing mcs_kwargs={{'ringMatchesRingOnly': False}}."
-                        )
-            except Exception as e:
-                _warnings.warn(f"Unable to check the quality of the mapping: {e}")
-
-        return result
     else:
         return _roiMatch(
             molecule0,
@@ -1279,7 +1200,10 @@ def _matchAtoms(
     mol0 = molecule0._getSireObject()
     mol1 = molecule1._getSireObject()
 
-    # Convert the timeout to seconds and take the value as an integer.
+    # Convert the timeout to seconds and take the value as an integer. Keep
+    # the original, since the mapping check below re-enters this function,
+    # which expects a Time object.
+    orig_timeout = timeout
     timeout = int(timeout.seconds().value())
 
     # Use RDKkit to find the maximum common substructure.
@@ -1396,6 +1320,77 @@ def _matchAtoms(
             property_map0,
             property_map1,
         )
+
+    # Warn if the mapping stopped short at an attachment point where a pairable
+    # atom exists. This is done before the pruning below, since pruning deletes
+    # correctly mapped heavy atom pairs, which manufactures exactly the
+    # signature that the check looks for. Only check a mapping generated from
+    # the defaults. If the user has configured the MCS then both the baseline
+    # and our idea of a sensible mapping may not match their intent. This also
+    # stops the retry from recursing, since it passes 'mcs_kwargs'. Skip when a
+    # prematch is given, since the retry could then fall back on Sire MCS,
+    # which ignores 'mcs_kwargs', making the comparison meaningless.
+    if not mcs_kwargs and not prematch and mappings:
+        # This is a diagnostic, so it must never be able to break a call that
+        # would otherwise have succeeded.
+        try:
+            best = mappings[0]
+
+            # Attachment points where the MCS stopped on both sides.
+            flagged = _flag_unmapped_attachments(
+                molecule0, molecule1, best, property_map0, property_map1
+            )
+
+            if flagged:
+                # Retry with ring matching relaxed to see if it does better.
+                # Note that the RDKit documentation implies that
+                # 'completeRingsOnly' forces 'ringMatchesRingOnly', which would
+                # make this a no-op. It doesn't: as of RDKit 2026.03.4 the
+                # relaxed search still returns a larger MCS with
+                # 'completeRingsOnly' enabled. If a future RDKit changes this,
+                # the feature will silently stop firing.
+                #
+                # Pruning is disabled so that the retry is compared like for
+                # like against the unpruned mapping above. 'matches' and
+                # 'return_scores' are passed explicitly so that 'retry' is
+                # always a plain dict, which the comparison below relies on.
+                # 'prematch' is omitted since the enclosing guard means it's
+                # always empty.
+                retry = _matchAtoms(
+                    molecule0=molecule0,
+                    molecule1=molecule1,
+                    scoring_function=scoring_function,
+                    matches=1,
+                    return_scores=False,
+                    timeout=orig_timeout,
+                    complete_rings_only=complete_rings_only,
+                    max_scoring_matches=max_scoring_matches,
+                    prune_perturbed_constraints=False,
+                    prune_crossing_constraints=False,
+                    prune_atom_types=False,
+                    property_map0=property_map0,
+                    property_map1=property_map1,
+                    mcs_kwargs={"ringMatchesRingOnly": False},
+                )
+
+                # Only trust the retry if it extends the mapping, i.e. keeps
+                # every existing pair and adds sensible ones.
+                if (
+                    len(retry) > len(best)
+                    and set(best.items()) <= set(retry.items())
+                    and _is_sensible_extension(
+                        molecule0, molecule1, best, retry, property_map0, property_map1
+                    )
+                ):
+                    _warnings.warn(
+                        f"Mapping leaves heavy atoms unmapped on both sides "
+                        f"of atom(s) {_format_flagged(flagged)} in molecule0. "
+                        f"Relaxing 'ringMatchesRingOnly' gives a common core "
+                        f"of {len(retry)} rather than {len(best)}. Consider "
+                        f"passing mcs_kwargs={{'ringMatchesRingOnly': False}}."
+                    )
+        except Exception as e:
+            _warnings.warn(f"Unable to check the quality of the mapping: {e}")
 
     # Optionally post-process the MCS for use with AMBER.
     if prune_perturbed_constraints:

@@ -1233,28 +1233,22 @@ def matchAtoms(
             property_map1,
         )
 
-    # Optionally post-process the MCS.
-    if prune_perturbed_constraints:
-        mappings = [
-            _prune_perturbed_constraints(molecule0, molecule1, x) for x in mappings
-        ]
-    if prune_crossing_constraints:
-        mappings = [
-            _prune_crossing_constraints(molecule0, molecule1, x) for x in mappings
-        ]
-
     # Warn if the mapping stopped short at an attachment point where a pairable
-    # atom exists. Only check a mapping generated from the defaults. If the
-    # user has configured the MCS then both the baseline and our idea of a
-    # sensible mapping may not match their intent. This also stops the retry
-    # below from recursing, since it passes 'mcs_kwargs'. Skip when a prematch
-    # is given, since the retry could then fall back on Sire MCS, which ignores
-    # 'mcs_kwargs', making the comparison meaningless.
+    # atom exists. This is done before the pruning below, since pruning deletes
+    # correctly mapped heavy atom pairs, which manufactures exactly the
+    # signature that the check looks for. Only check a mapping generated from
+    # the defaults. If the user has configured the MCS then both the baseline
+    # and our idea of a sensible mapping may not match their intent. This also
+    # stops the retry from recursing, since it passes 'mcs_kwargs'. Skip when a
+    # prematch is given, since the retry could then fall back on Sire MCS,
+    # which ignores 'mcs_kwargs', making the comparison meaningless.
     if not mcs_kwargs and not prematch and mappings:
         # This is a diagnostic, so it must never be able to break a call that
         # would otherwise have succeeded.
         try:
             best = mappings[0]
+
+            # Attachment points where the MCS stopped on both sides.
             flagged = _flag_unmapped_attachments(
                 molecule0, molecule1, best, property_map0, property_map1
             )
@@ -1268,10 +1262,12 @@ def matchAtoms(
                 # 'completeRingsOnly' enabled. If a future RDKit changes this,
                 # the feature will silently stop firing.
                 #
-                # 'matches' and 'return_scores' are passed explicitly so that
-                # 'retry' is always a plain dict. The comparison below relies
-                # on it. 'prematch' is omitted since the enclosing guard means
-                # it's always empty.
+                # Pruning is disabled so that the retry is compared like for
+                # like against the unpruned mapping above. 'matches' and
+                # 'return_scores' are passed explicitly so that 'retry' is
+                # always a plain dict, which the comparison below relies on.
+                # 'prematch' is omitted since the enclosing guard means it's
+                # always empty.
                 retry = matchAtoms(
                     molecule0,
                     molecule1,
@@ -1281,8 +1277,8 @@ def matchAtoms(
                     return_scores=False,
                     timeout=orig_timeout,
                     complete_rings_only=complete_rings_only,
-                    prune_perturbed_constraints=prune_perturbed_constraints,
-                    prune_crossing_constraints=prune_crossing_constraints,
+                    prune_perturbed_constraints=False,
+                    prune_crossing_constraints=False,
                     max_scoring_matches=max_scoring_matches,
                     property_map0=property_map0,
                     property_map1=property_map1,
@@ -1307,6 +1303,16 @@ def matchAtoms(
                     )
         except Exception as e:
             _warnings.warn(f"Unable to check the quality of the mapping: {e}")
+
+    # Optionally post-process the MCS.
+    if prune_perturbed_constraints:
+        mappings = [
+            _prune_perturbed_constraints(molecule0, molecule1, x) for x in mappings
+        ]
+    if prune_crossing_constraints:
+        mappings = [
+            _prune_crossing_constraints(molecule0, molecule1, x) for x in mappings
+        ]
 
     if matches == 1:
         if return_scores:
