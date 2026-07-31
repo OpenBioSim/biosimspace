@@ -921,48 +921,75 @@ def matchAtoms(
         # given, since the retry could then fall back on Sire MCS, which
         # ignores 'mcs_kwargs', making the comparison meaningless.
         if not mcs_kwargs and not prematch:
-            best = result[0] if return_scores else result
-            if isinstance(best, list):
-                best = best[0] if best else {}
+            # This is a diagnostic, so it must never be able to break a call
+            # that would otherwise have succeeded.
+            try:
+                best = result[0] if return_scores else result
+                if isinstance(best, list):
+                    best = best[0] if best else {}
 
-            # Attachment points where the MCS stopped on both sides.
-            flagged = (
-                _flag_unmapped_attachments(molecule0, molecule1, best) if best else []
-            )
-
-            if flagged:
-                # Retry with ring matching relaxed to see if it does better.
-                retry = matchAtoms(
-                    molecule0,
-                    molecule1,
-                    scoring_function=scoring_function,
-                    prematch=prematch,
-                    timeout=timeout,
-                    complete_rings_only=complete_rings_only,
-                    max_scoring_matches=max_scoring_matches,
-                    prune_perturbed_constraints=prune_perturbed_constraints,
-                    prune_crossing_constraints=prune_crossing_constraints,
-                    prune_atom_types=prune_atom_types,
-                    property_map0=property_map0,
-                    property_map1=property_map1,
-                    mcs_kwargs={"ringMatchesRingOnly": False},
+                # Attachment points where the MCS stopped on both sides.
+                flagged = (
+                    _flag_unmapped_attachments(
+                        molecule0, molecule1, best, property_map0, property_map1
+                    )
+                    if best
+                    else []
                 )
 
-                # Only trust the retry if it extends the mapping, i.e. keeps
-                # every existing pair and adds sensible ones.
-                if (
-                    len(retry) > len(best)
-                    and set(best.items()) <= set(retry.items())
-                    and _is_sensible_extension(molecule0, molecule1, best, retry)
-                ):
-                    _warnings.warn(
-                        f"Mapping leaves heavy atoms unmapped on both sides of "
-                        f"atom(s) {flagged} "
-                        f"in molecule0. Relaxing 'ringMatchesRingOnly' gives a "
-                        f"common core of {len(retry)} rather than {len(best)}. "
-                        f"Consider passing "
-                        f"mcs_kwargs={{'ringMatchesRingOnly': False}}."
+                if flagged:
+                    # Retry with ring matching relaxed to see if it does
+                    # better. Note that the RDKit documentation implies that
+                    # 'completeRingsOnly' forces 'ringMatchesRingOnly', which
+                    # would make this a no-op. It doesn't: as of RDKit
+                    # 2026.03.4 the relaxed search still returns a larger MCS
+                    # with 'completeRingsOnly' enabled. If a future RDKit
+                    # changes this, the feature will silently stop firing.
+                    #
+                    # 'matches' and 'return_scores' are passed explicitly so
+                    # that 'retry' is always a plain dict. The comparison below
+                    # relies on it. 'prematch' is omitted since the enclosing
+                    # guard means it's always empty.
+                    retry = matchAtoms(
+                        molecule0,
+                        molecule1,
+                        scoring_function=scoring_function,
+                        matches=1,
+                        return_scores=False,
+                        timeout=timeout,
+                        complete_rings_only=complete_rings_only,
+                        max_scoring_matches=max_scoring_matches,
+                        prune_perturbed_constraints=prune_perturbed_constraints,
+                        prune_crossing_constraints=prune_crossing_constraints,
+                        prune_atom_types=prune_atom_types,
+                        property_map0=property_map0,
+                        property_map1=property_map1,
+                        mcs_kwargs={"ringMatchesRingOnly": False},
                     )
+
+                    # Only trust the retry if it extends the mapping, i.e.
+                    # keeps every existing pair and adds sensible ones.
+                    if (
+                        len(retry) > len(best)
+                        and set(best.items()) <= set(retry.items())
+                        and _is_sensible_extension(
+                            molecule0,
+                            molecule1,
+                            best,
+                            retry,
+                            property_map0,
+                            property_map1,
+                        )
+                    ):
+                        _warnings.warn(
+                            f"Mapping leaves heavy atoms unmapped on both sides "
+                            f"of atom(s) {_format_flagged(flagged)} in molecule0. "
+                            f"Relaxing 'ringMatchesRingOnly' gives a common core "
+                            f"of {len(retry)} rather than {len(best)}. Consider "
+                            f"passing mcs_kwargs={{'ringMatchesRingOnly': False}}."
+                        )
+            except Exception as e:
+                _warnings.warn(f"Unable to check the quality of the mapping: {e}")
 
         return result
     else:
@@ -979,7 +1006,37 @@ def matchAtoms(
         )
 
 
-def _flag_unmapped_attachments(molecule0, molecule1, mapping):
+def _format_flagged(flagged, max_show=5):
+    """
+    Internal helper to format a list of atom indices for use in a warning
+    message, truncating so that the message stays readable for large
+    molecules.
+
+    Parameters
+    ----------
+
+    flagged : [int]
+        The indices to format.
+
+    max_show : int
+        The maximum number of indices to show.
+
+    Returns
+    -------
+
+    string : str
+        The formatted indices.
+    """
+    if len(flagged) <= max_show:
+        return str(flagged)
+    else:
+        shown = ", ".join(str(x) for x in flagged[:max_show])
+        return f"[{shown}, ... ({len(flagged)} in total)]"
+
+
+def _flag_unmapped_attachments(
+    molecule0, molecule1, mapping, property_map0={}, property_map1={}
+):
     """
     Internal function to find mapped atoms that have an unmapped heavy atom
     neighbour of a common element in both molecules. These are attachment
@@ -998,6 +1055,16 @@ def _flag_unmapped_attachments(molecule0, molecule1, mapping):
     mapping : dict
         The atom mapping between the two molecules.
 
+    property_map0 : dict
+        A dictionary that maps "properties" in molecule0 to their user
+        defined values. This allows the user to refer to properties with
+        their own naming scheme, e.g. { "charge" : "my-charge" }
+
+    property_map1 : dict
+        A dictionary that maps "properties" in molecule1 to their user
+        defined values. This allows the user to refer to properties with
+        their own naming scheme, e.g. { "charge" : "my-charge" }
+
     Returns
     -------
 
@@ -1008,33 +1075,42 @@ def _flag_unmapped_attachments(molecule0, molecule1, mapping):
 
     mol0 = molecule0._getSireObject()
     mol1 = molecule1._getSireObject()
-    conn0 = mol0.property("connectivity")
-    conn1 = mol1.property("connectivity")
 
-    def _heavy_elements(mol, conn, idx, mapped):
+    # Build the connectivity explicitly, since the molecules aren't guaranteed
+    # to have a stored "connectivity" property.
+    conn0 = _SireMol.Connectivity(mol0, _SireMol.CovalentBondHunter())
+    conn1 = _SireMol.Connectivity(mol1, _SireMol.CovalentBondHunter())
+
+    element0 = property_map0.get("element", "element")
+    element1 = property_map1.get("element", "element")
+
+    def _heavy_elements(mol, conn, idx, mapped, element):
         elements = set()
         for i in conn.connections_to(_SireMol.AtomIdx(idx)):
             if i.value() not in mapped:
-                protons = mol.atom(i).property("element").num_protons()
+                protons = mol.atom(i).property(element).num_protons()
                 if protons > 1:
                     elements.add(protons)
         return elements
 
+    mapped0 = set(mapping)
     mapped1 = set(mapping.values())
     flagged = []
 
     for idx0, idx1 in mapping.items():
-        elements0 = _heavy_elements(mol0, conn0, idx0, mapping)
+        elements0 = _heavy_elements(mol0, conn0, idx0, mapped0, element0)
         if not elements0:
             continue
-        elements1 = _heavy_elements(mol1, conn1, idx1, mapped1)
+        elements1 = _heavy_elements(mol1, conn1, idx1, mapped1, element1)
         if elements0 & elements1:
             flagged.append(idx0)
 
     return flagged
 
 
-def _is_sensible_extension(molecule0, molecule1, mapping, extended):
+def _is_sensible_extension(
+    molecule0, molecule1, mapping, extended, property_map0={}, property_map1={}
+):
     """
     Internal function to test whether the atoms that 'extended' adds relative
     to 'mapping' pair like with like. The MCS uses CompareAny, so it is free to
@@ -1056,6 +1132,16 @@ def _is_sensible_extension(molecule0, molecule1, mapping, extended):
     extended : dict
         The larger atom mapping to test.
 
+    property_map0 : dict
+        A dictionary that maps "properties" in molecule0 to their user
+        defined values. This allows the user to refer to properties with
+        their own naming scheme, e.g. { "charge" : "my-charge" }
+
+    property_map1 : dict
+        A dictionary that maps "properties" in molecule1 to their user
+        defined values. This allows the user to refer to properties with
+        their own naming scheme, e.g. { "charge" : "my-charge" }
+
     Returns
     -------
 
@@ -1068,13 +1154,16 @@ def _is_sensible_extension(molecule0, molecule1, mapping, extended):
     mol0 = molecule0._getSireObject()
     mol1 = molecule1._getSireObject()
 
+    element0 = property_map0.get("element", "element")
+    element1 = property_map1.get("element", "element")
+
     for idx0, idx1 in extended.items():
         if idx0 not in mapping:
             protons0 = (
-                mol0.atom(_SireMol.AtomIdx(idx0)).property("element").num_protons()
+                mol0.atom(_SireMol.AtomIdx(idx0)).property(element0).num_protons()
             )
             protons1 = (
-                mol1.atom(_SireMol.AtomIdx(idx1)).property("element").num_protons()
+                mol1.atom(_SireMol.AtomIdx(idx1)).property(element1).num_protons()
             )
             if (protons0 > 1) != (protons1 > 1):
                 return False

@@ -1406,7 +1406,19 @@ def test_unmapped_attachment_warning(ejm31, jmc28):
     with pytest.warns(UserWarning, match="ringMatchesRingOnly"):
         BSS.Align.matchAtoms(ejm31, jmc28)
 
-    # No warning once the option has been set explicitly.
+    # No warning once the option has been set explicitly. Only promote the
+    # warning we care about, so that unrelated warnings from RDKit or Sire
+    # don't fail the test.
     with warnings.catch_warnings():
-        warnings.simplefilter("error")
+        warnings.filterwarnings("error", message=".*ringMatchesRingOnly.*")
         BSS.Align.matchAtoms(ejm31, jmc28, mcs_kwargs={"ringMatchesRingOnly": False})
+
+    # The returned mapping must be unchanged by the check, since it is only
+    # meant to be an observation.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        checked = BSS.Align.matchAtoms(ejm31, jmc28)
+        unchecked = BSS.Align.matchAtoms(
+            ejm31, jmc28, mcs_kwargs=BSS.Align.defaultMCSOptions()
+        )
+    assert checked == unchecked
