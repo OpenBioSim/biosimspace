@@ -1294,8 +1294,8 @@ def matchAtoms(
 
                 # Only trust the retry if it extends the mapping, i.e. keeps
                 # every existing pair and adds sensible ones. The subset test is
-                # sensitive to symmetry: relabelling a symmetric ring the other
-                # way round discards the retry even though it is equivalent.
+                # sensitive to relabelling: an equivalent mapping that traverses
+                # a ring the other way, or permutes hydrogens, is discarded.
                 if (
                     len(retry) > len(best)
                     and set(best.items()) <= set(retry.items())
