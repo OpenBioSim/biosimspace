@@ -744,8 +744,6 @@ def matchAtoms(
     property_map0={},
     property_map1={},
     mcs_kwargs={},
-    *,
-    _check_mapping=True,
 ):
     """
     Find mappings between atom indices in molecule0 to those in molecule1.
@@ -914,7 +912,6 @@ def matchAtoms(
             property_map0=property_map0,
             property_map1=property_map1,
             mcs_kwargs=mcs_kwargs,
-            _check_mapping=_check_mapping,
         )
     else:
         return _roiMatch(
@@ -1105,7 +1102,6 @@ def _matchAtoms(
     timeout=5 * _Units.Time.second,
     complete_rings_only=True,
     max_scoring_matches=1000,
-    roi=None,
     prune_perturbed_constraints=False,
     prune_crossing_constraints=False,
     prune_atom_types=False,
@@ -1744,7 +1740,7 @@ def _roiMatch(
                     )
             mapping = None
         else:
-            mapping = matchAtoms(
+            mapping = _matchAtoms(
                 res0_extracted,
                 res1_extracted,
                 # The mapping check would report indices that are local to the
@@ -1968,7 +1964,7 @@ def _rmsdAlign(molecule0, molecule1, mapping=None, property_map0={}, property_ma
 
     # Get the best match atom mapping.
     else:
-        mapping = matchAtoms(
+        mapping = _matchAtoms(
             molecule0,
             molecule1,
             property_map0=property_map0,
@@ -2173,7 +2169,7 @@ def _flexAlign(
 
     # Get the best match atom mapping.
     else:
-        mapping = matchAtoms(
+        mapping = _matchAtoms(
             molecule0,
             molecule1,
             property_map0=property_map0,
