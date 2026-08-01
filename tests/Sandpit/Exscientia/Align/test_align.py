@@ -1,4 +1,5 @@
 import sys
+import warnings
 
 import pytest
 from sire.legacy.Maths import Vector
@@ -6,7 +7,12 @@ from sire.legacy.MM import InternalFF, IntraCLJFF, IntraFF
 from sire.legacy.Mol import AtomIdx, Element, PartialMolecule
 
 import BioSimSpace.Sandpit.Exscientia as BSS
-from tests.Sandpit.Exscientia.conftest import has_antechamber, has_openff, url
+from tests.Sandpit.Exscientia.conftest import (
+    has_antechamber,
+    has_openff,
+    has_tleap,
+    url,
+)
 
 
 @pytest.fixture(scope="session")
@@ -968,3 +974,230 @@ def test_mcs_kwargs_merge(ejm31, jmc28):
     # No ring is broken or made, so neither property is set.
     assert not sire_mol.has_property("ring_breaking_bonds")
     assert not sire_mol.has_property("ring_making_bonds")
+
+
+def test_unmapped_attachment_warning(ejm31, jmc28):
+    # The default mapping stops at the carbonyl carbon (atom 17), leaving
+    # heavy atoms unmapped on both sides, so we should be told about it.
+    with pytest.warns(UserWarning, match="ringMatchesRingOnly"):
+        BSS.Align.matchAtoms(ejm31, jmc28)
+
+    # No warning once the option has been set explicitly. Only promote the
+    # warning we care about, so that unrelated warnings from RDKit or Sire
+    # don't fail the test.
+    with warnings.catch_warnings():
+        warnings.filterwarnings("error", message=".*ringMatchesRingOnly.*")
+        BSS.Align.matchAtoms(ejm31, jmc28, mcs_kwargs={"ringMatchesRingOnly": False})
+
+    # The returned mapping must be unchanged by the check, since it is only
+    # meant to be an observation.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        checked = BSS.Align.matchAtoms(ejm31, jmc28)
+        unchecked = BSS.Align.matchAtoms(
+            ejm31, jmc28, mcs_kwargs=BSS.Align.defaultMCSOptions()
+        )
+    assert checked == unchecked
+
+
+def test_unmapped_attachment_no_warning(ejm31):
+    # A molecule mapped to itself leaves nothing unmapped, so there is
+    # nothing to flag.
+    with warnings.catch_warnings():
+        warnings.filterwarnings("error", message=".*ringMatchesRingOnly.*")
+        BSS.Align.matchAtoms(ejm31, ejm31)
+
+
+@pytest.mark.skipif(
+    not has_antechamber or not has_tleap,
+    reason="Requires antechamber and tLEaP to be installed.",
+)
+def test_unmapped_attachment_no_warning_r_group(monkeypatch):
+    """
+    Regression test for the check running on the pruned mapping. Pruning
+    deletes correctly mapped heavy atom pairs, which looks identical to an
+    MCS that stopped short, so these ordinary R-group edits used to be
+    flagged and pay for a second MCS search for nothing.
+
+    No warning was ever emitted for them, since the gate rejected the retry,
+    so the flagged atoms are spied on directly rather than the warning.
+    """
+    from BioSimSpace.Sandpit.Exscientia.Align import _align
+
+    pairs = [
+        ("Cc1ccccc1", "CCc1ccccc1"),  # methyl -> ethyl
+        ("CCc1ccccc1", "CCCc1ccccc1"),  # ethyl -> propyl
+        ("COc1ccccc1", "CCOc1ccccc1"),  # methoxy -> ethoxy
+        ("O=C(N)c1ccccc1", "O=C(N)c1ccccc1Cl"),  # hydrogen -> chlorine
+    ]
+
+    flagged = []
+    original = _align._flag_unmapped_attachments
+
+    def _spy(*args, **kwargs):
+        result = original(*args, **kwargs)
+        flagged.append(result)
+        return result
+
+    monkeypatch.setattr(_align, "_flag_unmapped_attachments", _spy)
+
+    for smiles0, smiles1 in pairs:
+        molecule0 = BSS.Parameters.gaff2(smiles0).getMolecule()
+        molecule1 = BSS.Parameters.gaff2(smiles1).getMolecule()
+
+        del flagged[:]
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("error", message=".*ringMatchesRingOnly.*")
+            warnings.filterwarnings("error", message=".*Unable to check.*")
+            BSS.Align.matchAtoms(
+                molecule0,
+                molecule1,
+                prune_perturbed_constraints=True,
+                prune_crossing_constraints=True,
+            )
+
+        # The check should run once, on the unpruned mapping, and find
+        # nothing. A second entry would mean the retry had run too.
+        assert flagged == [[]]
+
+
+def test_unmapped_attachment_warning_other_branches(ejm31, jmc28):
+    # The check must cope with the alternative return shapes, and must not
+    # change what is returned in any of them.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        reference = BSS.Align.matchAtoms(
+            ejm31, jmc28, mcs_kwargs=BSS.Align.defaultMCSOptions()
+        )
+
+        mappings = BSS.Align.matchAtoms(ejm31, jmc28, matches=5)
+        assert isinstance(mappings, list)
+        assert mappings[0] == reference
+
+        mapping, score = BSS.Align.matchAtoms(ejm31, jmc28, return_scores=True)
+        assert mapping == reference
+
+        mappings, scores = BSS.Align.matchAtoms(
+            ejm31, jmc28, matches=5, return_scores=True
+        )
+        assert len(mappings) == len(scores)
+        assert mappings[0] == reference
+
+    # A prematch skips the check, since the retry could fall back on the Sire
+    # MCS, which ignores 'mcs_kwargs'.
+    with warnings.catch_warnings():
+        warnings.filterwarnings("error", message=".*ringMatchesRingOnly.*")
+        BSS.Align.matchAtoms(ejm31, jmc28, prematch={0: 0})
+
+
+def test_flag_unmapped_attachments(ejm31):
+    """
+    Unit test for the attachment point check, using hand-built mappings so
+    that no MCS search is involved.
+    """
+    from sire.legacy import Mol as _SireMol
+
+    from BioSimSpace.Sandpit.Exscientia.Align._align import _flag_unmapped_attachments
+
+    sire_mol = ejm31._sire_object
+    connectivity = _SireMol.Connectivity(sire_mol, _SireMol.CovalentBondHunter())
+
+    # Map the molecule onto itself. Nothing is unmapped, so nothing is flagged.
+    identity = {x: x for x in range(sire_mol.num_atoms())}
+    assert _flag_unmapped_attachments(ejm31, ejm31, identity) == []
+
+    # Find a heavy atom with a heavy atom neighbour.
+    for atom in sire_mol.atoms():
+        idx = atom.index().value()
+        if atom.property("element").num_protons() == 1:
+            continue
+        neighbours = [
+            i.value()
+            for i in connectivity.connections_to(_SireMol.AtomIdx(idx))
+            if sire_mol.atom(i).property("element").num_protons() > 1
+        ]
+        if neighbours:
+            break
+
+    # Drop the neighbour from the mapping. It is now an unmapped heavy atom
+    # of the same element on both sides of 'idx', so 'idx' is flagged.
+    truncated = dict(identity)
+    del truncated[neighbours[0]]
+    assert idx in _flag_unmapped_attachments(ejm31, ejm31, truncated)
+
+    # Hydrogens are ignored, so dropping one flags nothing.
+    hydrogen = next(
+        a.index().value()
+        for a in sire_mol.atoms()
+        if a.property("element").num_protons() == 1
+    )
+    truncated = dict(identity)
+    del truncated[hydrogen]
+    assert _flag_unmapped_attachments(ejm31, ejm31, truncated) == []
+
+
+def test_is_sensible_extension(ejm31):
+    """
+    Unit test for the heavy/hydrogen check on the atoms that the retry adds.
+    """
+    from BioSimSpace.Sandpit.Exscientia.Align._align import _is_sensible_extension
+
+    sire_mol = ejm31._sire_object
+
+    heavy = [
+        a.index().value()
+        for a in sire_mol.atoms()
+        if a.property("element").num_protons() > 1
+    ]
+    hydrogens = [
+        a.index().value()
+        for a in sire_mol.atoms()
+        if a.property("element").num_protons() == 1
+    ]
+
+    mapping = {heavy[0]: heavy[0]}
+
+    # Heavy to heavy and hydrogen to hydrogen are both sensible.
+    extended = dict(mapping)
+    extended[heavy[1]] = heavy[1]
+    extended[hydrogens[0]] = hydrogens[0]
+    assert _is_sensible_extension(ejm31, ejm31, mapping, extended)
+
+    # Pairing a heavy atom with a hydrogen is not.
+    extended = dict(mapping)
+    extended[heavy[1]] = hydrogens[0]
+    assert not _is_sensible_extension(ejm31, ejm31, mapping, extended)
+
+    # Adding nothing is trivially sensible.
+    assert _is_sensible_extension(ejm31, ejm31, mapping, dict(mapping))
+
+
+def test_unmapped_attachment_check_suppressed(ejm31, jmc28):
+    """
+    The check should only fire where the user can act on its advice, i.e.
+    where 'mcs_kwargs' can be passed through.
+    """
+    # 'rmsdAlign' doesn't take 'mcs_kwargs'. 'flexAlign' is suppressed for the
+    # same reason, but isn't exercised here since it needs fkcombu. Nor is
+    # 'viewMapping', which keeps the check but returns early outside a
+    # notebook, before it ever reaches 'matchAtoms'.
+    with warnings.catch_warnings():
+        warnings.filterwarnings("error", message=".*ringMatchesRingOnly.*")
+        BSS.Align.rmsdAlign(ejm31, jmc28)
+
+    # 'merge' does, so the check stays on.
+    with pytest.warns(UserWarning, match="ringMatchesRingOnly"):
+        BSS.Align.merge(ejm31, jmc28, force=True)
+
+
+def test_unmapped_attachment_warning_not_swallowed(ejm31, jmc28):
+    # Promoting the warning to an error must surface the warning itself, not
+    # a report that the check failed. The warning is emitted outside the
+    # try/except that guards the check for exactly this reason.
+    # Anchored, since the wrapped "Unable to check ..." message quotes the
+    # original and would otherwise match too.
+    with pytest.raises(UserWarning, match=r"^Mapping leaves heavy atoms"):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("error", message=".*ringMatchesRingOnly.*")
+            BSS.Align.matchAtoms(ejm31, jmc28)

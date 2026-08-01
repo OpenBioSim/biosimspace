@@ -593,7 +593,10 @@ class ATMSetup:
         BioSimSpace._SireWrappers.System
             The system for the ATM simulation.
         """
-        from ..Align import matchAtoms as _matchAtoms
+        # The private form is used so that the mapping check can be switched
+        # off below. It is otherwise identical to 'matchAtoms', which is a
+        # dispatcher on 'roi' and is never given one here.
+        from ..Align._align import _matchAtoms
         from ..Align import rmsdAlign as _rmsdAlign
         from ..Types import Vector as _Vector
 
@@ -683,7 +686,9 @@ class ATMSetup:
             out_of_protein = displacement.value() * initial_normal_vector
             return out_of_protein
 
-        mapping = _matchAtoms(ligand_free, ligand_bound)
+        # ATM doesn't expose 'mcs_kwargs', nor a way to pass in a mapping, so
+        # the advice from the mapping check can't be acted on here.
+        mapping = _matchAtoms(ligand_free, ligand_bound, _check_mapping=False)
         ligand_free_aligned = _rmsdAlign(ligand_free, ligand_bound, mapping)
         prot_lig1 = (protein + ligand_bound).toSystem()
 
