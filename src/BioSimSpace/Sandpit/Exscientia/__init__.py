@@ -238,35 +238,31 @@ else:
 
 # Lazy load submodules if possible.
 if _can_lazy_import:
-    import lazy_import as _lazy_import
+    from sire._lazy_import import lazy_module as _lazy_module
 
-    Align = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Align")
-    Box = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Box")
-    Convert = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Convert")
-    FreeEnergy = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.FreeEnergy")
-    Gateway = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Gateway")
-    IO = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.IO")
-    Metadynamics = _lazy_import.lazy_module(
-        "BioSimSpace.Sandpit.Exscientia.Metadynamics"
-    )
-    MD = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.MD")
-    Node = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Node")
-    Notebook = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Notebook")
-    Parameters = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Parameters")
-    Process = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Process")
-    Protocol = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Protocol")
-    Solvent = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Solvent")
-    Stream = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Stream")
-    Trajectory = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Trajectory")
-    Types = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Types")
-    Units = _lazy_import.lazy_module("BioSimSpace.Sandpit.Exscientia.Units")
-    _SireWrappers = _lazy_import.lazy_module(
-        "BioSimSpace.Sandpit.Exscientia._SireWrappers"
-    )
+    Align = _lazy_module("BioSimSpace.Sandpit.Exscientia.Align")
+    Box = _lazy_module("BioSimSpace.Sandpit.Exscientia.Box")
+    Convert = _lazy_module("BioSimSpace.Sandpit.Exscientia.Convert")
+    FreeEnergy = _lazy_module("BioSimSpace.Sandpit.Exscientia.FreeEnergy")
+    Gateway = _lazy_module("BioSimSpace.Sandpit.Exscientia.Gateway")
+    IO = _lazy_module("BioSimSpace.Sandpit.Exscientia.IO")
+    Metadynamics = _lazy_module("BioSimSpace.Sandpit.Exscientia.Metadynamics")
+    MD = _lazy_module("BioSimSpace.Sandpit.Exscientia.MD")
+    Node = _lazy_module("BioSimSpace.Sandpit.Exscientia.Node")
+    Notebook = _lazy_module("BioSimSpace.Sandpit.Exscientia.Notebook")
+    Parameters = _lazy_module("BioSimSpace.Sandpit.Exscientia.Parameters")
+    Process = _lazy_module("BioSimSpace.Sandpit.Exscientia.Process")
+    Protocol = _lazy_module("BioSimSpace.Sandpit.Exscientia.Protocol")
+    Solvent = _lazy_module("BioSimSpace.Sandpit.Exscientia.Solvent")
+    Stream = _lazy_module("BioSimSpace.Sandpit.Exscientia.Stream")
+    Trajectory = _lazy_module("BioSimSpace.Sandpit.Exscientia.Trajectory")
+    Types = _lazy_module("BioSimSpace.Sandpit.Exscientia.Types")
+    Units = _lazy_module("BioSimSpace.Sandpit.Exscientia.Units")
+    _SireWrappers = _lazy_module("BioSimSpace.Sandpit.Exscientia._SireWrappers")
 
     from . import _Exceptions, _Utils
 
-    del _lazy_import
+    del _lazy_module
 else:
     from . import (
         IO,
