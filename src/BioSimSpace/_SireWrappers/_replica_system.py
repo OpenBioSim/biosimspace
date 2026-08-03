@@ -387,6 +387,17 @@ class ReplicaSystem:
         from ._system import System as _System
 
         template = _System(self._sire_object)
+
+        # Skip the rebuild below if the water already matches the requested
+        # topology, mirroring System._set_water_topology's own early exit.
+        _format = format.replace(" ", "").upper()
+        waters = template.getWaterMolecules()
+        if len(waters) > 0:
+            if _format == "AMBER" and waters[0].isAmberWater():
+                return
+            if _format == "GROMACS" and waters[0].isGromacsWater():
+                return
+
         template._set_water_topology(format, property_map=property_map)
         self._sire_object = template._sire_object
         self._new_sire_object = _NewSireSystem(self._sire_object)
