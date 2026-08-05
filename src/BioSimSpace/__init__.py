@@ -238,31 +238,31 @@ else:
 
 # Lazy import submodules if possible.
 if _can_lazy_import:
-    import lazy_import as _lazy_import
+    from sire._lazy_import import lazy_module as _lazy_module
 
-    Align = _lazy_import.lazy_module("BioSimSpace.Align")
-    Box = _lazy_import.lazy_module("BioSimSpace.Box")
-    Convert = _lazy_import.lazy_module("BioSimSpace.Convert")
-    FreeEnergy = _lazy_import.lazy_module("BioSimSpace.FreeEnergy")
-    Gateway = _lazy_import.lazy_module("BioSimSpace.Gateway")
-    IO = _lazy_import.lazy_module("BioSimSpace.IO")
-    Metadynamics = _lazy_import.lazy_module("BioSimSpace.Metadynamics")
-    MD = _lazy_import.lazy_module("BioSimSpace.MD")
-    Node = _lazy_import.lazy_module("BioSimSpace.Node")
-    Notebook = _lazy_import.lazy_module("BioSimSpace.Notebook")
-    Parameters = _lazy_import.lazy_module("BioSimSpace.Parameters")
-    Process = _lazy_import.lazy_module("BioSimSpace.Process")
-    Protocol = _lazy_import.lazy_module("BioSimSpace.Protocol")
-    Solvent = _lazy_import.lazy_module("BioSimSpace.Solvent")
-    Stream = _lazy_import.lazy_module("BioSimSpace.Stream")
-    Trajectory = _lazy_import.lazy_module("BioSimSpace.Trajectory")
-    Types = _lazy_import.lazy_module("BioSimSpace.Types")
-    Units = _lazy_import.lazy_module("BioSimSpace.Units")
-    _SireWrappers = _lazy_import.lazy_module("BioSimSpace._SireWrappers")
+    Align = _lazy_module("BioSimSpace.Align")
+    Box = _lazy_module("BioSimSpace.Box")
+    Convert = _lazy_module("BioSimSpace.Convert")
+    FreeEnergy = _lazy_module("BioSimSpace.FreeEnergy")
+    Gateway = _lazy_module("BioSimSpace.Gateway")
+    IO = _lazy_module("BioSimSpace.IO")
+    Metadynamics = _lazy_module("BioSimSpace.Metadynamics")
+    MD = _lazy_module("BioSimSpace.MD")
+    Node = _lazy_module("BioSimSpace.Node")
+    Notebook = _lazy_module("BioSimSpace.Notebook")
+    Parameters = _lazy_module("BioSimSpace.Parameters")
+    Process = _lazy_module("BioSimSpace.Process")
+    Protocol = _lazy_module("BioSimSpace.Protocol")
+    Solvent = _lazy_module("BioSimSpace.Solvent")
+    Stream = _lazy_module("BioSimSpace.Stream")
+    Trajectory = _lazy_module("BioSimSpace.Trajectory")
+    Types = _lazy_module("BioSimSpace.Types")
+    Units = _lazy_module("BioSimSpace.Units")
+    _SireWrappers = _lazy_module("BioSimSpace._SireWrappers")
 
     from . import _Exceptions, _Utils
 
-    del _lazy_import
+    del _lazy_module
 else:
     from . import (
         IO,

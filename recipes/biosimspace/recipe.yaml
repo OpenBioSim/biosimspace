@@ -22,7 +22,6 @@ requirements:
     - configargparse
     - ipywidgets
     - kcombu_bss
-    - lazy_import
     - loguru
     - lomap2
     - networkx
