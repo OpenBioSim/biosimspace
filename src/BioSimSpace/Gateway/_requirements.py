@@ -2037,13 +2037,13 @@ def _unarchive(name):
     else:
         dir = _os.path.splitext(name)[0] + "/"
 
-    # List of supported tar file formats.
-    tarfiles = ["tar.gz", "tar.bz2", "tar"]
+    # List of supported tar file extensions.
+    tar_exts = [".tar.gz", ".tar.bz2", ".tar"]
 
     # Check whether this is a tar compressed file.
-    for tar_name in tarfiles:
+    for ext in tar_exts:
         # Found a match.
-        if tar_name in name.lower():
+        if name.lower().endswith(ext):
             # The list of decompressed files.
             files = []
 
