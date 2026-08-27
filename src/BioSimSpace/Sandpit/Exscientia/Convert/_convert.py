@@ -194,6 +194,13 @@ def to(obj, format="biosimspace", property_map={}, **kwargs):
             raise TypeError("'force_stereo_inference' must be of type 'bool'.")
         property_map["force_stereo_inference"] = _SireBase.wrap(force_stereo_inference)
 
+    # Check for determine_bond_orders in kwargs.
+    if "determine_bond_orders" in kwargs:
+        determine_bond_orders = kwargs["determine_bond_orders"]
+        if not isinstance(determine_bond_orders, bool):
+            raise TypeError("'determine_bond_orders' must be of type 'bool'.")
+        property_map["determine_bond_orders"] = _SireBase.wrap(determine_bond_orders)
+
     # Special handling for OpenMM conversion. Currently this is a one-way (toOpenMM)
     # conversion only and is only supported for specific Sire and BioSimSpace types.
     if format == "openmm":
@@ -517,7 +524,9 @@ def toOpenMM(obj, property_map={}):
         )
 
 
-def toRDKit(obj, force_stereo_inference=False, property_map={}):
+def toRDKit(
+    obj, force_stereo_inference=False, determine_bond_orders=True, property_map={}
+):
     """
     Convert an object to RDKit format.
 
@@ -531,6 +540,11 @@ def toRDKit(obj, force_stereo_inference=False, property_map={}):
         Whether to force inference of stereochemistry, overriding any
         stereochemistry present in the input object. This is useful when
         the object has been loaded from a file with invalid stereochemistry.
+
+    bool : determine_bond_orders
+        Whether to use RDKit's determineBondOrders function when bond orders
+        need to be inferred. This is more robust than the internal heuristic,
+        but can be slow for large molecules, e.g. proteins.
 
     property_map : dict
         A dictionary that maps system "properties" to their user defined
@@ -548,10 +562,14 @@ def toRDKit(obj, force_stereo_inference=False, property_map={}):
     if not isinstance(force_stereo_inference, bool):
         raise TypeError("'force_stereo_inference' must be of type 'bool'.")
 
+    if not isinstance(determine_bond_orders, bool):
+        raise TypeError("'determine_bond_orders' must be of type 'bool'.")
+
     if not isinstance(property_map, dict):
         raise TypeError("'property_map' must be of type 'dict'.")
 
     property_map["force_stereo_inference"] = _SireBase.wrap(force_stereo_inference)
+    property_map["determine_bond_orders"] = _SireBase.wrap(determine_bond_orders)
 
     return to(obj, format="rdkit", property_map=property_map)
 
