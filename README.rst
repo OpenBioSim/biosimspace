@@ -2,7 +2,7 @@
 ====================================================
 
 .. image:: https://github.com/openbiosim/biosimspace/actions/workflows/devel.yaml/badge.svg
-   :target: https://github.com/openbiosim/biosimspace/actions?query=workflow%3ARelease-Devel
+   :target: https://github.com/openbiosim/biosimspace/actions?query=workflow%3A%22Release+Devel%22
    :alt: Build status
 
 .. image:: https://anaconda.org/openbiosim/biosimspace/badges/downloads.svg
@@ -29,9 +29,9 @@ for biomolecular simulation. With it you can:
 * Start, stop, and monitor molecular simulation processes within interactive Python environments.
 
 Citation |DOI for Citing BioSimSpace|
-=====================================
+-------------------------------------
 
-If you use BioSimSpace in any scientific software, please cite the following paper: ::
+If you use BioSimSpace in any scientific work, please cite the following paper: ::
 
     @article{Hedges2019,
       doi = {10.21105/joss.01831},
@@ -79,19 +79,15 @@ To install the latest development version you can use:
     conda create -n openbiosim-dev -c conda-forge -c openbiosim/label/dev biosimspace
     conda activate openbiosim-dev
 
-When updating the development version it is generally advised to update `Sire <https://github.com/openbiosim/sire>`_
+When updating the development version it is generally advised to update `Sire <https://github.com/openbiosim/sire>`__
 at the same time:
 
 .. code-block:: bash
 
     conda update -c conda-forge -c openbiosim/label/dev biosimspace sire
 
-Unless you add the required channels to your Conda configuration, then you'll
-need to add them when updating, e.g., for the development package:
-
-.. code-block:: bash
-
-    conda update -c conda-forge -c openbiosim/label/dev biosimspace
+Unless you add the required channels to your Conda configuration, you'll need to
+pass them on the command line when updating, as shown above.
 
 Installing from source (standalone)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -133,12 +129,11 @@ You may also want to install optional dependencies, such as ``ambertools`` and
 
 If you need OpenCL support (e.g. for OpenMM), note that pixi does not run
 conda post-link scripts, so the ``ocl-icd-system`` symlink won't be created
-automatically. After creating the environment, run the following once to fix
-this:
+automatically. This applies to either of the routes above. From within the
+activated environment, run the following once to fix this:
 
 .. code-block:: bash
 
-    pixi shell -e dev
     ln -s /etc/OpenCL/vendors "${CONDA_PREFIX}/etc/OpenCL/vendors/ocl-icd-system"
 
 Once finished, you can test the installation by running:
@@ -176,7 +171,7 @@ Issues
 
 Please report bugs and other issues using the GitHub `issue tracker <https://github.com/openbiosim/biosimspace/issues>`__.
 When reporting issues please try to include a minimal code snippet that reproduces
-the problem. Additional files can be also be uploaded as an archive, e.g. a zip
+the problem. Additional files can also be uploaded as an archive, e.g. a zip
 file. Please also report the branch on which you are experiencing the issue,
 along with the BioSimSpace version number. This can be found by running:
 
