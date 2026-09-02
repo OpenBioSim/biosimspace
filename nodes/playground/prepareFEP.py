@@ -144,6 +144,17 @@ node.addInput(
     ),
 )
 node.addInput(
+    "bonds_to_break",
+    BSS.Gateway.String(
+        help="Bonds to artificially break during the merge, for perturbations "
+        "that grow in a whole ring of dummy atoms without registering as a ring "
+        "transformation. Syntax is of the format 1-3-4,1-7-8..., where each "
+        "entry is an end state (0 or 1) followed by the indices of the two "
+        "bonded atoms within that end state's molecule.",
+        default="",
+    ),
+)
+node.addInput(
     "output",
     BSS.Gateway.String(
         help="The root name for the files describing the perturbation input1->input2."
@@ -187,6 +198,15 @@ if len(prematchstring) > 0:
     for entry in entries:
         idxA, idxB = entry.split("-")
         prematch[int(idxA)] = int(idxB)
+
+# Optional input, list of bonds to artificially break during the merge.
+bonds_to_break = None
+bondsstring = node.getInput("bonds_to_break")
+if len(bondsstring) > 0:
+    bonds_to_break = []
+    for entry in bondsstring.split(","):
+        end_state, idx0, idx1 = entry.split("-")
+        bonds_to_break.append((int(end_state), int(idx0), int(idx1)))
 
 
 # In[ ]:
@@ -253,6 +273,7 @@ merged = BSS.Align.merge(
     allow_ring_size_change=node.getInput("allow_ring_size_change"),
     max_path=node.getInput("max_path"),
     max_ring_size=node.getInput("max_ring_size"),
+    bonds_to_break=bonds_to_break,
 )
 
 # Create a composite system
