@@ -98,13 +98,29 @@ def merge(
         decalin, or benzene to naphthalene. Breaking the bond leaves the
         newly-formed ring as a dangling chain of dummies in the end state
         where it is absent, which better preserves the conformational
-        space of the other end state. Entries that don't correspond to an
-        existing bond are silently ignored, so this also works for bonds
-        that are already absent due to a genuine ring-breaking mapping.
+        space of the other end state.
+
+        A bond is only ever removed from the end state in which its atoms
+        are dummies, so an entry has no effect unless it corresponds to a
+        bond of molecule{end_state} involving at least one atom unique to
+        that molecule. Entries failing either condition are ignored with a
+        warning rather than an error, so a single list can be reused across
+        a series of perturbations in which the bond is sometimes already
+        absent, or sometimes mapped at both end states.
+
+        Removing the bonds must not disconnect either end state, i.e. each
+        bond must lie in a ring that isn't opened by another entry in the
+        list. Disconnecting a fragment of dummy atoms would leave it with
+        no bonded terms holding it to the rest of the molecule, so this is
+        an error.
+
         Setting this option implies 'allow_ring_breaking' and
         'allow_ring_size_change', since breaking a bond adjacent to a fused
         ring system also changes the shortest path length between many
-        downstream atoms.
+        downstream atoms. Note that these are suppressed for the whole
+        merge, not just the flagged bonds, so a genuine, unintended ring
+        transformation elsewhere in the perturbation will no longer be
+        caught.
 
     property_map0 : dict
         A dictionary that maps "properties" in this molecule to their
@@ -121,6 +137,8 @@ def merge(
     merged : Sire.Mol.Molecule
         The merged molecule.
     """
+    import warnings as _warnings
+
     from sire.legacy import CAS as _SireCAS
     from sire.legacy import IO as _SireIO
     from sire.legacy import MM as _SireMM
@@ -185,14 +203,19 @@ def merge(
                     "(end_state, idx0, idx1) tuple."
                 )
             end_state, atom_idx0, atom_idx1 = item
+            if not isinstance(end_state, int) or isinstance(end_state, bool):
+                raise TypeError(
+                    "The 'end_state' entry in 'bonds_to_break' must be of type 'int'."
+                )
             if end_state not in (0, 1):
                 raise ValueError(
                     "The 'end_state' entry in 'bonds_to_break' must be 0 or 1."
                 )
-            if not isinstance(atom_idx0, int) or not isinstance(atom_idx1, int):
-                raise TypeError(
-                    "Atom indices in 'bonds_to_break' must be of type 'int'."
-                )
+            for idx in (atom_idx0, atom_idx1):
+                if not isinstance(idx, int) or isinstance(idx, bool):
+                    raise TypeError(
+                        "Atom indices in 'bonds_to_break' must be of type 'int'."
+                    )
             if atom_idx0 == atom_idx1:
                 raise ValueError("Atom indices in 'bonds_to_break' must not be equal.")
 
@@ -321,6 +344,35 @@ def merge(
         if atom.index() not in idx1:
             atoms1.append(atom)
             atoms1_idx.append(atom.index())
+
+    # Now that the unique atoms are known, discard any 'bonds_to_break' entry
+    # that couldn't have an effect: the bond exclusions below only ever apply
+    # to bonds carrying an atom unique to the molecule they are native to, so
+    # anything else would silently leave the merge unchanged. These are warned
+    # about rather than rejected, since the same list may be applied across a
+    # series of perturbations for which a given bond is already absent, or is
+    # mapped at both end states.
+    for pairs, state_mol, unique, state in [
+        (break_pairs0, molecule0, set(x.value() for x in atoms0_idx), 0),
+        (break_pairs1, molecule1, set(x.value() for x in atoms1_idx), 1),
+    ]:
+        conn = state_mol.property("connectivity")
+        for pair in sorted(pairs):
+            a0, a1 = (_SireMol.AtomIdx(x) for x in pair)
+            if not conn.are_bonded(a0, a1):
+                reason = f"there is no such bond in molecule{state}"
+            elif not unique.intersection(pair):
+                reason = (
+                    f"neither atom is unique to molecule{state}, so the bond is "
+                    "real at both end states"
+                )
+            else:
+                continue
+            _warnings.warn(
+                f"Ignoring 'bonds_to_break' entry ({state}, {pair[0]}, {pair[1]}): "
+                f"{reason}."
+            )
+            pairs.discard(pair)
 
     # Create a new molecule to hold the merged molecule.
     molecule = _SireMol.Molecule("Merged_Molecule")
@@ -1257,6 +1309,31 @@ def merge(
         if ab.k() != 0.0:
             conn1.connect(bond.atom0(), bond.atom1())
     conn1 = conn1.commit()
+
+    # Removing a bond that isn't part of a ring splits the molecule in two at
+    # that end state. Any dummy atoms in the severed fragment would then have
+    # no bonded terms at all, and no non-bonded ones either, so nothing would
+    # hold them to the molecule. Check the end state connectivities directly,
+    # which also catches entries that are individually ring bonds but together
+    # open the same ring.
+    if break_pairs0 or break_pairs1:
+        num_atoms = edit_mol.info().num_atoms()
+        for conn, state in [(conn0, 0), (conn1, 1)]:
+            seen = {0}
+            stack = [0]
+            while stack:
+                for idx in conn.connections_to(_SireMol.AtomIdx(stack.pop())):
+                    if idx.value() not in seen:
+                        seen.add(idx.value())
+                        stack.append(idx.value())
+            if len(seen) != num_atoms:
+                raise _IncompatibleError(
+                    "The bonds in 'bonds_to_break' disconnect the merged molecule "
+                    f"at lambda = {state}! Merged atoms "
+                    f"{sorted(set(range(num_atoms)) - seen)} are no longer bonded "
+                    "to the rest of the molecule. Each bond must lie within a "
+                    "ring that isn't also opened by another entry in the list."
+                )
 
     # Get the original connectivity of the two molecules.
     c0 = molecule0.property("connectivity")

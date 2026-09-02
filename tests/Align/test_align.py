@@ -1645,11 +1645,28 @@ def test_unmapped_attachment_warning_not_swallowed(ejm31, jmc28):
             BSS.Align.matchAtoms(ejm31, jmc28)
 
 
+# Ring B (0, 1, 2, 3, 8, 9) of naphthalene maps onto benzene's ring, with
+# junction atoms 3 and 8 shared. Ring A (3, 4, 5, 6, 7, 8) is entirely new,
+# attached to the shared atoms via the 3-4 and 7-8 bonds.
+_RING_FUSION_MAPPING = {0: 0, 1: 1, 2: 2, 3: 3, 4: 8, 5: 9, 6: 10, 7: 11, 8: 12, 11: 17}
+
+
+@pytest.fixture(scope="module")
+def ring_fusion():
+    """A benzene -> naphthalene ring-fusion perturbation."""
+    benzene = BSS.Parameters.openff_unconstrained_2_1_1("c1ccccc1").getMolecule()
+    naphthalene = BSS.Parameters.openff_unconstrained_2_1_1(
+        "c1ccc2ccccc2c1"
+    ).getMolecule()
+    benzene = BSS.Align.rmsdAlign(benzene, naphthalene, _RING_FUSION_MAPPING)
+    return benzene, naphthalene
+
+
 @pytest.mark.skipif(
     has_antechamber is False or has_openff is False,
     reason="Requires ambertools/antechamber and openff to be installed",
 )
-def test_bonds_to_break_ring_fusion():
+def test_bonds_to_break_ring_fusion(ring_fusion):
     """
     Test the 'bonds_to_break' option for a ring-fusion perturbation
     (benzene -> naphthalene), where naphthalene's second ring maps entirely
@@ -1662,17 +1679,8 @@ def test_bonds_to_break_ring_fusion():
     leave that ring as a dangling chain of dummies at lambda = 0, while
     lambda = 1 (real naphthalene) keeps the ring closed.
     """
-    benzene = BSS.Parameters.openff_unconstrained_2_1_1("c1ccccc1").getMolecule()
-    naphthalene = BSS.Parameters.openff_unconstrained_2_1_1(
-        "c1ccc2ccccc2c1"
-    ).getMolecule()
-
-    # Ring B (0, 1, 2, 3, 8, 9) of naphthalene maps onto benzene's ring, with
-    # junction atoms 3 and 8 shared. Ring A (3, 4, 5, 6, 7, 8) is entirely
-    # new, attached to the shared atoms via the 3-4 and 7-8 bonds.
-    mapping = {0: 0, 1: 1, 2: 2, 3: 3, 4: 8, 5: 9, 6: 10, 7: 11, 8: 12, 11: 17}
-
-    benzene_aligned = BSS.Align.rmsdAlign(benzene, naphthalene, mapping)
+    benzene_aligned, naphthalene = ring_fusion
+    mapping = _RING_FUSION_MAPPING
 
     # Without 'bonds_to_break' the merge succeeds without needing
     # 'allow_ring_breaking', since the junction bond is unchanged and the
@@ -1723,3 +1731,86 @@ def test_bonds_to_break_ring_fusion():
     # Since the bond is genuinely absent at lambda = 0, the bond counts must
     # now differ between the two end states.
     assert bond0.num_functions() == bond1.num_functions() - 1
+
+    # The differing end-state connectivity must also strip the angles that
+    # span the broken bond from lambda = 0, otherwise they would hold the
+    # ring of dummies closed regardless of the missing bond.
+    def _spanning_angles(angles):
+        num = 0
+        for p in angles.potentials():
+            idxs = [
+                mol_info.atom_idx(p.atom0()).value(),
+                mol_info.atom_idx(p.atom1()).value(),
+                mol_info.atom_idx(p.atom2()).value(),
+            ]
+            broken = {junction_idx.value(), neighbour_idx.value()}
+            if set(idxs[:2]) == broken or set(idxs[1:]) == broken:
+                num += 1
+        return num
+
+    assert _spanning_angles(sire_mol.property("angle0")) == 0
+    assert _spanning_angles(sire_mol.property("angle1")) > 0
+
+
+@pytest.mark.skipif(
+    has_antechamber is False or has_openff is False,
+    reason="Requires ambertools/antechamber and openff to be installed",
+)
+@pytest.mark.parametrize(
+    "bond, match",
+    [
+        # The 3-8 junction bond is mapped at both end states, so excluding it
+        # from lambda = 0 is impossible.
+        ((1, 3, 8), "neither atom is unique"),
+        # Naphthalene has no 4-9 bond.
+        ((1, 4, 9), "no such bond"),
+    ],
+)
+def test_bonds_to_break_ignored(ring_fusion, bond, match):
+    """
+    Entries that can't have an effect are warned about and skipped, leaving
+    the merge unchanged, so that a single list can be reused across a series
+    of perturbations.
+    """
+    benzene_aligned, naphthalene = ring_fusion
+
+    with pytest.warns(UserWarning, match=match):
+        merged = BSS.Align.merge(
+            benzene_aligned,
+            naphthalene,
+            _RING_FUSION_MAPPING,
+            bonds_to_break=[bond],
+        )
+
+    bond0 = merged._sire_object.property("bond0")
+    bond1 = merged._sire_object.property("bond1")
+    assert bond0.num_functions() == bond1.num_functions()
+
+
+@pytest.mark.skipif(
+    has_antechamber is False or has_openff is False,
+    reason="Requires ambertools/antechamber and openff to be installed",
+)
+@pytest.mark.parametrize(
+    "bonds",
+    [
+        # 4-13 is a terminal C-H, so breaking it strands the hydrogen.
+        [(1, 4, 13)],
+        # Both bonds lie in ring A, so together they sever it in two.
+        [(1, 3, 4), (1, 6, 7)],
+    ],
+)
+def test_bonds_to_break_disconnected(ring_fusion, bonds):
+    """
+    Breaking a bond that isn't in a ring, or opening the same ring twice,
+    leaves dummy atoms with no bonded terms holding them to the molecule.
+    """
+    benzene_aligned, naphthalene = ring_fusion
+
+    with pytest.raises(BSS._Exceptions.IncompatibleError, match="disconnect"):
+        BSS.Align.merge(
+            benzene_aligned,
+            naphthalene,
+            _RING_FUSION_MAPPING,
+            bonds_to_break=bonds,
+        )
