@@ -89,38 +89,22 @@ def merge(
         than this threshold are not subject to ring-size-change detection.
 
     bonds_to_break : [(int, int, int)]
-        A list of bonds to artificially remove prior to merging, specified
-        as (end_state, idx0, idx1) tuples, where 'end_state' is 0 or 1 and
-        'idx0'/'idx1' are the indices of the two bonded atoms within that
-        end state's molecule. This is useful when a merge doesn't register
-        as a ring transformation, but should be treated as one to avoid
-        growing in a closed ring of dummy atoms, e.g. cyclohexane to
-        decalin, or benzene to naphthalene. Breaking the bond leaves the
-        newly-formed ring as a dangling chain of dummies in the end state
-        where it is absent, which better preserves the conformational
-        space of the other end state.
+        A list of bonds to artificially remove prior to merging, given as
+        (end_state, idx0, idx1) tuples, where 'end_state' is 0 or 1 and
+        'idx0'/'idx1' index the bonded atoms within that end state's
+        molecule. Use this when a perturbation grows in a whole ring of
+        dummy atoms without registering as a ring transformation, e.g.
+        benzene to naphthalene. Breaking the bond leaves the new ring as a
+        dangling chain of dummies in the end state where it is absent.
 
-        A bond is only ever removed from the end state in which its atoms
-        are dummies, so an entry has no effect unless it corresponds to a
-        bond of molecule{end_state} involving at least one atom unique to
-        that molecule. Entries failing either condition are ignored with a
-        warning rather than an error, so a single list can be reused across
-        a series of perturbations in which the bond is sometimes already
-        absent, or sometimes mapped at both end states.
+        Each bond must lie in a ring of molecule{end_state} and involve at
+        least one atom unique to it. Entries naming no such bond, or whose
+        atoms are mapped at both end states, are ignored with a warning;
+        entries that would disconnect an end state are an error.
 
-        Removing the bonds must not disconnect either end state, i.e. each
-        bond must lie in a ring that isn't opened by another entry in the
-        list. Disconnecting a fragment of dummy atoms would leave it with
-        no bonded terms holding it to the rest of the molecule, so this is
-        an error.
-
-        Setting this option implies 'allow_ring_breaking' and
-        'allow_ring_size_change', since breaking a bond adjacent to a fused
-        ring system also changes the shortest path length between many
-        downstream atoms. Note that these are suppressed for the whole
-        merge, not just the flagged bonds, so a genuine, unintended ring
-        transformation elsewhere in the perturbation will no longer be
-        caught.
+        Implies 'allow_ring_breaking' and 'allow_ring_size_change' for the
+        whole merge, so an unintended ring transformation elsewhere in the
+        perturbation will no longer be caught.
 
     property_map0 : dict
         A dictionary that maps "properties" in this molecule to their
