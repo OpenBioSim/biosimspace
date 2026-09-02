@@ -2371,6 +2371,7 @@ def merge(
     fix_perturbable_zero_sigmas=True,
     force=False,
     roi=None,
+    bonds_to_break=None,
     property_map0={},
     property_map1={},
     mcs_kwargs={},
@@ -2415,6 +2416,24 @@ def merge(
     roi : list
         The region of interest to merge.
         Consists of a list of ROI residue indices.
+
+    bonds_to_break : [(int, int, int)]
+        A list of bonds to artificially remove prior to merging, given as
+        (end_state, idx0, idx1) tuples, where 'end_state' is 0 or 1 and
+        'idx0'/'idx1' index the bonded atoms within that end state's
+        molecule. Use this when a perturbation grows in a whole ring of
+        dummy atoms without registering as a ring transformation, e.g.
+        benzene to naphthalene. Breaking the bond leaves the new ring as a
+        dangling chain of dummies in the end state where it is absent.
+
+        Each bond must lie in a ring of molecule{end_state} and involve at
+        least one atom unique to it. Entries naming no such bond, or whose
+        atoms are mapped at both end states, are ignored with a warning;
+        entries that would disconnect an end state are an error.
+
+        Implies 'allow_ring_breaking' and 'allow_ring_size_change' for the
+        whole merge, so an unintended ring transformation elsewhere in the
+        perturbation will no longer be caught.
 
     property_map0 : dict
         A dictionary that maps "properties" in molecule0 to their user
@@ -2525,6 +2544,7 @@ def merge(
         fix_perturbable_zero_sigmas=fix_perturbable_zero_sigmas,
         force=force,
         roi=roi,
+        bonds_to_break=bonds_to_break,
         property_map0=property_map0,
         property_map1=property_map1,
         **kwargs,
