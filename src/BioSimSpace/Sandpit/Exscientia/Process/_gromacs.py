@@ -1440,6 +1440,47 @@ class Gromacs(_process.Process):
         """
         return self.getImproperEnergy(time_series, block=False)
 
+    def getCMAPEnergy(self, time_series=False, block="AUTO"):
+        """
+        Get the CMAP energy.
+
+        Parameters
+        ----------
+
+        time_series : bool
+            Whether to return a list of time series records.
+
+        block : bool
+            Whether to block until the process has finished running.
+
+        Returns
+        -------
+
+        energy : :class:`Energy <BioSimSpace.Types.Energy>`
+            The CMAP energy.
+        """
+        from .. import Units as _Units
+
+        return self.getRecord("CMAPDIH", time_series, _Units.Energy.kj_per_mol, block)
+
+    def getCurrentCMAPEnergy(self, time_series=False):
+        """
+        Get the current CMAP energy.
+
+        Parameters
+        ----------
+
+        time_series : bool
+            Whether to return a list of time series records.
+
+        Returns
+        -------
+
+        energy : :class:`Energy <BioSimSpace.Types.Energy>`
+            The CMAP energy.
+        """
+        return self.getCMAPEnergy(time_series, block=False)
+
     def getLennardJones14(self, time_series=False, block="AUTO"):
         """
         Get the Lennard-Jones energy between atoms 1 and 4.
