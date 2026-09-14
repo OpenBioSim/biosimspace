@@ -9,6 +9,18 @@ company supporting open-source development of fostering academic/industrial coll
 within the biomolecular simulation community. Our software is hosted via the `OpenBioSim`
 `GitHub <https://github.com/OpenBioSim/biosimspace>`__ organisation.
 
+`2026.2.0 <https://github.com/openbiosim/biosimspace/compare/2026.1.0...2026.2.0>`_ - Sep 15 2026
+-------------------------------------------------------------------------------------------------
+
+* Fixed translation of molecules via a custom coordinates property (`#540 <https://github.com/OpenBioSim/biosimspace/pull/540>`__).
+* Improve detection of ring-breaking perturbations during merge (`#542 <https://github.com/OpenBioSim/biosimspace/pull/542>`__).
+* Exposed ``RDKit`` MCS options via a keyword argument (`#542 <https://github.com/OpenBioSim/biosimspace/pull/542>`__).
+* Added a diagnostic to flag sub-optimal MCS mappings and suggest alternative ``mcs_kwargs`` (`#544 <https://github.com/OpenBioSim/biosimspace/pull/544>`__).
+* Switched to a native lazy import system to avoid duplicate class objects across process boundaries and parallelisation issues (`#546 <https://github.com/OpenBioSim/biosimspace/pull/546>`__).
+* Match tar files by common extensions, rather than using a partial fuzzy match (`#548 <https://github.com/OpenBioSim/biosimspace/pull/548>`__).
+* Exposed the new ``determine_bond_orders`` kwarg in the :func:`toRDKit` function (`#550 <https://github.com/OpenBioSim/biosimspace/pull/550>`__).
+* Added functionality to parse AMBER and GROMACS CMAP energy records (`#552 <https://github.com/OpenBioSim/biosimspace/pull/552>`__).
+
 `2026.1.0 <https://github.com/openbiosim/biosimspace/compare/2025.4.0...2026.1.0>`_ - Jun 29 2026
 -------------------------------------------------------------------------------------------------
 
