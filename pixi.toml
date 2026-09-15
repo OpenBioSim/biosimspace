@@ -24,9 +24,9 @@ rdkit = "*"
 
 [target.linux-64.dependencies]
 # main
-sire = ">=2026.2.0,<2026.3.0"
+#sire = ">=2026.2.0,<2026.3.0"
 # devel
-#sire = "==2026.3.0.dev"
+sire = "==2026.3.0.dev"
 ambertools = ">=22"
 gromacs = "*"
 alchemlyb = "*"
@@ -36,16 +36,16 @@ mdanalysis = "*"
 
 [target.linux-aarch64.dependencies]
 # main
-sire = ">=2026.2.0,<2026.3.0"
+#sire = ">=2026.2.0,<2026.3.0"
 # devel
-#sire = "==2026.3.0.dev"
+sire = "==2026.3.0.dev"
 gromacs = "*"
 
 [target.osx-arm64.dependencies]
 # main
-sire = ">=2026.2.0,<2026.3.0"
+#sire = ">=2026.2.0,<2026.3.0"
 # devel
-#sire = "==2026.3.0.dev"
+sire = "==2026.3.0.dev"
 ambertools = ">=22"
 alchemlyb = "*"
 mdtraj = "*"
@@ -53,9 +53,9 @@ mdanalysis = "*"
 
 [target.win-64.dependencies]
 # main
-sire = ">=2026.2.0,<2026.3.0"
+#sire = ">=2026.2.0,<2026.3.0"
 # devel
-#sire = "==2026.3.0.dev"
+sire = "==2026.3.0.dev"
 alchemlyb = "*"
 mdtraj = "*"
 mdanalysis = "*"

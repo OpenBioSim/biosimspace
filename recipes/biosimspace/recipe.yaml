@@ -42,9 +42,9 @@ requirements:
     - pyyaml
     - rdkit
     # main
-    - sire >=2026.2.0,<2026.3.0
+    #- sire >=2026.2.0,<2026.3.0
     # devel
-    #- sire ==2026.3.0.dev
+    - sire ==2026.3.0.dev
     - if: not aarch64
       then:
         - alchemlyb
