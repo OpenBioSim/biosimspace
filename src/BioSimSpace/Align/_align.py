@@ -25,6 +25,7 @@ __author__ = "Lester Hedges"
 __email__ = "lester.hedges@gmail.com"
 
 __all__ = [
+    "defaultMCSOptions",
     "generateNetwork",
     "matchAtoms",
     "viewMapping",
@@ -702,6 +703,29 @@ def generateNetwork(
     return edges, scores
 
 
+def defaultMCSOptions():
+    """
+    Return the default options used for the RDKit maximum common substructure
+    search. These can be overridden using the 'mcs_kwargs' argument of
+    :class:`matchAtoms <BioSimSpace.Align.matchAtoms>`.
+
+    Returns
+    -------
+
+    options : dict
+        The default RDKit MCS options.
+    """
+    return {
+        "atomCompare": _rdFMCS.AtomCompare.CompareAny,
+        "bondCompare": _rdFMCS.BondCompare.CompareAny,
+        "completeRingsOnly": True,
+        "ringMatchesRingOnly": True,
+        "matchChiralTag": False,
+        "matchValences": False,
+        "maximizeBonds": False,
+    }
+
+
 def matchAtoms(
     molecule0,
     molecule1,
@@ -719,6 +743,7 @@ def matchAtoms(
     prune_atom_types=False,
     property_map0={},
     property_map1={},
+    mcs_kwargs={},
 ):
     """
     Find mappings between atom indices in molecule0 to those in molecule1.
@@ -774,6 +799,11 @@ def matchAtoms(
         matchAtoms function to be taking an excessive amount of time. This
         option is only relevant to MCS performed using RDKit and will be
         ignored when falling back on Sire.
+
+    mcs_kwargs : dict
+        A dictionary of keyword arguments used to override the defaults
+        passed to the RDKit MCS search. This option is only relevant to MCS
+        performed using RDKit and will be ignored when falling back on Sire.
 
     roi : list
         The region of interest to match.
@@ -881,6 +911,7 @@ def matchAtoms(
             prune_atom_types=prune_atom_types,
             property_map0=property_map0,
             property_map1=property_map1,
+            mcs_kwargs=mcs_kwargs,
         )
     else:
         return _roiMatch(
@@ -896,6 +927,171 @@ def matchAtoms(
         )
 
 
+def _format_flagged(flagged, max_show=5):
+    """
+    Internal helper to format a list of atom indices for use in a warning
+    message, truncating so that the message stays readable for large
+    molecules.
+
+    Parameters
+    ----------
+
+    flagged : [int]
+        The indices to format.
+
+    max_show : int
+        The maximum number of indices to show.
+
+    Returns
+    -------
+
+    string : str
+        The formatted indices.
+    """
+    if len(flagged) <= max_show:
+        return str(flagged)
+    else:
+        shown = ", ".join(str(x) for x in flagged[:max_show])
+        return f"[{shown}, ... ({len(flagged)} in total)]"
+
+
+def _flag_unmapped_attachments(
+    molecule0, molecule1, mapping, property_map0={}, property_map1={}
+):
+    """
+    Internal function to find mapped atoms that have an unmapped heavy atom
+    neighbour of a common element in both molecules. These are attachment
+    points where the MCS stopped on both sides, which usually means that a
+    pairable atom was missed.
+
+    Parameters
+    ----------
+
+    molecule0 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
+        The first molecule.
+
+    molecule1 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
+        The second molecule.
+
+    mapping : dict
+        The atom mapping between the two molecules.
+
+    property_map0 : dict
+        A dictionary that maps "properties" in molecule0 to their user
+        defined values. This allows the user to refer to properties with
+        their own naming scheme, e.g. { "charge" : "my-charge" }
+
+    property_map1 : dict
+        A dictionary that maps "properties" in molecule1 to their user
+        defined values. This allows the user to refer to properties with
+        their own naming scheme, e.g. { "charge" : "my-charge" }
+
+    Returns
+    -------
+
+    flagged : [int]
+        The indices of the flagged atoms in molecule0.
+    """
+    from sire.legacy import Mol as _SireMol
+
+    mol0 = molecule0._getSireObject()
+    mol1 = molecule1._getSireObject()
+
+    # Build the connectivity explicitly, since the molecules aren't guaranteed
+    # to have a stored "connectivity" property.
+    conn0 = _SireMol.Connectivity(mol0, _SireMol.CovalentBondHunter())
+    conn1 = _SireMol.Connectivity(mol1, _SireMol.CovalentBondHunter())
+
+    element0 = property_map0.get("element", "element")
+    element1 = property_map1.get("element", "element")
+
+    def _heavy_elements(mol, conn, idx, mapped, element):
+        elements = set()
+        for i in conn.connections_to(_SireMol.AtomIdx(idx)):
+            if i.value() not in mapped:
+                protons = mol.atom(i).property(element).num_protons()
+                if protons > 1:
+                    elements.add(protons)
+        return elements
+
+    mapped0 = set(mapping)
+    mapped1 = set(mapping.values())
+    flagged = []
+
+    for idx0, idx1 in mapping.items():
+        elements0 = _heavy_elements(mol0, conn0, idx0, mapped0, element0)
+        if not elements0:
+            continue
+        elements1 = _heavy_elements(mol1, conn1, idx1, mapped1, element1)
+        if elements0 & elements1:
+            flagged.append(idx0)
+
+    return flagged
+
+
+def _is_sensible_extension(
+    molecule0, molecule1, mapping, extended, property_map0={}, property_map1={}
+):
+    """
+    Internal function to test whether the atoms that 'extended' adds relative
+    to 'mapping' pair like with like. The MCS uses CompareAny, so it is free to
+    pair a heavy atom with a hydrogen, which grows the common core without
+    improving the mapping.
+
+    Parameters
+    ----------
+
+    molecule0 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
+        The first molecule.
+
+    molecule1 : :class:`Molecule <BioSimSpace._SireWrappers.Molecule>`
+        The second molecule.
+
+    mapping : dict
+        The original atom mapping.
+
+    extended : dict
+        The larger atom mapping to test.
+
+    property_map0 : dict
+        A dictionary that maps "properties" in molecule0 to their user
+        defined values. This allows the user to refer to properties with
+        their own naming scheme, e.g. { "charge" : "my-charge" }
+
+    property_map1 : dict
+        A dictionary that maps "properties" in molecule1 to their user
+        defined values. This allows the user to refer to properties with
+        their own naming scheme, e.g. { "charge" : "my-charge" }
+
+    Returns
+    -------
+
+    is_sensible : bool
+        Whether the added atoms pair heavy with heavy and hydrogen with
+        hydrogen.
+    """
+    from sire.legacy import Mol as _SireMol
+
+    mol0 = molecule0._getSireObject()
+    mol1 = molecule1._getSireObject()
+
+    element0 = property_map0.get("element", "element")
+    element1 = property_map1.get("element", "element")
+
+    for idx0, idx1 in extended.items():
+        if idx0 not in mapping:
+            protons0 = (
+                mol0.atom(_SireMol.AtomIdx(idx0)).property(element0).num_protons()
+            )
+            protons1 = (
+                mol1.atom(_SireMol.AtomIdx(idx1)).property(element1).num_protons()
+            )
+            if (protons0 > 1) != (protons1 > 1):
+                return False
+
+    return True
+
+
 def _matchAtoms(
     molecule0,
     molecule1,
@@ -906,12 +1102,14 @@ def _matchAtoms(
     timeout=5 * _Units.Time.second,
     complete_rings_only=True,
     max_scoring_matches=1000,
-    roi=None,
     prune_perturbed_constraints=False,
     prune_crossing_constraints=False,
     prune_atom_types=False,
     property_map0={},
     property_map1={},
+    mcs_kwargs={},
+    *,
+    _check_mapping=True,
 ):
     import sys as _sys
 
@@ -975,6 +1173,9 @@ def _matchAtoms(
     if not isinstance(complete_rings_only, bool):
         raise TypeError("'complete_rings_only' must be of type 'bool'")
 
+    if not isinstance(mcs_kwargs, dict):
+        raise TypeError("'mcs_kwargs' must be of type 'dict'")
+
     if type(max_scoring_matches) is not int:
         raise TypeError("'max_scoring_matches' must be of type 'int'")
 
@@ -1000,7 +1201,10 @@ def _matchAtoms(
     mol0 = molecule0._getSireObject()
     mol1 = molecule1._getSireObject()
 
-    # Convert the timeout to seconds and take the value as an integer.
+    # Convert the timeout to seconds and take the value as an integer. Keep
+    # the original, since the mapping check below re-enters this function,
+    # which expects a Time object.
+    orig_timeout = timeout
     timeout = int(timeout.seconds().value())
 
     # Use RDKkit to find the maximum common substructure.
@@ -1012,24 +1216,21 @@ def _matchAtoms(
             _Convert.toRDKit(mol1, property_map=property_map1),
         ]
 
+        # Default MCS options, overridden by anything in 'mcs_kwargs'. The
+        # timeout is applied last so that it can't be overridden.
+        mcs_options = defaultMCSOptions()
+        mcs_options["completeRingsOnly"] = complete_rings_only
+        mcs_options.update(mcs_kwargs)
+        mcs_options["timeout"] = timeout
+
         # Generate the MCS match.
-        mcs = _rdFMCS.FindMCS(
-            mols,
-            atomCompare=_rdFMCS.AtomCompare.CompareAny,
-            bondCompare=_rdFMCS.BondCompare.CompareAny,
-            completeRingsOnly=complete_rings_only,
-            ringMatchesRingOnly=True,
-            matchChiralTag=False,
-            matchValences=False,
-            maximizeBonds=False,
-            timeout=timeout,
-        )
+        mcs = _rdFMCS.FindMCS(mols, **mcs_options)
 
         # Get the common substructure as a SMARTS string.
         mcs_smarts = _Chem.MolFromSmarts(mcs.smartsString)
 
-    except:
-        raise RuntimeError("RDKit MCS mapping failed!")
+    except Exception as e:
+        raise RuntimeError(f"RDKit MCS mapping failed: {e}")
 
     # Score the mappings and return them in sorted order (best to worst).
     mappings, scores = _score_rdkit_mappings(
@@ -1065,6 +1266,9 @@ def _matchAtoms(
             _warnings.warn(
                 "Using Sire MCS. Ignoring unsupported 'complete_rings_only' option!"
             )
+
+        if mcs_kwargs:
+            _warnings.warn("Using Sire MCS. Ignoring unsupported 'mcs_kwargs' options!")
 
         # Convert timeout to a Sire Unit.
         timeout = timeout * _SireUnits.second
@@ -1117,6 +1321,87 @@ def _matchAtoms(
             property_map0,
             property_map1,
         )
+
+    # Warn if the mapping stopped short at an attachment point where a pairable
+    # atom exists. This is done before the pruning below, since pruning deletes
+    # correctly mapped heavy atom pairs, which manufactures exactly the
+    # signature that the check looks for. Only check a mapping generated from
+    # the defaults. If the user has configured the MCS then both the baseline
+    # and our idea of a sensible mapping may not match their intent. This also
+    # stops the retry from recursing, since it passes 'mcs_kwargs'. Skip when a
+    # prematch is given, since the retry could then fall back on Sire MCS,
+    # which ignores 'mcs_kwargs', making the comparison meaningless.
+    if _check_mapping and not mcs_kwargs and not prematch and mappings:
+        # This is a diagnostic, so a failure inside it is reported rather than
+        # raised. Note that this only holds while warnings are warnings: if the
+        # user has promoted them to errors then either notice below will raise
+        # out of here. The warning itself is emitted outside the guard, since
+        # it would otherwise be swallowed and re-reported as a failure.
+        message = None
+        try:
+            best = mappings[0]
+
+            # Attachment points where the MCS stopped on both sides.
+            flagged = _flag_unmapped_attachments(
+                molecule0, molecule1, best, property_map0, property_map1
+            )
+
+            if flagged:
+                # Retry with ring matching relaxed to see if it does better.
+                # Note that the RDKit documentation implies that
+                # 'completeRingsOnly' forces 'ringMatchesRingOnly', which would
+                # make this a no-op. It doesn't: as of RDKit 2026.03.4 the
+                # relaxed search still returns a larger MCS with
+                # 'completeRingsOnly' enabled. If a future RDKit changes this,
+                # the feature will silently stop firing.
+                #
+                # Pruning is disabled so that the retry is compared like for
+                # like against the unpruned mapping above. 'matches' and
+                # 'return_scores' are passed explicitly so that 'retry' is
+                # always a plain dict, which the comparison below relies on.
+                # 'prematch' is omitted since the enclosing guard means it's
+                # always empty.
+                retry = _matchAtoms(
+                    molecule0=molecule0,
+                    molecule1=molecule1,
+                    scoring_function=scoring_function,
+                    matches=1,
+                    return_scores=False,
+                    timeout=orig_timeout,
+                    complete_rings_only=complete_rings_only,
+                    max_scoring_matches=max_scoring_matches,
+                    prune_perturbed_constraints=False,
+                    prune_crossing_constraints=False,
+                    prune_atom_types=False,
+                    property_map0=property_map0,
+                    property_map1=property_map1,
+                    mcs_kwargs={"ringMatchesRingOnly": False},
+                    _check_mapping=False,
+                )
+
+                # Only trust the retry if it extends the mapping, i.e. keeps
+                # every existing pair and adds sensible ones. The subset test is
+                # sensitive to relabelling: an equivalent mapping that traverses
+                # a ring the other way, or permutes hydrogens, is discarded.
+                if (
+                    len(retry) > len(best)
+                    and set(best.items()) <= set(retry.items())
+                    and _is_sensible_extension(
+                        molecule0, molecule1, best, retry, property_map0, property_map1
+                    )
+                ):
+                    message = (
+                        f"Mapping leaves heavy atoms unmapped on both sides "
+                        f"of atom(s) {_format_flagged(flagged)} in molecule0. "
+                        f"Relaxing 'ringMatchesRingOnly' gives a common core "
+                        f"of {len(retry)} rather than {len(best)}. Consider "
+                        f"passing mcs_kwargs={{'ringMatchesRingOnly': False}}."
+                    )
+        except Exception as e:
+            _warnings.warn(f"Unable to check the quality of the mapping: {e}")
+
+        if message is not None:
+            _warnings.warn(message)
 
     # Optionally post-process the MCS for use with AMBER.
     if prune_perturbed_constraints:
@@ -1455,9 +1740,12 @@ def _roiMatch(
                     )
             mapping = None
         else:
-            mapping = matchAtoms(
+            mapping = _matchAtoms(
                 res0_extracted,
                 res1_extracted,
+                # The mapping check would report indices that are local to the
+                # extracted residue, not to molecule0 as its message claims.
+                _check_mapping=False,
             )
 
         # Look up the absolute atom indices in the molecule if not using a custom ROI mapping.
@@ -1676,11 +1964,14 @@ def _rmsdAlign(molecule0, molecule1, mapping=None, property_map0={}, property_ma
 
     # Get the best match atom mapping.
     else:
-        mapping = matchAtoms(
+        mapping = _matchAtoms(
             molecule0,
             molecule1,
             property_map0=property_map0,
             property_map1=property_map1,
+            # This function doesn't take 'mcs_kwargs', so the advice from the
+            # mapping check can't be acted on here.
+            _check_mapping=False,
         )
 
     # Extract the Sire molecule from each BioSimSpace molecule.
@@ -1878,11 +2169,14 @@ def _flexAlign(
 
     # Get the best match atom mapping.
     else:
-        mapping = matchAtoms(
+        mapping = _matchAtoms(
             molecule0,
             molecule1,
             property_map0=property_map0,
             property_map1=property_map1,
+            # This function doesn't take 'mcs_kwargs', so the advice from the
+            # mapping check can't be acted on here.
+            _check_mapping=False,
         )
 
     # Convert the mapping to AtomIdx key:value pairs.
@@ -2079,6 +2373,7 @@ def merge(
     roi=None,
     property_map0={},
     property_map1={},
+    mcs_kwargs={},
     **kwargs,
 ):
     """
@@ -2129,6 +2424,11 @@ def merge(
     property_map1 : dict
         A dictionary that maps "properties" in molecule1 to their user
         defined values.
+
+    mcs_kwargs : dict
+        A dictionary of keyword arguments used to override the defaults
+        passed to the RDKit MCS search. This is only used when 'mapping'
+        is None, i.e. when a mapping is autogenerated.
 
     Returns
     -------
@@ -2208,6 +2508,7 @@ def merge(
             molecule1,
             property_map0=property_map0,
             property_map1=property_map1,
+            mcs_kwargs=mcs_kwargs,
         )
         molecule0 = rmsdAlign(molecule0, molecule1, mapping)
 

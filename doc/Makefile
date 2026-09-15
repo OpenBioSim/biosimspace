@@ -16,7 +16,7 @@ PAPEROPT_a4     = -D latex_paper_size=a4
 PAPEROPT_letter = -D latex_paper_size=letter
 ALLSPHINXOPTS   = -d $(BUILD_DIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) source
 
-.PHONY: help clean html
+.PHONY: help clean html roadmap
 
 #------------------------------------------------------------------------------
 all: html
@@ -24,11 +24,15 @@ help:
 	@echo "Please use \`make <target>' where <target> is one of"
 	@echo "  html      to make standalone HTML files"
 	@echo "  latex     to make LaTeX files, you can set PAPER=a4 or PAPER=letter"
+	@echo "  roadmap   to regenerate source/roadmap.rst from changelog.rst"
 
 clean:
 	-rm -rf $(BUILD_DIR)/* source/generated source/api/generated
 
-html:
+roadmap:
+	python3 generate_roadmap.py
+
+html: roadmap
 	mkdir -p $(BUILD_DIR)/html $(BUILD_DIR)/doctrees
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILD_DIR)/html $(FILES)
 	@echo

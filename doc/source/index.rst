@@ -105,6 +105,14 @@ Contributing
 
    code_of_conduct
 
+Roadmap
+=======
+
+.. toctree::
+   :maxdepth: 1
+
+   roadmap
+
 Changelog
 =========
 

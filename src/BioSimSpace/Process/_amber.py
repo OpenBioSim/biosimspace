@@ -1413,6 +1413,74 @@ class Amber(_process.Process):
             time_series=time_series, region=region, soft_core=soft_core, block=False
         )
 
+    def getCMAPEnergy(self, time_series=False, region=0, soft_core=False, block="AUTO"):
+        """
+        Get the CMAP energy.
+
+        Parameters
+        ----------
+
+        time_series : bool
+            Whether to return a list of time series records.
+
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
+
+        block : bool
+            Whether to block until the process has finished running.
+
+        Returns
+        -------
+
+        energy : :class:`Energy <BioSimSpace.Types.Energy>`
+           The CMAP energy.
+        """
+        from .. import Units as _Units
+
+        return self.getRecord(
+            "CMAP",
+            time_series=time_series,
+            unit=_Units.Energy.kcal_per_mol,
+            region=region,
+            soft_core=soft_core,
+            block=block,
+        )
+
+    def getCurrentCMAPEnergy(self, time_series=False, region=0, soft_core=False):
+        """
+        Get the current CMAP energy.
+
+        Parameters
+        ----------
+
+        time_series : bool
+            Whether to return a list of time series records.
+
+        region : int
+            The region to which the record corresponds. There will only be more
+            than one region for FreeEnergy protocols, where 1 indicates the second
+            TI region.
+
+        soft_core : bool
+            Whether to get the record for the soft-core part of the system for the
+            chosen region.
+
+        Returns
+        -------
+
+        energy : :class:`Energy <BioSimSpace.Types.Energy>`
+           The CMAP energy.
+        """
+        return self.getCMAPEnergy(
+            time_series=time_series, region=region, soft_core=soft_core, block=False
+        )
+
     def getElectrostaticEnergy(
         self, time_series=False, region=0, soft_core=False, block="AUTO"
     ):

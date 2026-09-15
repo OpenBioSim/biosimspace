@@ -245,12 +245,11 @@ You may also want to install optional dependencies, such as ``ambertools`` and
 
 If you need OpenCL support (e.g. for OpenMM), note that pixi does not run
 conda post-link scripts, so the ``ocl-icd-system`` symlink won't be created
-automatically. After creating the environment, run the following once to fix
-this:
+automatically. This applies to either of the routes above. From within the
+activated environment, run the following once to fix this:
 
 .. code-block:: bash
 
-    pixi shell -e dev
     ln -s /etc/OpenCL/vendors "${CONDA_PREFIX}/etc/OpenCL/vendors/ocl-icd-system"
 
 Once finished, you can test the installation by running:
