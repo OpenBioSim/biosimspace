@@ -27,11 +27,6 @@ __email__ = "lester.hedges@gmail.com"
 __all__ = ["Gromacs"]
 
 
-from .._Utils import _try_import
-
-_pygtail = _try_import("pygtail")
-
-
 from .._Utils import _have_imported, _try_import
 
 # alchemlyb isn't available on all variants of Python that we support, so we
@@ -2187,7 +2182,7 @@ class Gromacs(_process.Process):
             raise ValueError("The number of lines must be positive!")
 
         # Append any new lines to the stdout list.
-        for line in _pygtail.Pygtail(self._stdout_file):
+        for line in self._tail(self._stdout_file):
             self._stdout.append(line.rstrip())
 
         # Get the current number of lines.

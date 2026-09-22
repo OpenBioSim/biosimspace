@@ -26,10 +26,6 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["Somd"]
 
-from .._Utils import _try_import
-
-_pygtail = _try_import("pygtail")
-
 import string as _string
 
 from . import _process
@@ -876,7 +872,7 @@ class Somd(_process.Process):
             return None
 
         # Append any new lines to the gradients list.
-        for line in _pygtail.Pygtail(self._gradient_file):
+        for line in self._tail(self._gradient_file):
             # Ignore comments.
             if line[0] != "#":
                 self._gradients.append(float(line.rstrip().split()[-1]))

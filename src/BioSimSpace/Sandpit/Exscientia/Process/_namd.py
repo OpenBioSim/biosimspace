@@ -26,11 +26,6 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["Namd"]
 
-from .._Utils import _try_import
-
-_pygtail = _try_import("pygtail")
-
-
 from . import _process
 
 
@@ -2103,7 +2098,7 @@ class Namd(_process.Process):
             raise ValueError("The number of lines must be positive!")
 
         # Append any new lines to the stdout list.
-        for line in _pygtail.Pygtail(self._stdout_file):
+        for line in self._tail(self._stdout_file):
             self._stdout.append(line.rstrip())
 
             # Split the record using whitespace.

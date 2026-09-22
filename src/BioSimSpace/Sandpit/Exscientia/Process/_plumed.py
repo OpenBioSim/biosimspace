@@ -26,12 +26,8 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["Plumed"]
 
-from .._Utils import _try_import
-
-_pygtail = _try_import("pygtail")
-
-
 from .. import Types as _Types
+from .._Utils import Tail as _Tail
 
 
 class Plumed:
@@ -104,6 +100,8 @@ class Plumed:
         # Set the location of the HILLS and COLVAR files.
         self._hills_file = _os.path.join(str(self._work_dir), "HILLS")
         self._colvar_file = _os.path.join(str(self._work_dir), "COLVAR")
+        self._hills_tail = _Tail(self._hills_file)
+        self._colvar_tail = _Tail(self._colvar_file)
 
         # The number of collective variables and total number of components.
         self._num_colvar = 0
@@ -247,15 +245,9 @@ class Plumed:
         self._config = []
         self._aux_files = []
 
-        # Always remove pygtail offset files.
-        try:
-            _os.remove(_os.path.join(str(self._work_dir), "COLVAR.offset"))
-        except:
-            pass
-        try:
-            _os.remove(_os.path.join(str(self._work_dir), "HILLS.offset"))
-        except:
-            pass
+        # Reset the incremental file readers.
+        self._colvar_tail = _Tail(self._colvar_file)
+        self._hills_tail = _Tail(self._hills_file)
 
         # Restart if existing HILLS and COLVAR files are present.
         if _os.path.isfile(self._colvar_file) and _os.path.isfile(self._hills_file):
@@ -959,11 +951,8 @@ class Plumed:
         self._config = []
         self._aux_files = []
 
-        # Always remove pygtail offset files.
-        try:
-            _os.remove(_os.path.join(str(self._work_dir), "COLVAR.offset"))
-        except:
-            pass
+        # Reset the incremental file reader.
+        self._colvar_tail = _Tail(self._colvar_file)
 
         # Restart if an existing COLVAR files is present.
         if _os.path.isfile(self._colvar_file):
@@ -1610,7 +1599,7 @@ class Plumed:
         # Parse the HILLS file for OpenMM.
         if self._use_hills:
             # Loop over all new lines in the file.
-            for line in _pygtail.Pygtail(self._hills_file):
+            for line in self._hills_tail:
                 # Is this a header line. If so, store the keys.
                 if line[3:9] == "FIELDS":
                     self._colvar_keys = line[10:].split()[: self._num_components + 1]
@@ -1623,7 +1612,7 @@ class Plumed:
 
         else:
             # Loop over all new lines in the file.
-            for line in _pygtail.Pygtail(self._colvar_file):
+            for line in self._colvar_tail:
                 # Is this a header line. If so, store the keys.
                 if line[3:9] == "FIELDS":
                     self._colvar_keys = line[10:].split()
@@ -1643,7 +1632,7 @@ class Plumed:
             return
 
         # Loop over all new lines in the file.
-        for line in _pygtail.Pygtail(self._hills_file):
+        for line in self._hills_tail:
             # Is this a header line. If so, store the keys.
             if line[3:9] == "FIELDS":
                 self._hills_keys = line[10:].split()
