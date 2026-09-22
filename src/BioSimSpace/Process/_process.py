@@ -27,11 +27,6 @@ __email__ = "lester.hedges@gmail.com"
 __all__ = ["Process"]
 
 
-from .._Utils import _try_import
-
-_pygtail = _try_import("pygtail")
-
-
 from .. import Units as _Units
 from .. import _is_notebook
 
@@ -332,9 +327,6 @@ class Process:
 
     def _clear_output(self):
         """Reset stdout and stderr."""
-        import glob as _glob
-        import os as _os
-
         # Create the files. This makes sure that the 'stdout' and 'stderr'
         # methods can be called when the files are empty.
         open(self._stdout_file, "a").close()
@@ -344,19 +336,31 @@ class Process:
         self._stdout = []
         self._stderr = []
 
-        # Clean up any existing offset files.
-        offset_files = _glob.glob(_os.path.join(str(self._work_dir), "*.offset"))
+        # Reset the incremental file readers.
+        self._tails = {}
 
-        # Remove any HILLS or COLVAR files from the list. These will be dealt
-        # with by the PLUMED interface.
-        try:
-            offset_files.remove(_os.path.join(str(self._work_dir), "COLVAR.offset"))
-            offset_files.remove(_os.path.join(str(self._work_dir), "HILLS.offset"))
-        except:
-            pass
+    def _tail(self, filename):
+        """
+        Return the lines appended to a file since it was last read.
 
-        for file in offset_files:
-            _os.remove(file)
+        Parameters
+        ----------
+
+        filename : str
+            The path to the file.
+
+        Returns
+        -------
+
+        lines : iterable
+            An iterable over the new lines.
+        """
+        from .._Utils import Tail as _Tail
+
+        if filename not in self._tails:
+            self._tails[filename] = _Tail(filename)
+
+        return self._tails[filename]
 
     def _getPlumedConfig(self):
         """
@@ -1018,7 +1022,7 @@ class Process:
             raise ValueError("The number of lines must be positive!")
 
         # Append any new lines to the stdout list.
-        for line in _pygtail.Pygtail(self._stdout_file):
+        for line in self._tail(self._stdout_file):
             self._stdout.append(line.rstrip())
 
         # Get the current number of lines.
@@ -1050,7 +1054,7 @@ class Process:
             raise ValueError("The number of lines must be positive!")
 
         # Append any new lines to the stdout list.
-        for line in _pygtail.Pygtail(self._stderr_file):
+        for line in self._tail(self._stderr_file):
             self._stderr.append(line.rstrip())
 
         # Get the current number of lines.
@@ -1126,7 +1130,7 @@ class Process:
             self.wait()
 
         # Append any new lines to the stdout list.
-        for line in _pygtail.Pygtail(self._stdout_file):
+        for line in self._tail(self._stdout_file):
             self._stdout.append(line.rstrip())
 
         return self._stdout.copy()
@@ -1155,7 +1159,7 @@ class Process:
             self.wait()
 
         # Append any new lines to the stdout list.
-        for line in _pygtail.Pygtail(self._stderr_file):
+        for line in self._tail(self._stderr_file):
             self._stderr.append(line.rstrip())
 
         return self._stderr.copy()
