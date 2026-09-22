@@ -26,11 +26,6 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["OpenMM"]
 
-from .._Utils import _try_import
-
-_pygtail = _try_import("pygtail")
-
-
 from . import _process
 
 
@@ -1988,7 +1983,7 @@ class OpenMM(_process.Process):
             raise ValueError("The number of lines must be positive!")
 
         # Append any new lines to the stdout list.
-        for line in _pygtail.Pygtail(self._stdout_file):
+        for line in self._tail(self._stdout_file):
             self._stdout.append(line.rstrip())
 
         # Get the current number of lines.
@@ -2295,7 +2290,7 @@ class OpenMM(_process.Process):
         lines = []
 
         # Append any new lines.
-        for line in _pygtail.Pygtail(self._log_file):
+        for line in self._tail(self._log_file):
             lines.append(line)
 
         # Append any new records to the stdout dictionary.

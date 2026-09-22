@@ -18,7 +18,6 @@ parmed = "*"
 pyarrow = "*"
 py3dmol = "*"
 pydot = "*"
-pygtail = "*"
 pyyaml = "*"
 rdkit = "*"
 

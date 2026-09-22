@@ -37,7 +37,6 @@ requirements:
     - pyarrow
     - py3dmol
     - pydot
-    - pygtail
     - python
     - pyyaml
     - rdkit

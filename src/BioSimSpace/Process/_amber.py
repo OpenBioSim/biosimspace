@@ -26,11 +26,6 @@ __email__ = "lester.hedges@gmail.com"
 
 __all__ = ["Amber"]
 
-from .._Utils import _try_import
-
-_pygtail = _try_import("pygtail")
-
-
 from . import _process
 
 
@@ -2712,7 +2707,7 @@ class Amber(_process.Process):
         self._is_header = False
 
         # Append any new lines to the stdout list.
-        for line in _pygtail.Pygtail(self._stdout_file):
+        for line in self._tail(self._stdout_file):
             self._stdout.append(line.rstrip())
             line = line.strip()
 
