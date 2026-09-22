@@ -28,6 +28,7 @@ Classes
 .. autosummary::
     :toctree: generated/
 
+    Tail
     WorkDir
 
 Context managers
@@ -54,4 +55,5 @@ Functions
 from ._command_split import *
 from ._contextmanagers import *
 from ._module_stub import *
+from ._tail import *
 from ._workdir import *

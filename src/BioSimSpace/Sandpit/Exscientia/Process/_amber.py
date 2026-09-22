@@ -27,11 +27,6 @@ __email__ = "lester.hedges@gmail.com"
 __all__ = ["Amber"]
 
 
-from .._Utils import _try_import
-
-_pygtail = _try_import("pygtail")
-
-
 from .._Utils import _have_imported, _try_import
 
 # alchemlyb isn't available on all variants of Python that we support, so we
@@ -2795,7 +2790,7 @@ class Amber(_process.Process):
         self._is_header = False
 
         # Append any new lines to the stdout list.
-        for line in _pygtail.Pygtail(self._stdout_file):
+        for line in self._tail(self._stdout_file):
             self._stdout.append(line.rstrip())
             line = line.strip()
 
@@ -3053,9 +3048,6 @@ class Amber(_process.Process):
         into the working directory, start and wait again. In this case, the result will
         be a combination of both runs. This function ensures that the results are
         regenerated from the new output file."""
-        import os
-        from pathlib import Path as _Path
-
         # Initialise dictionaries to hold stdout records for all possible
         # degrees of freedom. For regular simulations there will be one,
         # for free-energy simulations there will be three, i.e. one for
@@ -3080,9 +3072,9 @@ class Amber(_process.Process):
         self._finished_results = False
         self._is_header = False
 
-        # Initiate the pytails.
-        for file in _Path(self.workDir()).glob("*.out.offset"):
-            os.remove(file)
+        # Reset the incremental readers for the output files.
+        for file in [f for f in self._tails if f.endswith(".out")]:
+            del self._tails[file]
 
     def _saveMetric(
         self, filename="metric.parquet", u_nk="u_nk.parquet", dHdl="dHdl.parquet"
