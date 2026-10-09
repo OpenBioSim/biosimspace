@@ -137,7 +137,17 @@ class Relative:
 
         repex_frequency : int
             The number of MD steps between replica exchange attempts. Only
-            used when ``replica_exchange=True``. Default is 1000.
+            used when ``repex=True``. Default is 1000.
+
+        nex : int
+            The number of random exchanges to attempt at each exchange
+            interval. Only used when ``repex=True`` and the engine is GROMACS.
+            A value of zero gives neighbour-only exchanges. Default is 1000000.
+
+        oversubscribe : bool
+            Whether to pass ``--oversubscribe`` to mpirun, allowing more MPI
+            ranks than available CPU slots. Only used when ``repex=True``.
+            Default is False.
 
         kwargs : dict
             Additional keyword arguments to pass to the underlying Process
@@ -296,10 +306,10 @@ class Relative:
         if not isinstance(serial, bool):
             raise TypeError("'serial' must be of type 'bool'.")
 
-        if self._repex:
-            self._process.start()
-        elif self._setup_only:
+        if self._setup_only:
             _warnings.warn("No processes exist! Object created in 'setup_only' mode.")
+        elif self._repex:
+            self._process.start()
         else:
             self._runner.startAll(serial=serial)
 
@@ -307,10 +317,10 @@ class Relative:
         """Wait for the simulation to finish."""
         import warnings as _warnings
 
-        if self._repex:
-            self._process.wait()
-        elif self._setup_only:
+        if self._setup_only:
             _warnings.warn("No processes exist! Object created in 'setup_only' mode.")
+        elif self._repex:
+            self._process.wait()
         else:
             self._runner.wait()
 
@@ -333,7 +343,8 @@ class Relative:
 
     def kill(self, index):
         """
-        Kill a process for a specific lambda window.
+        Kill a process for a specific lambda window. When ``repex=True`` all
+        lambda windows share a single process, so this kills all of them.
 
         Parameters
         ----------
@@ -341,12 +352,25 @@ class Relative:
         index : int
             The index of the lambda window.
         """
-        self._runner.kill(index)
+        import warnings as _warnings
+
+        if self._setup_only:
+            _warnings.warn("No processes exist! Object created in 'setup_only' mode.")
+        elif self._repex:
+            self._process.kill()
+        else:
+            self._runner.kill(index)
 
     def killAll(self):
         """Kill any running processes for all lambda windows."""
+        import warnings as _warnings
 
-        self._runner.killAll()
+        if self._setup_only:
+            _warnings.warn("No processes exist! Object created in 'setup_only' mode.")
+        elif self._repex:
+            self._process.kill()
+        else:
+            self._runner.killAll()
 
     def workDir(self):
         """
@@ -1153,10 +1177,12 @@ class Relative:
         # e.g. "0.051000000000000004") or :.5f string keys (new sire, e.g.
         # "0.05100"). The alchemlyb index check also requires float columns.
         df.columns = [
-            _normalise_lambda(c)
-            if isinstance(c, str)
-            and c.replace(".", "", 1).replace("-", "", 1).isdigit()
-            else c
+            (
+                _normalise_lambda(c)
+                if isinstance(c, str)
+                and c.replace(".", "", 1).replace("-", "", 1).isdigit()
+                else c
+            )
             for c in df.columns
         ]
 
