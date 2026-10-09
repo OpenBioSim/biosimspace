@@ -378,16 +378,25 @@ def test_get_exchange_statistics_no_log(perturbable_system, tmp_path):
 
 @pytest.mark.skipif(not has_gromacs, reason="Requires GROMACS to be installed.")
 def test_get_exchange_statistics_parsed(perturbable_system, tmp_path):
-    """getExchangeStatistics() correctly parses a synthetic GROMACS log."""
-    protocol = BSS.Protocol.FreeEnergy()
+    """getExchangeStatistics() parses the empirical transition matrix."""
+    protocol = BSS.Protocol.FreeEnergy(num_lam=3)
+    lam_vals = protocol.getLambdaValues()
     process = BSS.Process.GromacsHREX(
         perturbable_system, protocol, work_dir=str(tmp_path)
     )
 
     log_content = textwrap.dedent("""\
         Replica exchange statistics
-        Repl  0 <-> 1  : accepted  45 out of 100
-        Repl  1 <-> 2  : accepted  30 out of 100
+        Repl  999 attempts, 500 odd, 499 even
+        Repl  average probabilities:
+        Repl     0    1    2
+        Repl      .53  .41
+
+        Repl                Empirical Transition Matrix
+        Repl         1       2       3
+        Repl    0.7650  0.2350  0.0000  0
+        Repl    0.2350  0.5600  0.2050  1
+        Repl    0.0000  0.2050  0.7950  2
         """)
     log_file = os.path.join(process._lambda_dirs[0], "gromacs.log")
     with open(log_file, "w") as f:
@@ -396,22 +405,91 @@ def test_get_exchange_statistics_parsed(perturbable_system, tmp_path):
     df = process.getExchangeStatistics()
 
     assert df is not None
-    assert list(df.columns) == [
-        "replica_i",
-        "replica_j",
-        "lambda_i",
-        "lambda_j",
-        "n_attempts",
-        "n_accepted",
-        "acceptance_rate",
-    ]
-    assert len(df) == 2
-    assert df.iloc[0]["replica_i"] == 0
-    assert df.iloc[0]["replica_j"] == 1
-    assert df.iloc[0]["n_accepted"] == 45
-    assert df.iloc[0]["n_attempts"] == 100
-    assert df.iloc[0]["acceptance_rate"] == pytest.approx(0.45)
-    assert df.iloc[1]["n_accepted"] == 30
+    assert df.shape == (3, 3)
+    assert list(df.index) == lam_vals
+    assert list(df.columns) == lam_vals
+    assert df.iloc[0, 1] == pytest.approx(0.235)
+    assert df.iloc[1, 1] == pytest.approx(0.56)
+    assert df.iloc[2, 2] == pytest.approx(0.795)
+
+
+@pytest.mark.skipif(not has_gromacs, reason="Requires GROMACS to be installed.")
+def test_inputs_not_modified(perturbable_system, tmp_path):
+    """The caller's ReplicaSystem and protocol are not modified."""
+    from BioSimSpace.Sandpit.Exscientia._SireWrappers import ReplicaSystem
+
+    protocol = BSS.Protocol.FreeEnergy()
+    lam = protocol.getLambda()
+    rs = ReplicaSystem(perturbable_system, num_replicas=len(protocol.getLambdaValues()))
+    sire_object = rs._sire_object
+
+    BSS.Process.GromacsHREX(rs, protocol, work_dir=str(tmp_path))
+
+    assert protocol.getLambda() == lam
+    assert rs._sire_object is sire_object
+
+
+@pytest.mark.skipif(not has_gromacs, reason="Requires GROMACS to be installed.")
+def test_get_system_missing_output(perturbable_system, tmp_path):
+    """Missing output windows fall back to input coordinates, preserving order."""
+    import shutil
+
+    protocol = BSS.Protocol.FreeEnergy(num_lam=3)
+    process = BSS.Process.GromacsHREX(
+        perturbable_system, protocol, work_dir=str(tmp_path)
+    )
+
+    for gro, gro_out in list(zip(process._gro_files, process._gro_out_files))[1:]:
+        shutil.copyfile(gro, gro_out)
+
+    with pytest.warns(UserWarning, match=r"lambda windows \[0\]"):
+        result = process.getSystem(block=False)
+
+    assert result.nReplicas() == 3
+
+
+@pytest.mark.skipif(not has_gromacs, reason="Requires GROMACS to be installed.")
+def test_get_exchange_statistics_multi_column(perturbable_system, tmp_path):
+    """Multi-column lambda schedules label the transition matrix by index."""
+    import pandas as pd
+
+    protocol = BSS.Protocol.FreeEnergy(lam_vals=[0.0, 0.5, 1.0])
+    process = BSS.Process.GromacsHREX(
+        perturbable_system, protocol, work_dir=str(tmp_path)
+    )
+    process._lam_vals = pd.DataFrame(
+        {"coul": [0.0, 1.0, 1.0], "vdw": [0.0, 0.0, 1.0]}, index=[0, 1, 2]
+    )
+
+    log_content = textwrap.dedent("""\
+        Repl                Empirical Transition Matrix
+        Repl         1       2       3
+        Repl    0.7650  0.2350  0.0000  0
+        Repl    0.2350  0.5600  0.2050  1
+        Repl    0.0000  0.2050  0.7950  2
+        """)
+    with open(os.path.join(process._lambda_dirs[0], "gromacs.log"), "w") as f:
+        f.write(log_content)
+
+    df = process.getExchangeStatistics()
+
+    assert list(df.index) == [0, 1, 2]
+    assert df.loc[1, 2] == pytest.approx(0.205)
+
+
+@pytest.mark.skipif(not has_gromacs, reason="Requires GROMACS to be installed.")
+def test_extra_args_in_command(perturbable_system, tmp_path):
+    """extra_args are appended to the mdrun command."""
+    protocol = BSS.Protocol.FreeEnergy()
+    process = BSS.Process.GromacsHREX(
+        perturbable_system,
+        protocol,
+        extra_args={"-ntomp": 1},
+        work_dir=str(tmp_path),
+    )
+    process.start()
+    process.kill()
+    assert "-ntomp 1" in process._command
 
 
 @pytest.mark.skipif(not has_gromacs, reason="Requires GROMACS to be installed.")
