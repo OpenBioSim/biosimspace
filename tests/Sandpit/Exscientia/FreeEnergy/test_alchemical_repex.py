@@ -151,16 +151,59 @@ def test_repex_frequency_propagated_gromacs(perturbable_system, tmp_path):
 
 
 @pytest.mark.skipif(not has_gromacs, reason="Requires GROMACS.")
-def test_use_mpi_propagated_gromacs(perturbable_system, tmp_path):
-    """use_mpi kwarg is forwarded to GromacsHREX."""
+def test_nex_oversubscribe_propagated_gromacs(perturbable_system, tmp_path):
+    """nex and oversubscribe are forwarded to GromacsHREX."""
+    relative = BSS.FreeEnergy.AlchemicalFreeEnergy(
+        perturbable_system,
+        engine="GROMACS",
+        repex=True,
+        nex=0,
+        oversubscribe=True,
+        work_dir=str(tmp_path),
+    )
+    assert relative._process._nex == 0
+    assert relative._process._oversubscribe is True
+
+
+@pytest.mark.skipif(not has_gromacs, reason="Requires GROMACS.")
+def test_kill_repex(perturbable_system, tmp_path):
+    """kill() and killAll() work in repex mode."""
     relative = BSS.FreeEnergy.AlchemicalFreeEnergy(
         perturbable_system,
         engine="GROMACS",
         repex=True,
         work_dir=str(tmp_path),
-        use_mpi=False,
     )
-    assert relative._process._use_mpi is False
+    relative.kill(0)
+    relative.killAll()
+
+
+@pytest.mark.skipif(not has_gromacs, reason="Requires GROMACS.")
+def test_setup_only_repex(perturbable_system, tmp_path):
+    """run() warns rather than launching a process in setup_only mode."""
+    relative = BSS.FreeEnergy.AlchemicalFreeEnergy(
+        perturbable_system,
+        engine="GROMACS",
+        repex=True,
+        setup_only=True,
+        work_dir=str(tmp_path),
+    )
+    with pytest.warns(UserWarning, match="setup_only"):
+        relative.run()
+    assert relative._process._process is None
+
+
+@pytest.mark.skipif(not has_gromacs, reason="Requires GROMACS.")
+def test_extra_args_propagated_gromacs(perturbable_system, tmp_path):
+    """extra_args are forwarded to GromacsHREX."""
+    relative = BSS.FreeEnergy.AlchemicalFreeEnergy(
+        perturbable_system,
+        engine="GROMACS",
+        repex=True,
+        work_dir=str(tmp_path),
+        extra_args={"-ntomp": 1},
+    )
+    assert relative._process._extra_args == {"-ntomp": 1}
 
 
 # ---------------------------------------------------------------------------

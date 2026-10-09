@@ -58,6 +58,7 @@ class AmberHREX(_Amber):
         seed=None,
         extra_options={},
         extra_lines=[],
+        extra_args={},
         property_map={},
     ):
         """
@@ -120,6 +121,9 @@ class AmberHREX(_Amber):
         extra_lines : [str]
             A list of extra lines to put at the end of each configuration file.
 
+        extra_args : dict
+            A dictionary of extra command-line arguments to pass to pmemd.
+
         property_map : dict
             A dictionary that maps system "properties" to their user defined
             values. This allows the user to refer to properties with their
@@ -154,7 +158,16 @@ class AmberHREX(_Amber):
         if not isinstance(oversubscribe, bool):
             raise TypeError("'oversubscribe' must be of type 'bool'.")
 
+        if not isinstance(extra_args, dict):
+            raise TypeError("'extra_args' must be of type 'dict'.")
+
         # Get the lambda values from the protocol.
+        lam_vals = protocol.getLambdaValues(type="dataframe")
+        if len(lam_vals.columns) > 1:
+            raise NotImplementedError(
+                "'BioSimSpace.Process.AmberHREX' does not support multi-column "
+                "lambda schedules."
+            )
         lam_vals = protocol.getLambdaValues()
         n_replicas = len(lam_vals)
 
@@ -165,11 +178,13 @@ class AmberHREX(_Amber):
                     f"The number of replicas in 'system' ({system.nReplicas()}) "
                     f"does not match the number of lambda values ({n_replicas})."
                 )
-            self._replica_system = system
+            self._replica_system = system._copy()
             # Extract the first replica for the base class constructor.
             system_for_base = system.getReplica(0)
         elif isinstance(system, _System):
-            self._replica_system = _ReplicaSystem(system, num_replicas=n_replicas)
+            self._replica_system = _ReplicaSystem(
+                system, num_replicas=n_replicas, property_map=property_map
+            )
             system_for_base = system
         else:
             raise TypeError(
@@ -184,6 +199,7 @@ class AmberHREX(_Amber):
         self._mpi_exe = mpi_exe
         self._lam_vals = lam_vals
         self._n_replicas = n_replicas
+        self._extra_args = dict(extra_args)
 
         # Initialise attributes that will be populated by _setup().
         self._lambda_dirs = None
@@ -293,55 +309,63 @@ class AmberHREX(_Amber):
         rst_out_files = []
         input_files = [self._top_file, self._ref_file]
 
-        for i, (lam, lam_dir, sq) in enumerate(
-            zip(self._lam_vals, self._lambda_dirs, squashed_systems)
-        ):
-            rst_file = _os.path.join(lam_dir, f"{self._name}.rst7")
-            cfg_file = _os.path.join(lam_dir, f"{self._name}.cfg")
-            rst_out = _os.path.join(lam_dir, f"{self._name}.crd")
+        # Restore the caller's protocol lambda after writing each window.
+        orig_lam = self._protocol.getLambda(type="series")
+        try:
+            for i, (lam, lam_dir, sq) in enumerate(
+                zip(self._lam_vals, self._lambda_dirs, squashed_systems)
+            ):
+                rst_file = _os.path.join(lam_dir, f"{self._name}.rst7")
+                cfg_file = _os.path.join(lam_dir, f"{self._name}.cfg")
+                rst_out = _os.path.join(lam_dir, f"{self._name}.crd")
 
-            # Write the per-replica input coordinates.
-            try:
-                rst_base = _os.path.splitext(rst_file)[0]
-                _IO.saveMolecules(rst_base, sq, "rst7", property_map=self._property_map)
-            except Exception as e:
-                msg = f"Failed to write RST7 for lambda={lam}."
-                if _isVerbose():
-                    raise IOError(msg) from e
+                # Write the per-replica input coordinates.
+                try:
+                    rst_base = _os.path.splitext(rst_file)[0]
+                    _IO.saveMolecules(
+                        rst_base, sq, "rst7", property_map=self._property_map
+                    )
+                except Exception as e:
+                    msg = f"Failed to write RST7 for lambda={lam}."
+                    if _isVerbose():
+                        raise IOError(msg) from e
+                    else:
+                        raise IOError(msg) from None
+
+                # Temporarily set the protocol lambda to this window so that
+                # ConfigFactory writes the correct clambda.
+                self._protocol.setLambdaValues(lam=lam, lam_vals=self._lam_vals)
+
+                # Build extra options for HREX: override nstlim and add numexchg.
+                hrex_options = dict(self._extra_options) if self._extra_options else {}
+                if self._seed is None:
+                    hrex_options.setdefault("ig", -1)
                 else:
-                    raise IOError(msg) from None
+                    hrex_options.setdefault("ig", self._seed)
+                hrex_options["nstlim"] = self._repex_frequency
+                hrex_options["numexchg"] = num_exchanges
 
-            # Temporarily set the protocol lambda to this window so that
-            # ConfigFactory writes the correct clambda.
-            self._protocol.setLambdaValues(lam=lam, lam_vals=self._lam_vals)
+                # Generate the AMBER configuration for this lambda window.
+                config = _Protocol.ConfigFactory(
+                    squashed_systems[0], self._protocol, self._explicit_dummies
+                )
+                config_lines = config.generateAmberConfig(
+                    extra_options=hrex_options,
+                    extra_lines=self._extra_lines,
+                )
 
-            # Build extra options for HREX: override nstlim and add numexchg.
-            hrex_options = dict(self._extra_options) if self._extra_options else {}
-            if self._seed is None:
-                hrex_options.setdefault("ig", -1)
-            else:
-                hrex_options.setdefault("ig", self._seed)
-            hrex_options["nstlim"] = self._repex_frequency
-            hrex_options["numexchg"] = num_exchanges
+                # Write the CFG file.
+                with open(cfg_file, "w") as f:
+                    for line in config_lines:
+                        f.write(f"{line}\n")
 
-            # Generate the AMBER configuration for this lambda window.
-            config = _Protocol.ConfigFactory(
-                squashed_systems[0], self._protocol, self._explicit_dummies
-            )
-            config_lines = config.generateAmberConfig(
-                extra_options=hrex_options,
-                extra_lines=self._extra_lines,
-            )
+                rst_files.append(rst_file)
+                cfg_files.append(cfg_file)
+                rst_out_files.append(rst_out)
+                input_files += [rst_file, cfg_file]
 
-            # Write the CFG file.
-            with open(cfg_file, "w") as f:
-                for line in config_lines:
-                    f.write(f"{line}\n")
-
-            rst_files.append(rst_file)
-            cfg_files.append(cfg_file)
-            rst_out_files.append(rst_out)
-            input_files += [rst_file, cfg_file]
+        finally:
+            self._protocol.setLambda(orig_lam)
 
         self._rst_out_files = rst_out_files
 
@@ -436,7 +460,15 @@ class AmberHREX(_Amber):
                 str(self._n_replicas),
                 "-groupfile",
                 "groupfile",
+                "-remlog",
+                "rem.log",
             ]
+
+            # Append any user-supplied extra arguments.
+            for key, value in self._extra_args.items():
+                args.append(key)
+                if value is not True:
+                    args.append(str(value))
 
             # Write the command to README.txt for reproducibility.
             with open("README.txt", "w") as f:
@@ -497,18 +529,19 @@ class AmberHREX(_Amber):
         if self.isError():
             _warnings.warn("The process exited with an error!")
 
-        # Collect available output coordinate files.
-        available_indices = [
-            i for i, f in enumerate(self._rst_out_files) if _os.path.isfile(f)
+        missing = [
+            i for i, f in enumerate(self._rst_out_files) if not _os.path.isfile(f)
         ]
 
-        if not available_indices:
+        if len(missing) == self._n_replicas:
             return None
 
-        if len(available_indices) < self._n_replicas:
+        # Fall back to the input coordinates for missing windows so that
+        # replica i always corresponds to lambda window i.
+        if missing:
             _warnings.warn(
-                f"Only {len(available_indices)} of {self._n_replicas} output "
-                "coordinate files are currently available."
+                f"Output coordinates are missing for lambda windows {missing}. "
+                "Using the input coordinates for these replicas."
             )
 
         # Determine whether to use lambda=1 coordinates.
@@ -516,10 +549,14 @@ class AmberHREX(_Amber):
 
         # Unsquash each available replica and collect unsquashed systems.
         unsquashed_systems = []
-        for i in available_indices:
+        for i in range(self._n_replicas):
             rst_out = self._rst_out_files[i]
             sq = self._squashed_systems[i]
             old_system = self._replica_system.getReplica(i)
+
+            if i in missing:
+                unsquashed_systems.append(old_system)
+                continue
 
             # Copy the restart file to avoid Sire's stream caching.
             with _tempfile.TemporaryDirectory() as tmp_dir:
@@ -567,8 +604,14 @@ class AmberHREX(_Amber):
 
             unsquashed_systems.append(updated)
 
-        # Save each unsquashed system to a temporary RST7 file, then load all
-        # of them together via ReplicaSystem.loadReplicas to build the result.
+        # Reloading frames requires a box, so restore the vacuum placeholder.
+        rs = self._replica_system
+        if rs._has_placeholder_box:
+            placeholder_box = rs._sire_object.property(rs._space_prop)
+            for sys in unsquashed_systems:
+                sys._sire_object.set_property(rs._space_prop, placeholder_box)
+
+        # Combine the unsquashed systems via temporary RST7 files.
         with _tempfile.TemporaryDirectory() as tmp_dir:
             tmp_rst7_files = []
             for j, sys in enumerate(unsquashed_systems):
@@ -596,8 +639,9 @@ class AmberHREX(_Amber):
         """
         Get replica exchange acceptance statistics.
 
-        Parses the AMBER ``remlog`` file that is written alongside the
-        replica exchange simulation.
+        Parses the H-REMD log file, ``rem.log``, that pmemd writes to the
+        work directory. AMBER only attempts exchanges between neighbouring
+        lambda windows.
 
         Returns
         -------
@@ -609,56 +653,63 @@ class AmberHREX(_Amber):
             available yet.
         """
         import os as _os
-        import re as _re
-        from collections import defaultdict as _defaultdict
 
         import pandas as _pd
 
-        remlog = _os.path.join(str(self._work_dir), "remlog")
+        remlog = _os.path.join(str(self._work_dir), "rem.log")
 
         if not _os.path.isfile(remlog):
             return None
 
+        # Each "# exchange N" block has a row per replica with 1-based
+        # "Rep# Neibr#" in the first two columns and a T/F success in the eighth.
+        attempts = {}
+        accepted = {}
+        seen = set()
         with open(remlog) as f:
-            content = f.read()
+            for line in f:
+                if line.startswith("#"):
+                    if line[1:].split()[:1] == ["exchange"]:
+                        seen = set()
+                    continue
+                tokens = line.split()
+                if len(tokens) < 9:
+                    continue
+                try:
+                    i = int(tokens[0]) - 1
+                    j = int(tokens[1]) - 1
+                except ValueError:
+                    continue
+                success = tokens[7]
+                if success not in ("T", "F"):
+                    continue
+                if not (0 <= i < self._n_replicas and 0 <= j < self._n_replicas):
+                    continue
+                if i == j:
+                    continue
+                key = (min(i, j), max(i, j))
+                if key in seen:
+                    continue
+                seen.add(key)
+                attempts[key] = attempts.get(key, 0) + 1
+                accepted[key] = accepted.get(key, 0) + (success == "T")
 
-        attempt_pattern = _re.compile(
-            r"exchange:\s+(\d+)\s+\([\d.]+\)\s+<->\s+(\d+)\s+\([\d.]+\)\s*:\s*(\w+)",
-            _re.IGNORECASE,
-        )
-
-        counts = _defaultdict(lambda: {"attempts": 0, "accepted": 0})
-        for m in attempt_pattern.finditer(content):
-            i = int(m.group(1))
-            j = int(m.group(2))
-            outcome = m.group(3).lower()
-            key = (min(i, j), max(i, j))
-            counts[key]["attempts"] += 1
-            if outcome == "success":
-                counts[key]["accepted"] += 1
-
-        if not counts:
+        if not attempts:
             return None
 
         rows = []
-        for (i, j), c in sorted(counts.items()):
-            n_attempts = c["attempts"]
-            n_accepted = c["accepted"]
+        for i, j in sorted(attempts):
+            n_attempts = attempts[(i, j)]
+            n_accepted = accepted[(i, j)]
             rows.append(
                 {
                     "replica_i": i,
                     "replica_j": j,
-                    "lambda_i": (
-                        self._lam_vals[i] if i < len(self._lam_vals) else None
-                    ),
-                    "lambda_j": (
-                        self._lam_vals[j] if j < len(self._lam_vals) else None
-                    ),
+                    "lambda_i": self._lam_vals[i],
+                    "lambda_j": self._lam_vals[j],
                     "n_attempts": n_attempts,
                     "n_accepted": n_accepted,
-                    "acceptance_rate": (
-                        n_accepted / n_attempts if n_attempts > 0 else 0.0
-                    ),
+                    "acceptance_rate": n_accepted / n_attempts,
                 }
             )
 

@@ -60,6 +60,7 @@ class GromacsHREX(_Gromacs):
         seed=None,
         extra_options={},
         extra_lines=[],
+        extra_args={},
         property_map={},
         restraint=None,
         ignore_warnings=False,
@@ -104,7 +105,7 @@ class GromacsHREX(_Gromacs):
 
         exe : str
             The full path to the MPI-enabled GROMACS executable (e.g. gmx_mpi).
-            When None, the executable found at BioSimSpace initialisation is used.
+            When None, ``gmx_mpi`` is searched for in GROMACSHOME and on PATH.
 
         mpi_exe : str
             The full path to the MPI launcher (e.g. mpirun, mpiexec, srun).
@@ -126,6 +127,9 @@ class GromacsHREX(_Gromacs):
         extra_lines : [str]
             A list of extra lines to put at the end of each MDP configuration
             file.
+
+        extra_args : dict
+            A dictionary of extra command-line arguments to pass to gmx mdrun.
 
         property_map : dict
             A dictionary that maps system "properties" to their user defined
@@ -193,6 +197,9 @@ class GromacsHREX(_Gromacs):
         if not isinstance(oversubscribe, bool):
             raise TypeError("'oversubscribe' must be of type 'bool'.")
 
+        if not isinstance(extra_args, dict):
+            raise TypeError("'extra_args' must be of type 'dict'.")
+
         # Get the lambda values from the protocol.
         lam_vals = protocol.getLambdaValues()
         n_replicas = len(lam_vals)
@@ -204,11 +211,13 @@ class GromacsHREX(_Gromacs):
                     f"The number of replicas in 'system' ({system.nReplicas()}) "
                     f"does not match the number of lambda values ({n_replicas})."
                 )
-            self._replica_system = system
+            self._replica_system = system._copy()
             # Extract the first replica for the base class constructor.
             system_for_base = system.getReplica(0)
         elif isinstance(system, _System):
-            self._replica_system = _ReplicaSystem(system, num_replicas=n_replicas)
+            self._replica_system = _ReplicaSystem(
+                system, num_replicas=n_replicas, property_map=property_map
+            )
             system_for_base = system
         else:
             raise TypeError(
@@ -224,11 +233,16 @@ class GromacsHREX(_Gromacs):
         self._mpi_exe = mpi_exe
         self._lam_vals = lam_vals
         self._n_replicas = n_replicas
+        self._extra_args = dict(extra_args)
 
         # Initialise attributes that will be populated by _setup().
         self._lambda_dirs = None
+        self._gro_files = None
         self._gro_out_files = None
         self._tpr_files = None
+
+        if exe is None:
+            exe = _findHrexExe()
 
         # Call the parent constructor using the single-replica system.
         super().__init__(
@@ -260,9 +274,7 @@ class GromacsHREX(_Gromacs):
         system = self._system.copy()
         system._set_water_topology("GROMACS", property_map=self._property_map)
 
-        # Check whether the system has a periodic box. If not, apply a large
-        # pseudo-periodic box (999.9 nm) so that grompp accepts the GRO file
-        # for vacuum / non-periodic simulations (pbc=xyz, large cut-offs).
+        # grompp requires a box, so apply a large one for vacuum systems.
         space_prop = self._property_map.get("space", "space")
         has_box = False
         if space_prop in system._sire_object.property_keys():
@@ -312,9 +324,7 @@ class GromacsHREX(_Gromacs):
         if isinstance(self._protocol, _Protocol._PositionRestraintMixin):
             self._add_position_restraints(config_options)
 
-        # Build per-lambda GRO file paths.
-        # _lam_vals is a list of floats (RBFE) or a DataFrame (multi-column ABFE).
-        # For DataFrame, use the row index as the directory name.
+        # Name multi-column (DataFrame) lambda directories by row index.
         import pandas as _pd
 
         _lam_is_df = isinstance(self._lam_vals, _pd.DataFrame)
@@ -324,7 +334,7 @@ class GromacsHREX(_Gromacs):
             _lam_indices = [f"{lam:5.4f}" for lam in self._lam_vals]
 
         gro_files = [
-            _os.path.join(str(self._work_dir), f"lambda_{idx}", "gromacs.gro")
+            _os.path.join(str(self._work_dir), f"lambda_{idx}", f"{self._name}.gro")
             for idx in _lam_indices
         ]
 
@@ -342,59 +352,65 @@ class GromacsHREX(_Gromacs):
         )
         self._replica_system.saveReplicas(gro_files)
 
-        # Generate per-lambda MDP and TPR files.
+        # Generate per-lambda MDP and TPR files, restoring the caller's
+        # protocol lambda afterwards.
         tpr_files = []
+        orig_lam = self._protocol.getLambda(type="series")
         _lam_iter = (
             ((idx, row) for idx, row in self._lam_vals.iterrows())
             if _lam_is_df
             else ((idx, lam) for idx, lam in zip(_lam_indices, self._lam_vals))
         )
-        for (lam_idx, lam), gro in zip(_lam_iter, gro_files):
-            lam_dir = _os.path.dirname(gro)
-            mdp_file = _os.path.join(lam_dir, "gromacs.mdp")
-            tpr_file = _os.path.join(lam_dir, "gromacs.tpr")
+        try:
+            for (lam_idx, lam), gro in zip(_lam_iter, gro_files):
+                lam_dir = _os.path.dirname(gro)
+                mdp_file = _os.path.join(lam_dir, f"{self._name}.mdp")
+                tpr_file = _os.path.join(lam_dir, f"{self._name}.tpr")
 
-            # Update the protocol lambda so that ConfigFactory writes the
-            # correct init-lambda-state for this window.
-            self._protocol.setLambdaValues(lam=lam, lam_vals=self._lam_vals)
+                # Update the protocol lambda so that ConfigFactory writes the
+                # correct init-lambda-state for this window.
+                self._protocol.setLambdaValues(lam=lam, lam_vals=self._lam_vals)
 
-            # Generate MDP configuration strings for this lambda window.
-            pert_type = (
-                self._protocol._perturbation_type
-                if isinstance(self._protocol, _Protocol._FreeEnergyMixin)
-                else None
-            )
-            config = _Protocol.ConfigFactory(system, self._protocol)
-            config_lines = config.generateGromacsConfig(
-                extra_options={**config_options, **self._extra_options},
-                extra_lines=self._extra_lines,
-                restraint=self._restraint,
-                perturbation_type=pert_type,
-            )
+                # Generate MDP configuration strings for this lambda window.
+                pert_type = (
+                    self._protocol._perturbation_type
+                    if isinstance(self._protocol, _Protocol._FreeEnergyMixin)
+                    else None
+                )
+                config = _Protocol.ConfigFactory(system, self._protocol)
+                config_lines = config.generateGromacsConfig(
+                    extra_options={**config_options, **self._extra_options},
+                    extra_lines=self._extra_lines,
+                    restraint=self._restraint,
+                    perturbation_type=pert_type,
+                )
 
-            # Write the MDP file.
-            with open(mdp_file, "w") as f:
-                for line in config_lines:
-                    f.write(f"{line}\n")
+                # Write the MDP file.
+                with open(mdp_file, "w") as f:
+                    for line in config_lines:
+                        f.write(f"{line}\n")
 
-            # Generate the binary run file.
-            self._generate_binary_run_file(
-                mdp_file,
-                gro,
-                self._top_file,
-                self._ref_file,
-                tpr_file,
-                self._exe,
-                ignore_warnings=self._ignore_warnings,
-                show_errors=self._show_errors,
-            )
+                # Generate the binary run file.
+                self._generate_binary_run_file(
+                    mdp_file,
+                    gro,
+                    self._top_file,
+                    self._ref_file,
+                    tpr_file,
+                    self._exe,
+                    ignore_warnings=self._ignore_warnings,
+                    show_errors=self._show_errors,
+                )
 
-            tpr_files.append(tpr_file)
+                tpr_files.append(tpr_file)
+        finally:
+            self._protocol.setLambda(orig_lam)
 
         # Store per-lambda paths using absolute paths.
         self._lambda_dirs = [
             _os.path.abspath(_os.path.dirname(gro)) for gro in gro_files
         ]
+        self._gro_files = [_os.path.abspath(gro) for gro in gro_files]
         self._gro_out_files = [
             _os.path.join(d, f"{self._name}_out.gro") for d in self._lambda_dirs
         ]
@@ -478,6 +494,12 @@ class GromacsHREX(_Gromacs):
             if self._nex:
                 args += ["-nex", str(self._nex)]
 
+            # Append any user-supplied extra arguments.
+            for key, value in self._extra_args.items():
+                args.append(key)
+                if value is not True:
+                    args.append(str(value))
+
             # Write the command to README.txt for reproducibility.
             with open("README.txt", "w") as f:
                 self._command = exe + " " + " ".join(str(a) for a in args)
@@ -533,19 +555,27 @@ class GromacsHREX(_Gromacs):
         if self.isError():
             _warnings.warn("The process exited with an error!")
 
-        # Collect output coordinate files that are available so far.
-        existing = [f for f in self._gro_out_files if _os.path.isfile(f)]
+        missing = [
+            i for i, f in enumerate(self._gro_out_files) if not _os.path.isfile(f)
+        ]
 
-        if not existing:
+        if len(missing) == self._n_replicas:
             return None
 
-        if len(existing) < self._n_replicas:
+        # Fall back to the input coordinates for missing windows so that
+        # replica i always corresponds to lambda window i.
+        if missing:
             _warnings.warn(
-                f"Only {len(existing)} of {self._n_replicas} output coordinate "
-                "files are currently available."
+                f"Output coordinates are missing for lambda windows {missing}. "
+                "Using the input coordinates for these replicas."
             )
 
-        return _ReplicaSystem.loadReplicas(self._replica_system, existing)
+        files = [
+            self._gro_files[i] if i in missing else f
+            for i, f in enumerate(self._gro_out_files)
+        ]
+
+        return _ReplicaSystem.loadReplicas(self._replica_system, files)
 
     def getCurrentSystem(self):
         """
@@ -561,26 +591,26 @@ class GromacsHREX(_Gromacs):
 
     def getExchangeStatistics(self):
         """
-        Get replica exchange acceptance statistics.
+        Get replica exchange statistics.
 
-        Parses the GROMACS log file from the first lambda window, where
-        GROMACS writes exchange statistics when using -multidir.
+        Parses the empirical transition matrix that GROMACS writes to the
+        log file of the first lambda window at the end of the simulation.
 
         Returns
         -------
 
         statistics : pandas.DataFrame or None
-            A DataFrame with columns ``replica_i``, ``replica_j``,
-            ``lambda_i``, ``lambda_j``, ``n_attempts``, ``n_accepted``, and
-            ``acceptance_rate``. Returns None if no exchange statistics are
-            available yet.
+            The empirical transition matrix, where entry (i, j) is the
+            fraction of exchange attempts in which the configuration at
+            lambda window i moved to lambda window j. Rows and columns are
+            labelled by lambda value. Returns None if the statistics are not
+            available, e.g. the simulation has not finished. For multi-column
+            lambda schedules, rows and columns are labelled by lambda index.
         """
         import os as _os
-        import re as _re
 
         import pandas as _pd
 
-        # Exchange statistics are written to the log of the first replica.
         log_file = _os.path.join(self._lambda_dirs[0], f"{self._name}.log")
 
         if not _os.path.isfile(log_file):
@@ -589,32 +619,69 @@ class GromacsHREX(_Gromacs):
         with open(log_file) as f:
             content = f.read()
 
-        pattern = _re.compile(
-            r"Repl\s+(\d+)\s+<->\s+(\d+)\s*:.*?(\d+)\s+(?:out\s+of|of)\s+(\d+)",
-            _re.IGNORECASE,
-        )
-
-        rows = []
-        for m in pattern.finditer(content):
-            i = int(m.group(1))
-            j = int(m.group(2))
-            n_accepted = int(m.group(3))
-            n_attempts = int(m.group(4))
-            rows.append(
-                {
-                    "replica_i": i,
-                    "replica_j": j,
-                    "lambda_i": self._lam_vals[i],
-                    "lambda_j": self._lam_vals[j],
-                    "n_attempts": n_attempts,
-                    "n_accepted": n_accepted,
-                    "acceptance_rate": (
-                        n_accepted / n_attempts if n_attempts > 0 else 0.0
-                    ),
-                }
-            )
-
-        if not rows:
+        idx = content.rfind("Empirical Transition Matrix")
+        if idx == -1:
             return None
 
-        return _pd.DataFrame(rows)
+        # Skip the title and the column header lines. Each matrix row is
+        # "Repl" followed by n probabilities and the row index.
+        n = self._n_replicas
+        lines = content[idx:].splitlines()[2 : 2 + n]
+        matrix = []
+        for line in lines:
+            tokens = line.split()
+            if len(tokens) < n + 1 or tokens[0] != "Repl":
+                return None
+            try:
+                matrix.append([float(x) for x in tokens[1 : n + 1]])
+            except ValueError:
+                return None
+
+        if len(matrix) != n:
+            return None
+
+        if isinstance(self._lam_vals, _pd.DataFrame):
+            labels = list(self._lam_vals.index)
+        else:
+            labels = self._lam_vals
+
+        return _pd.DataFrame(matrix, index=labels, columns=labels)
+
+
+def _findHrexExe():
+    """
+    Helper function to search for an MPI-enabled GROMACS executable for HREX.
+
+    Returns
+    -------
+
+    exe : str
+        The path to the executable.
+    """
+    import os as _os
+    import shutil as _shutil
+    import warnings as _warnings
+
+    from .. import _gmx_exe
+    from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
+
+    if "GROMACSHOME" in _os.environ:
+        exe = _os.path.join(_os.environ["GROMACSHOME"], "bin", "gmx_mpi")
+        if _os.path.isfile(exe) and _os.access(exe, _os.X_OK):
+            return exe
+
+    exe = _shutil.which("gmx_mpi")
+    if exe is not None:
+        return exe
+
+    if _gmx_exe is None:
+        raise _MissingSoftwareError(
+            "'BioSimSpace.Process.GromacsHREX' is not supported. "
+            "Please install an MPI-enabled GROMACS (http://www.gromacs.org)."
+        )
+
+    _warnings.warn(
+        f"Unable to find 'gmx_mpi', falling back to '{_gmx_exe}'. HREX requires "
+        "an MPI-enabled GROMACS build, so pass 'exe' if this is not one."
+    )
+    return _gmx_exe

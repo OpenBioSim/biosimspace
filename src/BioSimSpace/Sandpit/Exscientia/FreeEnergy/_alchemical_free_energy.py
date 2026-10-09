@@ -151,6 +151,29 @@ class AlchemicalFreeEnergy:
             A dictionary that maps system "properties" to their user defined
             values. This allows the user to refer to properties with their
             own naming scheme, e.g. { "charge" : "my-charge" }
+
+        repex : bool
+            Whether to run a Hamiltonian replica exchange (HREX) simulation
+            instead of independent per-lambda windows. Supported for AMBER
+            and GROMACS engines only.
+
+        repex_frequency : int
+            The number of MD steps between replica exchange attempts. Only
+            used when ``repex=True``. Default is 1000.
+
+        nex : int
+            The number of random exchanges to attempt at each exchange
+            interval. Only used when ``repex=True`` and the engine is GROMACS.
+            A value of zero gives neighbour-only exchanges. Default is 1000000.
+
+        oversubscribe : bool
+            Whether to pass ``--oversubscribe`` to mpirun, allowing more MPI
+            ranks than available CPU slots. Only used when ``repex=True``.
+            Default is False.
+
+        kwargs : dict
+            Additional keyword arguments to pass to the HREX process. Only
+            used when ``repex=True``.
         """
         import warnings as _warnings
 
@@ -407,10 +430,10 @@ class AlchemicalFreeEnergy:
         if not isinstance(serial, bool):
             raise TypeError("'serial' must be of type 'bool'.")
 
-        if self._repex:
-            self._process.start()
-        elif self._setup_only:
+        if self._setup_only:
             _warnings.warn("No processes exist! Object created in 'setup_only' mode.")
+        elif self._repex:
+            self._process.start()
         else:
             self._runner.startAll(serial=serial)
 
@@ -418,10 +441,10 @@ class AlchemicalFreeEnergy:
         """Wait for the simulation to finish."""
         import warnings as _warnings
 
-        if self._repex:
-            self._process.wait()
-        elif self._setup_only:
+        if self._setup_only:
             _warnings.warn("No processes exist! Object created in 'setup_only' mode.")
+        elif self._repex:
+            self._process.wait()
         else:
             self._runner.wait()
 
@@ -444,7 +467,8 @@ class AlchemicalFreeEnergy:
 
     def kill(self, index):
         """
-        Kill a process for a specific lambda window.
+        Kill a process for a specific lambda window. When ``repex=True`` all
+        lambda windows share a single process, so this kills all of them.
 
         Parameters
         ----------
@@ -452,12 +476,25 @@ class AlchemicalFreeEnergy:
         index : int
             The index of the lambda window.
         """
-        self._runner.kill(index)
+        import warnings as _warnings
+
+        if self._setup_only:
+            _warnings.warn("No processes exist! Object created in 'setup_only' mode.")
+        elif self._repex:
+            self._process.kill()
+        else:
+            self._runner.kill(index)
 
     def killAll(self):
         """Kill any running processes for all lambda windows."""
+        import warnings as _warnings
 
-        self._runner.killAll()
+        if self._setup_only:
+            _warnings.warn("No processes exist! Object created in 'setup_only' mode.")
+        elif self._repex:
+            self._process.kill()
+        else:
+            self._runner.killAll()
 
     def workDir(self):
         """
@@ -1366,6 +1403,8 @@ class AlchemicalFreeEnergy:
             repex_frequency=self._repex_frequency,
             oversubscribe=self._oversubscribe,
             work_dir=str(self._work_dir),
+            extra_options=self._extra_options,
+            extra_lines=self._extra_lines,
             property_map=self._property_map,
             **self._kwargs,
         )
@@ -1378,6 +1417,8 @@ class AlchemicalFreeEnergy:
                 self._protocol,
                 restraint=self._restraint,
                 nex=self._nex,
+                ignore_warnings=self._ignore_warnings,
+                show_errors=self._show_errors,
                 **common_kwargs,
             )
 

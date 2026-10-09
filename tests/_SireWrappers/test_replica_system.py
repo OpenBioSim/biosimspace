@@ -160,3 +160,31 @@ def test_squashed_representation(squashed_perturbable_replica_system):
         # Make sure that the trajectory is still squashed.
         assert rs._is_squashed is True
         assert rs._new_sire_object.num_atoms() < rs._trajectory[0].current().num_atoms()
+
+
+@pytest.fixture(scope="module")
+def vacuum_system(perturbable_system):
+    """A perturbable system without a periodic box."""
+    system = perturbable_system.copy()
+    system._sire_object.remove_property("space")
+    return system
+
+
+def test_vacuum_system_not_modified(vacuum_system):
+    """The input system is not modified and replicas of a vacuum system have no box."""
+    replica_system = ReplicaSystem(vacuum_system, num_replicas=2)
+
+    assert "space" not in vacuum_system._sire_object.property_keys()
+    assert "space" not in replica_system.getReplica(0)._sire_object.property_keys()
+
+
+def test_vacuum_box_not_streamed(vacuum_system):
+    """The placeholder box is not written to the stream file."""
+    replica_system = ReplicaSystem(vacuum_system, num_replicas=2)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        stream, trajectory = replica_system.save(f"{tmpdir}/replica_system")
+        rs = ReplicaSystem.load(stream, trajectory)
+
+    assert rs.nReplicas() == 2
+    assert "space" not in rs.getReplica(1)._sire_object.property_keys()

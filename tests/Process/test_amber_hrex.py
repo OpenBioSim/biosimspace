@@ -318,26 +318,27 @@ def test_get_exchange_statistics_no_remlog(perturbable_system, tmp_path):
     assert process.getExchangeStatistics() is None
 
 
-@pytest.mark.skipif(
-    socket.gethostname() != "hulk",
-    reason="Local test requiring pmemd.MPI installation.",
-)
-def test_get_exchange_statistics_parsed(perturbable_system, tmp_path):
-    """getExchangeStatistics() correctly parses a synthetic AMBER remlog."""
-    protocol = BSS.Protocol.FreeEnergy()
-    process = BSS.Process.AmberHREX(
-        perturbable_system, protocol, exe=_PMEMD_MPI, work_dir=str(tmp_path)
-    )
+def test_get_exchange_statistics_parsed(tmp_path):
+    """getExchangeStatistics() correctly parses a synthetic AMBER rem.log."""
+    process = BSS.Process.AmberHREX.__new__(BSS.Process.AmberHREX)
+    process._work_dir = str(tmp_path)
+    process._n_replicas = 3
+    process._lam_vals = [0.0, 0.5, 1.0]
 
-    # Write a synthetic remlog with exchange attempt records.
+    # Write a synthetic H-REMD log with two exchange attempts.
     log_content = textwrap.dedent("""\
-        # Replica exchange log
-        exchange:  0 (0.00000) <->  1 (0.10000) : success
-        exchange:  1 (0.10000) <->  2 (0.20000) : failed
-        exchange:  0 (0.00000) <->  1 (0.10000) : success
-        exchange:  1 (0.10000) <->  2 (0.20000) : success
+        # H-REMD
+        # Rep#, Neibr#, Temp0, PotE(x_1), PotE(x_2), left_fe, right_fe, Success, Success_rate
+        # exchange        1
+             1     2   300.00  -100.00   -99.00      0.00     -1.00    T    1.00
+             2     1   300.00   -98.00   -99.00     -1.00      0.00    T    1.00
+             3     2   300.00   -97.00   -96.00      0.00      0.00    F    0.00
+        # exchange        2
+             1     2   300.00  -100.00   -99.00      0.00     -1.00    T    1.00
+             2     3   300.00   -98.00   -99.00     -1.00      0.00    T    0.50
+             3     2   300.00   -97.00   -96.00      0.00      0.00    T    0.50
         """)
-    remlog = os.path.join(str(process._work_dir), "remlog")
+    remlog = os.path.join(str(process._work_dir), "rem.log")
     with open(remlog, "w") as f:
         f.write(log_content)
 

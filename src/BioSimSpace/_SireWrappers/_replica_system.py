@@ -63,6 +63,10 @@ class ReplicaSystem:
             for AMBER alchemical trajectories. Default is None, which will attempt to
             automatically determine this based on the system properties and trajectory
             format.
+
+        property_map : dict, optional
+            A dictionary that maps system "properties" to their user defined
+            values. Passed as a keyword argument.
         """
 
         from sire.legacy.System import System as _SireSystem
@@ -71,38 +75,44 @@ class ReplicaSystem:
 
         from ._system import System as _System
 
-        # Check that the system is valid.
+        # Check that the system is valid. Work on a copy so that the caller's
+        # system is never modified.
         if isinstance(system, _NewSireSystem):
-            self._new_sire_object = system
-            self._sire_object = system._system
+            self._new_sire_object = system.clone()
+            self._sire_object = self._new_sire_object._system
         elif isinstance(system, _SireSystem):
-            self._new_sire_object = _NewSireSystem(system)
-            self._sire_object = system
+            self._sire_object = system.clone()
+            self._new_sire_object = _NewSireSystem(self._sire_object)
         elif isinstance(system, _System):
-            self._new_sire_object = _NewSireSystem(system._sire_object)
-            self._sire_object = system._sire_object
+            self._sire_object = system._sire_object.clone()
+            self._new_sire_object = _NewSireSystem(self._sire_object)
         else:
             raise TypeError(
                 "'system' must be of type 'sire.system.System', "
                 "'sire.legacy.System.System' or 'BioSimSpace._SireWrappers.System'"
             )
 
+        property_map = kwargs.get("property_map", {})
+        if not isinstance(property_map, dict):
+            raise TypeError("'property_map' must be of type 'dict'.")
+        self._space_prop = property_map.get("space", "space")
+
         # Sire's trajectory frame loading rejects a zero-sized box, so apply a
-        # placeholder box for vacuum/gas-phase systems.
-        space_prop = "space"
+        # placeholder box for vacuum systems. This is removed from any replica
+        # that is returned to the user.
         has_box = False
-        if space_prop in self._new_sire_object.property_keys():
+        if self._space_prop in self._new_sire_object.property_keys():
             try:
-                has_box = self._new_sire_object.property(space_prop).is_periodic()
+                has_box = self._new_sire_object.property(self._space_prop).is_periodic()
             except Exception:
                 pass
-        if not has_box:
+        self._has_placeholder_box = not has_box
+        if self._has_placeholder_box:
             from sire.maths import Vector as _Vector
             from sire.vol import PeriodicBox as _PeriodicBox
 
             placeholder_box = _PeriodicBox(_Vector(9999, 9999, 9999))
-            self._new_sire_object.set_property(space_prop, placeholder_box)
-            self._sire_object.set_property(space_prop, placeholder_box)
+            self._sire_object.set_property(self._space_prop, placeholder_box)
 
         # Check if the system is perturbable.
         try:
@@ -360,6 +370,39 @@ class ReplicaSystem:
 
         return self._trajectory.num_frames()
 
+    def _copy(self):
+        """
+        Internal function to return a copy of this replica system that can be
+        modified without affecting the original.
+
+        Returns
+        -------
+
+        :class:`ReplicaSystem <BioSimSpace._SireWrappers.ReplicaSystem>`
+            The copy.
+        """
+        import copy as _copy
+
+        new = _copy.copy(self)
+        new._sire_object = self._sire_object.clone()
+        new._new_sire_object = self._new_sire_object.clone()
+
+        return new
+
+    def _remove_placeholder_box(self, system):
+        """
+        Internal function to remove the placeholder vacuum box from a system.
+
+        Parameters
+        ----------
+
+        system : sire.legacy.System.System
+            The system to modify in place.
+        """
+        if self._has_placeholder_box:
+            if self._space_prop in system.property_keys():
+                system.remove_property(self._space_prop)
+
     def _set_water_topology(self, format, property_map={}):
         """
         Internal function to convert the water topology naming convention
@@ -388,43 +431,37 @@ class ReplicaSystem:
 
         template = _System(self._sire_object)
 
-        # Skip the rebuild below if the water already matches the requested
-        # topology, mirroring System._set_water_topology's own early exit.
+        # Skip the rebuild if there is no water or it already matches.
         _format = format.replace(" ", "").upper()
         waters = template.getWaterMolecules()
-        if len(waters) > 0:
-            if _format == "AMBER" and waters[0].isAmberWater():
-                return
-            if _format == "GROMACS" and waters[0].isGromacsWater():
-                return
+        if len(waters) == 0:
+            return
+        if _format == "AMBER" and waters[0].isAmberWater():
+            return
+        if _format == "GROMACS" and waters[0].isGromacsWater():
+            return
 
         template._set_water_topology(format, property_map=property_map)
         self._sire_object = template._sire_object
         self._new_sire_object = _NewSireSystem(self._sire_object)
 
-        # self._sire_object is always the fully merged (dual-topology) form,
-        # so re-apply the same reference-state linking that __init__ used to
-        # build the original self._new_sire_object.
+        # Re-apply the reference-state linking used in __init__.
         if self._is_perturbable:
             from sire.morph import link_to_reference as _link_to_reference
 
             self._new_sire_object = _link_to_reference(self._new_sire_object)
 
-        if self._is_perturbable and self._is_squashed:
-            traj_format, top_ext = "dcd", "prm7"
-        elif self._is_perturbable:
-            traj_format, top_ext = "xtc", "top"
+        if self._is_perturbable and not self._is_squashed:
+            top_ext = "top"
         else:
-            traj_format, top_ext = "dcd", "prm7"
+            top_ext = "prm7"
 
-        # A trajectory's topology is fixed at creation time, so renaming
-        # self._new_sire_object above isn't picked up by the existing
-        # trajectory. Rebuild it via a single combined topology + multi-frame
-        # trajectory file, preserving every replica's distinct coordinates.
+        # The trajectory's topology is fixed, so rebuild it with the renamed
+        # waters. DCD is used since XTC would round the coordinates.
         try:
             with _TemporaryDirectory() as tmp_dir:
                 top_file = _os.path.join(tmp_dir, f"topology.{top_ext}")
-                traj_file = _os.path.join(tmp_dir, f"replicas.{traj_format}")
+                traj_file = _os.path.join(tmp_dir, "replicas.dcd")
 
                 _save(self._new_sire_object, top_file, silent=True)
                 _save(self._trajectory, traj_file, silent=True)
@@ -502,6 +539,7 @@ class ReplicaSystem:
         # Now clone the new Sire system so that we can remove the trajectory.
         system = self._new_sire_object.clone()
         system.delete_all_frames()
+        self._remove_placeholder_box(system._system)
 
         # Stream the system to file.
         try:
@@ -640,6 +678,8 @@ class ReplicaSystem:
             )
 
             frame = _System(frame)
+
+        self._remove_placeholder_box(frame._sire_object)
 
         return frame
 
@@ -801,9 +841,13 @@ class ReplicaSystem:
         tmp_top.close()
         _os.unlink(tmp_top.name)
 
-        return ReplicaSystem(
+        new = ReplicaSystem(
             replica_system._new_sire_object, trajectory=sire_system.trajectory()
         )
+        new._space_prop = replica_system._space_prop
+        new._has_placeholder_box = replica_system._has_placeholder_box
+
+        return new
 
     def setPerturbed(self):
         """
