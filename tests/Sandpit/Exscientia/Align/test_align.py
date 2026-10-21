@@ -1201,3 +1201,49 @@ def test_unmapped_attachment_warning_not_swallowed(ejm31, jmc28):
         with warnings.catch_warnings():
             warnings.filterwarnings("error", message=".*ringMatchesRingOnly.*")
             BSS.Align.matchAtoms(ejm31, jmc28)
+
+
+@pytest.fixture(scope="module")
+def network_ligands():
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+
+    smiles = ["c1ccccc1C", "c1ccccc1CC", "c1ccccc1O", "c1ccccc1N", "C1CCCCC1C(=O)O"]
+    ligands = []
+    for s in smiles:
+        mol = Chem.AddHs(Chem.MolFromSmiles(s))
+        AllChem.EmbedMolecule(mol, randomSeed=42)
+        ligands.append(mol)
+    return ligands
+
+
+def test_network_reused_work_dir(network_ligands, tmp_path):
+    names = [f"lig{x}" for x in range(len(network_ligands))]
+
+    expected = BSS.Align.generateNetwork(
+        network_ligands, names=names, work_dir=str(tmp_path / "fresh")
+    )
+
+    # Run with a subset of ligands, then the full set, in the same directory.
+    work_dir = str(tmp_path / "reused")
+    BSS.Align.generateNetwork(network_ligands[1:], names=names[1:], work_dir=work_dir)
+    result = BSS.Align.generateNetwork(network_ligands, names=names, work_dir=work_dir)
+
+    assert result == expected
+
+
+def test_network_links_file(network_ligands, tmp_path):
+    names = [f"lig{x}" for x in range(len(network_ligands))]
+
+    links_file = tmp_path / "links.txt"
+    links_file.write_text("lig1 lig4 -0.5 force\n")
+
+    edges, scores = BSS.Align.generateNetwork(
+        network_ligands,
+        names=names,
+        links_file=str(links_file),
+        work_dir=str(tmp_path / "lomap"),
+    )
+
+    assert (1, 4) in edges
+    assert scores[edges.index((1, 4))] == pytest.approx(0.5)
