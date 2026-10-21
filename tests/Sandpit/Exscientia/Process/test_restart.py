@@ -16,8 +16,8 @@ from tests.Sandpit.Exscientia.conftest import (
 @pytest.fixture
 def system():
     ff = "openff_unconstrained-2.0.0"
-    mol0 = BSS.Parameters.parameterise("c1ccccc1C", ff).getMolecule()
-    mol1 = BSS.Parameters.parameterise("c1ccccc1", ff).getMolecule()
+    mol0 = BSS.Parameters.parameterise("c1ccccc1C", ff, use_nagl=False).getMolecule()
+    mol1 = BSS.Parameters.parameterise("c1ccccc1", ff, use_nagl=False).getMolecule()
     return BSS.Align.merge(mol0, mol1).toSystem()
 
 

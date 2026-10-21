@@ -214,7 +214,9 @@ class TestGromacsRBFE:
 @pytest.fixture(scope="module")
 def system_and_mdr_restraint():
     # Benzene.
-    m = BSS.Parameters.openff_unconstrained_2_0_0("c1ccccc1").getMolecule()
+    m = BSS.Parameters.openff_unconstrained_2_0_0(
+        "c1ccccc1", use_nagl=False
+    ).getMolecule()
     m._sire_object = m._sire_object.edit().rename("LIG").molecule().commit()
 
     # Assign atoms for restraint
@@ -271,7 +273,9 @@ class TestGromacsABFE:
     @pytest.fixture(scope="class")
     def system():
         # Benzene.
-        m0 = BSS.Parameters.openff_unconstrained_2_0_0("c1ccccc1").getMolecule()
+        m0 = BSS.Parameters.openff_unconstrained_2_0_0(
+            "c1ccccc1", use_nagl=False
+        ).getMolecule()
         m0._sire_object = m0._sire_object.edit().rename("LIG").molecule().commit()
         protocol = FreeEnergyMinimisation(
             lam=0.0,
@@ -425,7 +429,9 @@ class TestSomdABFE:
     @pytest.fixture(scope="class")
     def system_and_boresch_restraint():
         # Benzene.
-        m = BSS.Parameters.openff_unconstrained_2_0_0("c1ccccc1").getMolecule()
+        m = BSS.Parameters.openff_unconstrained_2_0_0(
+            "c1ccccc1", use_nagl=False
+        ).getMolecule()
 
         # Assign atoms for restraint
         atom_1 = m.getAtoms()[0]
