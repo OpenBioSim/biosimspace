@@ -73,7 +73,7 @@ def test_molecule_rename():
 
     # Create the parameterised molecule.
     mol = BSS.Parameters.openff_unconstrained_2_0_0(
-        "[C@@H](C(F)(F)F)(OC(F)F)Cl"
+        "[C@@H](C(F)(F)F)(OC(F)F)Cl", use_nagl=False
     ).getMolecule()
 
     # Make sure the name is correct.

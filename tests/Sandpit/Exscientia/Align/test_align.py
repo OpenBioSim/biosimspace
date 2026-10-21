@@ -81,14 +81,14 @@ def test_invalid_prematch(system0, system1, prematch):
 @pytest.fixture()
 def propane():
     return BSS.Parameters.parameterise(
-        "CCC", "openff_unconstrained-2.0.0"
+        "CCC", "openff_unconstrained-2.0.0", use_nagl=False
     ).getMolecule()
 
 
 @pytest.fixture()
 def butane():
     return BSS.Parameters.parameterise(
-        "CCCC", "openff_unconstrained-2.0.0"
+        "CCCC", "openff_unconstrained-2.0.0", use_nagl=False
     ).getMolecule()
 
 
@@ -902,8 +902,8 @@ def test_ring_opening_and_size_change(ligands, mapping):
     m0 = BSS.IO.readMolecules(f"{url}/{ligands[0]}.sdf.bz2")[0]
     m1 = BSS.IO.readMolecules(f"{url}/{ligands[1]}.sdf.bz2")[0]
 
-    m0 = BSS.Parameters.openff_unconstrained_2_1_1(m0).getMolecule()
-    m1 = BSS.Parameters.openff_unconstrained_2_1_1(m1).getMolecule()
+    m0 = BSS.Parameters.openff_unconstrained_2_1_1(m0, use_nagl=False).getMolecule()
+    m1 = BSS.Parameters.openff_unconstrained_2_1_1(m1, use_nagl=False).getMolecule()
 
     m0 = BSS.Align.rmsdAlign(m0, m1, mapping)
 

@@ -483,7 +483,7 @@ def test_vacuum_com():
     """
 
     # Create a test molecule.
-    mol = BSS.Parameters.openff_unconstrained_2_0_0("CC").getMolecule()
+    mol = BSS.Parameters.openff_unconstrained_2_0_0("CC", use_nagl=False).getMolecule()
 
     # Create a short minimisation protocol.
     protocol = BSS.Protocol.Minimisation(steps=100)

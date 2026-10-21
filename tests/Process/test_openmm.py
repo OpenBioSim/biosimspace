@@ -80,7 +80,7 @@ def test_rhombic_dodecahedron():
     """Test that OpenMM can load and run rhombic dodecahedral triclinic spaces."""
 
     # Create a methane molecule.
-    mol = BSS.Parameters.openff_unconstrained_2_0_0("C").getMolecule()
+    mol = BSS.Parameters.openff_unconstrained_2_0_0("C", use_nagl=False).getMolecule()
 
     # Generate box dimensions and angles for a hexagonal rhombic dodecahedron.
     box, angles = BSS.Box.rhombicDodecahedronHexagon(5 * BSS.Units.Length.nanometer)

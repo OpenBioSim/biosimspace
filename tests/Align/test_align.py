@@ -939,8 +939,8 @@ def test_ring_opening_and_size_change(ligands, mapping):
     m0 = BSS.IO.readMolecules(f"{url}/{ligands[0]}.sdf.bz2")[0]
     m1 = BSS.IO.readMolecules(f"{url}/{ligands[1]}.sdf.bz2")[0]
 
-    m0 = BSS.Parameters.openff_unconstrained_2_1_1(m0).getMolecule()
-    m1 = BSS.Parameters.openff_unconstrained_2_1_1(m1).getMolecule()
+    m0 = BSS.Parameters.openff_unconstrained_2_1_1(m0, use_nagl=False).getMolecule()
+    m1 = BSS.Parameters.openff_unconstrained_2_1_1(m1, use_nagl=False).getMolecule()
 
     m0 = BSS.Align.rmsdAlign(m0, m1, mapping)
 
@@ -1237,10 +1237,10 @@ def test_ring_breaking_cross_bond_cleanup():
     }
 
     mol0 = BSS.Parameters.openff_unconstrained_2_2_1(
-        BSS.IO.readMolecules(f"{url}/5033.sdf")[0]
+        BSS.IO.readMolecules(f"{url}/5033.sdf")[0], use_nagl=False
     ).getMolecule()
     mol1 = BSS.Parameters.openff_unconstrained_2_2_1(
-        BSS.IO.readMolecules(f"{url}/5035.sdf")[0]
+        BSS.IO.readMolecules(f"{url}/5035.sdf")[0], use_nagl=False
     ).getMolecule()
 
     mol0_aligned = BSS.Align.rmsdAlign(mol0, mol1, mapping)
