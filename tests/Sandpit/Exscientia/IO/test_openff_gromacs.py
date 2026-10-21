@@ -27,10 +27,14 @@ def test_molecule_combine():
     # which have different parameters.
 
     # Toluene.
-    m0 = BSS.Parameters.openff_unconstrained_2_0_0("Cc1ccccc1").getMolecule()
+    m0 = BSS.Parameters.openff_unconstrained_2_0_0(
+        "Cc1ccccc1", use_nagl=False
+    ).getMolecule()
 
     # Benzene.
-    m1 = BSS.Parameters.openff_unconstrained_2_0_0("c1ccccc1").getMolecule()
+    m1 = BSS.Parameters.openff_unconstrained_2_0_0(
+        "c1ccccc1", use_nagl=False
+    ).getMolecule()
 
     # Translate m1 such that the molecules don't interact.
     m1.translate(3 * [50 * BSS.Units.Length.angstrom])

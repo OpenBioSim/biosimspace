@@ -111,7 +111,8 @@ def generateNetwork(
         molecule will be used.
 
     work_dir : str
-        The working directory for the LOMAP process.
+        The working directory for the LOMAP process. Any existing 'inputs'
+        and 'outputs' sub-directories are replaced on each call.
 
     plot_network : bool
         Whether to plot the network when running from within a notebook.
@@ -169,6 +170,7 @@ def generateNetwork(
     """
     import csv as _csv
     import os as _os
+    import shutil as _shutil
 
     from .. import IO as _IO
     from .. import _is_notebook, _isVerbose, _Utils
@@ -288,9 +290,11 @@ def generateNetwork(
     # Create the working directory.
     work_dir = _Utils.WorkDir(work_dir)
 
-    # Make the LOMAP input and output directories.
-    _os.makedirs(work_dir + "/inputs", exist_ok=True)
-    _os.makedirs(work_dir + "/outputs", exist_ok=True)
+    # Make fresh LOMAP input and output directories, since LOMAP loads every
+    # file in the input directory.
+    for sub_dir in ["inputs", "outputs"]:
+        _shutil.rmtree(f"{work_dir}/{sub_dir}", ignore_errors=True)
+        _os.makedirs(f"{work_dir}/{sub_dir}")
 
     # Dictionary to map ligand names in the links file to the file names
     # that are used in the working directory.
@@ -386,6 +390,7 @@ def generateNetwork(
                 new_line = f"{links_names[records[0]]} {links_names[records[1]]}"
                 if len(records) > 2:
                     new_line += " " + " ".join(records[2:])
+                new_lines.append(new_line + "\n")
 
         # Store the path to the new file.
         lf = f"{work_dir}/inputs/lomap_links_file.txt"

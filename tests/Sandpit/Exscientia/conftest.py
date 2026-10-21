@@ -144,14 +144,14 @@ def get_energy(
 @pytest.fixture
 def benzene():
     return BSS.Parameters.parameterise(
-        "c1ccccc1", "openff_unconstrained-2.0.0"
+        "c1ccccc1", "openff_unconstrained-2.0.0", use_nagl=False
     ).getMolecule()
 
 
 @pytest.fixture
 def pyrrole():
     return BSS.Parameters.parameterise(
-        "C1=CNC=C1", "openff_unconstrained-2.0.0"
+        "C1=CNC=C1", "openff_unconstrained-2.0.0", use_nagl=False
     ).getMolecule()
 
 

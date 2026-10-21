@@ -134,7 +134,7 @@ def test_extract(system):
 )
 def test_lipid(lipid):
     ff = "openff_unconstrained-2.0.0"
-    mol = BSS.Parameters.parameterise("c1ccccc1C", ff).getMolecule()
+    mol = BSS.Parameters.parameterise("c1ccccc1C", ff, use_nagl=False).getMolecule()
     if lipid:
         sire_obj = mol._sire_object
         c = sire_obj.cursor()
