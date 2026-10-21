@@ -115,11 +115,15 @@ def test_file_cache_mol_nums():
     BSS.IO.clearCache()
 
     # Create an initial system.
-    system = BSS.Parameters.openff_unconstrained_2_0_0("CO").getMolecule().toSystem()
+    system = (
+        BSS.Parameters.openff_unconstrained_2_0_0("CO", use_nagl=False)
+        .getMolecule()
+        .toSystem()
+    )
 
     # Create two different 5 atom molecules.
-    mol0 = BSS.Parameters.openff_unconstrained_2_0_0("C").getMolecule()
-    mol1 = BSS.Parameters.openff_unconstrained_2_0_0("CF").getMolecule()
+    mol0 = BSS.Parameters.openff_unconstrained_2_0_0("C", use_nagl=False).getMolecule()
+    mol1 = BSS.Parameters.openff_unconstrained_2_0_0("CF", use_nagl=False).getMolecule()
 
     # Create two new systems by adding the different molecules to the original
     # system. These will have the same UID, but different molecule numbers.
