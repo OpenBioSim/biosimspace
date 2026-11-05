@@ -1689,3 +1689,99 @@ def test_network_links_file(network_ligands, tmp_path):
 
     assert (1, 4) in edges
     assert scores[edges.index((1, 4))] == pytest.approx(0.5)
+
+
+@pytest.mark.parametrize(
+    "smiles0, smiles1",
+    [
+        ("c1ccccc1", "Cc1ccccc1"),
+        ("Cc1ccccc1", "c1ccccc1"),
+        ("C1CCCCC1", "C1CCCC1"),
+        ("CCO", "CCCO"),
+        ("CC(C)(C)O", "CC(C)(C)C"),
+    ],
+)
+@pytest.mark.parametrize("scoring_function", ["RMSD", "RMSDALIGN"])
+@pytest.mark.parametrize("use_prematch", [False, True])
+def test_score_rdkit_mappings(smiles0, smiles1, scoring_function, use_prematch):
+    # Check the scored mappings against a brute-force reference: every unique
+    # mapping from every pair of substructure matches, each scored independently,
+    # using Horn's quaternion method for the aligned RMSD.
+    import numpy as np
+    from rdkit import Chem
+    from rdkit.Chem import rdFMCS
+    from sire.legacy.Maths import getRMSD
+
+    from BioSimSpace.Align._align import _score_rdkit_mappings
+
+    max_matches = 50
+
+    mol0 = BSS.Convert.smiles(smiles0)
+    mol1 = BSS.Convert.smiles(smiles1)
+    rdmol0 = BSS.Convert.toRDKit(mol0)
+    rdmol1 = BSS.Convert.toRDKit(mol1)
+    mcs = rdFMCS.FindMCS([rdmol0, rdmol1], **BSS.Align.defaultMCSOptions())
+    smarts = Chem.MolFromSmarts(mcs.smartsString)
+
+    matches0 = rdmol0.GetSubstructMatches(
+        smarts, uniquify=False, maxMatches=max_matches, useChirality=False
+    )
+    matches1 = rdmol1.GetSubstructMatches(
+        smarts, uniquify=False, maxMatches=max_matches, useChirality=False
+    )
+    expected = {tuple(sorted(zip(m0, m1))) for m0 in matches0 for m1 in matches1}
+
+    prematch = {}
+    if use_prematch:
+        idx0, idx1 = sorted(expected)[0][0]
+        prematch = {idx0: idx1}
+        expected = {m for m in expected if (idx0, idx1) in m}
+
+    mappings, scores = _score_rdkit_mappings(
+        mol0._sire_object,
+        mol1._sire_object,
+        rdmol0,
+        rdmol1,
+        smarts,
+        prematch,
+        scoring_function,
+        max_matches,
+        {},
+        {},
+    )
+
+    found = [tuple(sorted(mapping.items())) for mapping in mappings]
+    assert len(found) == len(set(found))
+    assert set(found) == expected
+
+    scores = [score.value() for score in scores]
+    assert scores == sorted(scores)
+
+    def xyz(coords):
+        return np.array([[c.x().value(), c.y().value(), c.z().value()] for c in coords])
+
+    def aligned_rmsd(x, y):
+        x = x - x.mean(axis=0)
+        y = y - y.mean(axis=0)
+        (sxx, sxy, sxz), (syx, syy, syz), (szx, szy, szz) = x.T @ y
+        k = np.array(
+            [
+                [sxx + syy + szz, syz - szy, szx - sxz, sxy - syx],
+                [syz - szy, sxx - syy - szz, sxy + syx, szx + sxz],
+                [szx - sxz, sxy + syx, -sxx + syy - szz, syz + szy],
+                [sxy - syx, szx + sxz, syz + szy, -sxx - syy + szz],
+            ]
+        )
+        msd = ((x**2).sum() + (y**2).sum() - 2 * np.linalg.eigvalsh(k)[-1]) / len(x)
+        return np.sqrt(max(msd, 0.0))
+
+    sire0 = mol0._sire_object
+    sire1 = mol1._sire_object
+    for mapping, score in zip(mappings, scores):
+        c0 = [sire0.atom(AtomIdx(i)).property("coordinates") for i in mapping]
+        c1 = [sire1.atom(AtomIdx(j)).property("coordinates") for j in mapping.values()]
+        if scoring_function == "RMSDALIGN":
+            reference = aligned_rmsd(xyz(c0), xyz(c1))
+        else:
+            reference = getRMSD(c0, c1)
+        assert score == pytest.approx(reference, abs=1e-6)
