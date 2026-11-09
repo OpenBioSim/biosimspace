@@ -4,7 +4,7 @@ channels = ["conda-forge", "openbiosim/label/dev"]
 platforms = ["linux-64", "linux-aarch64", "osx-arm64", "win-64"]
 
 [dependencies]
-python = ">=3.10"
+python = ">=3.12"
 configargparse = "*"
 ipywidgets = "*"
 kcombu_bss = "*"
@@ -30,7 +30,7 @@ ambertools = ">=22"
 gromacs = "*"
 alchemlyb = "*"
 mdtraj = "*"
-mdanalysis = "*"
+mdanalysis = ">=2.10.0"
 
 
 [target.linux-aarch64.dependencies]
@@ -48,7 +48,7 @@ sire = "==2026.3.0.dev"
 ambertools = ">=22"
 alchemlyb = "*"
 mdtraj = "*"
-mdanalysis = "*"
+mdanalysis = ">=2.10.0"
 
 [target.win-64.dependencies]
 # main
@@ -57,7 +57,7 @@ mdanalysis = "*"
 sire = "==2026.3.0.dev"
 alchemlyb = "*"
 mdtraj = "*"
-mdanalysis = "*"
+mdanalysis = ">=2.10.0"
 
 [feature.test.dependencies]
 pytest = "*"
