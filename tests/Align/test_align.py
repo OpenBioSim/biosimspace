@@ -1785,3 +1785,52 @@ def test_score_rdkit_mappings(smiles0, smiles1, scoring_function, use_prematch):
         else:
             reference = getRMSD(c0, c1)
         assert score == pytest.approx(reference, abs=1e-6)
+
+
+def test_timeout_heavy_atom_mapping():
+    """
+    Make sure that a pair whose maximum common substructure search can time
+    out with a truncated mapping still gets the complete mapping.
+    """
+
+    mol0 = BSS.Convert.smiles("CC1(C)CNc2cc(O)c(C(=O)N3Cc4ccccc4C3)cc21")
+    mol1 = BSS.Convert.smiles("CC(C)c1cc(C(=O)N2Cc3ccccc3C2)c(O)cc1O")
+
+    # Whether or not the search times out, the mapping should be complete.
+    mapping = BSS.Align.matchAtoms(mol0, mol1, timeout=1 * BSS.Units.Time.second)
+    assert len(mapping) == 29
+
+
+def test_heavy_atom_mappings():
+    """
+    Test mapping the heavy atoms first, then extending the mapping to the
+    remaining atoms.
+    """
+
+    from BioSimSpace.Align._align import _heavy_atom_mappings
+
+    mol0 = BSS.Convert.smiles("CC1(C)CNc2cc(O)c(C(=O)N3Cc4ccccc4C3)cc21")
+    mol1 = BSS.Convert.smiles("CC(C)c1cc(C(=O)N2Cc3ccccc3C2)c(O)cc1O")
+
+    mcs_options = BSS.Align.defaultMCSOptions()
+    mcs_options["timeout"] = 30
+
+    mappings, scores, canceled = _heavy_atom_mappings(
+        mol0._sire_object,
+        mol1._sire_object,
+        BSS.Convert.toRDKit(mol0),
+        BSS.Convert.toRDKit(mol1),
+        mcs_options,
+        {},
+        "RMSDALIGN",
+        1000,
+        {},
+        {},
+    )
+
+    assert not canceled
+    assert len(mappings[0]) == 29
+    assert all(
+        isinstance(k, int) and isinstance(v, int) for k, v in mappings[0].items()
+    )
+    assert len(scores) == len(mappings)
