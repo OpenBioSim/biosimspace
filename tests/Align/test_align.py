@@ -1834,3 +1834,69 @@ def test_heavy_atom_mappings():
         isinstance(k, int) and isinstance(v, int) for k, v in mappings[0].items()
     )
     assert len(scores) == len(mappings)
+
+
+@pytest.mark.parametrize("mcs_strategy", ["full", "heavy", "both"])
+def test_mcs_strategy(mcs_strategy):
+    """
+    Make sure that each MCS strategy finds the complete mapping for a pair
+    with a shared isoindoline amide.
+    """
+
+    mol0 = BSS.Convert.smiles("CC1(C)CNc2cc(O)c(C(=O)N3Cc4ccccc4C3)cc21")
+    mol1 = BSS.Convert.smiles("CC(C)c1cc(C(=O)N2Cc3ccccc3C2)c(O)cc1O")
+
+    mappings, scores = BSS.Align.matchAtoms(
+        mol0,
+        mol1,
+        matches=5,
+        return_scores=True,
+        timeout=30 * BSS.Units.Time.second,
+        mcs_strategy=mcs_strategy,
+    )
+
+    assert len(mappings[0]) == 29
+    assert len(mappings) == len(scores)
+
+    # Mappings are ranked by size, then score.
+    ranks = [(-len(m), s.angstroms().value()) for m, s in zip(mappings, scores)]
+    assert ranks == sorted(ranks)
+
+
+def test_mcs_strategy_invalid():
+    """Make sure that invalid MCS strategies are rejected."""
+
+    mol0 = BSS.Convert.smiles("CCO")
+    mol1 = BSS.Convert.smiles("CCN")
+
+    with pytest.raises(ValueError):
+        BSS.Align.matchAtoms(mol0, mol1, mcs_strategy="fast")
+
+    with pytest.raises(ValueError):
+        BSS.Align.matchAtoms(mol0, mol1, roi=[0], mcs_strategy="both")
+
+    with pytest.raises(TypeError):
+        BSS.Align.matchAtoms(mol0, mol1, roi=[0], mcs_strategy=None)
+
+
+def test_mcs_strategy_both_heavy_failure(monkeypatch):
+    """
+    Make sure that 'both' keeps the full search mapping if the heavy atom
+    search fails.
+    """
+
+    import BioSimSpace.Align._align as align
+
+    def fail(*args, **kwargs):
+        raise RuntimeError("failed")
+
+    monkeypatch.setattr(align, "_heavy_atom_mappings", fail)
+
+    mol0 = BSS.Convert.smiles("CCO")
+    mol1 = BSS.Convert.smiles("CCN")
+
+    expected = BSS.Align.matchAtoms(mol0, mol1)
+    with pytest.warns(UserWarning, match="Heavy atom mapping failed"):
+        mapping = BSS.Align.matchAtoms(mol0, mol1, mcs_strategy="both")
+
+    assert mapping == expected
