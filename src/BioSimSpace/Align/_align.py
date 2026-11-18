@@ -749,6 +749,7 @@ def matchAtoms(
     property_map0={},
     property_map1={},
     mcs_kwargs={},
+    mcs_strategy="full",
 ):
     """
     Find mappings between atom indices in molecule0 to those in molecule1.
@@ -809,6 +810,17 @@ def matchAtoms(
         A dictionary of keyword arguments used to override the defaults
         passed to the RDKit MCS search. This option is only relevant to MCS
         performed using RDKit and will be ignored when falling back on Sire.
+
+    mcs_strategy : str
+        How to search for the maximum common substructure. "full" searches
+        all atoms, including hydrogens. "heavy" searches the heavy atoms only,
+        then extends the mapping to the hydrogens and acyclic heavy atoms
+        bonded to it, which is much faster for large molecules. "both" uses
+        the largest mapping from either search, choosing between mappings of
+        the same size by their score. A "full" search that times out also
+        tries "heavy", and uses its mapping if it is larger. Each search can
+        take up to 'timeout', so "both", or a "full" search that times out,
+        can take twice as long. Not supported with 'roi'.
 
     roi : list
         The region of interest to match.
@@ -917,8 +929,13 @@ def matchAtoms(
             property_map0=property_map0,
             property_map1=property_map1,
             mcs_kwargs=mcs_kwargs,
+            mcs_strategy=mcs_strategy,
         )
     else:
+        if not isinstance(mcs_strategy, str):
+            raise TypeError("'mcs_strategy' must be of type 'str'")
+        if mcs_strategy.lower().replace(" ", "") != "full":
+            raise ValueError("'mcs_strategy' is not supported with 'roi'.")
         return _roiMatch(
             molecule0,
             molecule1,
@@ -1113,8 +1130,10 @@ def _matchAtoms(
     property_map0={},
     property_map1={},
     mcs_kwargs={},
+    mcs_strategy="full",
     *,
     _check_mapping=True,
+    _heavy_fallback=True,
 ):
     import sys as _sys
 
@@ -1122,6 +1141,7 @@ def _matchAtoms(
     from sire.legacy import Units as _SireUnits
 
     from .. import Convert as _Convert
+    from .._Exceptions import AlignmentError as _AlignmentError
     from .._Exceptions import MissingSoftwareError as _MissingSoftwareError
     from .._SireWrappers import Molecule as _Molecule
 
@@ -1181,6 +1201,12 @@ def _matchAtoms(
     if not isinstance(mcs_kwargs, dict):
         raise TypeError("'mcs_kwargs' must be of type 'dict'")
 
+    if not isinstance(mcs_strategy, str):
+        raise TypeError("'mcs_strategy' must be of type 'str'")
+    mcs_strategy = mcs_strategy.lower().replace(" ", "")
+    if mcs_strategy not in ("full", "heavy", "both"):
+        raise ValueError("'mcs_strategy' must be one of 'full', 'heavy' or 'both'.")
+
     if type(max_scoring_matches) is not int:
         raise TypeError("'max_scoring_matches' must be of type 'int'")
 
@@ -1229,27 +1255,88 @@ def _matchAtoms(
         mcs_options["timeout"] = timeout
 
         # Generate the MCS match.
-        mcs = _rdFMCS.FindMCS(mols, **mcs_options)
+        if mcs_strategy != "heavy":
+            mcs = _rdFMCS.FindMCS(mols, **mcs_options)
 
-        # Get the common substructure as a SMARTS string.
-        mcs_smarts = _Chem.MolFromSmarts(mcs.smartsString)
+            # Get the common substructure as a SMARTS string.
+            mcs_smarts = _Chem.MolFromSmarts(mcs.smartsString)
 
     except Exception as e:
         raise RuntimeError(f"RDKit MCS mapping failed: {e}")
 
     # Score the mappings and return them in sorted order (best to worst).
-    mappings, scores = _score_rdkit_mappings(
-        mol0,
-        mol1,
-        mols[0],
-        mols[1],
-        mcs_smarts,
-        prematch,
-        _scoring_function,
-        max_scoring_matches,
-        property_map0,
-        property_map1,
-    )
+    if mcs_strategy == "heavy":
+        try:
+            mappings, scores, heavy_canceled = _heavy_atom_mappings(
+                mol0,
+                mol1,
+                mols[0],
+                mols[1],
+                mcs_options,
+                prematch,
+                _scoring_function,
+                max_scoring_matches,
+                property_map0,
+                property_map1,
+            )
+        except _AlignmentError:
+            raise
+        except Exception as e:
+            raise RuntimeError(f"RDKit heavy atom MCS mapping failed: {e}")
+        if heavy_canceled:
+            _warn_mcs_timeout(timeout)
+    else:
+        mappings, scores = _score_rdkit_mappings(
+            mol0,
+            mol1,
+            mols[0],
+            mols[1],
+            mcs_smarts,
+            prematch,
+            _scoring_function,
+            max_scoring_matches,
+            property_map0,
+            property_map1,
+        )
+
+    # A search that times out can return a truncated mapping, so try mapping
+    # the heavy atoms first, which is much faster.
+    if _heavy_fallback and (
+        mcs_strategy == "both" or (mcs_strategy == "full" and mcs.canceled)
+    ):
+        try:
+            heavy_mappings, heavy_scores, heavy_canceled = _heavy_atom_mappings(
+                mol0,
+                mol1,
+                mols[0],
+                mols[1],
+                mcs_options,
+                prematch,
+                _scoring_function,
+                max_scoring_matches,
+                property_map0,
+                property_map1,
+            )
+        except Exception as e:
+            heavy_mappings, heavy_scores, heavy_canceled = [{}], [], True
+            _warnings.warn(f"Heavy atom mapping failed: {e}")
+
+        if mcs_strategy == "both":
+            mappings, scores = _merge_mappings(
+                mappings, scores, heavy_mappings, heavy_scores
+            )
+            if mcs.canceled and heavy_canceled:
+                _warn_mcs_timeout(timeout)
+        elif len(heavy_mappings[0]) > len(mappings[0]):
+            _warnings.warn(
+                f"The maximum common substructure search timed out after "
+                f"{timeout} s, so mapping the heavy atoms first gave a larger "
+                f"mapping ({len(heavy_mappings[0])} rather than "
+                f"{len(mappings[0])} atoms), which is used instead."
+            )
+            mappings, scores = heavy_mappings, heavy_scores
+        elif heavy_canceled:
+            _warn_mcs_timeout(timeout)
 
     # Sometimes RDKit fails to generate a mapping that includes the prematch.
     # If so, then try generating a mapping using the MCS routine from Sire.
@@ -1381,7 +1468,9 @@ def _matchAtoms(
                     property_map0=property_map0,
                     property_map1=property_map1,
                     mcs_kwargs={"ringMatchesRingOnly": False},
+                    mcs_strategy=mcs_strategy,
                     _check_mapping=False,
+                    _heavy_fallback=False,
                 )
 
                 # Only trust the retry if it extends the mapping, i.e. keeps
@@ -3172,6 +3261,251 @@ def _score_rdkit_mappings(
     return (mappings, scores)
 
 
+def _warn_mcs_timeout(timeout):
+    """
+    Internal function to warn that a maximum common substructure search timed
+    out, so the mapping may be incomplete.
+
+    Parameters
+    ----------
+
+    timeout : int
+        The timeout in seconds.
+    """
+    _warnings.warn(
+        f"The maximum common substructure search timed out after {timeout} s, "
+        f"so the mapping may be incomplete. Consider increasing 'timeout'."
+    )
+
+
+def _merge_mappings(mappings0, scores0, mappings1, scores1):
+    """
+    Internal function to merge two lists of ranked mappings, ordering them by
+    size (largest first) and then by score (lowest first).
+
+    Parameters
+    ----------
+
+    mappings0, mappings1 : [dict]
+        The ranked mappings.
+
+    scores0, scores1 : [BioSimSpace.Types.Length]
+        The scores for each mapping.
+
+    Returns
+    -------
+
+    mappings, scores : ([dict], list)
+        The merged mappings and their scores.
+    """
+    merged = {}
+    for mappings, scores in ((mappings0, scores0), (mappings1, scores1)):
+        for mapping, score in zip(mappings, scores):
+            key = tuple(sorted(mapping.items()))
+            if key and key not in merged:
+                merged[key] = (mapping, score)
+
+    if not merged:
+        return mappings0, scores0
+
+    ranked = sorted(
+        merged.values(), key=lambda x: (-len(x[0]), x[1].angstroms().value())
+    )
+    return [m for m, _ in ranked], [s for _, s in ranked]
+
+
+def _heavy_atom_mappings(
+    molecule0,
+    molecule1,
+    rdkit_molecule0,
+    rdkit_molecule1,
+    mcs_options,
+    prematch,
+    scoring_function,
+    max_scoring_matches,
+    property_map0,
+    property_map1,
+):
+    """
+    Internal function to map the heavy atoms with an RDKit maximum common
+    substructure search, then extend each mapping outwards to the hydrogens and
+    acyclic heavy atoms bonded to it. This is used when the search including
+    hydrogens times out.
+
+    Parameters
+    ----------
+
+    molecule0 : Sire.Molecule.Molecule
+        The first molecule (Sire representation).
+
+    molecule1 : Sire.Molecule.Molecule
+        The second molecule (Sire representation).
+
+    rdkit_molecule0 : rdkit.Chem.rdchem.Mol
+        The first molecule (RDKit representation).
+
+    rdkit_molecule1 : rdkit.Chem.rdchem.Mol
+        The second molecule (RDKit representation).
+
+    mcs_options : dict
+        The options for the RDKit maximum common substructure search.
+
+    prematch : dict
+        A dictionary of atom mappings that must be included in the match.
+
+    scoring_function : str
+        The RMSD scoring function.
+
+    max_scoring_matches : int
+        The maximum number of matching substructures to score.
+
+    property_map0 : dict
+        A dictionary that maps "properties" in molecule0 to their user
+        defined values.
+
+    property_map1 : dict
+        A dictionary that maps "properties" in molecule1 to their user
+        defined values.
+
+    Returns
+    -------
+
+    mappings, scores, canceled : ([dict], list, bool)
+        The ranked mappings of the largest size, their scores, and whether the
+        heavy atom search timed out. If there are no mappings, then the
+        mappings are [prematch], or [{}] without a prematch.
+    """
+
+    import collections as _collections
+    import itertools as _itertools
+
+    import numpy as _np
+
+    def _closest_pairs(a, b, x0, x1):
+        # Pair atoms a with atoms b to minimise the total distance. There are
+        # only a few neighbours per atom, so try every assignment.
+        swap = len(a) > len(b)
+        if swap:
+            a, b, x0, x1 = b, a, x1, x0
+        best, best_cost = None, None
+        for perm in _itertools.permutations(b, len(a)):
+            cost = sum(_np.linalg.norm(x0[i] - x1[j]) for i, j in zip(a, perm))
+            if best_cost is None or cost < best_cost:
+                best, best_cost = perm, cost
+        pairs = list(zip(a, best))
+        return [(j, i) for i, j in pairs] if swap else pairs
+
+    def _heavy(mol):
+        index = [a.GetIdx() for a in mol.GetAtoms() if a.GetAtomicNum() != 1]
+        heavy = _Chem.RWMol(mol)
+        for atom in reversed(mol.GetAtoms()):
+            if atom.GetAtomicNum() == 1:
+                heavy.RemoveAtom(atom.GetIdx())
+        heavy = heavy.GetMol()
+        heavy.UpdatePropertyCache(strict=False)
+        _Chem.FastFindRings(heavy)
+        return heavy, index
+
+    def _coords(molecule, property_map):
+        prop = property_map.get("coordinates", "coordinates")
+        return _np.array(
+            [
+                [v.x().value(), v.y().value(), v.z().value()]
+                for v in molecule.property(prop).to_vector()
+            ]
+        )
+
+    def _rings(mol):
+        mol = _Chem.Mol(mol)
+        _Chem.FastFindRings(mol)
+        info = mol.GetRingInfo()
+        return {a.GetIdx() for a in mol.GetAtoms() if info.NumAtomRings(a.GetIdx())}
+
+    heavy0, index0 = _heavy(rdkit_molecule0)
+    heavy1, index1 = _heavy(rdkit_molecule1)
+
+    mcs = _rdFMCS.FindMCS([heavy0, heavy1], **mcs_options)
+    pattern = _Chem.MolFromSmarts(mcs.smartsString)
+    matches0 = heavy0.GetSubstructMatches(
+        pattern, uniquify=False, maxMatches=max_scoring_matches, useChirality=False
+    )
+    matches1 = heavy1.GetSubstructMatches(
+        pattern, uniquify=False, maxMatches=max_scoring_matches, useChirality=False
+    )
+    if len(matches0) == 0 or len(matches1) == 0:
+        return [prematch if prematch else {}], [], mcs.canceled
+
+    coords0 = _coords(molecule0, property_map0)
+    coords1 = _coords(molecule1, property_map1)
+    rings0 = _rings(rdkit_molecule0)
+    rings1 = _rings(rdkit_molecule1)
+
+    def _is_heavy(mol, idx):
+        return mol.GetAtomWithIdx(idx).GetAtomicNum() != 1
+
+    def _candidates(mol, rings, idx, mapped):
+        return [
+            n.GetIdx()
+            for n in mol.GetAtomWithIdx(idx).GetNeighbors()
+            if n.GetIdx() not in mapped and n.GetIdx() not in rings
+        ]
+
+    def _extend(core):
+        # Align molecule0 onto molecule1 using the core, so that neighbouring
+        # atoms can be paired by distance.
+        mapping = dict(core)
+        c0 = coords0[list(mapping.keys())]
+        c1 = coords1[list(mapping.values())]
+        u, _, vt = _np.linalg.svd((c0 - c0.mean(axis=0)).T @ (c1 - c1.mean(axis=0)))
+        d = _np.sign(_np.linalg.det(u @ vt))
+        x0 = (coords0 - c0.mean(axis=0)) @ (u @ _np.diag([1.0, 1.0, d]) @ vt)
+        x0 = x0 + c1.mean(axis=0)
+
+        inverse = {j: i for i, j in mapping.items()}
+        queue = _collections.deque(mapping.items())
+        while queue:
+            i, j = queue.popleft()
+            a = _candidates(rdkit_molecule0, rings0, i, mapping)
+            b = _candidates(rdkit_molecule1, rings1, j, inverse)
+            if not a or not b:
+                continue
+            for p, q in _closest_pairs(a, b, x0, coords1):
+                mapping[p] = q
+                inverse[q] = p
+                # Hydrogens, and anything mapped to one, end the extension.
+                if _is_heavy(rdkit_molecule0, p) and _is_heavy(rdkit_molecule1, q):
+                    queue.append((p, q))
+        return mapping
+
+    # Each mapping pairs the first match in molecule0 with a match in molecule1,
+    # since the matches in molecule1 include every equivalent ordering.
+    seen = set()
+    extended = []
+    for match1 in matches1:
+        core = tuple(
+            sorted((index0[i], index1[j]) for i, j in zip(matches0[0], match1))
+        )
+        if core in seen:
+            continue
+        seen.add(core)
+        # Cores of fewer than three atoms can't be aligned to pair neighbours.
+        extended.append(_extend(core) if len(core) > 2 else dict(core))
+
+    # Score the largest mappings.
+    size = max(len(m) for m in extended)
+    largest = [_to_sire_mapping(m) for m in extended if len(m) == size]
+    mappings, scores = _score_sire_mappings(
+        molecule0,
+        molecule1,
+        largest,
+        prematch,
+        scoring_function,
+        property_map0,
+        property_map1,
+    )
+    return mappings, scores, mcs.canceled
+
+
 def _score_sire_mappings(
     molecule0,
     molecule1,
@@ -3269,7 +3603,7 @@ def _score_sire_mappings(
             # If there is only a single atom in the mapping and one molecule
             # has one atom, e.g. an ion, then skip the alignment.
             if len(mapping) == 1:
-                mappings.append(mapping)
+                mappings.append(_from_sire_mapping(mapping))
                 scores.append(0.0)
             else:
                 # Rigidly align molecule0 to molecule1 based on the mapping.
