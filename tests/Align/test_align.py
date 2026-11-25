@@ -791,6 +791,51 @@ def test_roi_merge(protein_inputs):
     assert merged_system.nPerturbableMolecules() == 1
 
 
+@pytest.mark.skipif(has_amber is False, reason="Requires AMBER and to be installed.")
+def test_roi_merge_scale_factors(protein_inputs):
+    from sire.legacy.MM import CLJScaleFactor
+    from sire.legacy.Mol import AtomIdx
+
+    proteins, protein_mapping, roi = protein_inputs
+    p0 = BSS.IO.readMolecules(
+        BSS.IO.expand(BSS.tutorialUrl(), f"{proteins}_mut_peptide.pdb")
+    )[0]
+    p1 = BSS.IO.readMolecules(
+        BSS.IO.expand(BSS.tutorialUrl(), f"{proteins}_wt_peptide.pdb")
+    )[0]
+
+    p0 = BSS.Parameters.ff14SB(p0).getMolecule()
+    p1 = BSS.Parameters.ff14SB(p1).getMolecule()
+
+    aligned_p0 = BSS.Align.rmsdAlign(p0, p1, roi=roi)
+
+    # Set a 1-4 pair in the first residue, which precedes the ROI and so keeps
+    # its atom indices in the merged molecule, to a non-default value.
+    unscaled = CLJScaleFactor(1, 1)
+    excluded = CLJScaleFactor(0, 0)
+    mol = aligned_p0._sire_object
+    nb = mol.property("intrascale")
+    nats = aligned_p0.getResidues()[0].nAtoms()
+    pair = next(
+        (AtomIdx(i), AtomIdx(j))
+        for i in range(nats)
+        for j in range(i + 1, nats)
+        if nb.get(AtomIdx(i), AtomIdx(j)) not in (unscaled, excluded)
+    )
+    nb.set(*pair, unscaled)
+    aligned_p0 = BSS._SireWrappers.Molecule(
+        mol.edit().set_property("intrascale", nb).commit()
+    )
+
+    merged = BSS.Align.merge(aligned_p0, p1, protein_mapping, roi=roi)
+    assert merged._sire_object.property("intrascale0").get(*pair) == unscaled
+
+    merged = BSS.Align.merge(
+        aligned_p0, p1, protein_mapping, roi=roi, apply_scale_factors=False
+    )
+    assert merged._sire_object.property("intrascale0").get(*pair) != unscaled
+
+
 def test_ion_merge(system):
     from sire.legacy.IO import createSodiumIon
 

@@ -1477,15 +1477,13 @@ def merge(
     intra0 = _SireMM.CLJNBPairs(conn0, sf14)
     intra1 = _SireMM.CLJNBPairs(conn1, sf14)
 
-    # For non-ROI merges, patch with any non-default per-pair scale factors
-    # from the individual molecule intrascales (e.g. GLYCAM funct=2 overrides).
-    # This step can be skipped via apply_scale_factors=False when the caller
-    # knows no non-default scale factors are present.
+    # Patch with any non-default per-pair scale factors from the original
+    # intrascales, e.g. GLYCAM funct=2 overrides.
     if "apply_scale_factors" in kwargs:
         if not isinstance(kwargs["apply_scale_factors"], bool):
             raise TypeError("'apply_scale_factors' must be of type 'bool'")
 
-    if kwargs.get("apply_scale_factors", roi is None):
+    if kwargs.get("apply_scale_factors", True):
         intra0, intra1 = _SireIO.patchIntrascale(
             molecule0.property("intrascale"),
             molecule1.property("intrascale"),
