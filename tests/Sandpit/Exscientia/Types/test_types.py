@@ -153,3 +153,31 @@ def test_operators(Type):
     assert t1 > t0
     assert t1 < t2
     assert t2 > t1
+
+
+def test_temperature_arithmetic(monkeypatch):
+    """Test arithmetic operations on Temperature objects."""
+    from BioSimSpace.Sandpit.Exscientia import Units
+
+    t1 = Types.Temperature(300.0, "K")
+    t2 = Types.Temperature(10.0, "K")
+
+    assert (t1 + t2).value() == pytest.approx(310.0)
+    assert (t1 - t2).value() == pytest.approx(290.0)
+    assert (t1 + "10 K").value() == pytest.approx(310.0)
+    assert (t1 - "10 K").value() == pytest.approx(290.0)
+
+    monkeypatch.setattr(Units, "allow_offset", True)
+    c1 = Types.Temperature(25.0, "C")
+    c2 = Types.Temperature(5.0, "C")
+    assert (c1 + c2).value() == pytest.approx(30.0)
+    assert (c1 - c2).value() == pytest.approx(20.0)
+    assert (c1 / c2) == pytest.approx(5.0)
+
+    monkeypatch.setattr(Units, "allow_offset", False)
+    with pytest.raises(ValueError):
+        _ = c1 + c2
+    with pytest.raises(ValueError):
+        _ = c1 - c2
+    with pytest.raises(ValueError):
+        _ = c1 / c2
