@@ -155,7 +155,7 @@ class Length(_Type):
             return Length(mag, self._unit)
 
         # Multiplication by another Length.
-        elif isinstance(other, Length):
+        elif type(other) is type(self):
             mag = self.angstroms().value() * other.angstroms().value()
             return _Area(mag, "A2")
 

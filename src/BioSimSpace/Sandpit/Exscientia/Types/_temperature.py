@@ -112,7 +112,7 @@ class Temperature(_Type):
         from ..Units import allow_offset
 
         # Addition of another object of the same type.
-        if isinstance(other, type(self)):
+        if type(other) is type(self):
             # The temperatures have the same unit.
             if self._unit == other._unit:
                 if self._unit != "KELVIN":
@@ -157,7 +157,7 @@ class Temperature(_Type):
         from ..Units import allow_offset
 
         # Subtraction of another object of the same type.
-        if isinstance(other, type(self)):
+        if type(other) is type(self):
             # The temperatures have the same unit.
             if self._unit == other._unit:
                 if self._unit != "KELVIN":
@@ -273,7 +273,7 @@ class Temperature(_Type):
                     return Temperature(mag, self._unit)
 
                 # Division by another object of the same type.
-                elif isinstance(other, type(self)):
+                elif type(other) is type(self):
                     return self._value / other._convert_to(self._unit).value()
 
                 # Division by another type.

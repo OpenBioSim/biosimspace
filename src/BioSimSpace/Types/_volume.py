@@ -134,7 +134,7 @@ class Volume(_Type):
             return Volume(mag, self._unit)
 
         # Division by another Volume.
-        elif isinstance(other, Volume):
+        elif type(other) is type(self):
             return self.angstroms3().value() / other.angstroms3().value()
 
         # Division by an Area.
