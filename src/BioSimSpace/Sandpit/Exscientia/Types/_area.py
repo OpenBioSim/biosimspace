@@ -187,7 +187,7 @@ class Area(_Type):
             return Area(mag, self._unit)
 
         # Division by another Area.
-        elif isinstance(other, Area):
+        elif type(other) is type(self):
             return self.angstroms2().value() / other.angstroms2().value()
 
         # Division by a Length.
